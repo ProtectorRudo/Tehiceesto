@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";\nimport Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import ExperienceEngine from "@/components/ExperienceEngine";
 import { experiences, getExperience } from "@/data/experiences";
 
