@@ -74,7 +74,14 @@ export async function getPublishedGiftByCode(
 ): Promise<{
   experience: Experience;
   letterText?: string;
-  photoUrls?: string[];
+  photoMedia?: {
+    url: string;
+    caption?: string;
+    fit?: "cover" | "contain";
+    position?: "center" | "top" | "bottom" | "left" | "right";
+  }[];
+  audioMedia?: { url: string; caption?: string }[];
+  videoMedia?: { url: string; caption?: string }[];
 }> {
   const env = publicCredentials();
   if (!env) {
@@ -109,10 +116,37 @@ export async function getPublishedGiftByCode(
     throw new Error("gift_experience_not_found");
   }
 
-  const photoUrls = (payload.media || [])
+  const orderedMedia = [...(payload.media || [])].sort(
+    (a, b) => a.sort_order - b.sort_order,
+  );
+
+  const photoMedia = orderedMedia
     .filter((item) => item.kind === "image" && item.url)
-    .sort((a, b) => a.sort_order - b.sort_order)
-    .map((item) => item.url as string);
+    .map((item) => ({
+      url: item.url as string,
+      caption: item.caption || undefined,
+      fit: item.metadata?.fit === "contain" ? "contain" as const : "cover" as const,
+      position:
+        ["center", "top", "bottom", "left", "right"].includes(
+          String(item.metadata?.position || ""),
+        )
+          ? (item.metadata?.position as "center" | "top" | "bottom" | "left" | "right")
+          : "center",
+    }));
+
+  const audioMedia = orderedMedia
+    .filter((item) => item.kind === "audio" && item.url)
+    .map((item) => ({
+      url: item.url as string,
+      caption: item.caption || undefined,
+    }));
+
+  const videoMedia = orderedMedia
+    .filter((item) => item.kind === "video" && item.url)
+    .map((item) => ({
+      url: item.url as string,
+      caption: item.caption || undefined,
+    }));
 
   return {
     experience: {
@@ -128,7 +162,9 @@ export async function getPublishedGiftByCode(
       accent: row.theme_data?.accent || base.accent,
     },
     letterText: row.letter_text || undefined,
-    photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
+    photoMedia: photoMedia.length > 0 ? photoMedia : undefined,
+    audioMedia: audioMedia.length > 0 ? audioMedia : undefined,
+    videoMedia: videoMedia.length > 0 ? videoMedia : undefined,
   };
 }
 
