@@ -284,8 +284,8 @@ export async function getAdminGiftByCode(code: string): Promise<{
     } else {
       signedByPath = new Map(
         (signed || [])
-          .filter((item) => item.signedUrl)
-          .map((item) => [item.path, item.signedUrl as string]),
+          .filter((item) => item.path && item.signedUrl)
+          .map((item) => [item.path as string, item.signedUrl as string]),
       );
     }
   }
