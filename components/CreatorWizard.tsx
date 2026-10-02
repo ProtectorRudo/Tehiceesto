@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";\nimport Image from "next/image";
 import ExperienceEngine from "@/components/ExperienceEngine";
 import { experiences, getExperience } from "@/data/experiences";
 
@@ -253,7 +253,7 @@ export default function CreatorWizard() {
             <div className="photo-preview-grid">
               {photoUrls.map((url, index) => (
                 <figure key={url}>
-                  <img src={url} alt={photoNames[index] || "Recuerdo"} />
+                  <Image src={url} alt={photoNames[index] || "Recuerdo"} width={240} height={240} unoptimized />
                   <figcaption>0{index + 1}</figcaption>
                 </figure>
               ))}
