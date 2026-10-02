@@ -166,3 +166,99 @@ export async function listRecentGifts(limit = 30): Promise<AdminGiftSummary[]> {
 
   return (await response.json()) as AdminGiftSummary[];
 }
+
+
+export type AdminGiftDetail = {
+  id: string;
+  public_code: string;
+  status: string;
+  experience_slug: string;
+  giver_name: string;
+  recipient_name: string;
+  occasion: string | null;
+  feeling: string | null;
+  opening_text: string | null;
+  letter_text: string | null;
+  closing_text: string | null;
+  music_url: string | null;
+  scene_recipe: SceneType[];
+  story_data: {
+    relationship?: string;
+    keyDate?: string;
+    anecdote?: string;
+  } | null;
+  theme_data: { accent?: string } | null;
+  published_at: string | null;
+  created_at: string;
+};
+
+export type AdminGiftMedia = {
+  id: string;
+  kind: "image" | "video" | "audio";
+  storage_path: string;
+  caption: string | null;
+  sort_order: number;
+  metadata: {
+    originalName?: string;
+    mimeType?: string;
+    size?: number;
+    fit?: "cover" | "contain";
+    position?: "center" | "top" | "bottom" | "left" | "right";
+  } | null;
+  signed_url: string | null;
+};
+
+export async function getAdminGiftByCode(code: string): Promise<{
+  gift: AdminGiftDetail;
+  media: AdminGiftMedia[];
+} | null> {
+  const { createAdminSupabase } = await import("@/lib/supabase/admin");
+  const supabase = createAdminSupabase();
+
+  const { data: gift, error } = await supabase
+    .from("gifts")
+    .select("*")
+    .eq("public_code", code)
+    .single();
+
+  if (error || !gift) return null;
+
+  const { data: mediaRows, error: mediaError } = await supabase
+    .from("gift_media")
+    .select("id,kind,storage_path,caption,sort_order,metadata")
+    .eq("gift_id", gift.id)
+    .order("sort_order", { ascending: true });
+
+  if (mediaError) {
+    console.error(mediaError);
+    throw new Error("admin_media_lookup_failed");
+  }
+
+  const media = (mediaRows || []) as Omit<AdminGiftMedia, "signed_url">[];
+  const paths = media.map((item) => item.storage_path);
+
+  let signedByPath = new Map<string, string>();
+  if (paths.length > 0) {
+    const { data: signed, error: signedError } = await supabase.storage
+      .from("gift-media")
+      .createSignedUrls(paths, 60 * 60);
+
+    if (signedError) {
+      console.error(signedError);
+    } else {
+      signedByPath = new Map(
+        (signed || [])
+          .filter((item) => item.signedUrl)
+          .map((item) => [item.path, item.signedUrl as string]),
+      );
+    }
+  }
+
+  return {
+    gift: gift as AdminGiftDetail,
+    media: media.map((item) => ({
+      ...item,
+      signed_url: signedByPath.get(item.storage_path) || null,
+    })),
+  };
+}
