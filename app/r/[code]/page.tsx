@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
 import ExperienceEngine from "@/components/ExperienceEngine";
 import { getExperience } from "@/data/experiences";
-import { getPublishedGiftByCode } from "@/lib/gifts/repository";
+import {
+  getPublishedGiftByCode,
+  isGiftDatabaseConfigured,
+} from "@/lib/gifts/repository";
 
 const demoGifts: Record<string, string> = {
   demo: "pareja",
@@ -16,17 +19,30 @@ export default async function GiftPage({
 }) {
   const { code } = await params;
 
-  const storedGift = await getPublishedGiftByCode(code);
-  if (storedGift) {
-    return (
-      <ExperienceEngine
-        experience={storedGift.experience}
-        letterText={storedGift.letterText}
-      />
-    );
+  if (isGiftDatabaseConfigured()) {
+    try {
+      const storedGift = await getPublishedGiftByCode(code);
+
+      return (
+        <ExperienceEngine
+          experience={storedGift.experience}
+          letterText={storedGift.letterText}
+          photoUrls={storedGift.photoUrls}
+        />
+      );
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        ["gift_not_found", "gift_experience_not_found"].includes(error.message)
+      ) {
+        notFound();
+      }
+
+      console.error("private gift render failed", error);
+    }
   }
 
-  // Development fallback while the dedicated production DB is not connected.
+  // Development fallback while production environment variables are absent.
   const demoSlug = demoGifts[code];
   if (!demoSlug) notFound();
 
