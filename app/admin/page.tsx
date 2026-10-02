@@ -54,9 +54,12 @@ export default async function AdminPage({
           <span className="eyebrow">Te Hice Esto · operación</span>
           <h1>Regalos</h1>
         </div>
-        <form action={logoutAdmin}>
-          <button className="ghost-action" type="submit">Cerrar sesión</button>
-        </form>
+        <div className="admin-header-actions">
+          <a className="primary-action" href="/admin/new">+ Nuevo regalo</a>
+          <form action={logoutAdmin}>
+            <button className="ghost-action" type="submit">Cerrar sesión</button>
+          </form>
+        </div>
       </header>
 
       <section className="admin-status-grid">
@@ -87,6 +90,7 @@ export default async function AdminPage({
             <span className="eyebrow">Actividad</span>
             <h2>Últimos regalos</h2>
           </div>
+          {databaseReady && <a className="ghost-action" href="/admin/new">Crear regalo</a>}
         </div>
 
         {!databaseReady && (
@@ -123,7 +127,7 @@ export default async function AdminPage({
               <tbody>
                 {gifts.map((gift) => (
                   <tr key={gift.public_code}>
-                    <td><strong>{gift.recipient_name}</strong></td>
+                    <td><a className="admin-gift-link" href={`/admin/gifts/${gift.public_code}`}><strong>{gift.recipient_name}</strong><span>Editar →</span></a></td>
                     <td>{gift.giver_name}</td>
                     <td>{gift.experience_slug}</td>
                     <td><span className={`status-pill status-${gift.status}`}>{gift.status}</span></td>
