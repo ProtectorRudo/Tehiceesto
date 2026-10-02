@@ -23,7 +23,8 @@ export default function ExperienceEngine({ experience, letterText, photoUrls }: 
   const [capsuleOpen, setCapsuleOpen] = useState(false);
   const [voicesPlayed, setVoicesPlayed] = useState<number[]>([]);
 
-  const scenes = experience.recipe;\n  const displayPhotos = photoUrls && photoUrls.length > 0 ? photoUrls.slice(0, 3) : photos;
+  const scenes = experience.recipe;
+  const displayPhotos = photoUrls && photoUrls.length > 0 ? photoUrls.slice(0, 3) : photos;
   const currentScene = scenes[sceneIndex];
   const total = scenes.length;
   const progress = ((sceneIndex + 1) / total) * 100;
