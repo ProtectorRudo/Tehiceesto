@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import ExperienceEngine from "@/components/ExperienceEngine";
 import { getExperience } from "@/data/experiences";
+import { getPublishedGiftByCode } from "@/lib/gifts/repository";
 
 const demoGifts: Record<string, string> = {
   demo: "pareja",
@@ -14,12 +15,23 @@ export default async function GiftPage({
   params: Promise<{ code: string }>;
 }) {
   const { code } = await params;
-  const slug = demoGifts[code];
 
-  if (!slug) notFound();
+  const storedGift = await getPublishedGiftByCode(code);
+  if (storedGift) {
+    return (
+      <ExperienceEngine
+        experience={storedGift.experience}
+        letterText={storedGift.letterText}
+      />
+    );
+  }
 
-  const experience = getExperience(slug);
-  if (!experience) notFound();
+  // Development fallback while the dedicated production DB is not connected.
+  const demoSlug = demoGifts[code];
+  if (!demoSlug) notFound();
 
-  return <ExperienceEngine experience={experience} />;
+  const demoExperience = getExperience(demoSlug);
+  if (!demoExperience) notFound();
+
+  return <ExperienceEngine experience={demoExperience} />;
 }
