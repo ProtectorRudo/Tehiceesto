@@ -1,13 +1,13 @@
--- Te Hice Esto — production schema blueprint
--- Apply to a dedicated Supabase project for this product.
--- Tables are intentionally private to browser clients: the Next.js server
--- reads/writes them with the server-only secret key.
+-- Te Hice Esto — production schema
+-- Dedicated Supabase project.
+-- Browser roles are denied direct table access. Trusted server code uses
+-- a server-only Supabase secret key. Media stays in a private bucket.
 
 create extension if not exists pgcrypto;
 
 create table if not exists public.gifts (
   id uuid primary key default gen_random_uuid(),
-  public_code text not null unique,
+  public_code text not null unique default encode(gen_random_bytes(9), 'hex'),
   status text not null default 'draft'
     check (status in ('draft','awaiting_payment','paid','published','archived')),
   experience_slug text not null,
@@ -63,30 +63,82 @@ create table if not exists public.orders (
   updated_at timestamptz not null default now()
 );
 
-create index if not exists gifts_public_code_idx on public.gifts(public_code);
 create index if not exists gifts_status_idx on public.gifts(status);
 create index if not exists gift_media_gift_sort_idx on public.gift_media(gift_id, sort_order);
 create index if not exists gift_reactions_gift_idx on public.gift_reactions(gift_id);
-create index if not exists orders_provider_reference_idx on public.orders(provider_reference);
+
+create unique index if not exists orders_provider_reference_unique_idx
+  on public.orders(provider, provider_reference)
+  where provider_reference is not null;
+
+create or replace function public.touch_updated_at()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists gifts_touch_updated_at on public.gifts;
+create trigger gifts_touch_updated_at
+before update on public.gifts
+for each row execute function public.touch_updated_at();
+
+drop trigger if exists orders_touch_updated_at on public.orders;
+create trigger orders_touch_updated_at
+before update on public.orders
+for each row execute function public.touch_updated_at();
 
 alter table public.gifts enable row level security;
 alter table public.gift_media enable row level security;
 alter table public.gift_reactions enable row level security;
 alter table public.orders enable row level security;
 
--- Browser roles intentionally receive no table privileges.
 revoke all on table public.gifts from anon, authenticated;
 revoke all on table public.gift_media from anon, authenticated;
 revoke all on table public.gift_reactions from anon, authenticated;
 revoke all on table public.orders from anon, authenticated;
 
--- Required for projects where new tables are no longer auto-exposed.
 grant select, insert, update, delete on table public.gifts to service_role;
 grant select, insert, update, delete on table public.gift_media to service_role;
 grant select, insert, update, delete on table public.gift_reactions to service_role;
 grant select, insert, update, delete on table public.orders to service_role;
 
--- Private media bucket. Delivery should use short-lived signed URLs from the server.
+drop policy if exists "deny browser access to gifts" on public.gifts;
+create policy "deny browser access to gifts"
+on public.gifts
+for all
+to anon, authenticated
+using (false)
+with check (false);
+
+drop policy if exists "deny browser access to gift_media" on public.gift_media;
+create policy "deny browser access to gift_media"
+on public.gift_media
+for all
+to anon, authenticated
+using (false)
+with check (false);
+
+drop policy if exists "deny browser access to gift_reactions" on public.gift_reactions;
+create policy "deny browser access to gift_reactions"
+on public.gift_reactions
+for all
+to anon, authenticated
+using (false)
+with check (false);
+
+drop policy if exists "deny browser access to orders" on public.orders;
+create policy "deny browser access to orders"
+on public.orders
+for all
+to anon, authenticated
+using (false)
+with check (false);
+
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
   'gift-media',
@@ -101,5 +153,6 @@ values (
 )
 on conflict (id) do nothing;
 
--- No storage.objects policies on purpose. All upload/sign/delete operations are
--- performed by our trusted server using the server-only secret key.
+-- No storage.objects policies by design. Storage is accessed only by trusted
+-- server code with the server-only secret key and files are delivered through
+-- short-lived signed URLs.
