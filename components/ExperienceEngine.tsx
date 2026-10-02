@@ -3,7 +3,31 @@
 import { useMemo, useState } from "react";
 import type { Experience, SceneType } from "@/data/experiences";
 
-type Props = { experience: Experience; letterText?: string; photoUrls?: string[] };
+export type ExperiencePhoto = {
+  url: string;
+  caption?: string;
+  fit?: "cover" | "contain";
+  position?: "center" | "top" | "bottom" | "left" | "right";
+};
+
+export type ExperienceAudio = {
+  url: string;
+  caption?: string;
+};
+
+export type ExperienceVideo = {
+  url: string;
+  caption?: string;
+};
+
+type Props = {
+  experience: Experience;
+  letterText?: string;
+  photoUrls?: string[];
+  photoMedia?: ExperiencePhoto[];
+  audioMedia?: ExperienceAudio[];
+  videoMedia?: ExperienceVideo[];
+};
 
 const photos = [
   "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=1200&q=85",
@@ -11,7 +35,14 @@ const photos = [
   "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&w=1200&q=85",
 ];
 
-export default function ExperienceEngine({ experience, letterText, photoUrls }: Props) {
+export default function ExperienceEngine({
+  experience,
+  letterText,
+  photoUrls,
+  photoMedia,
+  audioMedia,
+  videoMedia,
+}: Props) {
   const [sceneIndex, setSceneIndex] = useState(0);
   const [stars, setStars] = useState<number[]>([]);
   const [letterOpen, setLetterOpen] = useState(false);
@@ -24,7 +55,12 @@ export default function ExperienceEngine({ experience, letterText, photoUrls }: 
   const [voicesPlayed, setVoicesPlayed] = useState<number[]>([]);
 
   const scenes = experience.recipe;
-  const displayPhotos = photoUrls && photoUrls.length > 0 ? photoUrls.slice(0, 3) : photos;
+  const displayPhotos: ExperiencePhoto[] =
+    photoMedia && photoMedia.length > 0
+      ? photoMedia.slice(0, 8)
+      : photoUrls && photoUrls.length > 0
+        ? photoUrls.slice(0, 8).map((url) => ({ url }))
+        : photos.map((url) => ({ url }));
   const currentScene = scenes[sceneIndex];
   const total = scenes.length;
   const progress = ((sceneIndex + 1) / total) * 100;
@@ -85,10 +121,18 @@ export default function ExperienceEngine({ experience, letterText, photoUrls }: 
             <h2>Hay días que terminan. Y otros que se quedan.</h2>
             <div className="film-strip">
               {displayPhotos.map((photo, index) => (
-                <article key={photo} className="memory-card">
-                  <div className="memory-image" style={{ backgroundImage: `url("${photo}")` }} />
-                  <p>{memory[index % memory.length]}</p>
-                  <span>0{index + 1}</span>
+                <article key={photo.url} className="memory-card">
+                  <div
+                    className="memory-image"
+                    style={{
+                      backgroundImage: `url("${photo.url}")`,
+                      backgroundSize: photo.fit || "cover",
+                      backgroundPosition: photo.position || "center",
+                      backgroundRepeat: "no-repeat",
+                    }}
+                  />
+                  <p>{photo.caption || memory[index % memory.length]}</p>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
                 </article>
               ))}
             </div>
@@ -239,19 +283,60 @@ export default function ExperienceEngine({ experience, letterText, photoUrls }: 
             <p className="scene-kicker">Hay gente esperando decirte algo</p>
             <h2>Elegí una voz.</h2>
             <div className="voice-grid">
-              {["Mamá", "Tomás", "Caro", "Fran"].map((name, index) => (
-                <button
-                  key={name}
-                  className={voicesPlayed.includes(index) ? "played" : ""}
-                  onClick={() => playVoice(index)}
-                >
-                  <span>{voicesPlayed.includes(index) ? "▶" : "●"}</span>
-                  <strong>{name}</strong>
-                  <small>{voicesPlayed.includes(index) ? "“Te quiero muchísimo. Gracias por estar siempre.”" : "Tocar para escuchar"}</small>
-                </button>
-              ))}
+              {audioMedia && audioMedia.length > 0
+                ? audioMedia.map((audio, index) => (
+                    <article
+                      key={audio.url}
+                      className={voicesPlayed.includes(index) ? "voice-audio-card played" : "voice-audio-card"}
+                    >
+                      <span>♪</span>
+                      <strong>{audio.caption || `Mensaje ${index + 1}`}</strong>
+                      <audio
+                        src={audio.url}
+                        controls
+                        preload="metadata"
+                        onPlay={() => playVoice(index)}
+                      />
+                    </article>
+                  ))
+                : ["Mamá", "Tomás", "Caro", "Fran"].map((name, index) => (
+                    <button
+                      key={name}
+                      className={voicesPlayed.includes(index) ? "played" : ""}
+                      onClick={() => playVoice(index)}
+                    >
+                      <span>{voicesPlayed.includes(index) ? "▶" : "●"}</span>
+                      <strong>{name}</strong>
+                      <small>{voicesPlayed.includes(index) ? "“Te quiero muchísimo. Gracias por estar siempre.”" : "Tocar para escuchar"}</small>
+                    </button>
+                  ))}
             </div>
             <button className="primary-action" onClick={next} disabled={voicesPlayed.length < 1}>Continuar</button>
+          </section>
+        );
+
+      case "video":
+        return (
+          <section className="scene scene-video">
+            <p className="scene-kicker">Un momento para mirar sin apuro</p>
+            <h2>Hay recuerdos que necesitan movimiento y sonido.</h2>
+            {videoMedia && videoMedia.length > 0 ? (
+              <div className="cinematic-video-wrap">
+                <video
+                  src={videoMedia[0].url}
+                  controls
+                  playsInline
+                  preload="metadata"
+                />
+                {videoMedia[0].caption && <p>{videoMedia[0].caption}</p>}
+              </div>
+            ) : (
+              <div className="video-placeholder">
+                <span>▶</span>
+                <p>Acá puede vivir un video especial.</p>
+              </div>
+            )}
+            <button className="primary-action" onClick={next}>Continuar</button>
           </section>
         );
 
