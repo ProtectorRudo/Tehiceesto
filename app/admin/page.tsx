@@ -1,6 +1,6 @@
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import {
-  isGiftDatabaseConfigured,
+  isAdminDatabaseConfigured,
   listRecentGifts,
 } from "@/lib/gifts/repository";
 import { loginAdmin, logoutAdmin } from "./actions";
@@ -44,7 +44,7 @@ export default async function AdminPage({
     );
   }
 
-  const databaseReady = isGiftDatabaseConfigured();
+  const databaseReady = isAdminDatabaseConfigured();
   const gifts = databaseReady ? await listRecentGifts(40) : [];
 
   return (
@@ -66,7 +66,7 @@ export default async function AdminPage({
           <small>
             {databaseReady
               ? "Leyendo regalos reales."
-              : "Falta conectar el proyecto dedicado de Supabase."}
+              : "La lectura pública está conectada; falta la credencial interna del panel."}
           </small>
         </article>
         <article>
