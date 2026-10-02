@@ -1,0 +1,121 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import type { SceneType } from "@/data/experiences";
+
+const catalog: { type: SceneType; label: string; hint: string }[] = [
+  { type: "intro", label: "Entrada", hint: "Apertura cinematográfica" },
+  { type: "door", label: "Puerta", hint: "Puerta interactiva" },
+  { type: "memories", label: "Recuerdos", hint: "Fotos / polaroids" },
+  { type: "timeline", label: "Línea de tiempo", hint: "Historia por etapas" },
+  { type: "stars", label: "Estrellas", hint: "Mensajes escondidos" },
+  { type: "quiz", label: "Pregunta", hint: "Quiz de la historia" },
+  { type: "scratch", label: "Raspadita", hint: "Sorpresa para descubrir" },
+  { type: "voices", label: "Voces", hint: "Audios de personas" },
+  { type: "video", label: "Video", hint: "Momento audiovisual" },
+  { type: "candles", label: "Velitas", hint: "Cumpleaños interactivo" },
+  { type: "balloons", label: "Globos", hint: "Mensajes escondidos" },
+  { type: "vault", label: "Bóveda", hint: "Revelación bloqueada" },
+  { type: "capsule", label: "Cápsula", hint: "Mensaje para el futuro" },
+  { type: "letter", label: "Carta", hint: "Sobre con lacre" },
+  { type: "proposal", label: "Propuesta", hint: "Pregunta de casamiento" },
+  { type: "finale", label: "Final", hint: "Cierre emocional" },
+];
+
+export default function SceneRecipeEditor({
+  initialRecipe,
+}: {
+  initialRecipe: SceneType[];
+}) {
+  const [recipe, setRecipe] = useState<SceneType[]>(
+    initialRecipe.length > 0 ? initialRecipe : ["intro", "memories", "letter", "finale"],
+  );
+  const [selected, setSelected] = useState<SceneType>("memories");
+
+  const info = useMemo(
+    () => new Map(catalog.map((item) => [item.type, item])),
+    [],
+  );
+
+  const move = (index: number, direction: -1 | 1) => {
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= recipe.length) return;
+
+    setRecipe((current) => {
+      const copy = [...current];
+      [copy[index], copy[nextIndex]] = [copy[nextIndex], copy[index]];
+      return copy;
+    });
+  };
+
+  const remove = (index: number) => {
+    if (recipe.length <= 1) return;
+    setRecipe((current) => current.filter((_, itemIndex) => itemIndex !== index));
+  };
+
+  const add = () => setRecipe((current) => [...current, selected]);
+
+  return (
+    <div className="scene-editor">
+      <input type="hidden" name="sceneRecipe" value={JSON.stringify(recipe)} />
+
+      <div className="scene-editor-list">
+        {recipe.map((scene, index) => {
+          const meta = info.get(scene);
+          return (
+            <div className="scene-editor-row" key={`${scene}-${index}`}>
+              <span className="scene-order">{String(index + 1).padStart(2, "0")}</span>
+              <div>
+                <strong>{meta?.label || scene}</strong>
+                <small>{meta?.hint || "Escena interactiva"}</small>
+              </div>
+              <div className="scene-row-actions">
+                <button
+                  type="button"
+                  disabled={index === 0}
+                  onClick={() => move(index, -1)}
+                  aria-label="Subir escena"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  disabled={index === recipe.length - 1}
+                  onClick={() => move(index, 1)}
+                  aria-label="Bajar escena"
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  className="danger"
+                  disabled={recipe.length <= 1}
+                  onClick={() => remove(index)}
+                  aria-label="Quitar escena"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="scene-add-row">
+        <select
+          value={selected}
+          onChange={(event) => setSelected(event.target.value as SceneType)}
+        >
+          {catalog.map((item) => (
+            <option key={item.type} value={item.type}>
+              {item.label} — {item.hint}
+            </option>
+          ))}
+        </select>
+        <button type="button" className="ghost-action" onClick={add}>
+          + Agregar escena
+        </button>
+      </div>
+    </div>
+  );
+}
