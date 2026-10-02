@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { Experience, SceneType } from "@/data/experiences";
 
-type Props = { experience: Experience };
+type Props = { experience: Experience; letterText?: string };
 
 const photos = [
   "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=1200&q=85",
@@ -11,7 +11,7 @@ const photos = [
   "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&w=1200&q=85",
 ];
 
-export default function ExperienceEngine({ experience }: Props) {
+export default function ExperienceEngine({ experience, letterText }: Props) {
   const [sceneIndex, setSceneIndex] = useState(0);
   const [stars, setStars] = useState<number[]>([]);
   const [letterOpen, setLetterOpen] = useState(false);
@@ -159,7 +159,7 @@ export default function ExperienceEngine({ experience }: Props) {
               <span className="envelope-back" />
               <span className="paper">
                 <small>Para {experience.demoRecipient}</small>
-                <strong>Gracias por convertir tantos días comunes en recuerdos extraordinarios.</strong>
+                <strong>{letterText || "Gracias por convertir tantos días comunes en recuerdos extraordinarios."}</strong>
                 <em>— {experience.demoGiver}</em>
               </span>
               <span className="envelope-front" />
