@@ -27,7 +27,9 @@ export default async function GiftPage({
         <ExperienceEngine
           experience={storedGift.experience}
           letterText={storedGift.letterText}
-          photoUrls={storedGift.photoUrls}
+          photoMedia={storedGift.photoMedia}
+          audioMedia={storedGift.audioMedia}
+          videoMedia={storedGift.videoMedia}
         />
       );
     } catch (error) {
