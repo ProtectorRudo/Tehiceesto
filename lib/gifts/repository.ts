@@ -74,3 +74,38 @@ export async function getPublishedGiftByCode(
     letterText: row.letter_text || undefined,
   };
 }
+
+
+export type AdminGiftSummary = {
+  public_code: string;
+  status: string;
+  experience_slug: string;
+  giver_name: string;
+  recipient_name: string;
+  created_at: string;
+  published_at: string | null;
+};
+
+export async function listRecentGifts(limit = 30): Promise<AdminGiftSummary[]> {
+  const env = credentials();
+  if (!env) return [];
+
+  const safeLimit = Math.max(1, Math.min(limit, 100));
+  const endpoint =
+    `${env.url}/rest/v1/gifts?select=public_code,status,experience_slug,giver_name,recipient_name,created_at,published_at&order=created_at.desc&limit=${safeLimit}`;
+
+  const response = await fetch(endpoint, {
+    headers: {
+      apikey: env.secret,
+      Accept: "application/json",
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    console.error("admin gift listing failed", response.status);
+    return [];
+  }
+
+  return (await response.json()) as AdminGiftSummary[];
+}
