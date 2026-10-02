@@ -13,7 +13,8 @@ export type SceneType =
   | "quiz"
   | "vault"
   | "capsule"
-  | "proposal";
+  | "proposal"
+  | "video";
 
 export type Experience = {
   slug: string;
