@@ -43,8 +43,27 @@ export default async function AdminGiftPreviewPage({
       position: item.metadata?.position || "center",
     }));
 
+  const soundtrackItem = media.find(
+    (item) =>
+      item.kind === "audio" &&
+      item.signed_url &&
+      item.metadata?.role === "soundtrack",
+  );
+
+  const soundtrackMedia = soundtrackItem
+    ? {
+        url: soundtrackItem.signed_url as string,
+        caption: soundtrackItem.caption || undefined,
+      }
+    : undefined;
+
   const audioMedia = media
-    .filter((item) => item.kind === "audio" && item.signed_url)
+    .filter(
+      (item) =>
+        item.kind === "audio" &&
+        item.signed_url &&
+        item.metadata?.role !== "soundtrack",
+    )
     .map((item) => ({
       url: item.signed_url as string,
       caption: item.caption || undefined,
@@ -69,6 +88,7 @@ export default async function AdminGiftPreviewPage({
         letterText={gift.letter_text || undefined}
         photoMedia={photoMedia}
         audioMedia={audioMedia}
+        soundtrackMedia={soundtrackMedia}
         videoMedia={videoMedia}
         storyContext={{
           keyDate: gift.story_data?.keyDate || undefined,
