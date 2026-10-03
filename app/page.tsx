@@ -3,107 +3,171 @@ import { experiences } from "@/data/experiences";
 
 export default function Home() {
   return (
-    <main>
-      <section className="hero">
-        <div className="hero-glow hero-glow-a" />
-        <div className="hero-glow hero-glow-b" />
-        <div className="hero-copy">
-          <span className="eyebrow">Experiencias digitales personalizadas</span>
+    <main className="home-shell">
+      <section className="home-hero">
+        <div className="home-hero-grid" aria-hidden="true" />
+        <div className="home-hero-meta">
+          <span>TE HICE ESTO · ESTUDIO DIGITAL</span>
+          <span>01—09 EXPERIENCIAS</span>
+        </div>
+
+        <div className="home-hero-copy">
+          <span className="eyebrow">Regalos digitales hechos para una sola persona</span>
           <h1>
-            Un regalo que no se abre.
-            <em> Se vive.</em>
+            No le mandes
+            <em> otro mensaje.</em>
+            <span>Hacé que lo viva.</span>
           </h1>
           <p>
-            Convertí fotos, cartas, audios y recuerdos en un lugar de Internet
-            que existe solamente para una persona.
+            Fotos, audios, cartas y recuerdos convertidos en un recorrido privado
+            que se abre desde el celular y no se parece a nada que ya haya recibido.
           </p>
-          <div className="hero-actions">
-            <Link className="primary-action" href="/crear">
-              Hacerle algo ♥
+          <div className="home-hero-actions">
+            <Link className="home-primary" href="/crear">
+              Crear una experiencia <span>↗</span>
             </Link>
-            <Link className="text-action" href="/experiencias/pareja">
-              Vivir un demo <span>→</span>
+            <Link className="home-secondary" href="/experiencias/pareja">
+              Entrar a un demo <span>→</span>
             </Link>
           </div>
         </div>
-        <div className="hero-phone">
-          <div className="phone-frame">
-            <div className="phone-island" />
-            <div className="phone-scene">
-              <small>Julián hizo algo para vos</small>
-              <strong>Emma</strong>
-              <p>Este lugar existe solamente para vos.</p>
-              <span>Entrar</span>
+
+        <div className="artifact-stage" aria-label="Vista previa de una experiencia">
+          <div className="artifact-card artifact-card-back">
+            <small>03 · UNA VOZ</small>
+            <div className="artifact-wave">
+              {Array.from({ length: 18 }).map((_, index) => <i key={index} />)}
             </div>
+            <strong>00:18</strong>
           </div>
-          <div className="floating-note note-one">✦ 7 recuerdos</div>
-          <div className="floating-note note-two">♥ una carta escondida</div>
+          <div className="artifact-card artifact-card-mid">
+            <small>02 · UN RECUERDO</small>
+            <div className="artifact-photo">
+              <span>VERANO · 2022</span>
+            </div>
+            <p>“Ese día todavía no sabíamos que iba a quedar para siempre.”</p>
+          </div>
+          <div className="artifact-card artifact-card-front">
+            <small>01 · SÓLO PARA VOS</small>
+            <strong>Ailín</strong>
+            <p>Hay miles de lugares en Internet. Este existe solamente para vos.</p>
+            <span className="artifact-enter">ENTRAR</span>
+          </div>
+          <div className="artifact-stamp">PRIVADO</div>
+        </div>
+
+        <div className="home-scroll-cue">
+          <span>DESLIZÁ</span>
+          <i />
         </div>
       </section>
 
-      <section className="trust-strip">
-        <span>100% digital</span>
-        <i />
-        <span>Link privado</span>
-        <i />
-        <span>Hecho para celular</span>
-        <i />
-        <span>Pago único</span>
+      <section className="home-manifesto">
+        <div className="manifesto-index">01</div>
+        <div className="manifesto-copy">
+          <span className="eyebrow">Esto no es una tarjeta digital</span>
+          <h2>La diferencia está en lo que pasa <em>antes</em> de llegar al final.</h2>
+        </div>
+        <div className="manifesto-points">
+          <article><span>01</span><p>No ve todas las fotos de golpe. Las va descubriendo.</p></article>
+          <article><span>02</span><p>No lee un texto largo. Entra en escenas que cambian de ritmo.</p></article>
+          <article><span>03</span><p>No recibe una plantilla. La experiencia toma el lenguaje de esa historia.</p></article>
+        </div>
       </section>
 
-      <section className="catalog-section" id="experiencias">
-        <div className="section-heading">
-          <span className="eyebrow">Elegí una historia</span>
-          <h2>¿Para quién querés hacer algo inolvidable?</h2>
-          <p>No elegís una plantilla. Elegís el tipo de emoción que querés crear.</p>
-        </div>
+      <section className="catalog-section catalog-editorial" id="experiencias">
+        <header className="catalog-editorial-head">
+          <div>
+            <span className="eyebrow">Colección 01—09</span>
+            <h2>Nueve historias.<br/><em>Nueve mundos distintos.</em></h2>
+          </div>
+          <p>
+            Cada ocasión tiene su propia dirección de arte, ritmo e interacciones.
+            Elegí la persona. Después hacelo suyo.
+          </p>
+        </header>
 
-        <div className="experience-grid">
+        <div className="catalog-list">
           {experiences.map((experience, index) => (
             <Link
-              className="experience-card"
               href={`/experiencias/${experience.slug}`}
+              className="catalog-row"
               key={experience.slug}
-              style={{ "--card-accent": experience.accent } as React.CSSProperties}
+              style={{ "--row-accent": experience.accent } as React.CSSProperties}
             >
-              <div className="card-number">0{index + 1}</div>
-              <div className="card-icon">{experience.icon}</div>
-              <span>{experience.eyebrow}</span>
-              <h3>{experience.title}</h3>
-              <p>{experience.short}</p>
-              <div className="tag-row">
-                {experience.tags.map((tag) => <small key={tag}>{tag}</small>)}
+              <span className="catalog-row-number">{String(index + 1).padStart(2, "0")}</span>
+              <div className="catalog-row-title">
+                <small>{experience.eyebrow}</small>
+                <h3>{experience.title}</h3>
               </div>
-              <strong>Vivir demo <b>→</b></strong>
+              <p>{experience.short}</p>
+              <div className="catalog-row-action">
+                <span>VIVIR DEMO</span>
+                <b>↗</b>
+              </div>
+              <i className="catalog-row-line" />
             </Link>
           ))}
         </div>
       </section>
 
-      <section className="how-section">
-        <div className="section-heading">
-          <span className="eyebrow">Muy fácil para vos. Inolvidable para quien lo recibe.</span>
-          <h2>Vos traés la historia. Nosotros construimos el lugar.</h2>
+      <section className="home-process" id="como-funciona">
+        <div className="process-intro">
+          <span className="eyebrow">Del recuerdo a la experiencia</span>
+          <h2>Vos traés lo que pasó.<br/>Nosotros diseñamos <em>cómo se siente volver.</em></h2>
         </div>
-        <div className="steps-grid">
-          <article><span>01</span><h3>Elegís</h3><p>La persona, la ocasión y qué querés hacerle sentir.</p></article>
-          <article><span>02</span><h3>Nos contás</h3><p>Subís recuerdos, fotos, audios y esas pequeñas cosas que sólo ustedes entienden.</p></article>
-          <article><span>03</span><h3>Lo creamos</h3><p>La historia se convierte en escenas, juegos, cartas y sorpresas interactivas.</p></article>
-          <article><span>04</span><h3>Lo vive</h3><p>Le mandás un link privado. Después podés recibir su reacción.</p></article>
+        <div className="process-timeline">
+          <article>
+            <span>01</span>
+            <div><small>LA PERSONA</small><h3>Elegís para quién.</h3><p>Pareja, mamá, papá, amistad, hijos, abuelos o un momento único.</p></div>
+          </article>
+          <article>
+            <span>02</span>
+            <div><small>LA HISTORIA</small><h3>Nos contás lo que sólo ustedes saben.</h3><p>Fotos, frases, audios, anécdotas y esos detalles que una plantilla jamás podría inventar.</p></div>
+          </article>
+          <article>
+            <span>03</span>
+            <div><small>LA DIRECCIÓN</small><h3>Todo se convierte en escenas.</h3><p>Ritmo, silencios, sorpresas y gestos interactivos diseñados alrededor del vínculo.</p></div>
+          </article>
+          <article>
+            <span>04</span>
+            <div><small>EL MOMENTO</small><h3>Le mandás un link. El resto pasa ahí.</h3><p>Privado, pensado para celular y hecho para que la pantalla desaparezca cuando importa.</p></div>
+          </article>
         </div>
       </section>
 
-      <section className="cta-section">
-        <div>
-          <span className="eyebrow">Hay alguien que se merece esto</span>
-          <h2>No le mandes otra cosa. Hacésela vivir.</h2>
-          <Link className="primary-action" href="/crear">Empezar mi regalo</Link>
+      <section className="home-contrast">
+        <div className="contrast-before">
+          <span>LO DE SIEMPRE</span>
+          <div className="contrast-message">
+            <small>Feliz cumple ❤️</small>
+            <i>✓✓</i>
+          </div>
+          <p>Un mensaje más entre cientos.</p>
+        </div>
+        <div className="contrast-divider"><span>VS</span></div>
+        <div className="contrast-after">
+          <span>TE HICE ESTO</span>
+          <strong>“Este lugar existe solamente para vos.”</strong>
+          <div className="contrast-progress"><i /></div>
+          <p>Una experiencia que obliga a frenar.</p>
         </div>
       </section>
 
-      <footer className="footer">
+      <section className="home-final-cta">
+        <div className="home-final-orbit" aria-hidden="true" />
+        <span className="eyebrow">Hay alguien que ya sabés quién es</span>
+        <h2>No busques otro regalo.<br/><em>Hacé algo que sólo pueda ser suyo.</em></h2>
+        <Link className="home-primary" href="/crear">
+          Empezar ahora <span>↗</span>
+        </Link>
+        <small>Se crea para celular · link privado · una historia por vez</small>
+      </section>
+
+      <footer className="home-footer">
         <Link className="brand" href="/">TE HICE ESTO<span>♥</span></Link>
         <p>Un lugar en Internet que existe para una sola persona.</p>
+        <span>LA PLATA · ARGENTINA</span>
       </footer>
     </main>
   );
