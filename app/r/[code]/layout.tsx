@@ -12,6 +12,12 @@ export const metadata: Metadata = {
     siteName: "Te Hice Esto",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Te Hice Esto — Tenés algo esperando",
+    description:
+      "Hay algo privado esperando del otro lado. Abrilo cuando tengas un momento.",
+  },
   robots: {
     index: false,
     follow: false,
