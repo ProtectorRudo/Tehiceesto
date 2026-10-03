@@ -4661,3 +4661,131 @@ body:has(.creator-preview-overlay) .floating-whatsapp{
   pointer-events:none;
   transform:translateY(12px);
 }
+
+
+/* =========================================================
+   PRIVATE SOUNDTRACK — cinematic, quiet, always optional
+   ========================================================= */
+.soundtrack-control{
+  position:fixed;
+  top:18px;
+  right:18px;
+  z-index:175;
+  min-height:46px;
+  max-width:min(280px,calc(100vw - 36px));
+  display:grid;
+  grid-template-columns:28px minmax(0,1fr) 25px;
+  gap:9px;
+  align-items:center;
+  padding:7px 10px 7px 8px;
+  border:1px solid rgba(255,255,255,.095);
+  border-radius:2px;
+  background:rgba(7,7,9,.70);
+  color:#ded8d3;
+  backdrop-filter:blur(13px);
+  -webkit-backdrop-filter:blur(13px);
+  box-shadow:0 14px 42px rgba(0,0,0,.22);
+  text-align:left;
+  cursor:pointer;
+  transition:background .3s,border-color .3s,transform .3s,opacity .3s;
+}
+.soundtrack-control:hover{
+  transform:translateY(-1px);
+  background:rgba(9,9,11,.84);
+  border-color:color-mix(in srgb,var(--accent) 24%,rgba(255,255,255,.10));
+}
+.soundtrack-control>span{
+  width:28px;
+  height:28px;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(255,255,255,.09);
+  color:var(--accent);
+  font-size:13px;
+}
+.soundtrack-control>div{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.soundtrack-control small{
+  color:#66616a;
+  font-size:6px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+.soundtrack-control strong{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-family:"Instrument Serif",serif;
+  font-size:14px;
+  line-height:1;
+  font-weight:400;
+}
+.soundtrack-control>i{
+  height:20px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:2px;
+}
+.soundtrack-control>i b{
+  width:2px;
+  height:6px;
+  background:var(--accent);
+  opacity:.48;
+  animation:soundtrackMeter .75s ease-in-out infinite alternate;
+}
+.soundtrack-control>i b:nth-child(2){height:14px;animation-delay:.16s}
+.soundtrack-control>i b:nth-child(3){height:10px;animation-delay:.31s}
+.soundtrack-control>i b:nth-child(4){height:17px;animation-delay:.47s}
+.soundtrack-control.paused{
+  opacity:.66;
+}
+.soundtrack-control.paused>i b{
+  animation:none;
+  height:3px;
+}
+@keyframes soundtrackMeter{
+  to{transform:scaleY(.42);opacity:.24}
+}
+.experience-shell--propuesta:has(.scene-proposal-premium) .soundtrack-control,
+.experience-shell:has(.scene-finale) .soundtrack-control{
+  opacity:.42;
+}
+.media-soundtrack-control{
+  margin-top:2px;
+  padding:13px;
+  border:1px solid rgba(85,217,134,.12);
+  background:rgba(85,217,134,.025);
+}
+.media-soundtrack-control label{
+  margin:0!important;
+}
+.media-soundtrack-control p{
+  margin:9px 0 0;
+  color:#79747c;
+  font-size:10px;
+  line-height:1.5;
+}
+@media(max-width:700px){
+  .soundtrack-control{
+    top:12px;
+    right:12px;
+    min-height:40px;
+    max-width:170px;
+    grid-template-columns:27px minmax(0,1fr) 20px;
+    padding:6px 8px 6px 6px;
+  }
+  .soundtrack-control>span{
+    width:27px;
+    height:27px;
+  }
+  .soundtrack-control small{display:none}
+  .soundtrack-control strong{font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){
+  .soundtrack-control>i b{animation:none}
+}
