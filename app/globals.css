@@ -4057,3 +4057,15 @@ body:has(.experience-entered) .demo-ribbon{
     }
   }
 }
+
+
+/* Distinctive display typography: keep physical letters classic, make scenes editorial */
+body{
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+.experience-shell .scene h1,
+.experience-shell .scene h2{
+  font-family:"Instrument Serif",serif;
+  font-weight:400;
+}
