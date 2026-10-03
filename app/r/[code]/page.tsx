@@ -44,6 +44,9 @@ export default async function GiftPage({
       }
 
       console.error("private gift render failed", error);
+      throw error instanceof Error
+        ? error
+        : new Error("gift_backend_error");
     }
   }
 
