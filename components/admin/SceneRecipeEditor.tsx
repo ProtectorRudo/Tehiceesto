@@ -38,6 +38,11 @@ const catalog: { type: SceneType; label: string; hint: string }[] = [
   { type: "presence", label: "Presencia", hint: "Formas silenciosas de estar" },
   { type: "inheritance", label: "Herencia", hint: "Rasgos y gestos que quedaron en los hijos" },
   { type: "lookback", label: "Mirar de adulto", hint: "Volver a conocer a papá como persona" },
+  { type: "casefile", label: "Expediente", hint: "Archivo confidencial interactivo de amistad" },
+  { type: "insidejokes", label: "Código interno", hint: "Frases y códigos que sólo ustedes entienden" },
+  { type: "incidents", label: "Incidentes", hint: "Anécdotas y malas decisiones compartidas" },
+  { type: "proof", label: "Pruebas reales", hint: "Momentos en los que la amistad estuvo de verdad" },
+  { type: "pact", label: "Pacto", hint: "Acuerdo simbólico de amistad" },
   { type: "proposal", label: "Propuesta", hint: "Pregunta de casamiento" },
   { type: "finale", label: "Final", hint: "Cierre emocional" },
 ];
