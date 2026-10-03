@@ -23,9 +23,12 @@ const configs = [
   { name: "mobile", viewport: { width: 390, height: 844 }, dpr: 1 },
 ];
 
+const auditDemos = process.env.AUDIT_DEMOS !== "false";
+
 const report = {
   generatedAt: new Date().toISOString(),
   base,
+  auditDemos,
   pages: [],
 };
 
@@ -232,15 +235,17 @@ for (const config of configs) {
     }
   }
 
-  for (const slug of demos) {
-    try {
-      await traverseDemo(page, slug, config.name);
-    } catch (error) {
-      report.pages.push({
-        route: `/experiencias/${slug}`,
-        mode: config.name,
-        fatal: String(error),
-      });
+  if (auditDemos) {
+    for (const slug of demos) {
+      try {
+        await traverseDemo(page, slug, config.name);
+      } catch (error) {
+        report.pages.push({
+          route: `/experiencias/${slug}`,
+          mode: config.name,
+          fatal: String(error),
+        });
+      }
     }
   }
 
