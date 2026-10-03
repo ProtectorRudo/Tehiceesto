@@ -24,7 +24,9 @@ export type SceneType =
   | "origin"
   | "reasons"
   | "certainty"
-  | "threshold";
+  | "threshold"
+  | "light"
+  | "hold";
 
 export type Experience = {
   slug: string;
@@ -86,7 +88,7 @@ export const experiences: Experience[] = [
     opening: "Antes de que puedas recordar todo esto, nosotros ya lo estábamos guardando para vos.",
     closing: "Crezcas cuanto crezcas, siempre vas a tener un lugar al que volver.",
     tags: ["Hijos", "Familia", "Cápsula"],
-    recipe: ["intro", "timeline", "memories", "stars", "capsule", "letter", "finale"],
+    recipe: ["intro", "timeline", "memories", "light", "stars", "capsule", "hold", "letter", "finale"],
   },
   {
     slug: "abuelos",
