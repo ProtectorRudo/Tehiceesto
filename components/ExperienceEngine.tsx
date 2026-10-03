@@ -42,9 +42,9 @@ const motherDemoPhotos = [
 ];
 
 const fatherDemoPhotos = [
-  "https://unsplash.com/photos/DfLtSZdWmDU/download?force=true&w=1200",
-  "https://unsplash.com/photos/vppMdk_GMo4/download?force=true&w=1200",
-  "https://unsplash.com/photos/DfLtSZdWmDU/download?force=true&w=1400",
+  "https://unsplash.com/photos/WnsQxkepmiY/download?force=true&w=1200",
+  "https://unsplash.com/photos/HptxPPct2d4/download?force=true&w=1200",
+  "https://unsplash.com/photos/vMP8lfhxPi4/download?force=true&w=1200",
 ];
 
 export default function ExperienceEngine({
