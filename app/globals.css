@@ -109,3 +109,420 @@ body:has(.admin-page) .site-header{display:none}
 
 @media(max-width:900px){.media-editor-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.admin-header-actions{flex-wrap:wrap;justify-content:flex-end}.admin-editor-header{display:block}.admin-publish-controls{justify-content:flex-start;margin-top:22px}.admin-form-grid{grid-template-columns:1fr}.admin-form-wide{grid-column:auto}.admin-form-footer{align-items:stretch;flex-direction:column}.scene-add-row{grid-template-columns:1fr}.media-editor-grid{grid-template-columns:1fr}.upload-queue article{grid-template-columns:1fr}.media-control-grid{grid-template-columns:1fr 1fr}.admin-editor-card,.admin-media-block{padding:20px 15px}.admin-block-heading{align-items:stretch;flex-direction:column}.admin-block-heading>.primary-action{align-self:flex-start}.admin-preview-toolbar{top:10px}}
+
+
+/* Grandparents — family archive / legacy */
+body:has(.experience-entered) .demo-ribbon{
+  opacity:0;
+  pointer-events:none;
+  transform:translate(-50%,-14px);
+  transition:opacity .45s ease,transform .45s ease;
+}
+.experience-shell--abuelos{
+  --paper:#e8dccb;
+  --ink-warm:#2d261f;
+  --sepia:#a9865f;
+  background:
+    radial-gradient(circle at 50% 18%,rgba(216,185,135,.08),transparent 28%),
+    linear-gradient(180deg,#0d0b09 0%,#080706 100%);
+}
+.experience-shell--abuelos:before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:2;
+  opacity:.16;
+  mix-blend-mode:soft-light;
+  background-image:
+    repeating-radial-gradient(circle at 20% 30%,rgba(255,255,255,.18) 0 1px,transparent 1px 3px);
+  background-size:5px 5px;
+}
+.experience-shell--abuelos .scene{
+  background:
+    radial-gradient(circle at 50% 25%,rgba(216,185,135,.065),transparent 24%),
+    transparent;
+}
+.experience-shell--abuelos .scene-kicker{
+  color:#c9aa7a;
+}
+.experience-shell--abuelos .primary-action{
+  background:#d8b987;
+  color:#241c14;
+  box-shadow:0 12px 45px rgba(216,185,135,.13);
+}
+.experience-shell--abuelos .experience-topbar{
+  background:rgba(19,15,12,.58);
+  border-color:rgba(216,185,135,.1);
+}
+.experience-shell--abuelos .progress-track span{background:#c9aa7a}
+
+/* Archive opening */
+.scene-archive{
+  isolation:isolate;
+  background:
+    linear-gradient(rgba(8,7,6,.82),rgba(8,7,6,.92)),
+    radial-gradient(circle at center,rgba(183,145,95,.2),transparent 50%);
+}
+.scene-archive:before{
+  content:"ARCHIVO FAMILIAR";
+  position:absolute;
+  top:9%;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:clamp(44px,10vw,120px);
+  font-family:"Playfair Display",serif;
+  letter-spacing:-.06em;
+  color:rgba(216,185,135,.035);
+  white-space:nowrap;
+}
+.archive-dust{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 20% 40%,rgba(255,235,196,.16) 0 1px,transparent 1px),
+    radial-gradient(circle at 70% 35%,rgba(255,235,196,.12) 0 1px,transparent 1px),
+    radial-gradient(circle at 52% 76%,rgba(255,235,196,.13) 0 1px,transparent 1px);
+  background-size:120px 120px,170px 170px,210px 210px;
+  animation:archiveDust 12s linear infinite;
+  opacity:.6;
+}
+@keyframes archiveDust{to{transform:translateY(-35px)}}
+.archive-folder{
+  width:min(560px,88vw);
+  height:350px;
+  margin:25px auto 6px;
+  position:relative;
+  border:0;
+  background:transparent;
+  cursor:pointer;
+  perspective:1200px;
+  color:var(--ink-warm);
+}
+.archive-tab{
+  position:absolute;
+  left:7%;
+  top:2px;
+  width:42%;
+  height:48px;
+  display:flex;
+  align-items:center;
+  padding-left:22px;
+  background:#af8d64;
+  border-radius:9px 14px 0 0;
+  font-size:9px;
+  letter-spacing:.18em;
+  font-weight:700;
+  z-index:0;
+}
+.archive-cover{
+  position:absolute;
+  inset:35px 0 0;
+  z-index:2;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:flex-start;
+  text-align:left;
+  padding:38px 48px;
+  background:
+    linear-gradient(105deg,rgba(255,255,255,.06),transparent 25%),
+    #b89569;
+  border-radius:5px 12px 12px 12px;
+  box-shadow:0 35px 80px rgba(0,0,0,.48);
+  transform-origin:bottom;
+  transition:transform .9s cubic-bezier(.2,.78,.2,1),filter .9s;
+}
+.archive-cover:after{
+  content:"";
+  position:absolute;
+  inset:18px;
+  border:1px solid rgba(60,43,27,.18);
+  pointer-events:none;
+}
+.archive-cover small{
+  margin:0 0 22px;
+  color:rgba(45,38,31,.62);
+  letter-spacing:.2em;
+  font-size:9px;
+}
+.archive-cover strong{
+  font-family:"Playfair Display",serif;
+  font-size:clamp(32px,6vw,48px);
+  line-height:.95;
+  letter-spacing:-.045em;
+  font-weight:600;
+}
+.archive-cover em{
+  margin-top:24px;
+  font-style:normal;
+  font-size:10px;
+  letter-spacing:.12em;
+  color:rgba(45,38,31,.58);
+}
+.archive-paper{
+  position:absolute;
+  left:6%;
+  right:6%;
+  bottom:0;
+  height:275px;
+  z-index:1;
+  background:
+    linear-gradient(90deg,rgba(80,60,40,.035) 1px,transparent 1px),
+    linear-gradient(#eee3d2,#e4d5bf);
+  background-size:22px 100%,100% 100%;
+  padding:38px 40px;
+  text-align:left;
+  box-shadow:0 18px 50px rgba(0,0,0,.35);
+  transform:translateY(12px);
+  transition:transform .85s .2s cubic-bezier(.2,.8,.2,1);
+}
+.archive-paper small{margin:0;color:#8a7259;font-size:8px;letter-spacing:.18em}
+.archive-paper strong{display:block;margin-top:18px;font-family:"Playfair Display",serif;font-size:26px}
+.archive-paper p{font-family:"Playfair Display",serif;font-size:17px;line-height:1.5;color:#57483a;max-width:430px}
+.archive-folder.open .archive-cover{transform:rotateX(-72deg) translateY(40px);filter:brightness(.76)}
+.archive-folder.open .archive-paper{transform:translateY(-46px)}
+
+/* Timeline as family chronology */
+.scene-timeline-archive .timeline{
+  width:min(920px,95vw);
+  grid-template-columns:repeat(4,1fr);
+}
+.scene-timeline-archive .timeline article{
+  min-height:230px;
+  text-align:left;
+  padding-inline:18px;
+}
+.scene-timeline-archive .timeline article span{
+  font-family:"Playfair Display",serif;
+  font-size:20px;
+  color:#c6a46f;
+}
+.scene-timeline-archive .timeline article strong{
+  font-family:"Playfair Display",serif;
+  font-size:21px;
+  line-height:1.05;
+}
+.scene-timeline-archive .timeline article p{
+  color:#8f8579;
+  line-height:1.65;
+}
+
+/* Archive album */
+.scene-memories-archive .memory-card{
+  background:#e9ddca;
+  color:#2f271f;
+  padding:9px 9px 30px;
+  box-shadow:0 24px 48px rgba(0,0,0,.28);
+}
+.scene-memories-archive .memory-card:nth-child(odd){transform:rotate(-2deg)}
+.scene-memories-archive .memory-card:nth-child(even){transform:rotate(1.4deg) translateY(15px)}
+.scene-memories-archive .memory-image{
+  filter:sepia(.24) saturate(.64) contrast(1.04);
+}
+.scene-memories-archive .memory-card p{
+  color:#4f4236;
+  font-size:15px;
+}
+
+/* The remembered house */
+.scene-home{
+  background:
+    linear-gradient(180deg,rgba(11,9,7,.1),rgba(11,9,7,.9)),
+    radial-gradient(circle at 50% 45%,rgba(216,185,135,.11),transparent 33%);
+}
+.home-memory{
+  width:min(860px,95vw);
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:1px;
+  border:1px solid rgba(216,185,135,.13);
+  background:rgba(216,185,135,.12);
+  margin:25px 0 4px;
+}
+.home-memory button{
+  min-height:180px;
+  border:0;
+  background:#0e0b09;
+  color:#b8aea3;
+  text-align:left;
+  padding:28px;
+  cursor:pointer;
+  transition:background .35s,transform .35s;
+}
+.home-memory button:hover{background:#15110d}
+.home-memory button.open{
+  background:
+    radial-gradient(circle at 85% 15%,rgba(216,185,135,.1),transparent 34%),
+    #15110d;
+}
+.home-memory button span{
+  display:block;
+  color:#7d684d;
+  font-size:9px;
+  letter-spacing:.18em;
+}
+.home-memory button strong{
+  display:block;
+  margin:35px 0 8px;
+  color:#e4d9cc;
+  font-family:"Playfair Display",serif;
+  font-size:25px;
+  font-weight:600;
+}
+.home-memory button p{
+  margin:0;
+  max-width:330px;
+  min-height:42px;
+  color:#82786e;
+  line-height:1.55;
+  font-size:12px;
+}
+.home-memory button.open p{color:#b9ada1}
+
+/* Voices as preserved tapes */
+.scene-voices-archive .voice-grid{
+  width:min(760px,94vw);
+}
+.scene-voices-archive .voice-grid>button,
+.scene-voices-archive .voice-audio-card{
+  border-radius:4px;
+  background:
+    linear-gradient(90deg,rgba(216,185,135,.04),transparent),
+    #110e0c;
+  border-color:rgba(216,185,135,.13);
+}
+.scene-voices-archive .voice-grid>button>span{
+  background:#241c15;
+  color:#c4a474;
+}
+
+/* Letter from the family */
+.scene-letter-archive .envelope-back{background:#8f7151}
+.scene-letter-archive .envelope-back:after{border-top-color:#b39066}
+.scene-letter-archive .envelope-front{background:linear-gradient(35deg,#8e704f 50%,transparent 50%)}
+.scene-letter-archive .paper{
+  background:
+    linear-gradient(rgba(113,88,60,.035) 1px,transparent 1px),
+    #eee4d5;
+  background-size:100% 24px;
+  color:#332a22;
+}
+.scene-letter-archive .wax{background:#6b382f}
+
+/* Legacy reveal */
+.scene-legacy{
+  background:
+    radial-gradient(circle at 50% 50%,rgba(216,185,135,.095),transparent 26%),
+    #080706;
+}
+.legacy-roots{
+  position:absolute;
+  width:min(760px,90vw);
+  height:70vh;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-42%);
+  opacity:.16;
+  pointer-events:none;
+}
+.legacy-roots i{
+  position:absolute;
+  left:50%;
+  bottom:5%;
+  width:1px;
+  height:78%;
+  background:linear-gradient(to top,#d8b987,transparent);
+  transform-origin:bottom;
+}
+.legacy-roots i:nth-child(1){transform:rotate(-32deg)}
+.legacy-roots i:nth-child(2){transform:rotate(-15deg)}
+.legacy-roots i:nth-child(3){transform:rotate(0)}
+.legacy-roots i:nth-child(4){transform:rotate(15deg)}
+.legacy-roots i:nth-child(5){transform:rotate(32deg)}
+.legacy-seal{
+  width:150px;
+  height:150px;
+  border-radius:50%;
+  border:1px solid rgba(216,185,135,.3);
+  background:rgba(216,185,135,.035);
+  color:#caae82;
+  cursor:pointer;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  margin:18px 0;
+  box-shadow:0 0 70px rgba(216,185,135,.06),inset 0 0 40px rgba(216,185,135,.03);
+  transition:transform .5s,background .5s;
+}
+.legacy-seal:hover{transform:scale(1.04)}
+.legacy-seal.open{background:rgba(216,185,135,.09);transform:scale(.9)}
+.legacy-seal span{font-size:34px}
+.legacy-seal strong{font-size:9px;letter-spacing:.14em;max-width:100px}
+.legacy-names{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:9px;
+  max-width:620px;
+  margin:12px auto;
+  animation:legacyAppear .9s both;
+}
+.legacy-names span{
+  border:1px solid rgba(216,185,135,.15);
+  border-radius:999px;
+  padding:8px 12px;
+  color:#b9aa98;
+  font-family:"Playfair Display",serif;
+  font-size:14px;
+}
+.legacy-copy{
+  max-width:610px;
+  color:#9b9187;
+  line-height:1.75;
+  font-family:"Playfair Display",serif;
+  font-size:17px;
+  animation:legacyAppear 1.1s .1s both;
+}
+@keyframes legacyAppear{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+/* Dawn-like ending */
+.scene-finale-legacy{
+  background:
+    linear-gradient(to top,rgba(111,78,45,.18),transparent 40%),
+    radial-gradient(circle at 50% 72%,rgba(216,185,135,.16),transparent 20%),
+    #080706;
+}
+.scene-finale-legacy .finale-ring{
+  border-color:rgba(216,185,135,.18);
+  box-shadow:0 0 110px rgba(216,185,135,.08);
+}
+.scene-finale-legacy>p{
+  max-width:620px;
+  line-height:1.7;
+  color:#9c9287;
+}
+
+@media(max-width:760px){
+  .archive-folder{height:320px}
+  .archive-cover{padding:32px 30px}
+  .archive-paper{padding:30px 27px;height:250px}
+  .archive-paper p{font-size:15px}
+  .scene-timeline-archive .timeline{grid-template-columns:1fr}
+  .scene-timeline-archive .timeline article{min-height:auto;padding:25px 0;border-top:1px solid rgba(216,185,135,.12)}
+  .home-memory{grid-template-columns:1fr}
+  .home-memory button{min-height:150px;padding:22px}
+  .home-memory button strong{margin-top:22px}
+}
+@media(max-width:480px){
+  .archive-folder{width:94vw;height:300px}
+  .archive-cover{inset:32px 0 0;padding:28px 24px}
+  .archive-cover strong{font-size:34px}
+  .archive-paper{left:4%;right:4%;height:235px;padding:25px 22px}
+  .archive-folder.open .archive-paper{transform:translateY(-34px)}
+  .scene-home h2,.scene-archive h2,.scene-legacy h2{font-size:39px}
+  .legacy-copy{font-size:15px}
+}
