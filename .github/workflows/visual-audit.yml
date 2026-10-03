@@ -30,6 +30,7 @@ jobs:
         env:
           AUDIT_BASE_URL: https://tehiceesto.com
           AUDIT_OUTPUT_DIR: visual-audit-production
+          AUDIT_DEMOS: "false"
         run: node scripts/visual-audit.mjs
 
       - name: Build current main
