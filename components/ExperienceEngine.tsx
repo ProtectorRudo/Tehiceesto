@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Experience, SceneType } from "@/data/experiences";
+import type { SceneTextOverrides } from "@/data/scene-text";
 
 export type ExperiencePhoto = {
   url: string;
@@ -31,6 +32,7 @@ type Props = {
     keyDate?: string;
     anecdote?: string;
   };
+  sceneTextOverrides?: SceneTextOverrides;
 };
 
 const photos = [
@@ -65,6 +67,7 @@ export default function ExperienceEngine({
   audioMedia,
   videoMedia,
   storyContext,
+  sceneTextOverrides,
 }: Props) {
   const [sceneIndex, setSceneIndex] = useState(0);
   const [stars, setStars] = useState<number[]>([]);
@@ -102,6 +105,69 @@ export default function ExperienceEngine({
   const [incidentsOpen, setIncidentsOpen] = useState<number[]>([]);
   const [proofOpen, setProofOpen] = useState<number[]>([]);
   const [pactOpen, setPactOpen] = useState<number[]>([]);
+  const shellRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const root = shellRef.current;
+    if (!root || !sceneTextOverrides) return;
+
+    let applying = false;
+
+    const applyOverrides = () => {
+      if (applying) return;
+      applying = true;
+
+      try {
+        const scene = root.dataset.currentScene || "";
+        const overrides = sceneTextOverrides[scene];
+        if (!overrides || Object.keys(overrides).length === 0) return;
+
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        let node = walker.nextNode();
+
+        while (node) {
+          const textNode = node as Text;
+          const parent = textNode.parentElement;
+          const raw = textNode.textContent || "";
+          const source = raw.trim();
+
+          if (
+            source &&
+            parent &&
+            !parent.closest(".experience-topbar") &&
+            !parent.closest("[data-copy-ignore='true']")
+          ) {
+            const replacement = overrides[source];
+            if (typeof replacement === "string") {
+              const leading = raw.match(/^\s*/)?.[0] || "";
+              const trailing = raw.match(/\s*$/)?.[0] || "";
+              const nextValue = `${leading}${replacement}${trailing}`;
+              if (raw !== nextValue) textNode.textContent = nextValue;
+            }
+          }
+
+          node = walker.nextNode();
+        }
+      } finally {
+        applying = false;
+      }
+    };
+
+    applyOverrides();
+
+    const observer = new MutationObserver(() => {
+      queueMicrotask(applyOverrides);
+    });
+
+    observer.observe(root, {
+      childList: true,
+      characterData: true,
+      subtree: true,
+    });
+
+    return () => observer.disconnect();
+  }, [sceneTextOverrides, sceneIndex]);
+
 
   const scenes = experience.recipe;
   const isGrandparents = experience.slug === "abuelos";
@@ -1232,8 +1298,8 @@ export default function ExperienceEngine({
   };
 
   return (
-    <main className={`experience-shell experience-shell--${experience.slug} ${sceneIndex > 0 ? "experience-entered" : ""}`} style={{ "--accent": experience.accent } as React.CSSProperties}>
-      <div className="experience-topbar">
+    <main ref={shellRef} data-current-scene={currentScene} className={`experience-shell experience-shell--${experience.slug} ${sceneIndex > 0 ? "experience-entered" : ""}`} style={{ "--accent": experience.accent } as React.CSSProperties}>
+      <div className="experience-topbar" data-copy-ignore="true">
         <button onClick={previous} disabled={sceneIndex === 0} aria-label="Volver">←</button>
         <div className="progress-track"><span style={{ width: `${progress}%` }} /></div>
         <span>{sceneIndex + 1}/{total}</span>
