@@ -3,6 +3,8 @@ import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { getAdminGiftByCode } from "@/lib/gifts/repository";
 import { getExperience } from "@/data/experiences";
 import ExperienceEngine from "@/components/ExperienceEngine";
+import AdminCopyEditor from "@/components/admin/AdminCopyEditor";
+import { normalizeSceneTextOverrides } from "@/data/scene-text";
 
 export default async function AdminGiftPreviewPage({
   params,
@@ -72,6 +74,16 @@ export default async function AdminGiftPreviewPage({
           keyDate: gift.story_data?.keyDate || undefined,
           anecdote: gift.story_data?.anecdote || undefined,
         }}
+        sceneTextOverrides={normalizeSceneTextOverrides(
+          gift.story_data?.sceneContent,
+        )}
+      />
+
+      <AdminCopyEditor
+        code={gift.public_code}
+        initialOverrides={normalizeSceneTextOverrides(
+          gift.story_data?.sceneContent,
+        )}
       />
     </>
   );
