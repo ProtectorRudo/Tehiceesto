@@ -4653,3 +4653,11 @@ body{
   .preview-whatsapp span{display:none}
   .preview-whatsapp strong{font-size:14px}
 }
+
+
+/* Avoid duplicate commercial chrome while living the creator preview */
+body:has(.creator-preview-overlay) .floating-whatsapp{
+  opacity:0;
+  pointer-events:none;
+  transform:translateY(12px);
+}
