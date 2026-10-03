@@ -5019,3 +5019,14 @@ body:has(.private-gift-error) .floating-whatsapp,
 body:has(.system-loading) .floating-whatsapp{
   display:none;
 }
+
+
+/* Admin preview reserves the top edge for editing chrome */
+body:has(.admin-preview-toolbar) .soundtrack-control{
+  top:70px;
+}
+@media(max-width:700px){
+  body:has(.admin-preview-toolbar) .soundtrack-control{
+    top:62px;
+  }
+}
