@@ -24,6 +24,10 @@ const catalog: { type: SceneType; label: string; hint: string }[] = [
   { type: "rituals", label: "Rituales", hint: "Pequeñas costumbres de pareja" },
   { type: "chapters", label: "Capítulos", hint: "Etapas y cosas atravesadas juntos" },
   { type: "future", label: "Lo que sigue", hint: "Próximo capítulo compartido" },
+  { type: "origin", label: "El origen", hint: "Primer recuerdo antes de la pregunta" },
+  { type: "reasons", label: "Razones", hint: "Razones íntimas para elegir a esa persona" },
+  { type: "certainty", label: "Certeza", hint: "Promesa realista antes de la propuesta" },
+  { type: "threshold", label: "Último umbral", hint: "Gesto intencional antes de revelar la pregunta" },
   { type: "proposal", label: "Propuesta", hint: "Pregunta de casamiento" },
   { type: "finale", label: "Final", hint: "Cierre emocional" },
 ];
