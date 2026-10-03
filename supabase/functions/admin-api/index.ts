@@ -20,7 +20,7 @@ function adminClient() {
 }
 
 function cors(origin: string | null) {
-  const allowed = origin === "https://viralio.net" || origin?.endsWith(".vercel.app");
+  const allowed = origin === "https://viralio.net" || origin === "https://tehiceesto.com" || origin === "https://www.tehiceesto.com" || origin?.endsWith(".vercel.app");
   return {
     "access-control-allow-origin": allowed ? origin! : "https://viralio.net",
     "access-control-allow-headers": "apikey, content-type, x-admin-session",
@@ -82,17 +82,19 @@ function cleanCode(value: unknown) {
 }
 
 const allowedScenes = new Set([
-  "intro","door","memories","stars","scratch","letter","finale","candles",
-  "balloons","timeline","voices","quiz","vault","capsule","proposal","video"
+  "intro","door","memories","light","stars","scratch","hold","letter","finale","candles",
+  "balloons","timeline","voices","quiz","vault","capsule","proposal","video",
+  "archive","home","legacy","rituals","chapters","future",
+  "origin","reasons","certainty","threshold"
 ]);
 
 const defaultRecipes: Record<string, string[]> = {
   pareja:["intro","door","memories","stars","scratch","letter","finale"],
   cumpleanos:["intro","candles","balloons","memories","voices","letter","finale"],
-  hijos:["intro","timeline","memories","stars","capsule","letter","finale"],
-  abuelos:["intro","timeline","memories","voices","stars","letter","finale"],
-  aniversario:["intro","timeline","memories","quiz","scratch","letter","finale"],
-  propuesta:["intro","door","memories","stars","vault","letter","proposal"],
+  hijos:["intro","timeline","memories","light","stars","capsule","hold","letter","finale"],
+  abuelos:["intro","archive","timeline","memories","home","voices","letter","legacy","finale"],
+  aniversario:["intro","timeline","memories","rituals","chapters","letter","future","finale"],
+  propuesta:["intro","origin","memories","reasons","certainty","letter","threshold","proposal"],
   "mama-papa":["intro","memories","voices","stars","letter","scratch","finale"],
   amistad:["intro","quiz","memories","balloons","scratch","letter","finale"],
 };
@@ -193,7 +195,7 @@ Deno.serve(async (req: Request) => {
         occasion: String(body.occasion || "").trim() || null,
         feeling: String(body.feeling || "").trim() || null,
         scene_recipe: defaultRecipes[experienceSlug],
-        story_data: {},
+        story_data: { script: {} },
       })
       .select("public_code")
       .single();
@@ -261,6 +263,13 @@ Deno.serve(async (req: Request) => {
 
     if (recipe.length === 0) return json(origin, { error: "empty_recipe" }, 400);
 
+    const script = body.script && typeof body.script === "object" && !Array.isArray(body.script)
+      ? body.script
+      : {};
+    let scriptSize = 0;
+    try { scriptSize = JSON.stringify(script).length; } catch { return json(origin, { error: "invalid_script" }, 400); }
+    if (scriptSize > 120000) return json(origin, { error: "script_too_large" }, 400);
+
     const { error } = await supabase
       .from("gifts")
       .update({
@@ -277,6 +286,7 @@ Deno.serve(async (req: Request) => {
           relationship: String(body.relationship || "").trim(),
           keyDate: String(body.keyDate || "").trim(),
           anecdote: String(body.anecdote || "").trim(),
+          script,
         },
       })
       .eq("public_code", code);
@@ -321,8 +331,16 @@ Deno.serve(async (req: Request) => {
     if (!storagePath.startsWith(`${code}/`)) return json(origin, { error: "invalid_path" }, 400);
 
     const { data: gift } = await supabase
-      .from("gifts").select("id").eq("public_code", code).maybeSingle();
+      .from("gifts").select("id,scene_recipe").eq("public_code", code).maybeSingle();
     if (!gift) return json(origin, { error: "gift_not_found" }, 404);
+
+    const recipe = Array.isArray(gift.scene_recipe) ? gift.scene_recipe.map(String) : [];
+    const preferredScene = String(body.kind || "") === "audio"
+      ? "voices"
+      : String(body.kind || "") === "video"
+        ? "video"
+        : "memories";
+    const defaultScene = recipe.includes(preferredScene) ? preferredScene : (recipe[0] || preferredScene);
 
     const { count } = await supabase
       .from("gift_media")
@@ -340,6 +358,7 @@ Deno.serve(async (req: Request) => {
         size: Number(body.size || 0),
         fit: "cover",
         position: "center",
+        scene: defaultScene,
       },
     });
 
@@ -352,7 +371,7 @@ Deno.serve(async (req: Request) => {
     try { code = cleanCode(body.code); } catch { return json(origin, { error: "invalid_code" }, 400); }
     const mediaId = String(body.mediaId || "");
 
-    const { data: gift } = await supabase.from("gifts").select("id").eq("public_code", code).maybeSingle();
+    const { data: gift } = await supabase.from("gifts").select("id,scene_recipe").eq("public_code", code).maybeSingle();
     if (!gift) return json(origin, { error: "gift_not_found" }, 404);
 
     const { data: media } = await supabase
@@ -362,12 +381,17 @@ Deno.serve(async (req: Request) => {
     const fit = body.fit === "contain" ? "contain" : "cover";
     const position = ["center","top","bottom","left","right"].includes(String(body.position))
       ? String(body.position) : "center";
+    const recipe = Array.isArray(gift.scene_recipe) ? gift.scene_recipe.map(String) : [];
+    const requestedScene = String(body.scene || "");
+    const scene = recipe.includes(requestedScene)
+      ? requestedScene
+      : (String(media.metadata?.scene || "") || recipe[0] || "memories");
 
     const { error } = await supabase
       .from("gift_media")
       .update({
         caption: String(body.caption || "").trim() || null,
-        metadata: { ...(media.metadata || {}), fit, position },
+        metadata: { ...(media.metadata || {}), fit, position, scene },
       })
       .eq("id", mediaId).eq("gift_id", gift.id);
 
