@@ -10,7 +10,7 @@ on:
 jobs:
   audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,25 +20,46 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install Playwright
+      - name: Install app and Playwright
         run: |
+          npm install
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
 
-      - name: Wait for production and audit
-        run: |
-          for i in {1..18}; do
-            if curl -fsSL https://tehiceesto.com | grep -q "TE HICE ESTO"; then
-              break
-            fi
-            sleep 10
-          done
-          node scripts/visual-audit.mjs
+      - name: Audit real production
+        env:
+          AUDIT_BASE_URL: https://tehiceesto.com
+          AUDIT_OUTPUT_DIR: visual-audit-production
+        run: node scripts/visual-audit.mjs
 
-      - name: Upload screenshots and report
+      - name: Build current main
+        run: npm run build
+
+      - name: Start current main
+        run: |
+          npm start -- -H 127.0.0.1 -p 3000 > /tmp/tehiceesto-next.log 2>&1 &
+          echo $! > /tmp/tehiceesto-next.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:3000 >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/tehiceesto-next.log
+          exit 1
+
+      - name: Audit current main
+        env:
+          AUDIT_BASE_URL: http://127.0.0.1:3000
+          AUDIT_OUTPUT_DIR: visual-audit-main
+        run: node scripts/visual-audit.mjs
+
+      - name: Upload screenshots and reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: production-visual-audit
-          path: visual-audit/
+          path: |
+            visual-audit-production/
+            visual-audit-main/
           retention-days: 7
