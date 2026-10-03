@@ -109,9 +109,38 @@ export default function CreatorWizard() {
   }
 
   const progress = ((step + 1) / 6) * 100;
+  const stepLabels = ["Momento", "Personas", "Historia", "Recuerdos", "Palabras", "Preview"];
 
   return (
-    <div className="creator-card creator-card-wide">
+    <div className="creator-workspace">
+      <aside className="creator-rail">
+        <div className="creator-rail-brand">
+          <small>TE HICE ESTO · TALLER</small>
+          <strong>{baseExperience.icon} {baseExperience.title}</strong>
+          <p>{baseExperience.short}</p>
+        </div>
+        <div className="creator-step-index">
+          {stepLabels.map((label, index) => (
+            <button
+              key={label}
+              className={index === step ? "active" : index < step ? "done" : ""}
+              onClick={() => index <= step && setStep(index)}
+              disabled={index > step}
+              type="button"
+            >
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <strong>{label}</strong>
+              <i />
+            </button>
+          ))}
+        </div>
+        <div className="creator-rail-foot">
+          <span>PROGRESO</span>
+          <strong>{Math.round(progress)}%</strong>
+        </div>
+      </aside>
+
+      <div className="creator-card creator-card-wide">
       <div className="creator-progress">
         <span style={{ width: `${progress}%` }} />
       </div>
@@ -126,6 +155,7 @@ export default function CreatorWizard() {
                 key={item.slug}
                 onClick={() => update("experience", item.slug)}
                 className={draft.experience === item.slug ? "selected" : ""}
+                style={{ "--choice-accent": item.accent } as React.CSSProperties}
               >
                 <span>{item.icon}</span>
                 <div>
@@ -357,6 +387,7 @@ export default function CreatorWizard() {
           </p>
         </div>
       )}
+      </div>
     </div>
   );
 }
