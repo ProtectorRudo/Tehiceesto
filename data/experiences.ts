@@ -26,7 +26,15 @@ export type SceneType =
   | "certainty"
   | "threshold"
   | "light"
-  | "hold";
+  | "hold"
+  | "childhood"
+  | "care"
+  | "sacrifices"
+  | "return"
+  | "lessons"
+  | "presence"
+  | "inheritance"
+  | "lookback";
 
 export type Experience = {
   slug: string;
@@ -136,19 +144,34 @@ export const experiences: Experience[] = [
     recipe: ["intro", "origin", "memories", "reasons", "certainty", "letter", "threshold", "proposal"],
   },
   {
-    slug: "mama-papa",
-    eyebrow: "Para quienes estuvieron primero",
-    title: "Todo lo que quizá nunca te dije",
-    short: "Un recorrido de gratitud hecho con recuerdos familiares y palabras que importan.",
-    description: "Fotos, audios, cartas de hijos y una colección de pequeñas cosas que no queremos olvidar.",
-    icon: "❋",
-    accent: "#ff9a7a",
+    slug: "mama",
+    eyebrow: "Para la mujer que estuvo antes que todos",
+    title: "Todo lo que hiciste sin pedir aplausos",
+    short: "Una experiencia sobre infancia, cuidado, gestos invisibles y ese lugar al que siempre se puede volver.",
+    description: "Fotos, voces y escenas creadas para agradecer no sólo los grandes momentos, sino todo lo cotidiano que sostuvo una vida.",
+    icon: "✿",
+    accent: "#e8a99b",
     demoRecipient: "Mamá",
     demoGiver: "Tus hijos",
-    opening: "Hay cosas que uno siente toda la vida y tarda demasiado en decir.",
-    closing: "Gracias por ser casa incluso cuando estamos lejos.",
-    tags: ["Mamá", "Papá", "Gratitud"],
-    recipe: ["intro", "memories", "voices", "stars", "letter", "scratch", "finale"],
+    opening: "Hay una edad en la que uno cree que mamá simplemente puede con todo. Después crece y empieza a entender cuánto había detrás.",
+    closing: "Gracias por ser hogar mucho antes de que yo entendiera lo que significaba esa palabra.",
+    tags: ["Mamá", "Gratitud", "Infancia"],
+    recipe: ["intro", "childhood", "memories", "care", "sacrifices", "voices", "letter", "return", "finale"],
+  },
+  {
+    slug: "papa",
+    eyebrow: "Para el hombre que me enseñó más de lo que decía",
+    title: "Las cosas tuyas que quedaron en mí",
+    short: "Un recorrido por aprendizajes, presencia, códigos y todo lo que uno entiende distinto cuando crece.",
+    description: "Fotos, voces y escenas creadas para mirar a papá desde otro lugar: no sólo como padre, sino como la persona detrás de todo lo que enseñó.",
+    icon: "⌁",
+    accent: "#a9b7c9",
+    demoRecipient: "Papá",
+    demoGiver: "Tus hijos",
+    opening: "De chico pensé que simplemente sabías cómo hacer las cosas. De grande entendí que muchas veces estabas aprendiendo mientras me enseñabas.",
+    closing: "Hay cosas tuyas que ya forman parte de mí. Gracias por haberlas dejado sin siquiera proponértelo.",
+    tags: ["Papá", "Legado", "Gratitud"],
+    recipe: ["intro", "memories", "lessons", "presence", "inheritance", "voices", "letter", "lookback", "finale"],
   },
   {
     slug: "amistad",
@@ -168,5 +191,6 @@ export const experiences: Experience[] = [
 ];
 
 export function getExperience(slug: string) {
+  if (slug === "mama-papa") return experiences.find((experience) => experience.slug === "mama");
   return experiences.find((experience) => experience.slug === slug);
 }
