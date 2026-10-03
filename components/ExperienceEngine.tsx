@@ -53,8 +53,12 @@ export default function ExperienceEngine({
   const [vaultOpen, setVaultOpen] = useState(false);
   const [capsuleOpen, setCapsuleOpen] = useState(false);
   const [voicesPlayed, setVoicesPlayed] = useState<number[]>([]);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [homeOpen, setHomeOpen] = useState<number[]>([]);
+  const [legacyOpen, setLegacyOpen] = useState(false);
 
   const scenes = experience.recipe;
+  const isGrandparents = experience.slug === "abuelos";
   const displayPhotos: ExperiencePhoto[] =
     photoMedia && photoMedia.length > 0
       ? photoMedia.slice(0, 8)
@@ -116,9 +120,9 @@ export default function ExperienceEngine({
 
       case "memories":
         return (
-          <section className="scene scene-memories">
-            <p className="scene-kicker">Los recuerdos</p>
-            <h2>Hay días que terminan. Y otros que se quedan.</h2>
+          <section className={`scene scene-memories ${isGrandparents ? "scene-memories-archive" : ""}`}>
+            <p className="scene-kicker">{isGrandparents ? "Álbum familiar · piezas rescatadas" : "Los recuerdos"}</p>
+            <h2>{isGrandparents ? "Algunas fotos guardan más de lo que muestran." : "Hay días que terminan. Y otros que se quedan."}</h2>
             <div className="film-strip">
               {displayPhotos.map((photo, index) => (
                 <article key={photo.url} className="memory-card">
@@ -197,14 +201,14 @@ export default function ExperienceEngine({
 
       case "letter":
         return (
-          <section className="scene scene-letter">
-            <p className="scene-kicker">La parte que no podía entrar en una foto</p>
-            <h2>Hay palabras que merecen abrirse despacio.</h2>
+          <section className={`scene scene-letter ${isGrandparents ? "scene-letter-archive" : ""}`}>
+            <p className="scene-kicker">{isGrandparents ? "Una carta que debía existir" : "La parte que no podía entrar en una foto"}</p>
+            <h2>{isGrandparents ? "Hay gracias que no deberían quedarse para después." : "Hay palabras que merecen abrirse despacio."}</h2>
             <button className={`envelope ${letterOpen ? "open" : ""}`} onClick={() => setLetterOpen(true)}>
               <span className="envelope-back" />
               <span className="paper">
                 <small>Para {experience.demoRecipient}</small>
-                <strong>{letterText || "Gracias por convertir tantos días comunes en recuerdos extraordinarios."}</strong>
+                <strong>{letterText || (isGrandparents ? "Gracias por todo lo que hiciste cuando nadie estaba sacando una foto. Por las veces que cuidaste, esperaste, cocinaste, llamaste, abrazaste y seguiste. Muchas de las cosas que hoy somos empezaron en vos." : "Gracias por convertir tantos días comunes en recuerdos extraordinarios.")}</strong>
                 <em>— {experience.demoGiver}</em>
               </span>
               <span className="envelope-front" />
@@ -265,23 +269,34 @@ export default function ExperienceEngine({
 
       case "timeline":
         return (
-          <section className="scene scene-timeline">
-            <p className="scene-kicker">El tiempo también cuenta historias</p>
-            <h2>Tres momentos. Una misma historia.</h2>
+          <section className={`scene scene-timeline ${isGrandparents ? "scene-timeline-archive" : ""}`}>
+            <p className="scene-kicker">{isGrandparents ? "Una vida no entra en una fecha" : "El tiempo también cuenta historias"}</p>
+            <h2>{isGrandparents ? "Antes de ser abuela, ya habías vivido un mundo entero." : "Tres momentos. Una misma historia."}</h2>
             <div className="timeline">
-              <article><span>01</span><strong>El comienzo</strong><p>Cuando todavía no sabíamos en qué se iba a convertir todo esto.</p></article>
-              <article><span>02</span><strong>El día que cambió algo</strong><p>Uno de esos momentos que después entendemos que fueron gigantes.</p></article>
-              <article><span>03</span><strong>Hoy</strong><p>La historia sigue. Y por suerte todavía no sabemos cómo termina.</p></article>
+              {isGrandparents ? (
+                <>
+                  <article><span>1958</span><strong>Antes de nosotros</strong><p>Una versión tuya que conocemos por historias, fotos y esas anécdotas que siempre vuelven a la mesa.</p></article>
+                  <article><span>1979</span><strong>La casa empieza a llenarse</strong><p>Nombres nuevos, rutinas, domingos, preocupaciones y una familia tomando forma.</p></article>
+                  <article><span>1998</span><strong>Otra generación</strong><p>De pronto llegaron nietos que aprendieron tu voz antes de entender todo lo que significaba.</p></article>
+                  <article><span>HOY</span><strong>La historia sigue acá</strong><p>En gestos, recetas, frases y maneras de querer que ya son parte de todos nosotros.</p></article>
+                </>
+              ) : (
+                <>
+                  <article><span>01</span><strong>El comienzo</strong><p>Cuando todavía no sabíamos en qué se iba a convertir todo esto.</p></article>
+                  <article><span>02</span><strong>El día que cambió algo</strong><p>Uno de esos momentos que después entendemos que fueron gigantes.</p></article>
+                  <article><span>03</span><strong>Hoy</strong><p>La historia sigue. Y por suerte todavía no sabemos cómo termina.</p></article>
+                </>
+              )}
             </div>
-            <button className="primary-action" onClick={next}>Seguir la historia</button>
+            <button className="primary-action" onClick={next}>{isGrandparents ? "Abrir el álbum" : "Seguir la historia"}</button>
           </section>
         );
 
       case "voices":
         return (
-          <section className="scene scene-voices">
-            <p className="scene-kicker">Hay gente esperando decirte algo</p>
-            <h2>Elegí una voz.</h2>
+          <section className={`scene scene-voices ${isGrandparents ? "scene-voices-archive" : ""}`}>
+            <p className="scene-kicker">{isGrandparents ? "Hay sonidos que también son hogar" : "Hay gente esperando decirte algo"}</p>
+            <h2>{isGrandparents ? "Escuchá lo que dejaste en nosotros." : "Elegí una voz."}</h2>
             <div className="voice-grid">
               {audioMedia && audioMedia.length > 0
                 ? audioMedia.map((audio, index) => (
@@ -299,7 +314,7 @@ export default function ExperienceEngine({
                       />
                     </article>
                   ))
-                : ["Mamá", "Tomás", "Caro", "Fran"].map((name, index) => (
+                : (isGrandparents ? ["Marta", "Carlos", "Lucía", "Nico"] : ["Mamá", "Tomás", "Caro", "Fran"]).map((name, index) => (
                     <button
                       key={name}
                       className={voicesPlayed.includes(index) ? "played" : ""}
@@ -307,7 +322,7 @@ export default function ExperienceEngine({
                     >
                       <span>{voicesPlayed.includes(index) ? "▶" : "●"}</span>
                       <strong>{name}</strong>
-                      <small>{voicesPlayed.includes(index) ? "“Te quiero muchísimo. Gracias por estar siempre.”" : "Tocar para escuchar"}</small>
+                      <small>{voicesPlayed.includes(index) ? (isGrandparents ? "“Hay cosas tuyas que hacemos sin darnos cuenta. Ahí entendemos cuánto de vos vive en nosotros.”" : "“Te quiero muchísimo. Gracias por estar siempre.”") : "Tocar para escuchar"}</small>
                     </button>
                   ))}
             </div>
@@ -385,6 +400,77 @@ export default function ExperienceEngine({
           </section>
         );
 
+      case "archive":
+        return (
+          <section className="scene scene-archive">
+            <div className="archive-dust" aria-hidden="true" />
+            <p className="scene-kicker">Archivo familiar · reservado</p>
+            <h2>Hay una vida entera guardada acá adentro.</h2>
+            <button className={`archive-folder ${archiveOpen ? "open" : ""}`} onClick={() => setArchiveOpen(true)}>
+              <span className="archive-tab">FAMILIA · ELENA</span>
+              <span className="archive-cover">
+                <small>ARCHIVO Nº 01</small>
+                <strong>Una vida<br/>que merece quedar.</strong>
+                <em>Fotografías · historias · voces · recetas</em>
+              </span>
+              <span className="archive-paper">
+                <small>PRIMERA NOTA</small>
+                <strong>Antes de seguir:</strong>
+                <p>esto no es un resumen de tu vida. Es apenas una colección de las huellas que fuiste dejando en la nuestra.</p>
+              </span>
+            </button>
+            {!archiveOpen && <p className="scene-hint">Tocá el archivo para abrirlo</p>}
+            {archiveOpen && <button className="primary-action" onClick={next}>Empezar por el principio</button>}
+          </section>
+        );
+
+      case "home":
+        return (
+          <section className="scene scene-home">
+            <p className="scene-kicker">La casa también se acuerda</p>
+            <h2>No heredamos sólo historias. Heredamos pequeñas cosas.</h2>
+            <div className="home-memory">
+              {[
+                ["La cocina", "Ese olor que alcanzaba para saber qué estabas haciendo antes de entrar."],
+                ["La mesa", "Donde siempre aparecía lugar para uno más, incluso cuando parecía imposible."],
+                ["Tus manos", "La manera de arreglar, preparar, señalar, acariciar y hacer que todo siguiera funcionando."],
+                ["Tus frases", "Las repetimos riéndonos. Y un día descubrimos que empezamos a decirlas igual que vos."],
+              ].map(([title, copy], index) => (
+                <button key={title} className={homeOpen.includes(index) ? "open" : ""} onClick={() => setHomeOpen((items) => items.includes(index) ? items : [...items, index])}>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <strong>{title}</strong>
+                  <p>{homeOpen.includes(index) ? copy : "Tocá para recordar"}</p>
+                </button>
+              ))}
+            </div>
+            <button className="primary-action" onClick={next} disabled={homeOpen.length < 3}>
+              {homeOpen.length < 3 ? `Encontrá ${3 - homeOpen.length} recuerdos más` : "Escuchar a la familia"}
+            </button>
+          </section>
+        );
+
+      case "legacy":
+        return (
+          <section className="scene scene-legacy">
+            <div className="legacy-roots" aria-hidden="true">
+              <i /><i /><i /><i /><i />
+            </div>
+            <p className="scene-kicker">Y entonces entendimos algo</p>
+            <h2>Una familia también se parece a quien la enseñó a querer.</h2>
+            <button className={`legacy-seal ${legacyOpen ? "open" : ""}`} onClick={() => setLegacyOpen(true)}>
+              <span>⌁</span>
+              <strong>{legacyOpen ? "Mirá todo lo que empezó en vos" : "Tocá acá"}</strong>
+            </button>
+            {legacyOpen && (
+              <div className="legacy-names">
+                <span>historias</span><span>costumbres</span><span>recetas</span><span>frases</span><span>abrazos</span><span>nosotros</span>
+              </div>
+            )}
+            {legacyOpen && <p className="legacy-copy">No todo legado lleva apellido. A veces es una forma de poner la mesa, de llamar para saber si llegamos bien o de hacer sentir a alguien que siempre puede volver.</p>}
+            {legacyOpen && <button className="primary-action" onClick={next}>Una última cosa</button>}
+          </section>
+        );
+
       case "proposal":
         return (
           <section className="scene scene-proposal">
@@ -403,11 +489,11 @@ export default function ExperienceEngine({
       case "finale":
       default:
         return (
-          <section className="scene scene-finale">
+          <section className={`scene scene-finale ${isGrandparents ? "scene-finale-legacy" : ""}`}>
             <div className="finale-ring" />
             <p className="scene-kicker">Una última cosa</p>
             <h2>{experience.closing}</h2>
-            <p>Este lugar va a seguir acá para cuando quieras volver.</p>
+            <p>{isGrandparents ? "Y mientras alguien de la familia recuerde una historia tuya, una parte de este lugar también va a seguir viviendo afuera de la pantalla." : "Este lugar va a seguir acá para cuando quieras volver."}</p>
             <div className="reaction-row">
               {["🥹", "❤️", "😭", "✨"].map((reaction) => <button key={reaction}>{reaction}</button>)}
             </div>
@@ -419,7 +505,7 @@ export default function ExperienceEngine({
   };
 
   return (
-    <main className="experience-shell" style={{ "--accent": experience.accent } as React.CSSProperties}>
+    <main className={`experience-shell experience-shell--${experience.slug} ${sceneIndex > 0 ? "experience-entered" : ""}`} style={{ "--accent": experience.accent } as React.CSSProperties}>
       <div className="experience-topbar">
         <button onClick={previous} disabled={sceneIndex === 0} aria-label="Volver">←</button>
         <div className="progress-track"><span style={{ width: `${progress}%` }} /></div>
