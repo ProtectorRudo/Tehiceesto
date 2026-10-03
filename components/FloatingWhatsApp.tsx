@@ -1,12 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-
-const whatsappHref =
-  "https://wa.me/5492215653163?text=" +
-  encodeURIComponent(
-    "Hola! Vi Te Hice Esto y quiero crear una experiencia para regalar. ¿Me contás cómo funciona?"
-  );
+import { getExperience } from "@/data/experiences";
 
 export default function FloatingWhatsApp() {
   const pathname = usePathname();
@@ -16,6 +11,17 @@ export default function FloatingWhatsApp() {
   }
 
   const compact = pathname.startsWith("/experiencias/");
+  const experienceSlug = compact ? pathname.split("/")[2] || "" : "";
+  const experience = experienceSlug ? getExperience(experienceSlug) : undefined;
+
+  const message = experience
+    ? `Hola! Vi el demo “${experience.title}” de Te Hice Esto y quiero crear uno para regalar. ¿Me contás cómo seguimos?`
+    : pathname.startsWith("/crear")
+      ? "Hola! Estoy armando un borrador en Te Hice Esto y quiero crear una experiencia para regalar. ¿Me contás cómo seguimos?"
+      : "Hola! Vi Te Hice Esto y quiero crear una experiencia para regalar. ¿Me contás cómo funciona?";
+
+  const whatsappHref =
+    "https://wa.me/5492215653163?text=" + encodeURIComponent(message);
 
   return (
     <a
