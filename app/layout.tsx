@@ -1,11 +1,26 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Te Hice Esto — Un regalo que no se abre. Se vive.",
+  metadataBase: new URL("https://tehiceesto.com"),
+  title: "Te Hice Esto — Un regalo que se vive",
   description:
-    "Experiencias digitales personalizadas con fotos, cartas, recuerdos, juegos y sorpresas.",
+    "Convertimos fotos, audios, cartas y recuerdos en experiencias digitales privadas creadas para una sola persona.",
+  openGraph: {
+    title: "Te Hice Esto — Un regalo que se vive",
+    description:
+      "Experiencias digitales privadas hechas con recuerdos reales y diseñadas para una sola persona.",
+    url: "https://tehiceesto.com",
+    siteName: "Te Hice Esto",
+    locale: "es_AR",
+    type: "website",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#080709",
+  colorScheme: "dark",
 };
 
 export default function RootLayout({
