@@ -383,6 +383,7 @@ export async function registerMediaAction(input: {
       size: input.size,
       fit: "cover",
       position: "center",
+      ...(input.kind === "audio" ? { role: "voice" } : {}),
     },
   });
 
@@ -401,6 +402,7 @@ export async function updateMediaAction(input: {
   caption: string;
   fit: "cover" | "contain";
   position: "center" | "top" | "bottom" | "left" | "right";
+  role?: "voice" | "soundtrack";
 }) {
   await requireAdmin();
   const code = cleanCode(input.code);
@@ -416,17 +418,48 @@ export async function updateMediaAction(input: {
 
   const { data: media } = await supabase
     .from("gift_media")
-    .select("metadata")
+    .select("kind,metadata")
     .eq("id", input.mediaId)
     .eq("gift_id", gift.id)
     .single();
 
   if (!media) throw new Error("media_not_found");
 
+  const role =
+    media.kind === "audio" && input.role === "soundtrack"
+      ? "soundtrack"
+      : media.kind === "audio"
+        ? "voice"
+        : undefined;
+
+  if (role === "soundtrack") {
+    const { data: otherAudio } = await supabase
+      .from("gift_media")
+      .select("id,metadata")
+      .eq("gift_id", gift.id)
+      .eq("kind", "audio")
+      .neq("id", input.mediaId);
+
+    for (const other of otherAudio || []) {
+      const otherMetadata = {
+        ...(other.metadata || {}),
+        role: "voice",
+      };
+      const { error: roleError } = await supabase
+        .from("gift_media")
+        .update({ metadata: otherMetadata })
+        .eq("id", other.id)
+        .eq("gift_id", gift.id);
+
+      if (roleError) throw new Error("media_soundtrack_role_failed");
+    }
+  }
+
   const metadata = {
     ...(media.metadata || {}),
     fit: input.fit,
     position: input.position,
+    ...(role ? { role } : {}),
   };
 
   const { error } = await supabase
