@@ -82,6 +82,10 @@ export async function getPublishedGiftByCode(
   }[];
   audioMedia?: { url: string; caption?: string }[];
   videoMedia?: { url: string; caption?: string }[];
+  storyContext?: {
+    keyDate?: string;
+    anecdote?: string;
+  };
 }> {
   const env = publicCredentials();
   if (!env) {
@@ -165,6 +169,18 @@ export async function getPublishedGiftByCode(
     photoMedia: photoMedia.length > 0 ? photoMedia : undefined,
     audioMedia: audioMedia.length > 0 ? audioMedia : undefined,
     videoMedia: videoMedia.length > 0 ? videoMedia : undefined,
+    storyContext: row.story_data
+      ? {
+          keyDate:
+            typeof row.story_data.keyDate === "string"
+              ? row.story_data.keyDate
+              : undefined,
+          anecdote:
+            typeof row.story_data.anecdote === "string"
+              ? row.story_data.anecdote
+              : undefined,
+        }
+      : undefined,
   };
 }
 
