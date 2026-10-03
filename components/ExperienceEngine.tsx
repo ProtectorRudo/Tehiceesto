@@ -110,6 +110,65 @@ export default function ExperienceEngine({
   const isMother = experience.slug === "mama" || experience.slug === "mama-papa";
   const isFather = experience.slug === "papa";
   const isFriendship = experience.slug === "amistad";
+  const introKicker = isProposal
+    ? `Una experiencia privada de ${experience.demoGiver}`
+    : isFriendship
+      ? `ARCHIVO 021 · preparado por ${experience.demoGiver}`
+      : isMother
+        ? `${experience.demoGiver} quiso volver a mirar tu historia`
+        : isFather
+          ? `${experience.demoGiver} guardó algunas cosas que aprendió de vos`
+          : isGrandparents
+            ? `Un archivo familiar preparado por ${experience.demoGiver}`
+            : isAnniversary
+              ? `${experience.demoGiver} volvió a recorrer todo lo que construyeron`
+              : experience.slug === "hijos"
+                ? `Una cápsula hecha por ${experience.demoGiver}`
+                : experience.slug === "cumpleanos"
+                  ? `${experience.demoGiver} preparó algo que no entra en un mensaje`
+                  : experience.slug === "pareja"
+                    ? `Una historia privada hecha por ${experience.demoGiver}`
+                    : `${experience.demoGiver} hizo algo para vos`;
+
+  const introAction = isProposal
+    ? "Quiero seguir"
+    : isFriendship
+      ? "Abrir expediente"
+      : isMother
+        ? "Volver a esos recuerdos"
+        : isFather
+          ? "Mirar de nuevo"
+          : isGrandparents
+            ? "Abrir el archivo"
+            : isAnniversary
+              ? "Volver a recorrerlo"
+              : experience.slug === "hijos"
+                ? "Abrir esta cápsula"
+                : experience.slug === "cumpleanos"
+                  ? "Empezar"
+                  : experience.slug === "pareja"
+                    ? "Entrar despacio"
+                    : "Entrar";
+
+  const introNote = isProposal
+    ? "Sin apuro · llegá hasta el final"
+    : isFriendship
+      ? "Material sensible · risas probablemente inevitables"
+      : isMother
+        ? "Mejor sin apuro"
+        : isFather
+          ? "Hay cosas que se entienden distinto de grande"
+          : isGrandparents
+            ? "Fotos, voces y recuerdos de familia"
+            : isAnniversary
+              ? "No es sobre cómo empezó. Es sobre todo lo que vino después."
+              : experience.slug === "hijos"
+                ? "Un recorrido para volver hoy o dentro de muchos años"
+                : experience.slug === "cumpleanos"
+                  ? "Hay gente esperando del otro lado"
+                  : experience.slug === "pareja"
+                    ? "Hecho para una sola persona"
+                    : "Una experiencia privada";
   const demoPhotos = isMother ? motherDemoPhotos : isFather ? fatherDemoPhotos : isFriendship ? friendshipDemoPhotos : photos;
   const displayPhotos: ExperiencePhoto[] =
     photoMedia && photoMedia.length > 0
@@ -177,11 +236,11 @@ export default function ExperienceEngine({
           <section className={`scene scene-intro ${isProposal ? "scene-intro-proposal" : ""} ${isMother ? "scene-intro-mother" : ""} ${isFather ? "scene-intro-father" : ""} ${isFriendship ? "scene-intro-friendship" : ""}`}>
             <div className="orb orb-one" />
             <div className="orb orb-two" />
-            <p className="scene-kicker">{isProposal ? "Una experiencia privada de " + experience.demoGiver : isFriendship ? "ARCHIVO 021 · preparado por " + experience.demoGiver : experience.demoGiver + " hizo algo para vos"}</p>
+            <p className="scene-kicker">{introKicker}</p>
             <h1>{experience.demoRecipient}</h1>
             <p className="scene-lead">{experience.opening}</p>
-            <button className="primary-action" onClick={next}>{isProposal ? "Quiero seguir" : isFriendship ? "Abrir expediente" : "Entrar"}</button>
-            <small>{isProposal ? "Sin apuro · llegá hasta el final" : isFriendship ? "Material sensible · risas probablemente inevitables" : "Mejor con auriculares · 6 min"}</small>
+            <button className="primary-action" onClick={next}>{introAction}</button>
+            <small>{introNote}</small>
           </section>
         );
 
@@ -876,7 +935,7 @@ export default function ExperienceEngine({
             <p className="scene-kicker">EXPEDIENTE 021 · NIVEL DE ACCESO: CUESTIONABLE</p>
             <h2>Hay pruebas suficientes para confirmar que esto se nos fue de las manos hace años.</h2>
             <button className={`casefile-folder ${casefileOpen ? "open" : ""}`} onClick={() => setCasefileOpen(true)}>
-              <span className="casefile-tab">VALE + CAMI</span>
+              <span className="casefile-tab">{experience.demoRecipient.toUpperCase()} + {experience.demoGiver.toUpperCase()}</span>
               <span className="casefile-cover">
                 <small>ARCHIVO CONFIDENCIAL</small>
                 <strong>AMISTAD<br/>BAJO INVESTIGACIÓN</strong>
@@ -975,10 +1034,10 @@ export default function ExperienceEngine({
             <p className="scene-kicker">PACTO NO LEGAL · VIGENCIA INDEFINIDA</p>
             <h2>Para que quede por escrito, por si alguna vez la vida se pone demasiado seria.</h2>
             <div className="pact-paper">
-              <small>ACUERDO ENTRE VALE Y CAMI</small>
+              <small>ACUERDO ENTRE {experience.demoRecipient.toUpperCase()} Y {experience.demoGiver.toUpperCase()}</small>
               {[
                 ["I", "Podemos pasar semanas sin hablar y retomar como si hubieran sido veinte minutos."],
-                ["II", "Si una está haciendo una estupidez, la otra tiene obligación moral de avisar. Una vez."],
+                ["II", "Si alguien está haciendo una estupidez, la otra persona tiene obligación moral de avisar. Una vez."],
                 ["III", "Los logros de una se festejan sin medirlos contra la vida de la otra."],
                 ["IV", "Si todo se complica, existe siempre el derecho irrestricto a mandar “¿estás?”."],
               ].map(([n,copy],index)=>(
@@ -989,7 +1048,7 @@ export default function ExperienceEngine({
                 </button>
               ))}
               <div className="pact-signatures">
-                <span>Cami</span><i>+</i><span>Vale</span>
+                <span>{experience.demoGiver}</span><i>+</i><span>{experience.demoRecipient}</span>
               </div>
             </div>
             <button className="primary-action" onClick={next} disabled={pactOpen.length < 3}>Cerrar expediente</button>
@@ -1068,7 +1127,7 @@ export default function ExperienceEngine({
             <p className="scene-kicker">Archivo familiar · reservado</p>
             <h2>Hay una vida entera guardada acá adentro.</h2>
             <button className={`archive-folder ${archiveOpen ? "open" : ""}`} onClick={() => setArchiveOpen(true)}>
-              <span className="archive-tab">FAMILIA · ELENA</span>
+              <span className="archive-tab">FAMILIA · {experience.demoRecipient.toUpperCase()}</span>
               <span className="archive-cover">
                 <small>ARCHIVO Nº 01</small>
                 <strong>Una vida<br/>que merece quedar.</strong>
@@ -1138,7 +1197,7 @@ export default function ExperienceEngine({
             <div className="proposal-halo" />
             {!proposalAccepted ? (
               <>
-                <p className="scene-kicker">Clara</p>
+                <p className="scene-kicker">{experience.demoRecipient}</p>
                 <span className="ring-symbol">◇</span>
                 <h2>{experience.closing}</h2>
                 <p className="proposal-subline">Quiero elegirte para todos los capítulos que todavía no existen.</p>
