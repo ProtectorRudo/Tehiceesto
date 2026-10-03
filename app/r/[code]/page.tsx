@@ -30,6 +30,7 @@ export default async function GiftPage({
           photoMedia={storedGift.photoMedia}
           audioMedia={storedGift.audioMedia}
           videoMedia={storedGift.videoMedia}
+          storyContext={storedGift.storyContext}
         />
       );
     } catch (error) {
