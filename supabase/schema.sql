@@ -156,3 +156,48 @@ on conflict (id) do nothing;
 -- No storage.objects policies by design. Storage is accessed only by trusted
 -- server code with the server-only secret key and files are delivered through
 -- short-lived signed URLs.
+
+
+-- Internal operations authentication
+create table if not exists public.admin_access (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  secret_hash text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.admin_sessions (
+  id uuid primary key default gen_random_uuid(),
+  token_hash text not null unique,
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.admin_access enable row level security;
+alter table public.admin_sessions enable row level security;
+
+revoke all on table public.admin_access from anon, authenticated;
+revoke all on table public.admin_sessions from anon, authenticated;
+
+grant select, insert, update, delete on table public.admin_access to service_role;
+grant select, insert, update, delete on table public.admin_sessions to service_role;
+
+drop policy if exists "deny browser access to admin_access" on public.admin_access;
+create policy "deny browser access to admin_access"
+on public.admin_access
+for all
+to anon, authenticated
+using (false)
+with check (false);
+
+drop policy if exists "deny browser access to admin_sessions" on public.admin_sessions;
+create policy "deny browser access to admin_sessions"
+on public.admin_sessions
+for all
+to anon, authenticated
+using (false)
+with check (false);
+
+create index if not exists admin_sessions_expires_idx
+  on public.admin_sessions(expires_at);
