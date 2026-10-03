@@ -334,11 +334,42 @@ export default function ExperienceEngine({
           </section>
         );
 
-      case "voices":
+      case "voices": {
+        const voiceNames = isGrandparents
+          ? ["Marta", "Carlos", "Lucía", "Nico"]
+          : isMother
+            ? ["Sofi", "Martín", "Cande", "Nico"]
+            : isFather
+              ? ["Vale", "Lucas", "Mica", "Fede"]
+              : ["Mamá", "Tomás", "Caro", "Fran"];
+        const voiceQuote = isGrandparents
+          ? "“Hay cosas tuyas que hacemos sin darnos cuenta. Ahí entendemos cuánto de vos vive en nosotros.”"
+          : isMother
+            ? "“Ahora que soy grande entiendo mejor todo lo que hacías cuando yo sólo veía que mamá estaba ahí.”"
+            : isFather
+              ? "“Hay cosas que hago igual que vos y recién me doy cuenta cuando alguien me lo señala.”"
+              : "“Te quiero muchísimo. Gracias por estar siempre.”";
+
         return (
-          <section className={`scene scene-voices ${isGrandparents ? "scene-voices-archive" : ""}`}>
-            <p className="scene-kicker">{isGrandparents ? "Hay sonidos que también son hogar" : "Hay gente esperando decirte algo"}</p>
-            <h2>{isGrandparents ? "Escuchá lo que dejaste en nosotros." : "Elegí una voz."}</h2>
+          <section className={`scene scene-voices ${isGrandparents ? "scene-voices-archive" : ""} ${isMother ? "scene-voices-mother" : ""} ${isFather ? "scene-voices-father" : ""}`}>
+            <p className="scene-kicker">
+              {isGrandparents
+                ? "Hay sonidos que también son hogar"
+                : isMother
+                  ? "Hay voces que crecieron alrededor tuyo"
+                  : isFather
+                    ? "Hay cosas que a veces se dicen mejor de frente"
+                    : "Hay gente esperando decirte algo"}
+            </p>
+            <h2>
+              {isGrandparents
+                ? "Escuchá lo que dejaste en nosotros."
+                : isMother
+                  ? "Escuchá todo lo que hoy podemos ver distinto."
+                  : isFather
+                    ? "Escuchá cómo quedó tu forma de estar en nosotros."
+                    : "Elegí una voz."}
+            </h2>
             <div className="voice-grid">
               {audioMedia && audioMedia.length > 0
                 ? audioMedia.map((audio, index) => (
@@ -356,7 +387,7 @@ export default function ExperienceEngine({
                       />
                     </article>
                   ))
-                : (isGrandparents ? ["Marta", "Carlos", "Lucía", "Nico"] : ["Mamá", "Tomás", "Caro", "Fran"]).map((name, index) => (
+                : voiceNames.map((name, index) => (
                     <button
                       key={name}
                       className={voicesPlayed.includes(index) ? "played" : ""}
@@ -364,13 +395,14 @@ export default function ExperienceEngine({
                     >
                       <span>{voicesPlayed.includes(index) ? "▶" : "●"}</span>
                       <strong>{name}</strong>
-                      <small>{voicesPlayed.includes(index) ? (isGrandparents ? "“Hay cosas tuyas que hacemos sin darnos cuenta. Ahí entendemos cuánto de vos vive en nosotros.”" : "“Te quiero muchísimo. Gracias por estar siempre.”") : "Tocar para escuchar"}</small>
+                      <small>{voicesPlayed.includes(index) ? voiceQuote : "Tocar para escuchar"}</small>
                     </button>
                   ))}
             </div>
             <button className="primary-action" onClick={next} disabled={voicesPlayed.length < 1}>Continuar</button>
           </section>
         );
+      }
 
       case "video":
         return (
