@@ -39,8 +39,8 @@ export default function AdminPublishControls({
 
   return (
     <div className="admin-publish-controls">
-      <a className="ghost-action" href={`/admin/gifts/${code}/preview`}>
-        Ver preview
+      <a className="ghost-action admin-copy-entry" href={`/admin/gifts/${code}/preview`}>
+        Preview + editar textos
       </a>
 
       {published && (
