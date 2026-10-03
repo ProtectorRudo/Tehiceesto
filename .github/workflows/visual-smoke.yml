@@ -1,0 +1,43 @@
+name: Current main visual smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/visual-smoke.yml"
+      - "scripts/visual-smoke.mjs"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        run: |
+          npm install
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Build
+        run: npm run build
+      - name: Start
+        run: |
+          npm start -- -H 127.0.0.1 -p 3000 > /tmp/site.log 2>&1 &
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:3000 >/dev/null && exit 0
+            sleep 2
+          done
+          cat /tmp/site.log
+          exit 1
+      - name: Capture
+        run: node scripts/visual-smoke.mjs
+      - name: Upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: current-main-visual-smoke
+          path: visual-smoke/
+          retention-days: 7
