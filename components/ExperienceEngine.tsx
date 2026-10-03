@@ -913,7 +913,7 @@ export default function ExperienceEngine({
         return (
           <section className="scene scene-incidents">
             <p className="scene-kicker">ANTECEDENTES · REINCIDENCIA CONFIRMADA</p>
-            <h2>No digo que juntas tomemos malas decisiones. Digo que hay evidencia.</h2>
+            <h2>No digo que esta dupla tome malas decisiones. Digo que hay evidencia.</h2>
             <div className="incident-stack">
               {[
                 ["CASO 001", "La salida que iba a ser tranqui", "Duración estimada: 2 horas. Duración real: información reservada."],
@@ -940,11 +940,11 @@ export default function ExperienceEngine({
           <section className="scene scene-proof">
             <div className="proof-shift" aria-hidden="true" />
             <p className="scene-kicker">Y después están las pruebas que sí importan</p>
-            <h2>Porque ser amiga también fue estar cuando no había nada divertido para contar.</h2>
+            <h2>Porque estar de verdad también fue aparecer cuando no había nada divertido para contar.</h2>
             <div className="proof-list">
               {[
                 ["ESTUVISTE", "Cuando no sabía bien qué decir y tampoco hacía falta que arreglaras nada."],
-                ["TE ALEGRaste", "Por cosas buenas que me pasaban aunque no tuvieran absolutamente nada que ver con vos."],
+                ["TE ALEGRASTE", "Por cosas buenas que me pasaban aunque no tuvieran absolutamente nada que ver con vos."],
                 ["ME DIJISTE LA VERDAD", "Incluso cuando hubiera sido mucho más cómodo darme la razón."],
                 ["TE QUEDASTE", "En versiones mías que ni yo sabía cuánto iban a durar."],
               ].map(([title,copy],index)=>(
