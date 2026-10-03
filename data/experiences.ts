@@ -14,7 +14,10 @@ export type SceneType =
   | "vault"
   | "capsule"
   | "proposal"
-  | "video";
+  | "video"
+  | "archive"
+  | "home"
+  | "legacy";
 
 export type Experience = {
   slug: string;
@@ -91,7 +94,7 @@ export const experiences: Experience[] = [
     opening: "Hay historias que no deberían quedar guardadas en una caja de fotos.",
     closing: "Tu historia también es la nuestra. Gracias por haberla empezado.",
     tags: ["Abuelos", "Legado", "Familia"],
-    recipe: ["intro", "timeline", "memories", "voices", "stars", "letter", "finale"],
+    recipe: ["intro", "archive", "timeline", "memories", "home", "voices", "letter", "legacy", "finale"],
   },
   {
     slug: "aniversario",
