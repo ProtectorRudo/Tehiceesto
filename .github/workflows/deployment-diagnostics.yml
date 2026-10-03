@@ -1,0 +1,31 @@
+name: Deployment diagnostics
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/deployment-diagnostics.yml"
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check Vercel deployment wiring
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          if [ -n "$VERCEL_TOKEN" ]; then echo "VERCEL_TOKEN_PRESENT=true"; else echo "VERCEL_TOKEN_PRESENT=false"; fi
+          if [ -n "$VERCEL_ORG_ID" ]; then echo "VERCEL_ORG_ID_PRESENT=true"; else echo "VERCEL_ORG_ID_PRESENT=false"; fi
+          if [ -n "$VERCEL_PROJECT_ID" ]; then echo "VERCEL_PROJECT_ID_PRESENT=true"; else echo "VERCEL_PROJECT_ID_PRESENT=false"; fi
+
+      - name: Inspect production response
+        run: |
+          echo "--- headers ---"
+          curl -sSIL --max-time 30 https://tehiceesto.com | grep -Ei '^(HTTP/|server:|x-vercel-|cache-control:|age:)' || true
+          echo "--- content markers ---"
+          body="$(curl -fsSL --max-time 30 https://tehiceesto.com || true)"
+          if printf '%s' "$body" | grep -q "No le mandes"; then echo "CURRENT_EDITORIAL_HOME=true"; else echo "CURRENT_EDITORIAL_HOME=false"; fi
+          if printf '%s' "$body" | grep -q "Convertimos tus recuerdos"; then echo "LEGACY_HOME=true"; else echo "LEGACY_HOME=false"; fi
