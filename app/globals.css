@@ -4069,3 +4069,13 @@ body{
   font-family:"Instrument Serif",serif;
   font-weight:400;
 }
+
+
+.memory-date-stamp{
+  align-self:center;
+  margin:-7px auto 12px;
+  color:#615c63;
+  font-size:8px;
+  letter-spacing:.17em;
+  text-transform:uppercase;
+}
