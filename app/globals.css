@@ -4015,3 +4015,45 @@ body:has(.experience-entered) .demo-ribbon{
   .demo-ribbon span{max-width:58vw}
   .experience-topbar{bottom:12px;width:calc(100vw - 28px)}
 }
+
+
+/* Material texture + scroll choreography */
+.home-shell:before{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:999;
+  pointer-events:none;
+  opacity:.035;
+  mix-blend-mode:soft-light;
+  background-image:
+    repeating-radial-gradient(circle at 20% 30%,rgba(255,255,255,.32) 0 .5px,transparent .7px 3px);
+  background-size:7px 7px;
+}
+@keyframes editorialReveal{
+  from{opacity:.18;transform:translateY(28px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes editorialRevealSide{
+  from{opacity:.2;transform:translateX(-22px)}
+  to{opacity:1;transform:translateX(0)}
+}
+@supports (animation-timeline:view()){
+  @media(prefers-reduced-motion:no-preference){
+    .manifesto-copy,
+    .manifesto-points,
+    .catalog-editorial-head,
+    .home-contrast,
+    .home-final-cta>h2{
+      animation:editorialReveal linear both;
+      animation-timeline:view();
+      animation-range:entry 4% cover 32%;
+    }
+    .catalog-row,
+    .process-timeline article{
+      animation:editorialRevealSide linear both;
+      animation-timeline:view();
+      animation-range:entry 3% cover 22%;
+    }
+  }
+}
