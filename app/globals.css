@@ -5060,3 +5060,18 @@ body:has(.creator-page) .header-create{
     display:none;
   }
 }
+
+
+.soundtrack-control.not-started>i b{
+  animation:none;
+  height:3px;
+  opacity:.22;
+}
+body:has(.demo-ribbon) .soundtrack-control{
+  top:64px;
+}
+@media(max-width:700px){
+  body:has(.demo-ribbon) .soundtrack-control{
+    top:62px;
+  }
+}
