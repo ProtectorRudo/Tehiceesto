@@ -103,11 +103,11 @@ export default async function AdminGiftEditorPage({
             </label>
 
             <label>
-              <span>Canción / link</span>
+              <span>Canción de referencia</span>
               <input
                 name="musicUrl"
                 defaultValue={gift.music_url || ""}
-                placeholder="Spotify, YouTube o nombre"
+                placeholder="Nombre, Spotify o YouTube · después subimos el audio final"
               />
             </label>
 
