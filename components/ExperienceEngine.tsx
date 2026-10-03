@@ -105,12 +105,30 @@ export default function ExperienceEngine({
   const progress = ((sceneIndex + 1) / total) * 100;
 
   const memory = useMemo(
-    () => [
-      "Ese día todavía no sabíamos todo lo que iba a venir.",
-      "Después aprendimos que los mejores recuerdos casi nunca avisan que van a ser importantes.",
-      "Y sin darnos cuenta, empezamos a coleccionar un mundo propio.",
-    ],
-    []
+    () => isProposal
+      ? [
+          "Acá todavía no sabía que un día iba a pedirte que te quedaras para todos los días que vienen.",
+          "En algún punto dejé de imaginar planes con vos y empecé a imaginar una vida.",
+          "No fue una señal enorme. Fueron cientos de pequeñas certezas.",
+        ]
+      : isMother
+        ? [
+            "En ese momento yo veía una foto. Hoy veo todo lo que estabas haciendo para que ese día existiera.",
+            "Hay recuerdos en los que tu amor está más en los bordes que en el centro de la imagen.",
+            "Muchas de las cosas que llamé infancia fueron, en realidad, cosas que vos construiste todos los días.",
+          ]
+        : isFather
+          ? [
+              "Antes sólo recordaba lo que estábamos haciendo. Hoy también recuerdo que vos estabas ahí.",
+              "Hay gestos que parecían normales hasta que crecí y entendí lo que costaba sostenerlos.",
+              "En muchas escenas de mi infancia tu presencia no hacía ruido. Pero estaba.",
+            ]
+          : [
+              "Ese día todavía no sabíamos todo lo que iba a venir.",
+              "Después aprendimos que los mejores recuerdos casi nunca avisan que van a ser importantes.",
+              "Y sin darnos cuenta, empezamos a coleccionar un mundo propio.",
+            ],
+    [isProposal, isMother, isFather]
   );
 
   const next = () => setSceneIndex((value) => Math.min(total - 1, value + 1));
@@ -250,7 +268,7 @@ export default function ExperienceEngine({
               <span className="wax">{isProposal ? "◇" : "♥"}</span>
             </button>
             {!letterOpen && <p className="scene-hint">Rompé el sello</p>}
-            {letterOpen && <button className="primary-action" onClick={next}>Última parte</button>}
+            {letterOpen && <button className="primary-action" onClick={next}>{isMother || isFather ? "Hay algo más" : "Última parte"}</button>}
           </section>
         );
 
