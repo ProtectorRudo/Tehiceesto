@@ -4,6 +4,13 @@ on:
   push:
     branches: [main]
     paths:
+      - "app/**"
+      - "components/**"
+      - "data/**"
+      - "lib/**"
+      - "public/**"
+      - "package.json"
+      - "package-lock.json"
       - ".github/workflows/visual-smoke.yml"
       - "scripts/visual-smoke.mjs"
 
