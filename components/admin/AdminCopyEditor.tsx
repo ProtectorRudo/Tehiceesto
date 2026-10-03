@@ -183,7 +183,7 @@ export default function AdminCopyEditor({
       {enabled && !selection && (
         <div className="copy-editor-hint">
           <strong>Modo edición activo</strong>
-          <p>Navegá la experiencia y tocá cualquier frase visible para cambiarla.</p>
+          <p>Tocá cualquier frase visible para cambiarla. Para avanzar o revelar una interacción, desactivá este modo y volvé a activarlo después.</p>
         </div>
       )}
 
