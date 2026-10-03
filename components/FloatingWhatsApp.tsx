@@ -11,6 +11,7 @@ export default function FloatingWhatsApp() {
   }
 
   const compact = pathname.startsWith("/experiencias/");
+  const creatorCompact = pathname.startsWith("/crear");
   const experienceSlug = compact ? pathname.split("/")[2] || "" : "";
   const experience = experienceSlug ? getExperience(experienceSlug) : undefined;
 
@@ -25,7 +26,7 @@ export default function FloatingWhatsApp() {
 
   return (
     <a
-      className={`floating-whatsapp ${compact ? "floating-whatsapp--experience" : ""}`}
+      className={`floating-whatsapp ${compact ? "floating-whatsapp--experience" : ""} ${creatorCompact ? "floating-whatsapp--creator" : ""}`}
       href={whatsappHref}
       target="_blank"
       rel="noreferrer noopener"
@@ -38,7 +39,7 @@ export default function FloatingWhatsApp() {
       </span>
       <span className="floating-whatsapp-copy">
         <small>¿Querés hacer uno?</small>
-        <strong>{compact ? "Quiero el mío" : "Quiero crear el mío"}</strong>
+        <strong>{compact || creatorCompact ? "Quiero el mío" : "Quiero crear el mío"}</strong>
       </span>
       <span className="floating-whatsapp-arrow" aria-hidden="true">↗</span>
     </a>
