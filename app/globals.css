@@ -2187,3 +2187,651 @@ body:has(.experience-entered) .demo-ribbon{
   opacity:.55;
   border-color:rgba(255,255,255,.08);
 }
+
+
+/* Friendship — confidential case file / flash photography / chosen family */
+.experience-shell--amistad{
+  --friend-blue:#79b7ff;
+  --friend-acid:#d7ff68;
+  --friend-paper:#e9edf2;
+  --friend-red:#ff6f7d;
+  background:
+    radial-gradient(circle at 20% 0%,rgba(121,183,255,.11),transparent 30%),
+    linear-gradient(180deg,#070a10 0%,#040609 100%);
+}
+.experience-shell--amistad:before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  opacity:.11;
+  mix-blend-mode:screen;
+  background:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,transparent 1px 4px);
+}
+.experience-shell--amistad .scene{
+  background:
+    radial-gradient(circle at 50% 42%,rgba(121,183,255,.038),transparent 31%),
+    transparent;
+}
+.experience-shell--amistad .scene-kicker{
+  color:#9bc9ff;
+  font-family:"DM Sans",sans-serif;
+  letter-spacing:.18em;
+}
+.experience-shell--amistad .primary-action{
+  background:#d7ff68;
+  color:#10150a;
+  box-shadow:0 15px 55px rgba(215,255,104,.08);
+}
+.experience-shell--amistad .primary-action:hover{
+  box-shadow:0 17px 65px rgba(215,255,104,.14);
+}
+.experience-shell--amistad .experience-topbar{
+  background:rgba(5,8,13,.60);
+  border-color:rgba(121,183,255,.11);
+}
+.experience-shell--amistad .progress-track span{background:#79b7ff}
+.experience-shell--amistad .orb-one{background:#377dff;opacity:.13}
+.experience-shell--amistad .orb-two{background:#d7ff68;opacity:.06}
+
+/* Friendship opening */
+.scene-intro-friendship{
+  background:
+    linear-gradient(180deg,rgba(8,12,20,.18),rgba(4,6,9,.92)),
+    #040609;
+  overflow:hidden;
+}
+.scene-intro-friendship:before{
+  content:"CONFIDENTIAL";
+  position:absolute;
+  left:50%;
+  top:49%;
+  transform:translate(-50%,-50%) rotate(-8deg);
+  font:800 clamp(64px,15vw,180px)/.8 "DM Sans",sans-serif;
+  letter-spacing:-.08em;
+  color:transparent;
+  -webkit-text-stroke:1px rgba(121,183,255,.07);
+  white-space:nowrap;
+}
+.scene-intro-friendship:after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 77% 22%,rgba(255,255,255,.12) 0 1px,transparent 1px),
+    radial-gradient(circle at 24% 67%,rgba(255,255,255,.08) 0 1px,transparent 1px);
+  background-size:190px 190px,230px 230px;
+  opacity:.3;
+}
+.scene-intro-friendship h1{
+  z-index:1;
+  color:#f4f7fb;
+  font-size:clamp(80px,16vw,170px);
+  text-shadow:0 0 44px rgba(121,183,255,.06);
+}
+.scene-intro-friendship .scene-kicker,
+.scene-intro-friendship .scene-lead,
+.scene-intro-friendship .primary-action,
+.scene-intro-friendship small{z-index:1}
+.scene-intro-friendship .scene-lead{
+  font-family:"Playfair Display",serif;
+  max-width:650px;
+  color:#9aa7b5;
+  font-size:clamp(16px,2vw,20px);
+  line-height:1.68;
+}
+
+/* Classified file */
+.scene-casefile{
+  background:
+    radial-gradient(circle at 50% 46%,rgba(121,183,255,.06),transparent 32%),
+    #040609;
+  isolation:isolate;
+}
+.casefile-scan{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  overflow:hidden;
+}
+.casefile-scan:after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  height:1px;
+  top:-2%;
+  background:linear-gradient(90deg,transparent,rgba(121,183,255,.8),transparent);
+  box-shadow:0 0 16px rgba(121,183,255,.4);
+  animation:caseScan 5.5s ease-in-out infinite;
+  opacity:.34;
+}
+@keyframes caseScan{
+  0%,10%{top:6%;opacity:0}
+  18%{opacity:.38}
+  76%{top:92%;opacity:.38}
+  88%,100%{top:92%;opacity:0}
+}
+.casefile-folder{
+  width:min(590px,90vw);
+  height:360px;
+  margin:24px auto 6px;
+  position:relative;
+  border:0;
+  background:transparent;
+  cursor:pointer;
+  perspective:1300px;
+  color:#101722;
+}
+.casefile-tab{
+  position:absolute;
+  left:5%;
+  top:0;
+  width:37%;
+  height:45px;
+  background:#8da5c2;
+  border-radius:5px 12px 0 0;
+  display:flex;
+  align-items:center;
+  padding-left:19px;
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.17em;
+}
+.casefile-cover{
+  position:absolute;
+  inset:32px 0 0;
+  z-index:2;
+  border-radius:4px 8px 8px 8px;
+  background:
+    linear-gradient(105deg,rgba(255,255,255,.08),transparent 22%),
+    #9eb2c9;
+  box-shadow:0 36px 90px rgba(0,0,0,.48);
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  padding:40px 46px;
+  text-align:left;
+  transform-origin:bottom;
+  transition:transform .9s cubic-bezier(.2,.8,.2,1),filter .9s;
+  overflow:hidden;
+}
+.casefile-cover:after{
+  content:"";
+  position:absolute;
+  inset:17px;
+  border:1px solid rgba(10,23,36,.16);
+  pointer-events:none;
+}
+.casefile-cover small{
+  font-size:8px;
+  letter-spacing:.22em;
+  color:rgba(16,23,34,.58);
+  margin-bottom:19px;
+}
+.casefile-cover strong{
+  font-family:"DM Sans",sans-serif;
+  font-size:clamp(30px,5.8vw,46px);
+  letter-spacing:-.055em;
+  line-height:.92;
+}
+.casefile-cover em{
+  margin-top:20px;
+  font-style:normal;
+  font-size:9px;
+  letter-spacing:.11em;
+  color:rgba(16,23,34,.55);
+}
+.casefile-cover b{
+  position:absolute;
+  right:24px;
+  bottom:22px;
+  border:2px solid rgba(114,31,44,.58);
+  color:rgba(114,31,44,.7);
+  padding:7px 10px;
+  font-size:9px;
+  letter-spacing:.16em;
+  transform:rotate(-8deg);
+}
+.casefile-sheet{
+  position:absolute;
+  left:6%;
+  right:6%;
+  bottom:1px;
+  height:278px;
+  z-index:1;
+  background:
+    linear-gradient(rgba(30,45,62,.045) 1px,transparent 1px),
+    #e9edf1;
+  background-size:100% 24px;
+  box-shadow:0 18px 45px rgba(0,0,0,.33);
+  padding:38px 39px;
+  text-align:left;
+  transform:translateY(11px);
+  transition:transform .85s .18s cubic-bezier(.2,.8,.2,1);
+}
+.casefile-sheet small{
+  color:#708095;
+  letter-spacing:.18em;
+  font-size:8px;
+}
+.casefile-sheet strong{
+  display:block;
+  margin:17px 0 5px;
+  font-family:"DM Sans",sans-serif;
+  font-size:24px;
+}
+.casefile-sheet p{
+  margin:0;
+  max-width:430px;
+  color:#526170;
+  font-family:"Playfair Display",serif;
+  font-size:17px;
+  line-height:1.55;
+}
+.casefile-folder.open .casefile-cover{
+  transform:rotateX(-74deg) translateY(43px);
+  filter:brightness(.7);
+}
+.casefile-folder.open .casefile-sheet{
+  transform:translateY(-48px);
+}
+
+/* Friendship photos — camera flash contact sheet */
+.scene-memories-friendship{
+  background:
+    radial-gradient(circle at 15% 18%,rgba(255,255,255,.09),transparent 12%),
+    #05070b;
+}
+.scene-memories-friendship:before{
+  content:"";
+  position:absolute;
+  width:26vw;
+  height:26vw;
+  max-width:300px;
+  max-height:300px;
+  top:9%;
+  left:8%;
+  background:radial-gradient(circle,rgba(255,255,255,.13),transparent 66%);
+  filter:blur(10px);
+  opacity:.35;
+}
+.scene-memories-friendship .film-strip{
+  width:min(980px,96vw);
+  gap:11px;
+}
+.scene-memories-friendship .memory-card{
+  background:#e8ebef;
+  color:#101722;
+  padding:7px 7px 29px;
+  box-shadow:0 24px 60px rgba(0,0,0,.30);
+  border-radius:2px;
+}
+.scene-memories-friendship .memory-card:nth-child(odd){transform:rotate(-1.8deg)}
+.scene-memories-friendship .memory-card:nth-child(even){transform:rotate(1.2deg) translateY(15px)}
+.scene-memories-friendship .memory-image{
+  filter:saturate(.92) contrast(1.08) brightness(.95);
+}
+.scene-memories-friendship .memory-card p{
+  color:#3e4b59;
+  font-family:"DM Sans",sans-serif;
+  font-weight:650;
+  font-size:11px;
+  line-height:1.45;
+  letter-spacing:.015em;
+}
+.scene-memories-friendship .memory-card>span{
+  color:#718095;
+}
+
+/* Secret shared language */
+.scene-insidejokes{
+  background:
+    linear-gradient(180deg,#040609,#070b12);
+}
+.joke-decoder{
+  width:min(900px,95vw);
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:8px;
+  margin:22px 0 4px;
+}
+.joke-decoder button{
+  min-height:180px;
+  border:1px solid rgba(121,183,255,.13);
+  background:
+    linear-gradient(145deg,rgba(121,183,255,.025),transparent),
+    #080c13;
+  color:#e8eef6;
+  text-align:left;
+  padding:25px;
+  cursor:pointer;
+  position:relative;
+  overflow:hidden;
+  transition:border-color .3s,transform .3s,background .3s;
+}
+.joke-decoder button:after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  height:2px;
+  background:#d7ff68;
+  transform:scaleX(0);
+  transform-origin:left;
+  transition:transform .55s;
+}
+.joke-decoder button.open:after{transform:scaleX(1)}
+.joke-decoder button:hover{transform:translateY(-2px);border-color:rgba(121,183,255,.25)}
+.joke-decoder span{
+  color:#647992;
+  font-size:8px;
+  letter-spacing:.18em;
+}
+.joke-decoder strong{
+  display:block;
+  margin:32px 0 8px;
+  font:800 24px/1 "DM Sans",sans-serif;
+  letter-spacing:-.04em;
+  color:#f3f6f9;
+}
+.joke-decoder p{
+  margin:0;
+  color:#718094;
+  font-size:12px;
+  line-height:1.58;
+}
+.joke-decoder button.open p{color:#aebac8}
+
+/* Incident reports */
+.scene-incidents{
+  background:
+    radial-gradient(circle at 50% 42%,rgba(255,111,125,.045),transparent 28%),
+    #05070b;
+}
+.incident-stack{
+  width:min(780px,94vw);
+  display:grid;
+  gap:8px;
+  margin:22px 0 4px;
+  perspective:900px;
+}
+.incident-stack button{
+  min-height:112px;
+  display:grid;
+  grid-template-columns:105px 1fr;
+  grid-template-rows:auto 1fr;
+  gap:5px 17px;
+  position:relative;
+  border:1px solid rgba(121,183,255,.11);
+  background:#0a0e15;
+  color:#e8edf4;
+  text-align:left;
+  padding:20px 23px;
+  cursor:pointer;
+  box-shadow:0 15px 30px rgba(0,0,0,.18);
+  transition:transform .35s,background .35s;
+}
+.incident-stack button:nth-child(odd){transform:rotate(-.4deg)}
+.incident-stack button:nth-child(even){transform:rotate(.45deg)}
+.incident-stack button.open{
+  transform:rotate(0) translateX(5px);
+  background:#0d1119;
+}
+.incident-stack span{
+  grid-row:1/3;
+  color:#72849a;
+  font-size:9px;
+  letter-spacing:.14em;
+  padding-top:4px;
+}
+.incident-stack strong{
+  font-family:"Playfair Display",serif;
+  font-size:21px;
+  font-weight:600;
+}
+.incident-stack p{
+  margin:2px 70px 0 0;
+  color:#748294;
+  font-size:11px;
+  line-height:1.55;
+}
+.incident-stack button.open p{color:#aab5c2}
+.incident-stack em{
+  position:absolute;
+  right:17px;
+  bottom:18px;
+  border:2px solid rgba(255,111,125,.6);
+  color:#ff8290;
+  padding:5px 7px;
+  font-style:normal;
+  font-size:7px;
+  font-weight:800;
+  letter-spacing:.14em;
+  transform:rotate(-6deg);
+}
+
+/* Emotional pivot: kill the noise */
+.scene-proof{
+  background:
+    radial-gradient(circle at 50% 50%,rgba(121,183,255,.055),transparent 28%),
+    #06080c;
+}
+.proof-shift{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:linear-gradient(180deg,rgba(121,183,255,.015),transparent 35%);
+}
+.scene-proof .scene-kicker{color:#8495aa}
+.scene-proof h2{
+  max-width:830px;
+  color:#f0f3f7;
+}
+.proof-list{
+  z-index:1;
+  width:min(790px,94vw);
+  display:grid;
+  margin:23px 0 4px;
+  border-top:1px solid rgba(121,183,255,.10);
+}
+.proof-list button{
+  min-height:105px;
+  display:grid;
+  grid-template-columns:64px 150px 1fr;
+  gap:18px;
+  align-items:center;
+  border:0;
+  border-bottom:1px solid rgba(121,183,255,.10);
+  background:transparent;
+  color:#dce4ec;
+  text-align:left;
+  padding:17px 5px;
+  cursor:pointer;
+  transition:padding .35s,background .35s;
+}
+.proof-list button.open{
+  padding-inline:17px;
+  background:rgba(121,183,255,.022);
+}
+.proof-list span{
+  color:#586a80;
+  font-family:"Playfair Display",serif;
+}
+.proof-list strong{
+  font-size:9px;
+  letter-spacing:.15em;
+  color:#89a3c0;
+}
+.proof-list p{
+  margin:0;
+  color:#697788;
+  font-family:"Playfair Display",serif;
+  font-size:16px;
+  line-height:1.48;
+}
+.proof-list button.open p{color:#bdc7d1}
+
+/* Friendship letter — note from the evidence bag */
+.scene-letter-friendship{
+  background:
+    radial-gradient(circle at 50% 50%,rgba(121,183,255,.045),transparent 28%),
+    #06080c;
+}
+.scene-letter-friendship .envelope-back{background:#6e8caf}
+.scene-letter-friendship .envelope-back:after{border-top-color:#91b1d4}
+.scene-letter-friendship .envelope-front{background:linear-gradient(35deg,#607fa2 50%,transparent 50%)}
+.scene-letter-friendship .paper{
+  background:
+    linear-gradient(rgba(44,63,84,.035) 1px,transparent 1px),
+    #edf0f2;
+  background-size:100% 25px;
+  color:#273341;
+}
+.scene-letter-friendship .paper strong{
+  line-height:1.58;
+}
+.scene-letter-friendship .wax{
+  background:#182432;
+  color:#d7ff68;
+}
+
+/* Non-legal pact */
+.scene-pact{
+  background:
+    radial-gradient(circle at 50% 48%,rgba(215,255,104,.04),transparent 30%),
+    #05070b;
+}
+.pact-paper{
+  width:min(700px,93vw);
+  background:
+    linear-gradient(rgba(30,44,60,.04) 1px,transparent 1px),
+    #e8ebee;
+  background-size:100% 27px;
+  color:#1d2732;
+  padding:34px 40px 30px;
+  margin:23px 0 4px;
+  box-shadow:0 30px 80px rgba(0,0,0,.32);
+  transform:rotate(-.35deg);
+  text-align:left;
+}
+.pact-paper>small{
+  display:block;
+  color:#6d7d8e;
+  font-size:8px;
+  letter-spacing:.19em;
+  margin-bottom:23px;
+}
+.pact-paper>button{
+  width:100%;
+  min-height:77px;
+  display:grid;
+  grid-template-columns:36px 1fr 86px;
+  gap:14px;
+  align-items:center;
+  border:0;
+  border-top:1px solid rgba(27,42,56,.11);
+  background:transparent;
+  color:#273341;
+  text-align:left;
+  cursor:pointer;
+  padding:11px 0;
+}
+.pact-paper>button:last-of-type{border-bottom:1px solid rgba(27,42,56,.11)}
+.pact-paper>button>span{
+  font-family:"Playfair Display",serif;
+  color:#8794a2;
+}
+.pact-paper>button p{
+  margin:0;
+  font-family:"Playfair Display",serif;
+  font-size:14px;
+  line-height:1.45;
+}
+.pact-paper>button strong{
+  justify-self:end;
+  color:#8794a2;
+  font-size:7px;
+  letter-spacing:.12em;
+}
+.pact-paper>button.signed strong{
+  color:#597423;
+}
+.pact-signatures{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:20px;
+  margin-top:28px;
+  font-family:"Playfair Display",serif;
+  font-style:italic;
+  font-size:22px;
+  color:#475362;
+}
+.pact-signatures i{
+  font-style:normal;
+  color:#8c99a6;
+}
+
+/* Friendship final — no confetti, just chosen family */
+.scene-finale-friendship{
+  background:
+    radial-gradient(circle at 50% 66%,rgba(121,183,255,.10),transparent 22%),
+    linear-gradient(180deg,#05070b,#080d15);
+}
+.experience-shell--amistad:has(.scene-finale-friendship) .experience-topbar{
+  opacity:0;
+  pointer-events:none;
+  transform:translate(-50%,12px);
+  transition:opacity .7s,transform .7s;
+}
+.scene-finale-friendship .finale-ring{
+  border-color:rgba(121,183,255,.17);
+  box-shadow:0 0 125px rgba(121,183,255,.075);
+}
+.scene-finale-friendship>p{
+  max-width:650px;
+  color:#8d9caf;
+  font-family:"Playfair Display",serif;
+  font-size:17px;
+  line-height:1.76;
+}
+.scene-finale-friendship .reaction-row{
+  display:none;
+}
+.scene-finale-friendship .ghost-action{
+  opacity:.52;
+  border-color:rgba(121,183,255,.10);
+}
+
+@media(max-width:760px){
+  .casefile-folder{height:325px}
+  .casefile-cover{padding:34px 28px}
+  .casefile-sheet{height:250px;padding:30px 27px}
+  .joke-decoder{grid-template-columns:1fr}
+  .joke-decoder button{min-height:150px}
+  .incident-stack button{grid-template-columns:82px 1fr}
+  .proof-list button{grid-template-columns:45px 110px 1fr;gap:10px}
+  .pact-paper{padding:29px 24px 25px}
+}
+@media(max-width:480px){
+  .scene-casefile h2,.scene-insidejokes h2,.scene-incidents h2,.scene-proof h2,.scene-pact h2{font-size:39px}
+  .casefile-folder{width:94vw;height:305px}
+  .casefile-cover strong{font-size:33px}
+  .casefile-sheet{left:4%;right:4%;height:230px;padding:25px 21px}
+  .casefile-sheet p{font-size:15px}
+  .casefile-folder.open .casefile-sheet{transform:translateY(-34px)}
+  .scene-memories-friendship .memory-card{min-width:80vw}
+  .incident-stack button{grid-template-columns:1fr;gap:7px;padding:20px}
+  .incident-stack span{grid-row:auto}
+  .incident-stack p{margin-right:58px}
+  .proof-list button{grid-template-columns:38px 1fr;gap:7px 10px}
+  .proof-list strong{grid-column:2}
+  .proof-list p{grid-column:2}
+  .pact-paper>button{grid-template-columns:28px 1fr;gap:8px}
+  .pact-paper>button strong{grid-column:2;justify-self:start;margin-top:4px}
+}
