@@ -277,7 +277,7 @@ export default function CreatorWizard() {
             />
             <span className="upload-icon">＋</span>
             <strong>Subir hasta 10 fotos</strong>
-            <small>JPG, PNG, WEBP o HEIC · se usan sólo en tu preview por ahora</small>
+            <small>JPG, PNG, WEBP o HEIC · se usan únicamente dentro de esta vista previa privada</small>
           </label>
 
           {photoUrls.length > 0 && (
@@ -369,7 +369,7 @@ export default function CreatorWizard() {
             <span>◉</span>
             <div>
               <strong>Tu borrador todavía vive sólo en este dispositivo.</strong>
-              <p>No subimos la historia al servidor hasta el paso de publicación. Las fotos elegidas tampoco se guardan si cerrás o recargás esta pestaña.</p>
+              <p>La historia permanece privada mientras editás. Las fotos de esta vista previa no quedan guardadas si cerrás o recargás la pestaña.</p>
             </div>
           </div>
 
@@ -383,7 +383,7 @@ export default function CreatorWizard() {
           </div>
 
           <p className="publish-coming">
-            El siguiente módulo conecta publicación, pago y link privado permanente.
+            Esta vista previa es sólo tuya. Nada se publica desde esta pantalla.
           </p>
         </div>
       )}
