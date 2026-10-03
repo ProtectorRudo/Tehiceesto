@@ -128,7 +128,7 @@ export default function ExperienceEngine({
                   ? `${experience.demoGiver} preparó algo que no entra en un mensaje`
                   : experience.slug === "pareja"
                     ? `Una historia privada hecha por ${experience.demoGiver}`
-                    : `${experience.demoGiver} hizo algo para vos`;
+                    : `Una experiencia privada preparada por ${experience.demoGiver}`;
 
   const introAction = isProposal
     ? "Quiero seguir"
