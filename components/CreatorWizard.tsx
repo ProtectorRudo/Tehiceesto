@@ -208,6 +208,16 @@ export default function CreatorWizard() {
     return `https://wa.me/5492215653163?text=${encodeURIComponent(lines.join("\n"))}`;
   }, [baseExperience.title, draft, photoUrls.length]);
 
+  const clearDraft = () => {
+    if (!window.confirm("¿Borrar este borrador de este dispositivo?")) return;
+    photoUrls.forEach((url) => URL.revokeObjectURL(url));
+    window.localStorage.removeItem(STORAGE_KEY);
+    setDraft(emptyDraft);
+    setPhotoUrls([]);
+    setPhotoNames([]);
+    setStep(0);
+  };
+
   const update = <K extends keyof Draft>(key: K, value: Draft[K]) => {
     setDraft((current) => ({ ...current, [key]: value }));
   };
@@ -278,8 +288,11 @@ export default function CreatorWizard() {
           ))}
         </div>
         <div className="creator-rail-foot">
-          <span>PROGRESO</span>
-          <strong>{Math.round(progress)}%</strong>
+          <div>
+            <span>PROGRESO</span>
+            <strong>{Math.round(progress)}%</strong>
+          </div>
+          <button type="button" onClick={clearDraft}>Borrar borrador</button>
         </div>
       </aside>
 
