@@ -27,6 +27,7 @@ type Props = {
   photoUrls?: string[];
   photoMedia?: ExperiencePhoto[];
   audioMedia?: ExperienceAudio[];
+  soundtrackMedia?: ExperienceAudio;
   videoMedia?: ExperienceVideo[];
   storyContext?: {
     keyDate?: string;
@@ -65,6 +66,7 @@ export default function ExperienceEngine({
   photoUrls,
   photoMedia,
   audioMedia,
+  soundtrackMedia,
   videoMedia,
   storyContext,
   sceneTextOverrides,
@@ -105,7 +107,11 @@ export default function ExperienceEngine({
   const [incidentsOpen, setIncidentsOpen] = useState<number[]>([]);
   const [proofOpen, setProofOpen] = useState<number[]>([]);
   const [pactOpen, setPactOpen] = useState<number[]>([]);
+  const [soundtrackStarted, setSoundtrackStarted] = useState(false);
+  const [soundtrackPaused, setSoundtrackPaused] = useState(false);
   const shellRef = useRef<HTMLElement | null>(null);
+  const soundtrackRef = useRef<HTMLAudioElement | null>(null);
+  const soundtrackFadeRef = useRef<number | null>(null);
 
   useEffect(() => {
     const root = shellRef.current;
@@ -250,6 +256,97 @@ export default function ExperienceEngine({
         .format(new Date(`${storyContext.keyDate}T12:00:00`))
     : "";
 
+  const fadeSoundtrack = (target: number, duration = 650) => {
+    const audio = soundtrackRef.current;
+    if (!audio) return;
+
+    if (soundtrackFadeRef.current !== null) {
+      cancelAnimationFrame(soundtrackFadeRef.current);
+    }
+
+    const startVolume = audio.volume;
+    const startedAt = performance.now();
+
+    const tick = (now: number) => {
+      const elapsed = Math.min(1, (now - startedAt) / duration);
+      const eased = 1 - Math.pow(1 - elapsed, 3);
+      audio.volume = Math.max(
+        0,
+        Math.min(1, startVolume + (target - startVolume) * eased),
+      );
+
+      if (elapsed < 1) {
+        soundtrackFadeRef.current = requestAnimationFrame(tick);
+      } else {
+        soundtrackFadeRef.current = null;
+      }
+    };
+
+    soundtrackFadeRef.current = requestAnimationFrame(tick);
+  };
+
+  const startSoundtrack = async () => {
+    const audio = soundtrackRef.current;
+    if (!audio || soundtrackStarted) return;
+
+    try {
+      audio.volume = 0;
+      await audio.play();
+      setSoundtrackStarted(true);
+      setSoundtrackPaused(false);
+      fadeSoundtrack(0.24, 1500);
+    } catch {
+      // Browsers may reject playback until a later explicit gesture.
+    }
+  };
+
+  const pauseSoundtrack = () => {
+    const audio = soundtrackRef.current;
+    if (!audio || audio.paused) return;
+    fadeSoundtrack(0, 260);
+    window.setTimeout(() => {
+      audio.pause();
+      setSoundtrackPaused(true);
+    }, 280);
+  };
+
+  const resumeSoundtrack = async () => {
+    const audio = soundtrackRef.current;
+    if (!audio) return;
+    try {
+      audio.volume = 0;
+      await audio.play();
+      setSoundtrackStarted(true);
+      setSoundtrackPaused(false);
+      fadeSoundtrack(0.24, 520);
+    } catch {
+      // Keep the control available for another user gesture.
+    }
+  };
+
+  const duckSoundtrack = () => {
+    if (!soundtrackStarted || soundtrackPaused) return;
+    fadeSoundtrack(0.055, 260);
+  };
+
+  const restoreSoundtrack = () => {
+    if (!soundtrackStarted || soundtrackPaused) return;
+    fadeSoundtrack(0.24, 520);
+  };
+
+  useEffect(() => {
+    if (!soundtrackStarted || soundtrackPaused) return;
+    const isEnding = ["finale", "proposal"].includes(currentScene);
+    fadeSoundtrack(isEnding ? 0.11 : 0.24, 900);
+  }, [currentScene, soundtrackStarted, soundtrackPaused]);
+
+  useEffect(() => {
+    return () => {
+      if (soundtrackFadeRef.current !== null) {
+        cancelAnimationFrame(soundtrackFadeRef.current);
+      }
+    };
+  }, []);
   const memory = useMemo(
     () => isProposal
       ? [
@@ -283,7 +380,12 @@ export default function ExperienceEngine({
     [isProposal, isMother, isFather, isFriendship]
   );
 
-  const next = () => setSceneIndex((value) => Math.min(total - 1, value + 1));
+  const next = () => {
+    if (sceneIndex === 0 && soundtrackMedia && !soundtrackStarted) {
+      void startSoundtrack();
+    }
+    setSceneIndex((value) => Math.min(total - 1, value + 1));
+  };
   const previous = () => setSceneIndex((value) => Math.max(0, value - 1));
   const revealStar = (index: number) => {
     setStars((current) => current.includes(index) ? current : [...current, index]);
