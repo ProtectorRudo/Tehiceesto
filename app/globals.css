@@ -5030,3 +5030,33 @@ body:has(.admin-preview-toolbar) .soundtrack-control{
     top:62px;
   }
 }
+
+
+/* Creator mobile: avoid redundant header CTA and reduce floating sales chrome */
+body:has(.creator-page) .header-create{
+  display:none;
+}
+@media(max-width:700px){
+  body:has(.creator-page) .site-header{
+    justify-content:flex-start;
+  }
+  body:has(.creator-page) .floating-whatsapp{
+    right:8px;
+    bottom:8px;
+    min-height:45px;
+    max-width:142px;
+    grid-template-columns:30px minmax(0,1fr);
+    gap:7px;
+    padding:6px 8px 6px 6px;
+  }
+  body:has(.creator-page) .floating-whatsapp-icon{
+    width:30px;
+    height:30px;
+  }
+  body:has(.creator-page) .floating-whatsapp-copy strong{
+    font-size:13px;
+  }
+  body:has(.creator-page) .floating-whatsapp-arrow{
+    display:none;
+  }
+}
