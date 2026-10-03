@@ -85,7 +85,9 @@ const allowedScenes = new Set([
   "intro","door","memories","light","stars","scratch","hold","letter","finale","candles",
   "balloons","timeline","voices","quiz","vault","capsule","proposal","video",
   "archive","home","legacy","rituals","chapters","future",
-  "origin","reasons","certainty","threshold"
+  "origin","reasons","certainty","threshold",
+  "childhood","care","sacrifices","return",
+  "lessons","presence","inheritance","lookback"
 ]);
 
 const defaultRecipes: Record<string, string[]> = {
@@ -95,7 +97,9 @@ const defaultRecipes: Record<string, string[]> = {
   abuelos:["intro","archive","timeline","memories","home","voices","letter","legacy","finale"],
   aniversario:["intro","timeline","memories","rituals","chapters","letter","future","finale"],
   propuesta:["intro","origin","memories","reasons","certainty","letter","threshold","proposal"],
-  "mama-papa":["intro","memories","voices","stars","letter","scratch","finale"],
+  mama:["intro","childhood","memories","care","sacrifices","voices","letter","return","finale"],
+  papa:["intro","memories","lessons","presence","inheritance","voices","letter","lookback","finale"],
+  "mama-papa":["intro","childhood","memories","care","sacrifices","voices","letter","return","finale"],
   amistad:["intro","quiz","memories","balloons","scratch","letter","finale"],
 };
 
