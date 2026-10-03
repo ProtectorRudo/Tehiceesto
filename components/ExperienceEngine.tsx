@@ -64,6 +64,9 @@ export default function ExperienceEngine({
   const [thresholdHolding, setThresholdHolding] = useState(false);
   const [thresholdOpen, setThresholdOpen] = useState(false);
   const [proposalAccepted, setProposalAccepted] = useState(false);
+  const [lightOpen, setLightOpen] = useState(false);
+  const [holdHolding, setHoldHolding] = useState(false);
+  const [holdOpen, setHoldOpen] = useState(false);
 
   const scenes = experience.recipe;
   const isGrandparents = experience.slug === "abuelos";
@@ -531,6 +534,70 @@ export default function ExperienceEngine({
             )}
           </section>
         );
+
+      case "light": {
+        const lightCopy =
+          experience.slug === "hijos"
+            ? "Crezcas cuanto crezcas, siempre vamos a reconocer la luz que trajiste a nuestra vida."
+            : experience.slug === "cumpleanos"
+              ? "Ojalá nunca se te olvide cuánta gente se alegra de que existas."
+              : experience.slug === "pareja"
+                ? "Hay personas que no iluminan una habitación. Iluminan la forma de vivirla."
+                : "Hay cosas importantes que se entienden mejor cuando todo lo demás hace silencio.";
+
+        return (
+          <section className={`scene scene-light ${lightOpen ? "open" : ""}`}>
+            <div className="light-darkness" />
+            <p className="scene-kicker">Un momento sin ruido</p>
+            <h2>{lightOpen ? lightCopy : "Tocá la luz."}</h2>
+            <button className="light-source" onClick={() => setLightOpen(true)} aria-label="Encender la luz">
+              <span />
+            </button>
+            {!lightOpen && <p className="scene-hint">Hay una frase esperando atrás de la oscuridad.</p>}
+            {lightOpen && <button className="primary-action" onClick={next}>Seguir</button>}
+          </section>
+        );
+      }
+
+      case "hold": {
+        const holdCopy =
+          experience.slug === "hijos"
+            ? "Pase lo que pase, este lugar en nosotros siempre va a ser tuyo."
+            : experience.slug === "cumpleanos"
+              ? "Que nunca te falten personas con quienes valga la pena celebrar estar acá."
+              : experience.slug === "pareja"
+                ? "No prometo que todo sea fácil. Prometo no dejar de elegirme con vos."
+                : "Algunas promesas merecen más que un toque rápido.";
+
+        return (
+          <section className={`scene scene-hold ${holdOpen ? "open" : ""}`}>
+            <p className="scene-kicker">Esto sí quiero que quede</p>
+            <h2>{holdOpen ? holdCopy : "Hay una promesa guardada acá."}</h2>
+            {!holdOpen ? (
+              <button
+                className={`hold-button ${holdHolding ? "holding" : ""}`}
+                onPointerDown={() => setHoldHolding(true)}
+                onPointerUp={() => setHoldHolding(false)}
+                onPointerLeave={() => setHoldHolding(false)}
+                onPointerCancel={() => setHoldHolding(false)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") setHoldOpen(true);
+                }}
+              >
+                <span onAnimationEnd={() => {
+                  if (holdHolding) {
+                    setHoldOpen(true);
+                    setHoldHolding(false);
+                  }
+                }} />
+                <strong>Mantené presionado</strong>
+              </button>
+            ) : (
+              <button className="primary-action" onClick={next}>Guardar y seguir</button>
+            )}
+          </section>
+        );
+      }
 
       case "rituals":
         return (
