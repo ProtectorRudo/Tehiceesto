@@ -21,6 +21,9 @@ const catalog: { type: SceneType; label: string; hint: string }[] = [
   { type: "archive", label: "Archivo familiar", hint: "Carpeta de legado interactiva" },
   { type: "home", label: "La casa", hint: "Recuerdos cotidianos del hogar" },
   { type: "legacy", label: "Legado", hint: "Huella familiar y generaciones" },
+  { type: "rituals", label: "Rituales", hint: "Pequeñas costumbres de pareja" },
+  { type: "chapters", label: "Capítulos", hint: "Etapas y cosas atravesadas juntos" },
+  { type: "future", label: "Lo que sigue", hint: "Próximo capítulo compartido" },
   { type: "proposal", label: "Propuesta", hint: "Pregunta de casamiento" },
   { type: "finale", label: "Final", hint: "Cierre emocional" },
 ];
