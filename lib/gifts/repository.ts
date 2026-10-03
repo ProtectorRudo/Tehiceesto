@@ -1,6 +1,7 @@
 import "server-only";
 import type { Experience, SceneType } from "@/data/experiences";
 import { getExperience } from "@/data/experiences";
+import { normalizeSceneTextOverrides, type SceneTextOverrides } from "@/data/scene-text";
 
 type EdgeGift = {
   experience_slug: string;
@@ -86,6 +87,7 @@ export async function getPublishedGiftByCode(
     keyDate?: string;
     anecdote?: string;
   };
+  sceneTextOverrides?: SceneTextOverrides;
 }> {
   const env = publicCredentials();
   if (!env) {
@@ -181,6 +183,9 @@ export async function getPublishedGiftByCode(
               : undefined,
         }
       : undefined,
+    sceneTextOverrides: normalizeSceneTextOverrides(
+      row.story_data?.sceneContent,
+    ),
   };
 }
 
@@ -238,6 +243,7 @@ export type AdminGiftDetail = {
     relationship?: string;
     keyDate?: string;
     anecdote?: string;
+    sceneContent?: SceneTextOverrides;
   } | null;
   theme_data: { accent?: string } | null;
   published_at: string | null;
