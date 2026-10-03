@@ -440,13 +440,12 @@ export default function ExperienceEngine({
         );
 
       case "voices": {
-        const voiceNames = isGrandparents
-          ? ["Marta", "Carlos", "Lucía", "Nico"]
-          : isMother
-            ? ["Sofi", "Martín", "Cande", "Nico"]
-            : isFather
-              ? ["Vale", "Lucas", "Mica", "Fede"]
-              : ["Mamá", "Tomás", "Caro", "Fran"];
+        const voiceNames = [
+          experience.demoGiver,
+          "Otro mensaje",
+          "Otra voz",
+          "Una última voz",
+        ];
         const voiceQuote = isGrandparents
           ? "“Hay cosas tuyas que hacemos sin darnos cuenta. Ahí entendemos cuánto de vos vive en nosotros.”"
           : isMother
