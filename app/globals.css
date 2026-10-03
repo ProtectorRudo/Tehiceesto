@@ -4448,3 +4448,208 @@ body{
   }
   .copy-editor-hint{display:none}
 }
+
+
+/* =========================================================
+   CREATOR CONVERSION — from emotional draft to real order
+   ========================================================= */
+.creator-conversion{
+  margin-top:42px;
+  padding-top:38px;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.creator-conversion-copy{
+  max-width:670px;
+}
+.creator-conversion-copy h2{
+  margin:14px 0 13px;
+  font-family:"Instrument Serif",serif;
+  font-size:clamp(34px,4.2vw,52px);
+  line-height:.96;
+  font-weight:400;
+  letter-spacing:-.035em;
+  color:#eee9e3;
+}
+.creator-conversion-copy>p{
+  margin:0;
+  max-width:590px;
+  color:#817b84;
+  font-size:12px;
+  line-height:1.65;
+}
+.creator-whatsapp-primary{
+  width:min(610px,100%);
+  min-height:76px;
+  margin-top:28px;
+  display:grid;
+  grid-template-columns:40px 1fr 24px;
+  gap:14px;
+  align-items:center;
+  padding:12px 16px 12px 13px;
+  background:
+    linear-gradient(105deg,rgba(37,211,102,.095),transparent 46%),
+    #0c0f0d;
+  border:1px solid rgba(37,211,102,.24);
+  color:#f0ebe5;
+  transition:transform .3s,border-color .3s,background .3s,box-shadow .3s;
+}
+.creator-whatsapp-primary:hover{
+  transform:translateY(-2px);
+  border-color:rgba(37,211,102,.42);
+  background:
+    linear-gradient(105deg,rgba(37,211,102,.13),transparent 48%),
+    #0e1210;
+  box-shadow:0 18px 48px rgba(0,0,0,.24);
+}
+.creator-wa-mark{
+  width:38px;
+  height:38px;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(37,211,102,.25);
+  border-radius:50%;
+  color:#55d986;
+  font-size:14px;
+}
+.creator-whatsapp-primary>div{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.creator-whatsapp-primary small{
+  color:#718078;
+  font-size:7px;
+  letter-spacing:.17em;
+}
+.creator-whatsapp-primary strong{
+  font-family:"Instrument Serif",serif;
+  font-size:22px;
+  line-height:1;
+  font-weight:400;
+}
+.creator-whatsapp-primary>b{
+  justify-self:end;
+  color:#55d986;
+  font-size:17px;
+  font-weight:400;
+}
+.creator-next-steps{
+  width:min(700px,100%);
+  margin-top:34px;
+  display:grid;
+  border-top:1px solid rgba(255,255,255,.07);
+}
+.creator-next-steps article{
+  min-height:92px;
+  display:grid;
+  grid-template-columns:42px 1fr;
+  gap:14px;
+  align-items:start;
+  padding:18px 0;
+  border-bottom:1px solid rgba(255,255,255,.07);
+}
+.creator-next-steps article>span{
+  color:#514c53;
+  font-family:"Instrument Serif",serif;
+  font-size:20px;
+}
+.creator-next-steps strong{
+  display:block;
+  color:#c8c2c8;
+  font-size:10px;
+  letter-spacing:.035em;
+  margin-bottom:6px;
+}
+.creator-next-steps p{
+  margin:0;
+  color:#716b74;
+  font-size:11px;
+  line-height:1.52;
+}
+
+/* Creator preview has a clear commercial exit without contaminating the gift itself */
+.creator-preview-toolbar{
+  position:fixed;
+  top:15px;
+  left:16px;
+  right:16px;
+  z-index:270;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  pointer-events:none;
+}
+.creator-preview-toolbar>*{
+  pointer-events:auto;
+}
+.creator-preview-toolbar .preview-close{
+  position:static;
+  transform:none;
+  margin:0;
+}
+.preview-whatsapp{
+  min-height:43px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:0 13px;
+  border:1px solid rgba(37,211,102,.20);
+  background:rgba(8,10,9,.83);
+  color:#d8d5d1;
+  backdrop-filter:blur(12px);
+  box-shadow:0 14px 38px rgba(0,0,0,.22);
+  transition:transform .25s,border-color .25s,background .25s;
+}
+.preview-whatsapp:hover{
+  transform:translateY(-1px);
+  border-color:rgba(37,211,102,.38);
+  background:rgba(10,13,11,.94);
+}
+.preview-whatsapp span{
+  color:#827d83;
+  font-size:8px;
+  letter-spacing:.10em;
+  text-transform:uppercase;
+}
+.preview-whatsapp strong{
+  color:#e6e2de;
+  font-family:"Instrument Serif",serif;
+  font-size:16px;
+  font-weight:400;
+}
+@media(max-width:700px){
+  .creator-conversion{
+    margin-top:34px;
+    padding-top:30px;
+  }
+  .creator-conversion-copy h2{
+    font-size:38px;
+  }
+  .creator-whatsapp-primary{
+    min-height:69px;
+    grid-template-columns:36px 1fr 18px;
+    gap:10px;
+    padding:10px 12px 10px 10px;
+  }
+  .creator-wa-mark{
+    width:34px;
+    height:34px;
+  }
+  .creator-whatsapp-primary strong{
+    font-size:19px;
+  }
+  .creator-next-steps article{
+    grid-template-columns:34px 1fr;
+  }
+  .creator-preview-toolbar{
+    top:10px;
+    left:10px;
+    right:10px;
+  }
+  .preview-whatsapp{
+    min-height:39px;
+    padding-inline:10px;
+  }
+  .preview-whatsapp span{display:none}
+  .preview-whatsapp strong{font-size:14px}
+}
