@@ -655,7 +655,12 @@ export default function ExperienceEngine({
                         src={audio.url}
                         controls
                         preload="metadata"
-                        onPlay={() => playVoice(index)}
+                        onPlay={() => {
+                          playVoice(index);
+                          duckSoundtrack();
+                        }}
+                        onPause={restoreSoundtrack}
+                        onEnded={restoreSoundtrack}
                       />
                     </article>
                   ))
@@ -688,6 +693,9 @@ export default function ExperienceEngine({
                   controls
                   playsInline
                   preload="metadata"
+                  onPlay={duckSoundtrack}
+                  onPause={restoreSoundtrack}
+                  onEnded={restoreSoundtrack}
                 />
                 {videoMedia[0].caption && <p>{videoMedia[0].caption}</p>}
               </div>
@@ -1401,6 +1409,36 @@ export default function ExperienceEngine({
 
   return (
     <main ref={shellRef} data-current-scene={currentScene} className={`experience-shell experience-shell--${experience.slug} ${sceneIndex > 0 ? "experience-entered" : ""}`} style={{ "--accent": experience.accent } as React.CSSProperties}>
+      {soundtrackMedia && (
+        <audio
+          ref={soundtrackRef}
+          src={soundtrackMedia.url}
+          preload="auto"
+          loop
+          playsInline
+          data-copy-ignore="true"
+        />
+      )}
+      {soundtrackMedia && soundtrackStarted && (
+        <button
+          type="button"
+          className={`soundtrack-control ${soundtrackPaused ? "paused" : ""}`}
+          onClick={() => {
+            if (soundtrackPaused) void resumeSoundtrack();
+            else pauseSoundtrack();
+          }}
+          aria-label={soundtrackPaused ? "Reanudar música" : "Pausar música"}
+          aria-pressed={!soundtrackPaused}
+          data-copy-ignore="true"
+        >
+          <span>{soundtrackPaused ? "♪" : "♫"}</span>
+          <div>
+            <small>{soundtrackPaused ? "Música pausada" : "Sonando suave"}</small>
+            <strong>{soundtrackMedia.caption || "Música de fondo"}</strong>
+          </div>
+          <i aria-hidden="true"><b /><b /><b /><b /></i>
+        </button>
+      )}
       <div className="experience-topbar" data-copy-ignore="true">
         <button onClick={previous} disabled={sceneIndex === 0} aria-label="Volver">←</button>
         <div className="progress-track"><span style={{ width: `${progress}%` }} /></div>
