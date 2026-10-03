@@ -35,6 +35,18 @@ const photos = [
   "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&w=1200&q=85",
 ];
 
+const motherDemoPhotos = [
+  "https://unsplash.com/photos/82NHIKIvKNc/download?force=true&w=1200",
+  "https://unsplash.com/photos/NEZHjs1Oi04/download?force=true&w=1200",
+  "https://images.unsplash.com/photo-1531983412531-1f49a365ffed?auto=format&fit=crop&w=1200&q=85",
+];
+
+const fatherDemoPhotos = [
+  "https://unsplash.com/photos/DfLtSZdWmDU/download?force=true&w=1200",
+  "https://unsplash.com/photos/vppMdk_GMo4/download?force=true&w=1200",
+  "https://unsplash.com/photos/DfLtSZdWmDU/download?force=true&w=1400",
+];
+
 export default function ExperienceEngine({
   experience,
   letterText,
@@ -81,12 +93,13 @@ export default function ExperienceEngine({
   const isProposal = experience.slug === "propuesta";
   const isMother = experience.slug === "mama" || experience.slug === "mama-papa";
   const isFather = experience.slug === "papa";
+  const demoPhotos = isMother ? motherDemoPhotos : isFather ? fatherDemoPhotos : photos;
   const displayPhotos: ExperiencePhoto[] =
     photoMedia && photoMedia.length > 0
       ? photoMedia.slice(0, 8)
       : photoUrls && photoUrls.length > 0
         ? photoUrls.slice(0, 8).map((url) => ({ url }))
-        : photos.map((url) => ({ url }));
+        : demoPhotos.map((url) => ({ url }));
   const currentScene = scenes[sceneIndex];
   const total = scenes.length;
   const progress = ((sceneIndex + 1) / total) * 100;
