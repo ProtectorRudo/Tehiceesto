@@ -113,7 +113,7 @@ export default function ExperienceEngine({
             <p className="scene-kicker">{isProposal ? "Una experiencia privada de " + experience.demoGiver : experience.demoGiver + " hizo algo para vos"}</p>
             <h1>{experience.demoRecipient}</h1>
             <p className="scene-lead">{experience.opening}</p>
-            <button className="primary-action" onClick={next}>{isProposal ? "Estoy lista" : "Entrar"}</button>
+            <button className="primary-action" onClick={next}>{isProposal ? "Quiero seguir" : "Entrar"}</button>
             <small>{isProposal ? "Sin apuro · llegá hasta el final" : "Mejor con auriculares · 6 min"}</small>
           </section>
         );
@@ -515,7 +515,7 @@ export default function ExperienceEngine({
                   onPointerLeave={() => setThresholdHolding(false)}
                   onPointerCancel={() => setThresholdHolding(false)}
                   onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") setThresholdOpen(true);
+                    if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setThresholdOpen(true); }
                   }}
                   aria-label="Mantener presionado para continuar"
                 >
@@ -530,7 +530,7 @@ export default function ExperienceEngine({
                 </button>
               </>
             ) : (
-              <button className="primary-action threshold-continue" onClick={next}>Estoy lista</button>
+              <button className="primary-action threshold-continue" onClick={next}>Continuar</button>
             )}
           </section>
         );
@@ -581,7 +581,7 @@ export default function ExperienceEngine({
                 onPointerLeave={() => setHoldHolding(false)}
                 onPointerCancel={() => setHoldHolding(false)}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") setHoldOpen(true);
+                  if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setHoldOpen(true); }
                 }}
               >
                 <span onAnimationEnd={() => {
