@@ -17,7 +17,10 @@ export type SceneType =
   | "video"
   | "archive"
   | "home"
-  | "legacy";
+  | "legacy"
+  | "rituals"
+  | "chapters"
+  | "future";
 
 export type Experience = {
   slug: string;
@@ -109,7 +112,7 @@ export const experiences: Experience[] = [
     opening: "Pasó otro año. Pero algunas cosas todavía me siguen pasando como el primer día.",
     closing: "Feliz nosotros.",
     tags: ["Aniversario", "Pareja", "Recuerdos"],
-    recipe: ["intro", "timeline", "memories", "quiz", "scratch", "letter", "finale"],
+    recipe: ["intro", "timeline", "memories", "rituals", "chapters", "letter", "future", "finale"],
   },
   {
     slug: "propuesta",
