@@ -18,6 +18,9 @@ const catalog: { type: SceneType; label: string; hint: string }[] = [
   { type: "vault", label: "Bóveda", hint: "Revelación bloqueada" },
   { type: "capsule", label: "Cápsula", hint: "Mensaje para el futuro" },
   { type: "letter", label: "Carta", hint: "Sobre con lacre" },
+  { type: "archive", label: "Archivo familiar", hint: "Carpeta de legado interactiva" },
+  { type: "home", label: "La casa", hint: "Recuerdos cotidianos del hogar" },
+  { type: "legacy", label: "Legado", hint: "Huella familiar y generaciones" },
   { type: "proposal", label: "Propuesta", hint: "Pregunta de casamiento" },
   { type: "finale", label: "Final", hint: "Cierre emocional" },
 ];
