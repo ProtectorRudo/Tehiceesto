@@ -40,8 +40,8 @@ async function inspectPage(page, route, mode, fullPage = true) {
   });
 
   const url = base + route;
-  const response = await page.goto(url, { waitUntil: "networkidle", timeout: 60000 });
-  await page.waitForTimeout(900);
+  const response = await page.goto(url, { waitUntil: "domcontentloaded", timeout: 35000 });
+  await page.waitForTimeout(1600);
 
   const metrics = await page.evaluate(() => {
     const root = document.documentElement;
@@ -75,12 +75,19 @@ async function inspectPage(page, route, mode, fullPage = true) {
   const screenshot = path.join(outDir, `${slug}-${mode}.png`);
   await page.screenshot({ path: screenshot, fullPage });
 
+  const headers = response ? await response.allHeaders() : {};
+
   report.pages.push({
     route,
     mode,
     status: response?.status() ?? null,
     screenshot: path.basename(screenshot),
     metrics,
+    responseHeaders: {
+      server: headers.server || null,
+      vercelId: headers["x-vercel-id"] || null,
+      cache: headers["x-vercel-cache"] || null,
+    },
     errors,
     consoleErrors,
   });
@@ -90,8 +97,8 @@ async function inspectPage(page, route, mode, fullPage = true) {
 
 async function traverseDemo(page, slug, mode) {
   const route = `/experiencias/${slug}`;
-  const response = await page.goto(base + route, { waitUntil: "networkidle", timeout: 60000 });
-  await page.waitForTimeout(650);
+  const response = await page.goto(base + route, { waitUntil: "domcontentloaded", timeout: 35000 });
+  await page.waitForTimeout(1200);
 
   const visited = [];
   const stuck = [];
@@ -213,11 +220,28 @@ for (const config of configs) {
 
   const page = await context.newPage();
 
-  await inspectPage(page, "/", config.name, true);
-  await inspectPage(page, "/crear", config.name, true);
+  for (const route of ["/", "/crear"]) {
+    try {
+      await inspectPage(page, route, config.name, true);
+    } catch (error) {
+      report.pages.push({
+        route,
+        mode: config.name,
+        fatal: String(error),
+      });
+    }
+  }
 
   for (const slug of demos) {
-    await traverseDemo(page, slug, config.name);
+    try {
+      await traverseDemo(page, slug, config.name);
+    } catch (error) {
+      report.pages.push({
+        route: `/experiencias/${slug}`,
+        mode: config.name,
+        fatal: String(error),
+      });
+    }
   }
 
   await context.close();
