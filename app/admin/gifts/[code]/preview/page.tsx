@@ -68,6 +68,10 @@ export default async function AdminGiftPreviewPage({
         photoMedia={photoMedia}
         audioMedia={audioMedia}
         videoMedia={videoMedia}
+        storyContext={{
+          keyDate: gift.story_data?.keyDate || undefined,
+          anecdote: gift.story_data?.anecdote || undefined,
+        }}
       />
     </>
   );
