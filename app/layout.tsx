@@ -17,6 +17,12 @@ export const metadata: Metadata = {
     locale: "es_AR",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Te Hice Esto — Un regalo que se vive",
+    description:
+      "Fotos, audios, cartas y recuerdos convertidos en una experiencia creada para una sola persona.",
+  },
 };
 
 export const viewport: Viewport = {
