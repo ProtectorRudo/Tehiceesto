@@ -5075,3 +5075,23 @@ body:has(.demo-ribbon) .soundtrack-control{
     top:62px;
   }
 }
+
+
+@media(max-width:700px){
+  .floating-whatsapp--creator{
+    grid-template-columns:32px auto;
+    min-height:46px;
+    padding:6px 9px 6px 7px;
+    gap:7px;
+  }
+  .floating-whatsapp--creator .floating-whatsapp-icon{
+    width:32px;
+    height:32px;
+  }
+  .floating-whatsapp--creator .floating-whatsapp-arrow{
+    display:none;
+  }
+  .floating-whatsapp--creator .floating-whatsapp-copy strong{
+    font-size:14px;
+  }
+}
