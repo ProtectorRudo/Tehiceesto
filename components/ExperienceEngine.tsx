@@ -393,7 +393,7 @@ export default function ExperienceEngine({
   );
 
   const next = () => {
-    if (sceneIndex === 0 && soundtrackMedia && !soundtrackStarted) {
+    if (soundtrackMedia && !soundtrackStarted) {
       void startSoundtrack();
     }
     setSceneIndex((value) => Math.min(total - 1, value + 1));
@@ -1431,21 +1431,34 @@ export default function ExperienceEngine({
           data-copy-ignore="true"
         />
       )}
-      {soundtrackMedia && soundtrackStarted && (
+      {soundtrackMedia && (soundtrackStarted || sceneIndex > 0) && (
         <button
           type="button"
-          className={`soundtrack-control ${soundtrackPaused ? "paused" : ""}`}
+          className={`soundtrack-control ${soundtrackPaused ? "paused" : ""} ${!soundtrackStarted ? "not-started" : ""}`}
           onClick={() => {
-            if (soundtrackPaused) void resumeSoundtrack();
+            if (!soundtrackStarted) void startSoundtrack();
+            else if (soundtrackPaused) void resumeSoundtrack();
             else pauseSoundtrack();
           }}
-          aria-label={soundtrackPaused ? "Reanudar música" : "Pausar música"}
-          aria-pressed={!soundtrackPaused}
+          aria-label={
+            !soundtrackStarted
+              ? "Activar música"
+              : soundtrackPaused
+                ? "Reanudar música"
+                : "Pausar música"
+          }
+          aria-pressed={soundtrackStarted && !soundtrackPaused}
           data-copy-ignore="true"
         >
-          <span>{soundtrackPaused ? "♪" : "♫"}</span>
+          <span>{!soundtrackStarted || soundtrackPaused ? "♪" : "♫"}</span>
           <div>
-            <small>{soundtrackPaused ? "Música pausada" : "Sonando suave"}</small>
+            <small>
+              {!soundtrackStarted
+                ? "Tocar para activar"
+                : soundtrackPaused
+                  ? "Música pausada"
+                  : "Sonando suave"}
+            </small>
             <strong>{soundtrackMedia.caption || "Música de fondo"}</strong>
           </div>
           <i aria-hidden="true"><b /><b /><b /><b /></i>
