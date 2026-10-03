@@ -207,6 +207,7 @@ export default function CreatorWizard() {
           experience={personalizedExperience}
           letterText={draft.letter || undefined}
           photoUrls={photoUrls}
+          storyContext={{ keyDate: draft.keyDate, anecdote: draft.anecdote }}
         />
       </div>
     );
