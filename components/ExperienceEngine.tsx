@@ -47,6 +47,12 @@ const fatherDemoPhotos = [
   "https://unsplash.com/photos/vMP8lfhxPi4/download?force=true&w=1200",
 ];
 
+const friendshipDemoPhotos = [
+  "https://unsplash.com/photos/rjnIYeC6rmA/download?force=true&w=1200",
+  "https://unsplash.com/photos/juCtUKs7z68/download?force=true&w=1200",
+  "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=1200&q=85",
+];
+
 export default function ExperienceEngine({
   experience,
   letterText,
@@ -86,6 +92,11 @@ export default function ExperienceEngine({
   const [inheritanceOpen, setInheritanceOpen] = useState<number[]>([]);
   const [returnOpen, setReturnOpen] = useState(false);
   const [lookbackOpen, setLookbackOpen] = useState(false);
+  const [casefileOpen, setCasefileOpen] = useState(false);
+  const [insideJokesOpen, setInsideJokesOpen] = useState<number[]>([]);
+  const [incidentsOpen, setIncidentsOpen] = useState<number[]>([]);
+  const [proofOpen, setProofOpen] = useState<number[]>([]);
+  const [pactOpen, setPactOpen] = useState<number[]>([]);
 
   const scenes = experience.recipe;
   const isGrandparents = experience.slug === "abuelos";
@@ -93,7 +104,8 @@ export default function ExperienceEngine({
   const isProposal = experience.slug === "propuesta";
   const isMother = experience.slug === "mama" || experience.slug === "mama-papa";
   const isFather = experience.slug === "papa";
-  const demoPhotos = isMother ? motherDemoPhotos : isFather ? fatherDemoPhotos : photos;
+  const isFriendship = experience.slug === "amistad";
+  const demoPhotos = isMother ? motherDemoPhotos : isFather ? fatherDemoPhotos : isFriendship ? friendshipDemoPhotos : photos;
   const displayPhotos: ExperiencePhoto[] =
     photoMedia && photoMedia.length > 0
       ? photoMedia.slice(0, 8)
@@ -123,12 +135,18 @@ export default function ExperienceEngine({
               "Hay gestos que parecían normales hasta que crecí y entendí lo que costaba sostenerlos.",
               "En muchas escenas de mi infancia tu presencia no hacía ruido. Pero estaba.",
             ]
-          : [
-              "Ese día todavía no sabíamos todo lo que iba a venir.",
-              "Después aprendimos que los mejores recuerdos casi nunca avisan que van a ser importantes.",
-              "Y sin darnos cuenta, empezamos a coleccionar un mundo propio.",
-            ],
-    [isProposal, isMother, isFather]
+          : isFriendship
+            ? [
+                "EXHIBIT A · No existe una explicación razonable para esta foto.",
+                "EXHIBIT B · Sobrevivimos. Los detalles quedan clasificados.",
+                "EXHIBIT C · Claramente alguien debería habernos frenado.",
+              ]
+            : [
+                "Ese día todavía no sabíamos todo lo que iba a venir.",
+                "Después aprendimos que los mejores recuerdos casi nunca avisan que van a ser importantes.",
+                "Y sin darnos cuenta, empezamos a coleccionar un mundo propio.",
+              ],
+    [isProposal, isMother, isFather, isFriendship]
   );
 
   const next = () => setSceneIndex((value) => Math.min(total - 1, value + 1));
@@ -147,14 +165,14 @@ export default function ExperienceEngine({
     switch (scene) {
       case "intro":
         return (
-          <section className={`scene scene-intro ${isProposal ? "scene-intro-proposal" : ""} ${isMother ? "scene-intro-mother" : ""} ${isFather ? "scene-intro-father" : ""}`}>
+          <section className={`scene scene-intro ${isProposal ? "scene-intro-proposal" : ""} ${isMother ? "scene-intro-mother" : ""} ${isFather ? "scene-intro-father" : ""} ${isFriendship ? "scene-intro-friendship" : ""}`}>
             <div className="orb orb-one" />
             <div className="orb orb-two" />
-            <p className="scene-kicker">{isProposal ? "Una experiencia privada de " + experience.demoGiver : experience.demoGiver + " hizo algo para vos"}</p>
+            <p className="scene-kicker">{isProposal ? "Una experiencia privada de " + experience.demoGiver : isFriendship ? "ARCHIVO 021 · preparado por " + experience.demoGiver : experience.demoGiver + " hizo algo para vos"}</p>
             <h1>{experience.demoRecipient}</h1>
             <p className="scene-lead">{experience.opening}</p>
-            <button className="primary-action" onClick={next}>{isProposal ? "Quiero seguir" : "Entrar"}</button>
-            <small>{isProposal ? "Sin apuro · llegá hasta el final" : "Mejor con auriculares · 6 min"}</small>
+            <button className="primary-action" onClick={next}>{isProposal ? "Quiero seguir" : isFriendship ? "Abrir expediente" : "Entrar"}</button>
+            <small>{isProposal ? "Sin apuro · llegá hasta el final" : isFriendship ? "Material sensible · risas probablemente inevitables" : "Mejor con auriculares · 6 min"}</small>
           </section>
         );
 
@@ -173,9 +191,9 @@ export default function ExperienceEngine({
 
       case "memories":
         return (
-          <section className={`scene scene-memories ${isGrandparents ? "scene-memories-archive" : ""} ${isAnniversary ? "scene-memories-anniversary" : ""} ${isProposal ? "scene-memories-proposal" : ""} ${isMother ? "scene-memories-mother" : ""} ${isFather ? "scene-memories-father" : ""}`}>
-            <p className="scene-kicker">{isGrandparents ? "Álbum familiar · piezas rescatadas" : isAnniversary ? "Pruebas de que esto pasó de verdad" : isProposal ? "Algunas pruebas de cómo llegué hasta acá" : isMother ? "Fotos que ahora miro distinto" : isFather ? "Escenas que quedaron sin necesidad de explicarlas" : "Los recuerdos"}</p>
-            <h2>{isGrandparents ? "Algunas fotos guardan más de lo que muestran." : isAnniversary ? "No fueron sólo grandes momentos. También fueron todos los días del medio." : isProposal ? "No fue un solo momento. Fueron muchos momentos haciendo la misma pregunta en silencio." : isMother ? "En muchas de estas fotos yo era el centro. Hoy también veo todo lo que estaba haciendo mamá alrededor." : isFather ? "Antes veía una foto. Hoy veo quién estaba sosteniendo, enseñando, esperando o simplemente estando." : "Hay días que terminan. Y otros que se quedan."}</h2>
+          <section className={`scene scene-memories ${isGrandparents ? "scene-memories-archive" : ""} ${isAnniversary ? "scene-memories-anniversary" : ""} ${isProposal ? "scene-memories-proposal" : ""} ${isMother ? "scene-memories-mother" : ""} ${isFather ? "scene-memories-father" : ""} ${isFriendship ? "scene-memories-friendship" : ""}`}>
+            <p className="scene-kicker">{isGrandparents ? "Álbum familiar · piezas rescatadas" : isAnniversary ? "Pruebas de que esto pasó de verdad" : isProposal ? "Algunas pruebas de cómo llegué hasta acá" : isMother ? "Fotos que ahora miro distinto" : isFather ? "Escenas que quedaron sin necesidad de explicarlas" : isFriendship ? "Evidencia fotográfica · lamentablemente irrefutable" : "Los recuerdos"}</p>
+            <h2>{isGrandparents ? "Algunas fotos guardan más de lo que muestran." : isAnniversary ? "No fueron sólo grandes momentos. También fueron todos los días del medio." : isProposal ? "No fue un solo momento. Fueron muchos momentos haciendo la misma pregunta en silencio." : isMother ? "En muchas de estas fotos yo era el centro. Hoy también veo todo lo que estaba haciendo mamá alrededor." : isFather ? "Antes veía una foto. Hoy veo quién estaba sosteniendo, enseñando, esperando o simplemente estando." : isFriendship ? "Algunas fotos demuestran que claramente nadie estaba tomando buenas decisiones." : "Hay días que terminan. Y otros que se quedan."}</h2>
             <div className="film-strip">
               {displayPhotos.map((photo, index) => (
                 <article key={photo.url} className="memory-card">
@@ -254,21 +272,21 @@ export default function ExperienceEngine({
 
       case "letter":
         return (
-          <section className={`scene scene-letter ${isGrandparents ? "scene-letter-archive" : ""} ${isAnniversary ? "scene-letter-anniversary" : ""} ${isProposal ? "scene-letter-proposal" : ""} ${isMother ? "scene-letter-mother" : ""} ${isFather ? "scene-letter-father" : ""}`}>
-            <p className="scene-kicker">{isGrandparents ? "Una carta que debía existir" : isAnniversary ? "Después de todo este tiempo" : isProposal ? "Antes de hacerte la pregunta" : isMother ? "Ahora que puedo entender un poco más" : isFather ? "Hay cosas que de chico no sabía decir" : "La parte que no podía entrar en una foto"}</p>
-            <h2>{isGrandparents ? "Hay gracias que no deberían quedarse para después." : isAnniversary ? "Hay cosas que sigo eligiendo decirte." : isProposal ? "Primero quiero que sepas por qué llegué hasta acá." : isMother ? "Quiero agradecerte también por lo que nunca vi mientras estaba pasando." : isFather ? "Quiero decirte lo que aprendí incluso cuando vos no estabas intentando enseñarme." : "Hay palabras que merecen abrirse despacio."}</h2>
+          <section className={`scene scene-letter ${isGrandparents ? "scene-letter-archive" : ""} ${isAnniversary ? "scene-letter-anniversary" : ""} ${isProposal ? "scene-letter-proposal" : ""} ${isMother ? "scene-letter-mother" : ""} ${isFather ? "scene-letter-father" : ""} ${isFriendship ? "scene-letter-friendship" : ""}`}>
+            <p className="scene-kicker">{isGrandparents ? "Una carta que debía existir" : isAnniversary ? "Después de todo este tiempo" : isProposal ? "Antes de hacerte la pregunta" : isMother ? "Ahora que puedo entender un poco más" : isFather ? "Hay cosas que de chico no sabía decir" : isFriendship ? "Bueno. Ahora sí me voy a poner sentimental." : "La parte que no podía entrar en una foto"}</p>
+            <h2>{isGrandparents ? "Hay gracias que no deberían quedarse para después." : isAnniversary ? "Hay cosas que sigo eligiendo decirte." : isProposal ? "Primero quiero que sepas por qué llegué hasta acá." : isMother ? "Quiero agradecerte también por lo que nunca vi mientras estaba pasando." : isFather ? "Quiero decirte lo que aprendí incluso cuando vos no estabas intentando enseñarme." : isFriendship ? "Porque entre tanto chiste hay algo que sí quiero que sepas en serio." : "Hay palabras que merecen abrirse despacio."}</h2>
             <button className={`envelope ${letterOpen ? "open" : ""}`} onClick={() => setLetterOpen(true)}>
               <span className="envelope-back" />
               <span className="paper">
                 <small>Para {experience.demoRecipient}</small>
-                <strong>{letterText || (isGrandparents ? "Gracias por todo lo que hiciste cuando nadie estaba sacando una foto. Por las veces que cuidaste, esperaste, cocinaste, llamaste, abrazaste y seguiste. Muchas de las cosas que hoy somos empezaron en vos." : isAnniversary ? "No te quiero sólo por todo lo lindo que vivimos. Te quiero también por lo que arreglamos, por lo que aprendimos, por las veces que volvimos a encontrarnos y por la vida común que, sin hacer ruido, se volvió nuestra." : isProposal ? "No llegué a esta pregunta por un día perfecto. Llegué por todos los días: por cómo me hacés sentir acompañado, por lo que aprendimos juntos, por la paz de imaginarte en mi futuro y porque cuando pienso en una vida que valga la pena construir, estás vos." : isMother ? "Gracias por todas las veces que hiciste que algo difícil pareciera simple. Por cuidar cuando estabas cansada, por recordar lo que a mí se me olvidaba, por hacer lugar y por seguir estando incluso cuando crecer también significó alejarme un poco." : isFather ? "Gracias por las veces que me mostraste cómo hacer algo y por las veces que simplemente te quedaste cerca mientras yo aprendía. Hoy entiendo mejor tus esfuerzos, tus dudas y muchas formas de querer que antes me pasaban por al lado." : "Gracias por convertir tantos días comunes en recuerdos extraordinarios.")}</strong>
+                <strong>{letterText || (isGrandparents ? "Gracias por todo lo que hiciste cuando nadie estaba sacando una foto. Por las veces que cuidaste, esperaste, cocinaste, llamaste, abrazaste y seguiste. Muchas de las cosas que hoy somos empezaron en vos." : isAnniversary ? "No te quiero sólo por todo lo lindo que vivimos. Te quiero también por lo que arreglamos, por lo que aprendimos, por las veces que volvimos a encontrarnos y por la vida común que, sin hacer ruido, se volvió nuestra." : isProposal ? "No llegué a esta pregunta por un día perfecto. Llegué por todos los días: por cómo me hacés sentir acompañado, por lo que aprendimos juntos, por la paz de imaginarte en mi futuro y porque cuando pienso en una vida que valga la pena construir, estás vos." : isMother ? "Gracias por todas las veces que hiciste que algo difícil pareciera simple. Por cuidar cuando estabas cansada, por recordar lo que a mí se me olvidaba, por hacer lugar y por seguir estando incluso cuando crecer también significó alejarme un poco." : isFather ? "Gracias por las veces que me mostraste cómo hacer algo y por las veces que simplemente te quedaste cerca mientras yo aprendía. Hoy entiendo mejor tus esfuerzos, tus dudas y muchas formas de querer que antes me pasaban por al lado." : isFriendship ? "Gracias por conocer versiones mías que ya ni existen y quererme también en esas. Por celebrar conmigo sin competir, por decirme la verdad cuando no era lo que quería escuchar y por aparecer tantas veces sin que tuviera que pedirlo." : "Gracias por convertir tantos días comunes en recuerdos extraordinarios.")}</strong>
                 <em>— {experience.demoGiver}</em>
               </span>
               <span className="envelope-front" />
               <span className="wax">{isProposal ? "◇" : "♥"}</span>
             </button>
             {!letterOpen && <p className="scene-hint">Rompé el sello</p>}
-            {letterOpen && <button className="primary-action" onClick={next}>{isMother || isFather ? "Hay algo más" : "Última parte"}</button>}
+            {letterOpen && <button className="primary-action" onClick={next}>{isMother || isFather || isFriendship ? "Hay algo más" : "Última parte"}</button>}
           </section>
         );
 
@@ -841,6 +859,133 @@ export default function ExperienceEngine({
           </section>
         );
 
+      case "casefile":
+        return (
+          <section className="scene scene-casefile">
+            <div className="casefile-scan" aria-hidden="true" />
+            <p className="scene-kicker">EXPEDIENTE 021 · NIVEL DE ACCESO: CUESTIONABLE</p>
+            <h2>Hay pruebas suficientes para confirmar que esto se nos fue de las manos hace años.</h2>
+            <button className={`casefile-folder ${casefileOpen ? "open" : ""}`} onClick={() => setCasefileOpen(true)}>
+              <span className="casefile-tab">VALE + CAMI</span>
+              <span className="casefile-cover">
+                <small>ARCHIVO CONFIDENCIAL</small>
+                <strong>AMISTAD<br/>BAJO INVESTIGACIÓN</strong>
+                <em>Incidentes · evidencia · códigos · reincidencia</em>
+                <b>CLASIFICADO</b>
+              </span>
+              <span className="casefile-sheet">
+                <small>INFORME PRELIMINAR</small>
+                <strong>Conclusión:</strong>
+                <p>Demasiadas historias compartidas como para fingir que esto sigue siendo una amistad normal.</p>
+              </span>
+            </button>
+            {!casefileOpen && <p className="scene-hint">Tocá para desclasificar</p>}
+            {casefileOpen && <button className="primary-action" onClick={next}>Ver evidencia</button>}
+          </section>
+        );
+
+      case "insidejokes":
+        return (
+          <section className="scene scene-insidejokes">
+            <p className="scene-kicker">DICCIONARIO NO AUTORIZADO</p>
+            <h2>Hay un idioma que sólo existe porque nos conocemos demasiado.</h2>
+            <div className="joke-decoder">
+              {[
+                ["“YA FUE”", "Frase históricamente pronunciada segundos antes de una decisión que no debía tomarse."],
+                ["ESA CARA", "Sistema de comunicación completo. Traducción simultánea innecesaria."],
+                ["“5 MINUTOS”", "Unidad temporal sin relación demostrable con cinco minutos reales."],
+                ["EL NOMBRE PROHIBIDO", "No hace falta escribirlo. Ya sabés perfectamente de quién estamos hablando."],
+              ].map(([code,meaning],index)=>(
+                <button key={code} className={insideJokesOpen.includes(index) ? "open" : ""} onClick={()=>setInsideJokesOpen(items=>items.includes(index)?items:[...items,index])}>
+                  <span>CODE 0{index+1}</span>
+                  <strong>{code}</strong>
+                  <p>{insideJokesOpen.includes(index) ? meaning : "Tocá para decodificar"}</p>
+                </button>
+              ))}
+            </div>
+            <button className="primary-action" onClick={next} disabled={insideJokesOpen.length < 3}>
+              {insideJokesOpen.length < 3 ? `Decodificá ${3-insideJokesOpen.length} más` : "Pasar a antecedentes"}
+            </button>
+          </section>
+        );
+
+      case "incidents":
+        return (
+          <section className="scene scene-incidents">
+            <p className="scene-kicker">ANTECEDENTES · REINCIDENCIA CONFIRMADA</p>
+            <h2>No digo que juntas tomemos malas decisiones. Digo que hay evidencia.</h2>
+            <div className="incident-stack">
+              {[
+                ["CASO 001", "La salida que iba a ser tranqui", "Duración estimada: 2 horas. Duración real: información reservada."],
+                ["CASO 014", "El mensaje que no había que mandar", "Se discutió. Se analizó. Se mandó igual."],
+                ["CASO 028", "El plan sin plan", "Logística inexistente. Presupuesto dudoso. Resultado: inexplicablemente memorable."],
+                ["CASO 041", "La vez que dijimos “nunca más”", "El archivo registra múltiples reincidencias posteriores."],
+              ].map(([caseNo,title,copy],index)=>(
+                <button key={caseNo} className={incidentsOpen.includes(index) ? "open" : ""} onClick={()=>setIncidentsOpen(items=>items.includes(index)?items:[...items,index])}>
+                  <span>{caseNo}</span>
+                  <strong>{title}</strong>
+                  <p>{incidentsOpen.includes(index) ? copy : "ABRIR INFORME"}</p>
+                  {incidentsOpen.includes(index) && <em>CONFIRMADO</em>}
+                </button>
+              ))}
+            </div>
+            <button className="primary-action" onClick={next} disabled={incidentsOpen.length < 3}>
+              {incidentsOpen.length < 3 ? "La investigación continúa" : "Hay otra clase de pruebas"}
+            </button>
+          </section>
+        );
+
+      case "proof":
+        return (
+          <section className="scene scene-proof">
+            <div className="proof-shift" aria-hidden="true" />
+            <p className="scene-kicker">Y después están las pruebas que sí importan</p>
+            <h2>Porque ser amiga también fue estar cuando no había nada divertido para contar.</h2>
+            <div className="proof-list">
+              {[
+                ["ESTUVISTE", "Cuando no sabía bien qué decir y tampoco hacía falta que arreglaras nada."],
+                ["TE ALEGRaste", "Por cosas buenas que me pasaban aunque no tuvieran absolutamente nada que ver con vos."],
+                ["ME DIJISTE LA VERDAD", "Incluso cuando hubiera sido mucho más cómodo darme la razón."],
+                ["TE QUEDASTE", "En versiones mías que ni yo sabía cuánto iban a durar."],
+              ].map(([title,copy],index)=>(
+                <button key={title} className={proofOpen.includes(index) ? "open" : ""} onClick={()=>setProofOpen(items=>items.includes(index)?items:[...items,index])}>
+                  <span>{String(index+1).padStart(2,"0")}</span>
+                  <strong>{title}</strong>
+                  <p>{proofOpen.includes(index) ? copy : "Tocá"}</p>
+                </button>
+              ))}
+            </div>
+            <button className="primary-action" onClick={next} disabled={proofOpen.length < 3}>Ahora sí</button>
+          </section>
+        );
+
+      case "pact":
+        return (
+          <section className="scene scene-pact">
+            <p className="scene-kicker">PACTO NO LEGAL · VIGENCIA INDEFINIDA</p>
+            <h2>Para que quede por escrito, por si alguna vez la vida se pone demasiado seria.</h2>
+            <div className="pact-paper">
+              <small>ACUERDO ENTRE VALE Y CAMI</small>
+              {[
+                ["I", "Podemos pasar semanas sin hablar y retomar como si hubieran sido veinte minutos."],
+                ["II", "Si una está haciendo una estupidez, la otra tiene obligación moral de avisar. Una vez."],
+                ["III", "Los logros de una se festejan sin medirlos contra la vida de la otra."],
+                ["IV", "Si todo se complica, existe siempre el derecho irrestricto a mandar “¿estás?”."],
+              ].map(([n,copy],index)=>(
+                <button key={n} className={pactOpen.includes(index) ? "signed" : ""} onClick={()=>setPactOpen(items=>items.includes(index)?items:[...items,index])}>
+                  <span>{n}</span>
+                  <p>{copy}</p>
+                  <strong>{pactOpen.includes(index) ? "✓ ACEPTADO" : "ACEPTAR"}</strong>
+                </button>
+              ))}
+              <div className="pact-signatures">
+                <span>Cami</span><i>+</i><span>Vale</span>
+              </div>
+            </div>
+            <button className="primary-action" onClick={next} disabled={pactOpen.length < 3}>Cerrar expediente</button>
+          </section>
+        );
+
       case "rituals":
         return (
           <section className="scene scene-rituals">
@@ -1003,11 +1148,11 @@ export default function ExperienceEngine({
       case "finale":
       default:
         return (
-          <section className={`scene scene-finale ${isGrandparents ? "scene-finale-legacy" : ""} ${isAnniversary ? "scene-finale-anniversary" : ""} ${isMother ? "scene-finale-mother" : ""} ${isFather ? "scene-finale-father" : ""}`}>
+          <section className={`scene scene-finale ${isGrandparents ? "scene-finale-legacy" : ""} ${isAnniversary ? "scene-finale-anniversary" : ""} ${isMother ? "scene-finale-mother" : ""} ${isFather ? "scene-finale-father" : ""} ${isFriendship ? "scene-finale-friendship" : ""}`}>
             <div className="finale-ring" />
             <p className="scene-kicker">Una última cosa</p>
             <h2>{experience.closing}</h2>
-            <p>{isGrandparents ? "Y mientras alguien de la familia recuerde una historia tuya, una parte de este lugar también va a seguir viviendo afuera de la pantalla." : isAnniversary ? "No celebro que sigamos siendo los mismos. Celebro todo lo que cambió y que, aun así, seguimos encontrando una manera de ser nosotros." : isMother ? "Ahora que crecí, puedo volver a muchas escenas de mi infancia y encontrarte ahí haciendo cosas que entonces parecían normales. Hoy sé que no lo eran." : isFather ? "Crecer también fue empezar a entenderte como persona. Y descubrir que muchas de las cosas que admiro en mí tuvieron alguna vez tu forma." : "Este lugar va a seguir acá para cuando quieras volver."}</p>
+            <p>{isGrandparents ? "Y mientras alguien de la familia recuerde una historia tuya, una parte de este lugar también va a seguir viviendo afuera de la pantalla." : isAnniversary ? "No celebro que sigamos siendo los mismos. Celebro todo lo que cambió y que, aun así, seguimos encontrando una manera de ser nosotros." : isMother ? "Ahora que crecí, puedo volver a muchas escenas de mi infancia y encontrarte ahí haciendo cosas que entonces parecían normales. Hoy sé que no lo eran." : isFather ? "Crecer también fue empezar a entenderte como persona. Y descubrir que muchas de las cosas que admiro en mí tuvieron alguna vez tu forma." : isFriendship ? "La familia no siempre llega dada. A veces aparece un día cualquiera, se queda después de demasiadas historias y un día te das cuenta de que ya era casa." : "Este lugar va a seguir acá para cuando quieras volver."}</p>
             <div className="reaction-row">
               {["🥹", "❤️", "😭", "✨"].map((reaction) => <button key={reaction}>{reaction}</button>)}
             </div>
