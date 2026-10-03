@@ -15,12 +15,14 @@ export default function RootLayout({
     <html lang="es">
       <body>
         <header className="site-header">
-          <Link className="brand" href="/">
-            TE HICE ESTO<span>♥</span>
+          <Link className="brand brand-studio" href="/">
+            <strong>TE HICE ESTO<span>♥</span></strong>
+            <small>experiencias privadas</small>
           </Link>
           <nav>
             <Link href="/#experiencias">Experiencias</Link>
-            <Link href="/crear">Crear regalo</Link>
+            <Link href="/#como-funciona">Cómo funciona</Link>
+            <Link className="header-create" href="/crear">Crear una →</Link>
           </nav>
         </header>
         {children}
