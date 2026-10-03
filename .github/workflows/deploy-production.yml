@@ -2,18 +2,6 @@ name: Deploy production
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - "app/**"
-      - "components/**"
-      - "data/**"
-      - "lib/**"
-      - "public/**"
-      - "package.json"
-      - "package-lock.json"
-      - "next.config.*"
-      - ".github/workflows/deploy-production.yml"
 
 concurrency:
   group: production-deploy
