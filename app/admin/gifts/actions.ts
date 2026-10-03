@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { createAdminSupabase, getStorageUploadEndpoint } from "@/lib/supabase/admin";
 import { getExperience, experiences, type SceneType } from "@/data/experiences";
+import { normalizeSceneTextOverrides } from "@/data/scene-text";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const allowedMime = new Set([
@@ -127,7 +128,21 @@ export async function saveGiftContentAction(formData: FormData) {
     throw new Error("empty_scene_recipe");
   }
 
+  const { data: currentGift } = await supabase
+    .from("gifts")
+    .select("story_data")
+    .eq("public_code", code)
+    .single();
+
+  const existingStoryData =
+    currentGift?.story_data &&
+    typeof currentGift.story_data === "object" &&
+    !Array.isArray(currentGift.story_data)
+      ? currentGift.story_data
+      : {};
+
   const storyData = {
+    ...existingStoryData,
     relationship: String(formData.get("relationship") || "").trim(),
     keyDate: String(formData.get("keyDate") || "").trim(),
     anecdote: String(formData.get("anecdote") || "").trim(),
@@ -156,6 +171,129 @@ export async function saveGiftContentAction(formData: FormData) {
 
   revalidatePath(`/admin/gifts/${code}`);
   revalidatePath(`/admin/gifts/${code}/preview`);
+}
+
+export async function saveSceneCopyOverrideAction(input: {
+  code: string;
+  scene: string;
+  source: string;
+  replacement: string;
+}) {
+  await requireAdmin();
+
+  const code = cleanCode(input.code);
+  const scene = input.scene.trim() as SceneType;
+  const source = input.source.trim();
+  const replacement = input.replacement.trim();
+
+  if (!allSceneTypes.includes(scene)) throw new Error("invalid_scene_type");
+  if (!source || source.length > 5000 || replacement.length > 5000) {
+    throw new Error("invalid_scene_copy");
+  }
+
+  const supabase = createAdminSupabase();
+  const { data: gift, error: giftError } = await supabase
+    .from("gifts")
+    .select("story_data")
+    .eq("public_code", code)
+    .single();
+
+  if (giftError || !gift) throw new Error("gift_not_found");
+
+  const storyData =
+    gift.story_data &&
+    typeof gift.story_data === "object" &&
+    !Array.isArray(gift.story_data)
+      ? { ...gift.story_data }
+      : {};
+
+  const sceneContent = normalizeSceneTextOverrides(
+    (storyData as Record<string, unknown>).sceneContent,
+  );
+
+  sceneContent[scene] = {
+    ...(sceneContent[scene] || {}),
+    [source]: replacement,
+  };
+
+  const { error } = await supabase
+    .from("gifts")
+    .update({
+      story_data: {
+        ...storyData,
+        sceneContent,
+      },
+    })
+    .eq("public_code", code);
+
+  if (error) throw new Error("scene_copy_update_failed");
+
+  revalidatePath(`/admin/gifts/${code}`);
+  revalidatePath(`/admin/gifts/${code}/preview`);
+  revalidatePath(`/r/${code}`);
+
+  return { ok: true };
+}
+
+export async function removeSceneCopyOverrideAction(input: {
+  code: string;
+  scene: string;
+  source: string;
+}) {
+  await requireAdmin();
+
+  const code = cleanCode(input.code);
+  const scene = input.scene.trim() as SceneType;
+  const source = input.source.trim();
+
+  if (!allSceneTypes.includes(scene) || !source) {
+    throw new Error("invalid_scene_copy");
+  }
+
+  const supabase = createAdminSupabase();
+  const { data: gift, error: giftError } = await supabase
+    .from("gifts")
+    .select("story_data")
+    .eq("public_code", code)
+    .single();
+
+  if (giftError || !gift) throw new Error("gift_not_found");
+
+  const storyData =
+    gift.story_data &&
+    typeof gift.story_data === "object" &&
+    !Array.isArray(gift.story_data)
+      ? { ...gift.story_data }
+      : {};
+
+  const sceneContent = normalizeSceneTextOverrides(
+    (storyData as Record<string, unknown>).sceneContent,
+  );
+
+  if (sceneContent[scene]) {
+    delete sceneContent[scene][source];
+    if (Object.keys(sceneContent[scene]).length === 0) {
+      delete sceneContent[scene];
+    }
+  }
+
+  const { error } = await supabase
+    .from("gifts")
+    .update({
+      story_data: {
+        ...storyData,
+        sceneContent,
+      },
+    })
+    .eq("public_code", code);
+
+  if (error) throw new Error("scene_copy_remove_failed");
+
+  revalidatePath(`/admin/gifts/${code}`);
+  revalidatePath(`/admin/gifts/${code}/preview`);
+  revalidatePath(`/r/${code}`);
+
+  return { ok: true };
 }
 
 export async function prepareMediaUploadAction(input: {
