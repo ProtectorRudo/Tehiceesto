@@ -194,6 +194,10 @@ export default function AdminMediaManager({
             | "bottom"
             | "left"
             | "right",
+          role:
+            item.kind === "audio"
+              ? (String(data.get("role") || "voice") as "voice" | "soundtrack")
+              : undefined,
         });
         router.refresh();
       } finally {
@@ -226,8 +230,9 @@ export default function AdminMediaManager({
           <span className="eyebrow">Archivos</span>
           <h2>Fotos, audios y videos</h2>
           <p>
-            Los originales van directo al storage privado. Para archivos grandes
-            usamos carga reanudable.
+            Los originales van directo al storage privado. Para música, subí el
+            archivo de audio y marcá “Música de fondo”; los demás audios quedan
+            como mensajes de voz.
           </p>
         </div>
 
@@ -284,6 +289,10 @@ export default function AdminMediaManager({
           {media.map((item, index) => {
             const fit = item.metadata?.fit || "cover";
             const position = item.metadata?.position || "center";
+            const role =
+              item.kind === "audio" && item.metadata?.role === "soundtrack"
+                ? "soundtrack"
+                : "voice";
             const busy = busyIds.includes(item.id) || isPending;
 
             return (
@@ -317,7 +326,11 @@ export default function AdminMediaManager({
                   <span className="media-order-badge">
                     {String(index + 1).padStart(2, "0")}
                   </span>
-                  <span className="media-kind-badge">{item.kind}</span>
+                  <span className="media-kind-badge">
+                    {item.kind === "audio" && role === "soundtrack"
+                      ? "música"
+                      : item.kind}
+                  </span>
                 </div>
 
                 <form
@@ -340,6 +353,24 @@ export default function AdminMediaManager({
                       placeholder="Ej. Nuestro primer viaje"
                     />
                   </label>
+
+                  {item.kind === "audio" && (
+                    <div className="media-soundtrack-control">
+                      <label>
+                        <span>Uso del audio</span>
+                        <select name="role" defaultValue={role}>
+                          <option value="voice">Mensaje de voz</option>
+                          <option value="soundtrack">Música de fondo</option>
+                        </select>
+                      </label>
+                      {role === "soundtrack" && (
+                        <p>
+                          Esta pista acompaña toda la experiencia, entra con fade y
+                          baja automáticamente cuando suena una voz o un video.
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {item.kind === "image" && (
                     <div className="media-control-grid">
