@@ -9,6 +9,8 @@ const catalog: { type: SceneType; label: string; hint: string }[] = [
   { type: "memories", label: "Recuerdos", hint: "Fotos / polaroids" },
   { type: "timeline", label: "Línea de tiempo", hint: "Historia por etapas" },
   { type: "stars", label: "Estrellas", hint: "Mensajes escondidos" },
+  { type: "light", label: "Luz", hint: "Frase revelada desde la oscuridad" },
+  { type: "hold", label: "Mantener", hint: "Promesa que requiere mantener presionado" },
   { type: "quiz", label: "Pregunta", hint: "Quiz de la historia" },
   { type: "scratch", label: "Raspadita", hint: "Sorpresa para descubrir" },
   { type: "voices", label: "Voces", hint: "Audios de personas" },
