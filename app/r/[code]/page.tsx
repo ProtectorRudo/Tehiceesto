@@ -29,6 +29,7 @@ export default async function GiftPage({
           letterText={storedGift.letterText}
           photoMedia={storedGift.photoMedia}
           audioMedia={storedGift.audioMedia}
+          soundtrackMedia={storedGift.soundtrackMedia}
           videoMedia={storedGift.videoMedia}
           storyContext={storedGift.storyContext}
           sceneTextOverrides={storedGift.sceneTextOverrides}
