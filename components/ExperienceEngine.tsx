@@ -27,6 +27,10 @@ type Props = {
   photoMedia?: ExperiencePhoto[];
   audioMedia?: ExperienceAudio[];
   videoMedia?: ExperienceVideo[];
+  storyContext?: {
+    keyDate?: string;
+    anecdote?: string;
+  };
 };
 
 const photos = [
@@ -60,6 +64,7 @@ export default function ExperienceEngine({
   photoMedia,
   audioMedia,
   videoMedia,
+  storyContext,
 }: Props) {
   const [sceneIndex, setSceneIndex] = useState(0);
   const [stars, setStars] = useState<number[]>([]);
@@ -115,6 +120,10 @@ export default function ExperienceEngine({
   const currentScene = scenes[sceneIndex];
   const total = scenes.length;
   const progress = ((sceneIndex + 1) / total) * 100;
+  const storyDateLabel = storyContext?.keyDate
+    ? new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "long", year: "numeric" })
+        .format(new Date(`${storyContext.keyDate}T12:00:00`))
+    : "";
 
   const memory = useMemo(
     () => isProposal
@@ -194,6 +203,7 @@ export default function ExperienceEngine({
           <section className={`scene scene-memories ${isGrandparents ? "scene-memories-archive" : ""} ${isAnniversary ? "scene-memories-anniversary" : ""} ${isProposal ? "scene-memories-proposal" : ""} ${isMother ? "scene-memories-mother" : ""} ${isFather ? "scene-memories-father" : ""} ${isFriendship ? "scene-memories-friendship" : ""}`}>
             <p className="scene-kicker">{isGrandparents ? "Álbum familiar · piezas rescatadas" : isAnniversary ? "Pruebas de que esto pasó de verdad" : isProposal ? "Algunas pruebas de cómo llegué hasta acá" : isMother ? "Fotos que ahora miro distinto" : isFather ? "Escenas que quedaron sin necesidad de explicarlas" : isFriendship ? "Evidencia fotográfica · lamentablemente irrefutable" : "Los recuerdos"}</p>
             <h2>{isGrandparents ? "Algunas fotos guardan más de lo que muestran." : isAnniversary ? "No fueron sólo grandes momentos. También fueron todos los días del medio." : isProposal ? "No fue un solo momento. Fueron muchos momentos haciendo la misma pregunta en silencio." : isMother ? "En muchas de estas fotos yo era el centro. Hoy también veo todo lo que estaba haciendo mamá alrededor." : isFather ? "Antes veía una foto. Hoy veo quién estaba sosteniendo, enseñando, esperando o simplemente estando." : isFriendship ? "Algunas fotos demuestran que claramente nadie estaba tomando buenas decisiones." : "Hay días que terminan. Y otros que se quedan."}</h2>
+            {storyDateLabel && <p className="memory-date-stamp">{storyDateLabel}</p>}
             <div className="film-strip">
               {displayPhotos.map((photo, index) => (
                 <article key={photo.url} className="memory-card">
@@ -206,7 +216,7 @@ export default function ExperienceEngine({
                       backgroundRepeat: "no-repeat",
                     }}
                   />
-                  <p>{photo.caption || memory[index % memory.length]}</p>
+                  <p>{photo.caption || (index === 0 && storyContext?.anecdote?.trim() ? storyContext.anecdote.trim() : memory[index % memory.length])}</p>
                   <span>{String(index + 1).padStart(2, "0")}</span>
                 </article>
               ))}
