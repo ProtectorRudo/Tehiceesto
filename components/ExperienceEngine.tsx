@@ -59,10 +59,16 @@ export default function ExperienceEngine({
   const [ritualsOpen, setRitualsOpen] = useState<number[]>([]);
   const [chapterOpen, setChapterOpen] = useState<number[]>([]);
   const [futureOpen, setFutureOpen] = useState(false);
+  const [reasonsOpen, setReasonsOpen] = useState<number[]>([]);
+  const [certaintyOpen, setCertaintyOpen] = useState<number[]>([]);
+  const [thresholdHolding, setThresholdHolding] = useState(false);
+  const [thresholdOpen, setThresholdOpen] = useState(false);
+  const [proposalAccepted, setProposalAccepted] = useState(false);
 
   const scenes = experience.recipe;
   const isGrandparents = experience.slug === "abuelos";
   const isAnniversary = experience.slug === "aniversario";
+  const isProposal = experience.slug === "propuesta";
   const displayPhotos: ExperiencePhoto[] =
     photoMedia && photoMedia.length > 0
       ? photoMedia.slice(0, 8)
@@ -98,14 +104,14 @@ export default function ExperienceEngine({
     switch (scene) {
       case "intro":
         return (
-          <section className="scene scene-intro">
+          <section className={`scene scene-intro ${isProposal ? "scene-intro-proposal" : ""}`}>
             <div className="orb orb-one" />
             <div className="orb orb-two" />
-            <p className="scene-kicker">{experience.demoGiver} hizo algo para vos</p>
+            <p className="scene-kicker">{isProposal ? "Una experiencia privada de " + experience.demoGiver : experience.demoGiver + " hizo algo para vos"}</p>
             <h1>{experience.demoRecipient}</h1>
             <p className="scene-lead">{experience.opening}</p>
-            <button className="primary-action" onClick={next}>Entrar</button>
-            <small>Mejor con auriculares · 6 min</small>
+            <button className="primary-action" onClick={next}>{isProposal ? "Estoy lista" : "Entrar"}</button>
+            <small>{isProposal ? "Sin apuro · llegá hasta el final" : "Mejor con auriculares · 6 min"}</small>
           </section>
         );
 
@@ -124,9 +130,9 @@ export default function ExperienceEngine({
 
       case "memories":
         return (
-          <section className={`scene scene-memories ${isGrandparents ? "scene-memories-archive" : ""} ${isAnniversary ? "scene-memories-anniversary" : ""}`}>
-            <p className="scene-kicker">{isGrandparents ? "Álbum familiar · piezas rescatadas" : isAnniversary ? "Pruebas de que esto pasó de verdad" : "Los recuerdos"}</p>
-            <h2>{isGrandparents ? "Algunas fotos guardan más de lo que muestran." : isAnniversary ? "No fueron sólo grandes momentos. También fueron todos los días del medio." : "Hay días que terminan. Y otros que se quedan."}</h2>
+          <section className={`scene scene-memories ${isGrandparents ? "scene-memories-archive" : ""} ${isAnniversary ? "scene-memories-anniversary" : ""} ${isProposal ? "scene-memories-proposal" : ""}`}>
+            <p className="scene-kicker">{isGrandparents ? "Álbum familiar · piezas rescatadas" : isAnniversary ? "Pruebas de que esto pasó de verdad" : isProposal ? "Algunas pruebas de cómo llegué hasta acá" : "Los recuerdos"}</p>
+            <h2>{isGrandparents ? "Algunas fotos guardan más de lo que muestran." : isAnniversary ? "No fueron sólo grandes momentos. También fueron todos los días del medio." : isProposal ? "No fue un solo momento. Fueron muchos momentos haciendo la misma pregunta en silencio." : "Hay días que terminan. Y otros que se quedan."}</h2>
             <div className="film-strip">
               {displayPhotos.map((photo, index) => (
                 <article key={photo.url} className="memory-card">
@@ -205,18 +211,18 @@ export default function ExperienceEngine({
 
       case "letter":
         return (
-          <section className={`scene scene-letter ${isGrandparents ? "scene-letter-archive" : ""} ${isAnniversary ? "scene-letter-anniversary" : ""}`}>
-            <p className="scene-kicker">{isGrandparents ? "Una carta que debía existir" : isAnniversary ? "Después de todo este tiempo" : "La parte que no podía entrar en una foto"}</p>
-            <h2>{isGrandparents ? "Hay gracias que no deberían quedarse para después." : isAnniversary ? "Hay cosas que sigo eligiendo decirte." : "Hay palabras que merecen abrirse despacio."}</h2>
+          <section className={`scene scene-letter ${isGrandparents ? "scene-letter-archive" : ""} ${isAnniversary ? "scene-letter-anniversary" : ""} ${isProposal ? "scene-letter-proposal" : ""}`}>
+            <p className="scene-kicker">{isGrandparents ? "Una carta que debía existir" : isAnniversary ? "Después de todo este tiempo" : isProposal ? "Antes de hacerte la pregunta" : "La parte que no podía entrar en una foto"}</p>
+            <h2>{isGrandparents ? "Hay gracias que no deberían quedarse para después." : isAnniversary ? "Hay cosas que sigo eligiendo decirte." : isProposal ? "Primero quiero que sepas por qué llegué hasta acá." : "Hay palabras que merecen abrirse despacio."}</h2>
             <button className={`envelope ${letterOpen ? "open" : ""}`} onClick={() => setLetterOpen(true)}>
               <span className="envelope-back" />
               <span className="paper">
                 <small>Para {experience.demoRecipient}</small>
-                <strong>{letterText || (isGrandparents ? "Gracias por todo lo que hiciste cuando nadie estaba sacando una foto. Por las veces que cuidaste, esperaste, cocinaste, llamaste, abrazaste y seguiste. Muchas de las cosas que hoy somos empezaron en vos." : isAnniversary ? "No te quiero sólo por todo lo lindo que vivimos. Te quiero también por lo que arreglamos, por lo que aprendimos, por las veces que volvimos a encontrarnos y por la vida común que, sin hacer ruido, se volvió nuestra." : "Gracias por convertir tantos días comunes en recuerdos extraordinarios.")}</strong>
+                <strong>{letterText || (isGrandparents ? "Gracias por todo lo que hiciste cuando nadie estaba sacando una foto. Por las veces que cuidaste, esperaste, cocinaste, llamaste, abrazaste y seguiste. Muchas de las cosas que hoy somos empezaron en vos." : isAnniversary ? "No te quiero sólo por todo lo lindo que vivimos. Te quiero también por lo que arreglamos, por lo que aprendimos, por las veces que volvimos a encontrarnos y por la vida común que, sin hacer ruido, se volvió nuestra." : isProposal ? "No llegué a esta pregunta por un día perfecto. Llegué por todos los días: por cómo me hacés sentir acompañado, por lo que aprendimos juntos, por la paz de imaginarte en mi futuro y porque cuando pienso en una vida que valga la pena construir, estás vos." : "Gracias por convertir tantos días comunes en recuerdos extraordinarios.")}</strong>
                 <em>— {experience.demoGiver}</em>
               </span>
               <span className="envelope-front" />
-              <span className="wax">♥</span>
+              <span className="wax">{isProposal ? "◇" : "♥"}</span>
             </button>
             {!letterOpen && <p className="scene-hint">Rompé el sello</p>}
             {letterOpen && <button className="primary-action" onClick={next}>Última parte</button>}
@@ -411,6 +417,121 @@ export default function ExperienceEngine({
           </section>
         );
 
+      case "origin":
+        return (
+          <section className="scene scene-origin">
+            <p className="scene-kicker">Antes de la pregunta</p>
+            <h2>Hubo un momento en que todavía no sabía todo lo que ibas a significar.</h2>
+            <div className="origin-frame">
+              <div
+                className="origin-photo"
+                style={{
+                  backgroundImage: `url("${displayPhotos[0]?.url || photos[0]}")`,
+                  backgroundSize: displayPhotos[0]?.fit || "cover",
+                  backgroundPosition: displayPhotos[0]?.position || "center",
+                }}
+              />
+              <div className="origin-caption">
+                <small>CAPÍTULO 01</small>
+                <strong>Acá todavía no sabía.</strong>
+                <p>Que ibas a convertirte en la persona con la que iba a querer compartir las noticias buenas, los días comunes y también los difíciles.</p>
+              </div>
+            </div>
+            <button className="primary-action" onClick={next}>Seguir recordando</button>
+          </section>
+        );
+
+      case "reasons":
+        return (
+          <section className="scene scene-reasons">
+            <p className="scene-kicker">No es una lista. Es una certeza que se fue formando.</p>
+            <h2>Hay razones que fui entendiendo de a poco.</h2>
+            <div className="reason-ledger">
+              {[
+                ["01", "Cómo se siente estar con vos", "No tengo que actuar, impresionar ni medir cada palabra. Puedo estar."],
+                ["02", "Cómo hacemos equipo", "No porque siempre pensemos igual, sino porque aprendimos a volver al mismo lado."],
+                ["03", "Cómo cambia el futuro cuando te imagino ahí", "Los planes dejan de ser ideas sueltas y empiezan a parecer una vida."],
+                ["04", "La tranquilidad de elegirte", "No es vértigo. Es esa calma rara de saber hacia dónde quiero ir."],
+              ].map(([number, title, copy], index) => (
+                <button
+                  key={title}
+                  className={reasonsOpen.includes(index) ? "open" : ""}
+                  onClick={() => setReasonsOpen((items) => items.includes(index) ? items : [...items, index])}
+                >
+                  <span>{number}</span>
+                  <div>
+                    <strong>{title}</strong>
+                    <p>{reasonsOpen.includes(index) ? copy : "Tocá para leer"}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <button className="primary-action" onClick={next} disabled={reasonsOpen.length < 3}>
+              {reasonsOpen.length < 3 ? `Abrí ${3 - reasonsOpen.length} más` : "Hay algo más"}
+            </button>
+          </section>
+        );
+
+      case "certainty":
+        return (
+          <section className="scene scene-certainty">
+            <p className="scene-kicker">Quiero decirlo bien</p>
+            <h2>No te estoy prometiendo una vida perfecta.</h2>
+            <div className="certainty-lines">
+              {[
+                ["No prometo", "que nada vaya a cambiar."],
+                ["No prometo", "que siempre sepamos qué hacer."],
+                ["Sí prometo", "seguir construyendo, aprendiendo y volviendo a elegirte."],
+              ].map(([lead, copy], index) => (
+                <button
+                  key={index}
+                  className={certaintyOpen.includes(index) ? "open" : ""}
+                  onClick={() => setCertaintyOpen((items) => items.includes(index) ? items : [...items, index])}
+                >
+                  <span>{certaintyOpen.includes(index) ? lead : "···"}</span>
+                  <strong>{certaintyOpen.includes(index) ? copy : "Tocá para revelar"}</strong>
+                </button>
+              ))}
+            </div>
+            <button className="primary-action" onClick={next} disabled={certaintyOpen.length < 3}>Seguir</button>
+          </section>
+        );
+
+      case "threshold":
+        return (
+          <section className={`scene scene-threshold ${thresholdOpen ? "open" : ""}`}>
+            <div className="threshold-aura" />
+            <p className="scene-kicker">Último paso</p>
+            <h2>{thresholdOpen ? "Ya no queda nada entre vos y la pregunta." : "Lo que sigue cambia esta historia."}</h2>
+            {!thresholdOpen ? (
+              <>
+                <button
+                  className={`threshold-hold ${thresholdHolding ? "holding" : ""}`}
+                  onPointerDown={() => setThresholdHolding(true)}
+                  onPointerUp={() => setThresholdHolding(false)}
+                  onPointerLeave={() => setThresholdHolding(false)}
+                  onPointerCancel={() => setThresholdHolding(false)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") setThresholdOpen(true);
+                  }}
+                  aria-label="Mantener presionado para continuar"
+                >
+                  <span onAnimationEnd={() => {
+                    if (thresholdHolding) {
+                      setThresholdOpen(true);
+                      setThresholdHolding(false);
+                    }
+                  }} />
+                  <strong>Mantené presionado</strong>
+                  <small>No es un botón para tocar rápido.</small>
+                </button>
+              </>
+            ) : (
+              <button className="primary-action threshold-continue" onClick={next}>Estoy lista</button>
+            )}
+          </section>
+        );
+
       case "rituals":
         return (
           <section className="scene scene-rituals">
@@ -549,16 +670,24 @@ export default function ExperienceEngine({
 
       case "proposal":
         return (
-          <section className="scene scene-proposal">
+          <section className={`scene scene-proposal scene-proposal-premium ${proposalAccepted ? "accepted" : ""}`}>
             <div className="proposal-halo" />
-            <p className="scene-kicker">Y ahora sí</p>
-            <span className="ring-symbol">◇</span>
-            <h2>{experience.closing}</h2>
-            <p>No hace falta tocar nada más. Este momento es de ustedes.</p>
-            <div className="reaction-row">
-              {["Sí ❤️", "😭", "✨"].map((reaction) => <button key={reaction}>{reaction}</button>)}
-            </div>
-            <small>creado con ♥ en Te Hice Esto</small>
+            {!proposalAccepted ? (
+              <>
+                <p className="scene-kicker">Clara</p>
+                <span className="ring-symbol">◇</span>
+                <h2>{experience.closing}</h2>
+                <p className="proposal-subline">Quiero elegirte para todos los capítulos que todavía no existen.</p>
+                <button className="proposal-yes" onClick={() => setProposalAccepted(true)}>Sí, quiero</button>
+              </>
+            ) : (
+              <div className="proposal-after">
+                <span>∞</span>
+                <p>Entonces esta pantalla ya hizo su trabajo.</p>
+                <h2>Mirá a {experience.demoGiver}.</h2>
+                <small>Lo demás no pasa acá.</small>
+              </div>
+            )}
           </section>
         );
 
