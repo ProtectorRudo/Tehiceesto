@@ -2131,3 +2131,59 @@ body:has(.experience-entered) .demo-ribbon{
   .scene-memories-mother .memory-card,
   .scene-memories-father .memory-card{min-width:80vw}
 }
+
+
+/* Parent voice rooms */
+.scene-voices-mother{
+  background:
+    radial-gradient(circle at 50% 46%,rgba(232,169,155,.065),transparent 29%),
+    #090707;
+}
+.scene-voices-mother .voice-grid>button,
+.scene-voices-mother .voice-audio-card{
+  background:
+    linear-gradient(145deg,rgba(232,169,155,.035),transparent),
+    #110d0d;
+  border-color:rgba(232,169,155,.13);
+}
+.scene-voices-mother .voice-grid>button>span,
+.scene-voices-mother .voice-audio-card>span{
+  background:#251817;
+  color:#dba397;
+}
+.scene-voices-father{
+  background:
+    radial-gradient(circle at 50% 46%,rgba(169,183,201,.05),transparent 30%),
+    #05070a;
+}
+.scene-voices-father .voice-grid>button,
+.scene-voices-father .voice-audio-card{
+  background:
+    linear-gradient(145deg,rgba(169,183,201,.025),transparent),
+    #080b0f;
+  border-color:rgba(169,183,201,.12);
+}
+.scene-voices-father .voice-grid>button>span,
+.scene-voices-father .voice-audio-card>span{
+  background:#121922;
+  color:#a9b7c9;
+}
+
+/* Parent finales: the experience gets out of the way */
+.experience-shell--mama:has(.scene-finale-mother) .experience-topbar,
+.experience-shell--papa:has(.scene-finale-father) .experience-topbar{
+  opacity:0;
+  pointer-events:none;
+  transform:translate(-50%,12px);
+  transition:opacity .7s,transform .7s;
+}
+.scene-finale-mother .reaction-row,
+.scene-finale-father .reaction-row{
+  display:none;
+}
+.scene-finale-mother .ghost-action,
+.scene-finale-father .ghost-action{
+  margin-top:18px;
+  opacity:.55;
+  border-color:rgba(255,255,255,.08);
+}
