@@ -31,6 +31,7 @@ export default async function GiftPage({
           audioMedia={storedGift.audioMedia}
           videoMedia={storedGift.videoMedia}
           storyContext={storedGift.storyContext}
+          sceneTextOverrides={storedGift.sceneTextOverrides}
         />
       );
     } catch (error) {
