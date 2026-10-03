@@ -82,6 +82,7 @@ export async function getPublishedGiftByCode(
     position?: "center" | "top" | "bottom" | "left" | "right";
   }[];
   audioMedia?: { url: string; caption?: string }[];
+  soundtrackMedia?: { url: string; caption?: string };
   videoMedia?: { url: string; caption?: string }[];
   storyContext?: {
     keyDate?: string;
@@ -140,8 +141,27 @@ export async function getPublishedGiftByCode(
           : "center",
     }));
 
+  const soundtrackItem = orderedMedia.find(
+    (item) =>
+      item.kind === "audio" &&
+      item.url &&
+      item.metadata?.role === "soundtrack",
+  );
+
+  const soundtrackMedia = soundtrackItem
+    ? {
+        url: soundtrackItem.url as string,
+        caption: soundtrackItem.caption || undefined,
+      }
+    : undefined;
+
   const audioMedia = orderedMedia
-    .filter((item) => item.kind === "audio" && item.url)
+    .filter(
+      (item) =>
+        item.kind === "audio" &&
+        item.url &&
+        item.metadata?.role !== "soundtrack",
+    )
     .map((item) => ({
       url: item.url as string,
       caption: item.caption || undefined,
@@ -170,6 +190,7 @@ export async function getPublishedGiftByCode(
     letterText: row.letter_text || undefined,
     photoMedia: photoMedia.length > 0 ? photoMedia : undefined,
     audioMedia: audioMedia.length > 0 ? audioMedia : undefined,
+    soundtrackMedia,
     videoMedia: videoMedia.length > 0 ? videoMedia : undefined,
     storyContext: row.story_data
       ? {
@@ -262,6 +283,7 @@ export type AdminGiftMedia = {
     size?: number;
     fit?: "cover" | "contain";
     position?: "center" | "top" | "bottom" | "left" | "right";
+    role?: "voice" | "soundtrack";
   } | null;
   signed_url: string | null;
 };
