@@ -5006,3 +5006,16 @@ body:has(.creator-preview-overlay) .floating-whatsapp{
     animation:none;
   }
 }
+
+
+/* Keep technical chrome out of immersive system states */
+body:has(.private-gift-loading) .site-header,
+body:has(.private-gift-error) .site-header,
+body:has(.system-loading) .site-header{
+  display:none;
+}
+body:has(.private-gift-loading) .floating-whatsapp,
+body:has(.private-gift-error) .floating-whatsapp,
+body:has(.system-loading) .floating-whatsapp{
+  display:none;
+}
