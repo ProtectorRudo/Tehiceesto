@@ -20,7 +20,11 @@ export type SceneType =
   | "legacy"
   | "rituals"
   | "chapters"
-  | "future";
+  | "future"
+  | "origin"
+  | "reasons"
+  | "certainty"
+  | "threshold";
 
 export type Experience = {
   slug: string;
@@ -124,10 +128,10 @@ export const experiences: Experience[] = [
     accent: "#f6d58f",
     demoRecipient: "Clara",
     demoGiver: "Tomás",
-    opening: "Para llegar hasta esta pregunta primero tenemos que volver a pasar por algunas cosas.",
+    opening: "Hay algo que quiero preguntarte. Pero antes necesito que vuelvas conmigo a algunas cosas que me trajeron hasta acá.",
     closing: "¿Querés casarte conmigo?",
     tags: ["Propuesta", "Casamiento", "Pareja"],
-    recipe: ["intro", "door", "memories", "stars", "vault", "letter", "proposal"],
+    recipe: ["intro", "origin", "memories", "reasons", "certainty", "letter", "threshold", "proposal"],
   },
   {
     slug: "mama-papa",
