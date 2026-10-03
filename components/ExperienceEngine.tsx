@@ -331,7 +331,19 @@ export default function ExperienceEngine({
 
   const restoreSoundtrack = () => {
     if (!soundtrackStarted || soundtrackPaused) return;
-    fadeSoundtrack(0.24, 520);
+
+    requestAnimationFrame(() => {
+      const root = shellRef.current;
+      const activeForegroundMedia = root
+        ? Array.from(
+            root.querySelectorAll<HTMLMediaElement>(
+              "audio:not([data-copy-ignore='true']), video",
+            ),
+          ).some((media) => !media.paused && !media.ended)
+        : false;
+
+      if (!activeForegroundMedia) fadeSoundtrack(0.24, 520);
+    });
   };
 
   useEffect(() => {
