@@ -181,6 +181,32 @@ export default function CreatorWizard() {
     [baseExperience, draft],
   );
 
+
+  const creatorWhatsAppHref = useMemo(() => {
+    const clip = (value: string, max: number) => {
+      const clean = value.trim().replace(/\s+/g, " ");
+      return clean.length > max ? `${clean.slice(0, max - 1)}…` : clean;
+    };
+
+    const lines = [
+      "Hola! Armé un borrador en Te Hice Esto y quiero hacerlo real.",
+      "",
+      `Experiencia: ${baseExperience.title}`,
+      `De: ${draft.giverName || "—"}`,
+      `Para: ${draft.recipient || "—"}`,
+      `Quiero que sienta: ${draft.feeling}`,
+      draft.keyDate ? `Fecha importante: ${draft.keyDate}` : "",
+      draft.relationship ? `Historia: ${clip(draft.relationship, 240)}` : "",
+      draft.anecdote ? `Anécdota: ${clip(draft.anecdote, 190)}` : "",
+      `Fotos seleccionadas: ${photoUrls.length}`,
+      `Carta escrita: ${draft.letter.trim() ? "sí" : "todavía no"}`,
+      "",
+      "Quiero avanzar con la creación. ¿Cómo seguimos?",
+    ].filter(Boolean);
+
+    return `https://wa.me/5492215653163?text=${encodeURIComponent(lines.join("\n"))}`;
+  }, [baseExperience.title, draft, photoUrls.length]);
+
   const update = <K extends keyof Draft>(key: K, value: Draft[K]) => {
     setDraft((current) => ({ ...current, [key]: value }));
   };
@@ -200,9 +226,20 @@ export default function CreatorWizard() {
   if (previewMode) {
     return (
       <div className="creator-preview-overlay">
-        <button className="preview-close" onClick={() => setPreviewMode(false)}>
-          ← Volver a editar
-        </button>
+        <div className="creator-preview-toolbar">
+          <button className="preview-close" onClick={() => setPreviewMode(false)}>
+            ← Volver a editar
+          </button>
+          <a
+            className="preview-whatsapp"
+            href={creatorWhatsAppHref}
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            <span>Quiero hacerlo real</span>
+            <strong>WhatsApp ↗</strong>
+          </a>
+        </div>
         <ExperienceEngine
           experience={personalizedExperience}
           letterText={draft.letter || undefined}
@@ -456,7 +493,7 @@ export default function CreatorWizard() {
 
       {step === 5 && (
         <div className="creator-step creator-review">
-          <span className="eyebrow">06 · Antes de publicarlo</span>
+          <span className="eyebrow">06 · Ya existe una primera versión</span>
           <h1>Esto ya empieza a parecerse a {draft.recipient}.</h1>
 
           <div className="review-card">
@@ -487,8 +524,48 @@ export default function CreatorWizard() {
             </button>
           </div>
 
+          <section className="creator-conversion">
+            <div className="creator-conversion-copy">
+              <span className="eyebrow">Hacerlo real</span>
+              <h2>Ya hiciste la parte más difícil: contar por qué esa persona importa.</h2>
+              <p>
+                Mandame este borrador por WhatsApp. Me llega con la experiencia,
+                los nombres y el contexto que ya cargaste, así no empezamos de cero.
+              </p>
+            </div>
+
+            <a
+              className="creator-whatsapp-primary"
+              href={creatorWhatsAppHref}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              <span className="creator-wa-mark">◉</span>
+              <div>
+                <small>CONTINUAR POR WHATSAPP</small>
+                <strong>Quiero crear el mío</strong>
+              </div>
+              <b>↗</b>
+            </a>
+
+            <div className="creator-next-steps">
+              <article>
+                <span>01</span>
+                <div><strong>Me llega tu borrador</strong><p>Ya sé para quién es, qué experiencia elegiste y qué historia querés contar.</p></div>
+              </article>
+              <article>
+                <span>02</span>
+                <div><strong>Terminamos los detalles</strong><p>Fotos definitivas, audios, textos y cualquier ajuste para que no se sienta genérico.</p></div>
+              </article>
+              <article>
+                <span>03</span>
+                <div><strong>Recibís el link privado</strong><p>Listo para mandárselo a esa persona cuando vos decidas.</p></div>
+              </article>
+            </div>
+          </section>
+
           <p className="publish-coming">
-            Esta vista previa es sólo tuya. Nada se publica desde esta pantalla.
+            Tu borrador sigue siendo privado. Nada se publica sin que vos lo decidas.
           </p>
         </div>
       )}
