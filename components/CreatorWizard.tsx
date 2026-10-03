@@ -199,6 +199,7 @@ export default function CreatorWizard() {
       draft.relationship ? `Historia: ${clip(draft.relationship, 240)}` : "",
       draft.anecdote ? `Anécdota: ${clip(draft.anecdote, 190)}` : "",
       `Fotos seleccionadas: ${photoUrls.length}`,
+      draft.musicUrl ? `Canción elegida: ${clip(draft.musicUrl, 160)}` : "",
       `Carta escrita: ${draft.letter.trim() ? "sí" : "todavía no"}`,
       "",
       "Quiero avanzar con la creación. ¿Cómo seguimos?",
@@ -434,7 +435,7 @@ export default function CreatorWizard() {
           )}
 
           <label className="story-field">
-            <span>Canción especial · opcional</span>
+            <span>Canción especial · opcional · referencia</span>
             <input
               value={draft.musicUrl}
               onChange={(event) => update("musicUrl", event.target.value)}
