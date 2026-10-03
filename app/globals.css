@@ -3925,3 +3925,93 @@ body:has(.experience-entered) .demo-ribbon{
   .two-inputs{grid-template-columns:1fr;gap:0}
   .big-input input{font-size:34px}
 }
+
+
+/* =========================================================
+   EXPERIENCE CHROME AUDIT — less app UI, more authored object
+   ========================================================= */
+.demo-ribbon{
+  top:16px;
+  left:18px;
+  transform:none;
+  width:auto;
+  max-width:calc(100vw - 36px);
+  gap:0;
+  padding:0;
+  border-radius:2px;
+  background:rgba(8,7,9,.76);
+  border-color:rgba(255,255,255,.09);
+  backdrop-filter:blur(12px);
+  overflow:hidden;
+  font-size:8px;
+  letter-spacing:.13em;
+}
+.demo-ribbon span{
+  padding:9px 11px;
+  color:#8f8992;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.demo-ribbon a{
+  padding:9px 11px;
+  border-left:1px solid rgba(255,255,255,.08);
+  color:#d8d2d9;
+  white-space:nowrap;
+  transition:background .25s,color .25s;
+}
+.demo-ribbon a:hover{background:rgba(255,255,255,.045);color:white}
+
+.experience-topbar{
+  width:min(90vw,390px);
+  grid-template-columns:34px 1fr 34px;
+  gap:10px;
+  padding:8px 10px;
+  border-radius:2px;
+  background:rgba(10,9,12,.66);
+  border-color:rgba(255,255,255,.075);
+  backdrop-filter:blur(13px);
+  color:#625d65;
+}
+.experience-topbar button{
+  font-size:13px;
+  transition:color .25s,transform .25s;
+}
+.experience-topbar button:not(:disabled):hover{
+  color:#f0eaee;
+  transform:translateX(-2px);
+}
+.progress-track{height:1px;background:#29262c}
+.scene{
+  animation:sceneArrival .62s cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes sceneArrival{
+  from{opacity:0;filter:blur(3px)}
+  to{opacity:1;filter:blur(0)}
+}
+.experience-shell:not(.experience-shell--cumpleanos) .scene .primary-action{
+  border-radius:2px;
+  letter-spacing:.025em;
+  padding-inline:22px;
+}
+.experience-shell .ghost-action{
+  border-radius:2px;
+}
+.experience-shell button:focus-visible,
+.home-shell a:focus-visible,
+.creator-page button:focus-visible,
+.creator-page input:focus-visible,
+.creator-page textarea:focus-visible,
+.creator-page select:focus-visible{
+  outline:1px solid rgba(255,255,255,.72);
+  outline-offset:4px;
+}
+@media(max-width:700px){
+  .demo-ribbon{
+    top:12px;
+    left:12px;
+    max-width:calc(100vw - 24px);
+  }
+  .demo-ribbon span{max-width:58vw}
+  .experience-topbar{bottom:12px;width:calc(100vw - 28px)}
+}
