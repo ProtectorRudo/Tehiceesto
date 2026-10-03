@@ -34,7 +34,12 @@ export type SceneType =
   | "lessons"
   | "presence"
   | "inheritance"
-  | "lookback";
+  | "lookback"
+  | "casefile"
+  | "insidejokes"
+  | "incidents"
+  | "proof"
+  | "pact";
 
 export type Experience = {
   slug: string;
@@ -175,18 +180,18 @@ export const experiences: Experience[] = [
   },
   {
     slug: "amistad",
-    eyebrow: "Para tu persona elegida",
-    title: "El archivo secreto de nuestra amistad",
-    short: "Anécdotas, papelones, fotos y mensajes que sólo ustedes entienden.",
-    description: "Una experiencia divertida y emotiva para cumpleaños, despedidas o porque sí.",
+    eyebrow: "Archivo confidencial · sólo para ustedes",
+    title: "Expediente: nosotras",
+    short: "Pruebas, códigos secretos, malas decisiones y todo eso que convirtió una amistad en parte de la vida.",
+    description: "Una experiencia que empieza como un archivo absurdo de anécdotas y termina mostrando por qué esa persona se volvió familia elegida.",
     icon: "✹",
     accent: "#79b7ff",
     demoRecipient: "Vale",
     demoGiver: "Cami",
-    opening: "Advertencia: este archivo contiene pruebas de demasiadas malas decisiones juntas.",
-    closing: "Gracias por estar en todas. Incluso en las que era mejor no estar.",
-    tags: ["Amistad", "Humor", "Recuerdos"],
-    recipe: ["intro", "quiz", "memories", "balloons", "scratch", "letter", "finale"],
+    opening: "Antes de que esto se ponga sentimental, considero necesario dejar constancia oficial de demasiadas cosas que hicimos juntas.",
+    closing: "Entre todas las personas que la vida podía cruzarme, qué suerte que me tocaste vos.",
+    tags: ["Amistad", "Códigos", "Recuerdos"],
+    recipe: ["intro", "casefile", "memories", "insidejokes", "incidents", "proof", "letter", "pact", "finale"],
   },
 ];
 
