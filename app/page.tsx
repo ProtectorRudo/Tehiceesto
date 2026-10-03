@@ -49,7 +49,7 @@ export default function Home() {
           </div>
           <div className="artifact-card artifact-card-front">
             <small>01 · SÓLO PARA VOS</small>
-            <strong>Ailín</strong>
+            <strong>Emma</strong>
             <p>Hay miles de lugares en Internet. Este existe solamente para vos.</p>
             <span className="artifact-enter">ENTRAR</span>
           </div>
@@ -167,7 +167,7 @@ export default function Home() {
       <footer className="home-footer">
         <Link className="brand" href="/">TE HICE ESTO<span>♥</span></Link>
         <p>Un lugar en Internet que existe para una sola persona.</p>
-        <span>LA PLATA · ARGENTINA</span>
+        <span>ARGENTINA · 2026</span>
       </footer>
     </main>
   );
