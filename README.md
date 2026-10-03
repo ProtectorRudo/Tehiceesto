@@ -7,14 +7,15 @@ Te Hice Esto es una plataforma de experiencias digitales personalizadas. No vend
 ## Estado actual
 
 - Home comercial premium y mobile-first.
-- 8 experiencias iniciales:
+- 9 experiencias iniciales:
   - Pareja
   - Cumpleaños
   - Hijos
   - Abuelos
   - Aniversario
   - Propuesta de casamiento
-  - Mamá / Papá
+  - Mamá
+  - Papá
   - Amistad
 - Cada ocasión tiene una receta distinta de escenas.
 - Motor interactivo reutilizable.
