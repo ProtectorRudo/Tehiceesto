@@ -22,6 +22,109 @@ type Draft = {
 const STORAGE_KEY = "tehiceesto:draft:v1";
 const feelings = ["Emoción", "Amor", "Sorpresa", "Diversión", "Nostalgia"];
 
+
+const creatorPrompts: Record<string, {
+  relationshipLabel: string;
+  relationshipPlaceholder: string;
+  dateLabel: string;
+  anecdoteLabel: string;
+  anecdotePlaceholder: string;
+  photoHeading: string;
+  wordsHeading: string;
+  letterPlaceholder: string;
+}> = {
+  pareja: {
+    relationshipLabel: "Contame cómo empezó lo de ustedes",
+    relationshipPlaceholder: "Cómo se conocieron, qué cambió con el tiempo y qué hace que esta relación sea sólo de ustedes...",
+    dateLabel: "Una fecha que les importe",
+    anecdoteLabel: "Una escena que sólo ustedes entiendan",
+    anecdotePlaceholder: "Ese viaje, esa frase, ese papelón o ese día que siempre vuelve...",
+    photoHeading: "Elegí las fotos que cuentan su historia sin necesidad de explicar demasiado.",
+    wordsHeading: "Ahora aparece lo que sólo vos podés decirle.",
+    letterPlaceholder: "Escribí como hablás. Pensá qué te gustaría que recuerde después de cerrar la pantalla.",
+  },
+  cumpleanos: {
+    relationshipLabel: "¿Quién es esta persona para vos?",
+    relationshipPlaceholder: "Qué lugar ocupa en tu vida, cómo es, qué hace especial estar cerca suyo...",
+    dateLabel: "Una fecha o etapa que quieras recordar",
+    anecdoteLabel: "Una historia que siempre los haga reír",
+    anecdotePlaceholder: "Un papelón, una noche, una frase o algo que todavía cuentan...",
+    photoHeading: "Elegí fotos que hagan sentir que su vida está llena de gente y momentos que valen.",
+    wordsHeading: "Decile algo que no entre en un simple “feliz cumple”.",
+    letterPlaceholder: "Qué admirás, qué deseás para este año y qué querés que sepa de verdad...",
+  },
+  hijos: {
+    relationshipLabel: "Contame quién es para vos",
+    relationshipPlaceholder: "Qué cambió desde que llegó, qué cosas pequeñas querés guardar y qué te emociona de verlo crecer...",
+    dateLabel: "Una fecha que marque el comienzo de algo",
+    anecdoteLabel: "Un recuerdo que quizá todavía no pueda recordar",
+    anecdotePlaceholder: "Una primera vez, una costumbre, una frase, una madrugada o un gesto...",
+    photoHeading: "Elegí imágenes que algún día le permitan volver a una etapa que quizá no recuerde completa.",
+    wordsHeading: "Escribí algo que pueda leer hoy o dentro de muchos años.",
+    letterPlaceholder: "Contale qué sentías en esta etapa, qué querés que nunca dude y qué esperás que conserve de sí...",
+  },
+  abuelos: {
+    relationshipLabel: "Contame qué parte de su historia vive en ustedes",
+    relationshipPlaceholder: "Costumbres, recetas, frases, lugares, domingos, historias familiares...",
+    dateLabel: "Una fecha o época importante",
+    anecdoteLabel: "Una historia familiar que no debería perderse",
+    anecdotePlaceholder: "Algo que siempre cuenta, una tradición, una escena de la casa o un recuerdo de otra época...",
+    photoHeading: "Elegí fotos que parezcan piezas de un archivo familiar que merece quedar.",
+    wordsHeading: "Poné por escrito las gracias que suelen quedar implícitas.",
+    letterPlaceholder: "Agradecé lo que hizo, lo que enseñó y todo lo que sigue viviendo en la familia gracias a esa persona...",
+  },
+  aniversario: {
+    relationshipLabel: "¿Qué construyeron juntos?",
+    relationshipPlaceholder: "Cómo fueron cambiando, qué rutinas son de ustedes, qué atravesaron y qué siguen eligiendo...",
+    dateLabel: "Una fecha que divida la historia en antes y después",
+    anecdoteLabel: "Una pequeña cosa que sea muy de ustedes",
+    anecdotePlaceholder: "Un ritual, una frase, una comida, una costumbre o algo absurdo que ya sea parte de la relación...",
+    photoHeading: "Elegí fotos de los grandes momentos y también de todos los días del medio.",
+    wordsHeading: "No escribas sobre el principio: escribí sobre todo lo que vino después.",
+    letterPlaceholder: "Qué aprendieron, qué sostuvieron, qué cambió y por qué seguís eligiendo construir con esa persona...",
+  },
+  propuesta: {
+    relationshipLabel: "¿Por qué llegaste a esta decisión?",
+    relationshipPlaceholder: "Qué te da certeza, qué cambió en vos y cuándo empezaste a imaginar una vida completa a su lado...",
+    dateLabel: "Una fecha que haya marcado la relación",
+    anecdoteLabel: "Un momento en el que pensaste “es acá”",
+    anecdotePlaceholder: "Puede ser enorme o completamente cotidiano. Lo importante es por qué te confirmó algo...",
+    photoHeading: "Elegí pocas fotos que funcionen como pruebas de cómo llegaste hasta esta pregunta.",
+    wordsHeading: "Antes de preguntar, dejá clara la certeza que hay detrás.",
+    letterPlaceholder: "No prometas una vida perfecta. Contale por qué querés construir la vida real con esa persona...",
+  },
+  mama: {
+    relationshipLabel: "Contame qué cosas entendiste de tu mamá al crecer",
+    relationshipPlaceholder: "Cuidados que parecían normales, sacrificios que no veías, gestos que hoy valorás distinto...",
+    dateLabel: "Una fecha o etapa de la infancia",
+    anecdoteLabel: "Un recuerdo en el que hoy ves algo que antes no veías",
+    anecdotePlaceholder: "Una comida, una espera, un cumpleaños, una preocupación, una frase o una escena de casa...",
+    photoHeading: "Elegí fotos que hoy puedas mirar con otros ojos y encontrarla también en los bordes.",
+    wordsHeading: "Agradecé también lo que de chico no sabías que había que agradecer.",
+    letterPlaceholder: "Qué hizo sin pedir aplausos, qué entendiste recién de grande y qué parte de ella sigue siendo hogar...",
+  },
+  papa: {
+    relationshipLabel: "Contame qué cosas de tu papá quedaron en vos",
+    relationshipPlaceholder: "Lecciones, gestos, formas de resolver, silencios, códigos y cosas que hoy hacés parecido...",
+    dateLabel: "Una fecha o etapa que recuerdes juntos",
+    anecdoteLabel: "Una escena que hoy interpretás distinto",
+    anecdotePlaceholder: "Algo que te enseñó, una espera, una salida, un consejo o una forma de estar sin hablar...",
+    photoHeading: "Elegí fotos donde hoy puedas reconocer presencia, ejemplo y pequeñas herencias.",
+    wordsHeading: "Decile lo que aprendiste incluso cuando él no estaba intentando enseñarte.",
+    letterPlaceholder: "Qué comprendiste de grande, qué admirás hoy y qué cosas suyas descubrís viviendo en vos...",
+  },
+  amistad: {
+    relationshipLabel: "¿Cómo llegó esta amistad a convertirse en esto?",
+    relationshipPlaceholder: "Cómo se conocieron, qué códigos nacieron, qué atravesaron y por qué esa persona ya es parte de tu vida...",
+    dateLabel: "Una fecha o época que tenga historia",
+    anecdoteLabel: "Un incidente que merezca quedar oficialmente registrado",
+    anecdotePlaceholder: "La salida que iba a ser tranqui, el mensaje que no había que mandar, el viaje improvisado...",
+    photoHeading: "Elegí evidencia: fotos que den risa primero y nostalgia dos segundos después.",
+    wordsHeading: "Después de todos los chistes, decile por qué esta amistad importa de verdad.",
+    letterPlaceholder: "Qué versiones tuyas conoció, cuándo estuvo, qué verdad te dijo y por qué la sentís familia elegida...",
+  },
+};
+
 const emptyDraft: Draft = {
   experience: "pareja",
   giverName: "",
@@ -65,6 +168,7 @@ export default function CreatorWizard() {
   }, [photoUrls]);
 
   const baseExperience = getExperience(draft.experience) || experiences[0];
+  const prompts = creatorPrompts[baseExperience.slug] || creatorPrompts.pareja;
 
   const personalizedExperience = useMemo(
     () => ({
@@ -228,17 +332,17 @@ export default function CreatorWizard() {
           <h1>Ahora contame lo que una plantilla nunca podría saber.</h1>
 
           <label className="story-field">
-            <span>¿Qué relación tienen?</span>
+            <span>{prompts.relationshipLabel}</span>
             <textarea
               value={draft.relationship}
               onChange={(event) => update("relationship", event.target.value)}
-              placeholder="Ej. Estamos juntos hace 8 años. Nos conocimos trabajando y al principio no nos soportábamos..."
+              placeholder={prompts.relationshipPlaceholder}
               rows={4}
             />
           </label>
 
           <label className="story-field">
-            <span>Una fecha que importe</span>
+            <span>{prompts.dateLabel}</span>
             <input
               type="date"
               value={draft.keyDate}
@@ -247,11 +351,11 @@ export default function CreatorWizard() {
           </label>
 
           <label className="story-field">
-            <span>Una anécdota que sólo ustedes entiendan</span>
+            <span>{prompts.anecdoteLabel}</span>
             <textarea
               value={draft.anecdote}
               onChange={(event) => update("anecdote", event.target.value)}
-              placeholder="Ese viaje, esa frase, ese papelón, ese día..."
+              placeholder={prompts.anecdotePlaceholder}
               rows={4}
             />
           </label>
@@ -266,7 +370,7 @@ export default function CreatorWizard() {
       {step === 3 && (
         <div className="creator-step">
           <span className="eyebrow">04 · Los recuerdos</span>
-          <h1>Elegí las fotos que cuentan la historia sin explicar nada.</h1>
+          <h1>{prompts.photoHeading}</h1>
 
           <label className="upload-zone">
             <input
@@ -310,7 +414,7 @@ export default function CreatorWizard() {
       {step === 4 && (
         <div className="creator-step">
           <span className="eyebrow">05 · Tus palabras</span>
-          <h1>Ahora aparece lo que sólo vos podés decir.</h1>
+          <h1>{prompts.wordsHeading}</h1>
 
           <label className="story-field">
             <span>Primera frase · opcional</span>
@@ -327,7 +431,7 @@ export default function CreatorWizard() {
             <textarea
               value={draft.letter}
               onChange={(event) => update("letter", event.target.value)}
-              placeholder="Escribí como hablás. No tiene que ser perfecta; tiene que ser tuya."
+              placeholder={prompts.letterPlaceholder}
               rows={8}
             />
           </label>
