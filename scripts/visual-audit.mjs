@@ -2,8 +2,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { chromium } from "playwright";
 
-const base = "https://tehiceesto.com";
-const outDir = path.resolve("visual-audit");
+const base = process.env.AUDIT_BASE_URL || "https://tehiceesto.com";
+const outDir = path.resolve(process.env.AUDIT_OUTPUT_DIR || "visual-audit");
 await fs.mkdir(outDir, { recursive: true });
 
 const demos = [
