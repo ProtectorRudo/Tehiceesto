@@ -112,6 +112,15 @@ export default function ExperienceEngine({
   const shellRef = useRef<HTMLElement | null>(null);
   const soundtrackRef = useRef<HTMLAudioElement | null>(null);
   const soundtrackFadeRef = useRef<number | null>(null);
+  const letterGestureStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const openLetter = () => {
+    if (letterOpen) return;
+    setLetterOpen(true);
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      navigator.vibrate?.(16);
+    }
+  };
 
   useEffect(() => {
     const root = shellRef.current;
@@ -522,19 +531,42 @@ export default function ExperienceEngine({
       case "letter":
         return (
           <section className={`scene scene-letter ${isGrandparents ? "scene-letter-archive" : ""} ${isAnniversary ? "scene-letter-anniversary" : ""} ${isProposal ? "scene-letter-proposal" : ""} ${isMother ? "scene-letter-mother" : ""} ${isFather ? "scene-letter-father" : ""} ${isFriendship ? "scene-letter-friendship" : ""}`}>
-            <p className="scene-kicker">{isGrandparents ? "Una carta que debía existir" : isAnniversary ? "Después de todo este tiempo" : isProposal ? "Antes de hacerte la pregunta" : isMother ? "Ahora que puedo entender un poco más" : isFather ? "Hay cosas que de chico no sabía decir" : isFriendship ? "Bueno. Ahora sí me voy a poner sentimental." : "La parte que no podía entrar en una foto"}</p>
-            <h2>{isGrandparents ? "Hay gracias que no deberían quedarse para después." : isAnniversary ? "Hay cosas que sigo eligiendo decirte." : isProposal ? "Primero quiero que sepas por qué llegué hasta acá." : isMother ? "Quiero agradecerte también por lo que nunca vi mientras estaba pasando." : isFather ? "Quiero decirte lo que aprendí incluso cuando vos no estabas intentando enseñarme." : isFriendship ? "Porque entre tanto chiste hay algo que sí quiero que sepas en serio." : "Hay palabras que merecen abrirse despacio."}</h2>
-            <button className={`envelope ${letterOpen ? "open" : ""}`} onClick={() => setLetterOpen(true)}>
+            <p className="scene-kicker">{isGrandparents ? "Una carta que debía existir" : isAnniversary ? "Después de todo este tiempo" : isProposal ? "Antes de hacerte la pregunta" : isMother ? "La parte que no podía entrar en una foto" : isFather ? "Hay cosas que de chico no sabía decir" : isFriendship ? "Bueno. Ahora sí me voy a poner sentimental." : "La parte que no podía entrar en una foto"}</p>
+            <h2>{isGrandparents ? "Hay gracias que no deberían quedarse para después." : isAnniversary ? "Hay cosas que sigo eligiendo decirte." : isProposal ? "Primero quiero que sepas por qué llegué hasta acá." : isMother ? "Hay palabras que merecen abrirse despacio." : isFather ? "Quiero decirte lo que aprendí incluso cuando vos no estabas intentando enseñarme." : isFriendship ? "Porque entre tanto chiste hay algo que sí quiero que sepas en serio." : "Hay palabras que merecen abrirse despacio."}</h2>
+            <button
+              className={`envelope ${letterOpen ? "open" : ""}`}
+              onClick={openLetter}
+              onPointerDown={(event) => {
+                if (!isMother || letterOpen) return;
+                letterGestureStartRef.current = { x: event.clientX, y: event.clientY };
+              }}
+              onPointerMove={(event) => {
+                if (!isMother || letterOpen || !letterGestureStartRef.current) return;
+                const deltaX = event.clientX - letterGestureStartRef.current.x;
+                const deltaY = event.clientY - letterGestureStartRef.current.y;
+                if (Math.abs(deltaX) > 52 && Math.abs(deltaX) > Math.abs(deltaY) * 1.12) {
+                  letterGestureStartRef.current = null;
+                  openLetter();
+                }
+              }}
+              onPointerUp={() => {
+                letterGestureStartRef.current = null;
+              }}
+              onPointerCancel={() => {
+                letterGestureStartRef.current = null;
+              }}
+              aria-label={isMother ? "Deslizá para abrir la carta" : "Abrir la carta"}
+            >
               <span className="envelope-back" />
               <span className="paper">
                 <small>Para {experience.demoRecipient}</small>
-                <strong>{letterText || (isGrandparents ? "Gracias por todo lo que hiciste cuando nadie estaba sacando una foto. Por las veces que cuidaste, esperaste, cocinaste, llamaste, abrazaste y seguiste. Muchas de las cosas que hoy somos empezaron en vos." : isAnniversary ? "No te quiero sólo por todo lo lindo que vivimos. Te quiero también por lo que arreglamos, por lo que aprendimos, por las veces que volvimos a encontrarnos y por la vida común que, sin hacer ruido, se volvió nuestra." : isProposal ? "No llegué a esta pregunta por un día perfecto. Llegué por todos los días: por cómo me hacés sentir acompañado, por lo que aprendimos juntos, por la paz de imaginarte en mi futuro y porque cuando pienso en una vida que valga la pena construir, estás vos." : isMother ? "Gracias por todas las veces que hiciste que algo difícil pareciera simple. Por cuidar cuando estabas cansada, por recordar lo que a mí se me olvidaba, por hacer lugar y por seguir estando incluso cuando crecer también significó alejarme un poco." : isFather ? "Gracias por las veces que me mostraste cómo hacer algo y por las veces que simplemente te quedaste cerca mientras yo aprendía. Hoy entiendo mejor tus esfuerzos, tus dudas y muchas formas de querer que antes me pasaban por al lado." : isFriendship ? "Gracias por conocer versiones mías que ya ni existen y quererme también en esas. Por celebrar conmigo sin competir, por decirme la verdad cuando no era lo que quería escuchar y por aparecer tantas veces sin que tuviera que pedirlo." : "Gracias por convertir tantos días comunes en recuerdos extraordinarios.")}</strong>
+                <strong>{letterText || (isGrandparents ? "Gracias por todo lo que hiciste cuando nadie estaba sacando una foto. Por las veces que cuidaste, esperaste, cocinaste, llamaste, abrazaste y seguiste. Muchas de las cosas que hoy somos empezaron en vos." : isAnniversary ? "No te quiero sólo por todo lo lindo que vivimos. Te quiero también por lo que arreglamos, por lo que aprendimos, por las veces que volvimos a encontrarnos y por la vida común que, sin hacer ruido, se volvió nuestra." : isProposal ? "No llegué a esta pregunta por un día perfecto. Llegué por todos los días: por cómo me hacés sentir acompañado, por lo que aprendimos juntos, por la paz de imaginarte en mi futuro y porque cuando pienso en una vida que valga la pena construir, estás vos." : isMother ? "De chico veía lo que hacías. De grande empecé a entender lo que había detrás. Gracias por cada cosa que parecía pequeña, por todo lo que sostuviste en silencio y por hacer hogar tantas veces sin pedir que nadie lo notara." : isFather ? "Gracias por las veces que me mostraste cómo hacer algo y por las veces que simplemente te quedaste cerca mientras yo aprendía. Hoy entiendo mejor tus esfuerzos, tus dudas y muchas formas de querer que antes me pasaban por al lado." : isFriendship ? "Gracias por conocer versiones mías que ya ni existen y quererme también en esas. Por celebrar conmigo sin competir, por decirme la verdad cuando no era lo que quería escuchar y por aparecer tantas veces sin que tuviera que pedirlo." : "Gracias por convertir tantos días comunes en recuerdos extraordinarios.")}</strong>
                 <em>— {experience.demoGiver}</em>
               </span>
               <span className="envelope-front" />
               <span className="wax">{isProposal ? "◇" : "♥"}</span>
             </button>
-            {!letterOpen && <p className="scene-hint">Rompé el sello</p>}
+            {!letterOpen && <p className="scene-hint">{isMother ? "Deslizá para abrir" : "Rompé el sello"}</p>}
             {letterOpen && <button className="primary-action" onClick={next}>{isMother || isFather || isFriendship ? "Hay algo más" : "Última parte"}</button>}
           </section>
         );
