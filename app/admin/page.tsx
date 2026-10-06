@@ -55,6 +55,7 @@ export default async function AdminPage({
           <h1>Regalos</h1>
         </div>
         <div className="admin-header-actions">
+          <a className="ghost-action" href="/admin/affiliates">Referidos</a>
           <a className="primary-action" href="/admin/new">+ Nuevo regalo</a>
           <form action={logoutAdmin}>
             <button className="ghost-action" type="submit">Cerrar sesión</button>
