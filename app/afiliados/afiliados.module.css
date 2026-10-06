@@ -1,0 +1,25 @@
+.shell,.dashboard{min-height:100svh;background:#0d0c0b;color:#f6f1e9;font-family:Arial,sans-serif}
+.shell{display:grid;place-items:center;padding:28px}
+.login{width:min(520px,100%);padding:clamp(28px,6vw,54px);border:1px solid #2d2924;background:linear-gradient(145deg,#171512,#0c0b0a);box-shadow:0 40px 100px #0008}
+.kicker,.sectionLabel{font-size:10px;letter-spacing:.22em;color:#bda88d;font-weight:700}
+.login h1,.header h1,.card h2{font-family:Georgia,serif;font-weight:400}
+.login h1{font-size:clamp(44px,9vw,72px);line-height:.94;margin:18px 0}.login h1 em{color:#cbb79c;font-weight:400}
+.login>p,.header p,.card p{color:#a9a39a;line-height:1.65}
+.form{display:grid;gap:16px;margin-top:30px}.form label{display:grid;gap:8px}.form label span{font-size:12px;color:#c7bfb5}
+.form input{width:100%;box-sizing:border-box;border:1px solid #36312b;background:#11100e;color:#fff;padding:14px 15px;outline:none}.form input:focus{border-color:#a68a67}
+.form button{margin-top:8px;border:0;background:#f0e6d6;color:#17130f;padding:15px 18px;font-weight:800;display:flex;justify-content:space-between;cursor:pointer}
+.error{color:#ef9b8f}.private{display:block;margin-top:20px;color:#716b64}
+.dashboard{padding:clamp(22px,5vw,64px);background:radial-gradient(circle at 80% 0,#272017 0,transparent 30%),#0d0c0b}
+.header{display:flex;justify-content:space-between;gap:30px;align-items:flex-end;max-width:1320px;margin:0 auto 36px}.header h1{font-size:clamp(42px,6vw,72px);margin:10px 0 0}.header p{margin:8px 0 0}
+.logout{border:1px solid #3b352e;background:transparent;color:#d5cbc0;padding:11px 14px;cursor:pointer}
+.heroStats,.grid{display:grid;gap:12px;max-width:1320px;margin:0 auto}.heroStats{grid-template-columns:repeat(4,1fr);margin-bottom:12px}.grid{grid-template-columns:1.35fr .65fr;margin-bottom:12px}
+.heroStats article,.card{border:1px solid #2d2924;background:#151310;padding:24px}.heroStats article{min-height:128px;display:flex;flex-direction:column;justify-content:space-between}
+.heroStats span{font-size:9px;letter-spacing:.16em;color:#8f867b}.heroStats strong{font-family:Georgia,serif;font-size:clamp(28px,3vw,44px);font-weight:400}.heroStats small{color:#716b64}.heroStats .highlight{background:linear-gradient(140deg,#e7dac6,#cdb99d);color:#17130f}.heroStats .highlight span,.heroStats .highlight small{color:#625748}
+.card{max-width:1270px;margin:0 auto}.grid .card{width:auto;margin:0}.card h2{font-size:30px;margin:10px 0 18px}.linkBox{padding:16px;border:1px solid #40392f;background:#0e0d0b;overflow:auto}.linkBox code{color:#eee2d0}.sources{display:grid;gap:8px;margin:12px 0 18px}.sources code{font-size:11px;color:#82776a;word-break:break-all}
+.funnel{display:grid;gap:4px}.funnel div{display:flex;justify-content:space-between;border-bottom:1px solid #29251f;padding:14px 0}.funnel span{color:#8f867b}.funnel strong{font-family:Georgia,serif;font-size:22px}
+.sectionHead{display:flex;justify-content:space-between;align-items:end;gap:20px}.sectionHead h2{margin-bottom:0}.sectionHead>strong{color:#cbb79c}
+.tableWrap{overflow:auto;margin-top:18px}.tableWrap table{width:100%;border-collapse:collapse;min-width:620px}.tableWrap th,.tableWrap td{text-align:left;padding:15px 12px;border-bottom:1px solid #2b2722}.tableWrap th{font-size:9px;letter-spacing:.15em;color:#766f67}.tableWrap td{color:#bcb4aa}
+.status_pending,.status_paid,.status_reversed{display:inline-block;padding:5px 8px;border:1px solid #443d34;font-size:11px}.status_paid{color:#a7d4b7}.status_reversed{color:#e5a59c}.empty{padding:30px 0;color:#817970}
+.footer{max-width:1320px;margin:28px auto 0;display:flex;justify-content:space-between;gap:20px;color:#69635c;font-size:11px}.footer p{margin:0;max-width:600px;text-align:right;line-height:1.5}
+@media(max-width:900px){.heroStats{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}.header{align-items:flex-start}.sectionHead{align-items:flex-start}}
+@media(max-width:560px){.dashboard{padding:20px 14px}.heroStats{grid-template-columns:1fr}.header,.sectionHead,.footer{flex-direction:column}.footer p{text-align:left}.login{padding:28px 22px}}
