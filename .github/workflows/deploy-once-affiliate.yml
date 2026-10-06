@@ -1,0 +1,100 @@
+name: Deploy affiliate system once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/deploy-once-affiliate.yml"
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Verify Vercel credentials
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          missing=0
+          for key in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            if [ -z "${!key}" ]; then
+              echo "::error::Missing GitHub Actions secret: $key"
+              missing=1
+            fi
+          done
+          test "$missing" -eq 0
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install pinned Vercel CLI
+        run: npm install --no-save vercel@latest
+
+      - name: Pull production project settings
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: npx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build production artifact
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: npx vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy exact prebuilt artifact
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          url="$(npx vercel deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN")"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Deployed: $url"
+
+      - name: Verify deployment URL
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          for i in {1..30}; do
+            if curl -fsSL --max-time 30 "$DEPLOYMENT_URL/api/version" > /tmp/version.json; then
+              cat /tmp/version.json
+              break
+            fi
+            sleep 5
+          done
+          test -s /tmp/version.json
+
+      - name: Verify production alias
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          for i in {1..30}; do
+            body="$(curl -fsSL --max-time 30 https://tehiceesto.com/api/version || true)"
+            echo "$body"
+            if printf '%s' "$body" | grep -q "$EXPECTED_SHA"; then
+              echo "Production alias points to expected commit."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::tehiceesto.com does not expose expected commit $EXPECTED_SHA"
+          exit 1
