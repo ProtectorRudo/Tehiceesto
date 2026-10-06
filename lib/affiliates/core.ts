@@ -9,7 +9,13 @@ export const AFFILIATE_VISITOR_COOKIE = "thi_vid";
 export const AFFILIATE_ATTRIBUTION_DAYS = 30;
 
 function hashSecret() {
-  return process.env.AFFILIATE_HASH_SECRET || process.env.ADMIN_ACCESS_KEY || "tehiceesto-affiliate-v1";
+  const secret =
+    process.env.AFFILIATE_HASH_SECRET ||
+    process.env.ADMIN_ACCESS_KEY ||
+    process.env.SUPABASE_SECRET_KEY;
+
+  if (!secret) throw new Error("affiliate_hash_secret_not_configured");
+  return secret;
 }
 
 export function hashAffiliateToken(value: string) {
