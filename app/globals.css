@@ -5991,3 +5991,60 @@ body:has(.experience-shell--mama[data-current-scene="letter"]) .floating-whatsap
   .child-intro-sun,.scene-stars-child .star-button span{animation:none!important}
   .child-constellation path,.scene-capsule-child .capsule,.experience-shell--hijos .primary-action{transition:none!important}
 }
+
+
+/* La carta puede contener un texto extenso: no recortar palabras en móvil. */
+.scene-letter-child .envelope:not(.open) .paper{
+  height:235px;
+  max-height:235px;
+  min-height:0;
+  overflow:hidden;
+}
+.scene-letter-child .envelope.open{
+  width:min(650px,92vw);
+  min-height:420px;
+  height:auto;
+  padding:16px;
+  margin:30px auto 10px;
+  display:flex;
+  align-items:stretch;
+  justify-content:center;
+  touch-action:pan-y;
+}
+.scene-letter-child .envelope.open .envelope-front,
+.scene-letter-child .envelope.open .envelope-back,
+.scene-letter-child .envelope.open .wax{
+  opacity:0;
+  pointer-events:none;
+}
+.scene-letter-child .envelope.open .paper{
+  position:relative;
+  left:auto;right:auto;bottom:auto;
+  transform:none;
+  width:100%;
+  min-height:320px;
+  max-height:min(64svh,620px);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+  padding:36px clamp(22px,6vw,48px);
+  border-radius:3px;
+  box-shadow:0 25px 65px rgba(0,0,0,.28);
+  z-index:4;
+  -webkit-overflow-scrolling:touch;
+}
+.scene-letter-child .envelope.open .paper strong{
+  font-size:clamp(17px,2.5vw,24px);
+  line-height:1.55;
+  overflow-wrap:anywhere;
+}
+.scene-letter-child .envelope.open .paper small{margin-bottom:18px}
+@media(max-width:560px){
+  .scene-letter-child .envelope.open{padding:0;width:min(94vw,440px);min-height:350px}
+  .scene-letter-child .envelope.open .paper{
+    min-height:310px;
+    max-height:56svh;
+    padding:25px 22px;
+  }
+  .scene-letter-child .envelope.open .paper strong{font-size:17px;line-height:1.48}
+}
