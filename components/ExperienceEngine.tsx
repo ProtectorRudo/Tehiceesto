@@ -54,6 +54,12 @@ const fatherDemoPhotos = [
   "https://unsplash.com/photos/vMP8lfhxPi4/download?force=true&w=1200",
 ];
 
+const childDemoPhotos = [
+  "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&w=1200&q=85",
+  "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=1200&q=85",
+  "https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=1200&q=85",
+];
+
 const friendshipDemoPhotos = [
   "https://unsplash.com/photos/rjnIYeC6rmA/download?force=true&w=1200",
   "https://unsplash.com/photos/juCtUKs7z68/download?force=true&w=1200",
@@ -190,6 +196,7 @@ export default function ExperienceEngine({
   const isProposal = experience.slug === "propuesta";
   const isMother = experience.slug === "mama" || experience.slug === "mama-papa";
   const isFather = experience.slug === "papa";
+  const isChild = experience.slug === "hijos";
   const isFriendship = experience.slug === "amistad";
   const introKicker = isProposal
     ? `Una experiencia privada de ${experience.demoGiver}`
@@ -250,7 +257,7 @@ export default function ExperienceEngine({
                   : experience.slug === "pareja"
                     ? "Hecho para una sola persona"
                     : "Una experiencia privada";
-  const demoPhotos = isMother ? motherDemoPhotos : isFather ? fatherDemoPhotos : isFriendship ? friendshipDemoPhotos : photos;
+  const demoPhotos = isMother ? motherDemoPhotos : isFather ? fatherDemoPhotos : isChild ? childDemoPhotos : isFriendship ? friendshipDemoPhotos : photos;
   const displayPhotos: ExperiencePhoto[] =
     photoMedia && photoMedia.length > 0
       ? photoMedia.slice(0, 8)
@@ -375,6 +382,12 @@ export default function ExperienceEngine({
           "En algún punto dejé de imaginar planes con vos y empecé a imaginar una vida.",
           "No fue una señal enorme. Fueron cientos de pequeñas certezas.",
         ]
+      : isChild
+        ? [
+            "Ese instante todavía no sabíamos todas las cosas que nos ibas a enseñar.",
+            "Crecer no fue solamente aprender a caminar. Fue descubrir el mundo a tu manera.",
+            "Ojalá un día te mires con la misma ternura con la que te miramos nosotros.",
+          ]
       : isMother
         ? [
             "En ese momento yo veía una foto. Hoy veo todo lo que estabas haciendo para que ese día existiera.",
@@ -398,7 +411,7 @@ export default function ExperienceEngine({
                 "Después aprendimos que los mejores recuerdos casi nunca avisan que van a ser importantes.",
                 "Y sin darnos cuenta, empezamos a coleccionar un mundo propio.",
               ],
-    [isProposal, isMother, isFather, isFriendship]
+    [isProposal, isChild, isMother, isFather, isFriendship]
   );
 
   const next = () => {
@@ -422,11 +435,13 @@ export default function ExperienceEngine({
     switch (scene) {
       case "intro":
         return (
-          <section className={`scene scene-intro ${isProposal ? "scene-intro-proposal" : ""} ${isMother ? "scene-intro-mother" : ""} ${isFather ? "scene-intro-father" : ""} ${isFriendship ? "scene-intro-friendship" : ""}`}>
+          <section className={`scene scene-intro ${isChild ? "scene-intro-child" : ""} ${isProposal ? "scene-intro-proposal" : ""} ${isMother ? "scene-intro-mother" : ""} ${isFather ? "scene-intro-father" : ""} ${isFriendship ? "scene-intro-friendship" : ""}`}>
             <div className="orb orb-one" />
             <div className="orb orb-two" />
+            {isChild && <div className="child-intro-art" aria-hidden="true"><span className="child-intro-sun" /><i /><i /><i /></div>}
             <p className="scene-kicker">{introKicker}</p>
             <h1>{experience.demoRecipient}</h1>
+            {isChild && <div className="child-intro-divider" aria-hidden="true"><span />✦<span /></div>}
             <p className="scene-lead">{experience.opening}</p>
             <button className="primary-action" onClick={next}>{introAction}</button>
             <small>{introNote}</small>
@@ -448,9 +463,9 @@ export default function ExperienceEngine({
 
       case "memories":
         return (
-          <section className={`scene scene-memories ${isGrandparents ? "scene-memories-archive" : ""} ${isAnniversary ? "scene-memories-anniversary" : ""} ${isProposal ? "scene-memories-proposal" : ""} ${isMother ? "scene-memories-mother" : ""} ${isFather ? "scene-memories-father" : ""} ${isFriendship ? "scene-memories-friendship" : ""}`}>
-            <p className="scene-kicker">{isGrandparents ? "Álbum familiar · piezas rescatadas" : isAnniversary ? "Pruebas de que esto pasó de verdad" : isProposal ? "Algunas pruebas de cómo llegué hasta acá" : isMother ? "Fotos que ahora miro distinto" : isFather ? "Escenas que quedaron sin necesidad de explicarlas" : isFriendship ? "Evidencia fotográfica · lamentablemente irrefutable" : "Los recuerdos"}</p>
-            <h2>{isGrandparents ? "Algunas fotos guardan más de lo que muestran." : isAnniversary ? "No fueron sólo grandes momentos. También fueron todos los días del medio." : isProposal ? "No fue un solo momento. Fueron muchos momentos haciendo la misma pregunta en silencio." : isMother ? "En muchas de estas fotos yo era el centro. Hoy también veo todo lo que estaba haciendo mamá alrededor." : isFather ? "Antes veía una foto. Hoy veo quién estaba sosteniendo, enseñando, esperando o simplemente estando." : isFriendship ? "Algunas fotos demuestran que claramente nadie estaba tomando buenas decisiones." : "Hay días que terminan. Y otros que se quedan."}</h2>
+          <section className={`scene scene-memories ${isChild ? "scene-memories-child" : ""} ${isGrandparents ? "scene-memories-archive" : ""} ${isAnniversary ? "scene-memories-anniversary" : ""} ${isProposal ? "scene-memories-proposal" : ""} ${isMother ? "scene-memories-mother" : ""} ${isFather ? "scene-memories-father" : ""} ${isFriendship ? "scene-memories-friendship" : ""}`}>
+            <p className="scene-kicker">{isGrandparents ? "Álbum familiar · piezas rescatadas" : isAnniversary ? "Pruebas de que esto pasó de verdad" : isProposal ? "Algunas pruebas de cómo llegué hasta acá" : isMother ? "Fotos que ahora miro distinto" : isFather ? "Escenas que quedaron sin necesidad de explicarlas" : isFriendship ? "Evidencia fotográfica · lamentablemente irrefutable" : isChild ? "Pequeños instantes, recuerdos inmensos" : "Los recuerdos"}</p>
+            <h2>{isGrandparents ? "Algunas fotos guardan más de lo que muestran." : isAnniversary ? "No fueron sólo grandes momentos. También fueron todos los días del medio." : isProposal ? "No fue un solo momento. Fueron muchos momentos haciendo la misma pregunta en silencio." : isMother ? "En muchas de estas fotos yo era el centro. Hoy también veo todo lo que estaba haciendo mamá alrededor." : isFather ? "Antes veía una foto. Hoy veo quién estaba sosteniendo, enseñando, esperando o simplemente estando." : isFriendship ? "Algunas fotos demuestran que claramente nadie estaba tomando buenas decisiones." : isChild ? "Vos crecías. Nosotros aprendíamos a mirar el mundo de nuevo." : "Hay días que terminan. Y otros que se quedan."}</h2>
             {storyDateLabel && <p className="memory-date-stamp">{storyDateLabel}</p>}
             <div className="film-strip">
               {displayPhotos.map((photo, index) => (
@@ -475,27 +490,35 @@ export default function ExperienceEngine({
 
       case "stars":
         return (
-          <section className="scene scene-stars">
-            <p className="scene-kicker">Cosas que no quiero que olvides</p>
-            <h2>Tocá las estrellas.</h2>
-            <div className="star-field">
-              {[
+          <section className={`scene scene-stars ${isChild ? "scene-stars-child" : ""}`}>
+            <p className="scene-kicker">{isChild ? "Cinco luces que queremos dejarte" : "Cosas que no quiero que olvides"}</p>
+            <h2>{isChild ? "Cada estrella guarda algo que amamos de vos." : "Tocá las estrellas."}</h2>
+            <div className={`star-field ${isChild ? "star-field-child" : ""}`}>
+              {isChild && <div className={`child-constellation ${stars.length === 5 ? "complete" : ""}`} aria-hidden="true"><svg viewBox="0 0 600 360" role="presentation"><path d="M300 295 C260 260 115 170 130 100 C145 20 250 34 300 98 C350 34 455 20 470 100 C485 170 340 260 300 295 Z" /></svg></div>}
+              {(isChild ? [
+                "No tenés que ser como nadie más para ser extraordinario.",
+                "Tu risa hizo más luminosa nuestra casa.",
+                "Nos encanta descubrir la persona en la que te vas convirtiendo.",
+                "Tenés permiso para equivocarte y volver a empezar.",
+                "Nunca vas a tener que ganarte nuestro amor.",
+              ] : [
                 "Tu forma de hacer hogar.",
                 "Cómo te reís cuando te olvidás de cuidarte.",
                 "La calma que traés sin darte cuenta.",
                 "Todo lo que todavía soñamos.",
                 "Que te volvería a elegir.",
-              ].map((text, index) => (
+              ]).map((text, index) => (
                 <button
                   key={text}
                   className={`star-button ${stars.includes(index) ? "revealed" : ""}`}
                   onClick={() => revealStar(index)}
                 >
                   <span>✦</span>
-                  <em>{stars.includes(index) ? text : "Tocame"}</em>
+                  <em>{stars.includes(index) ? text : isChild ? "Descubrime" : "Tocame"}</em>
                 </button>
               ))}
             </div>
+            {isChild && stars.length === 5 && <p className="child-constellation-caption">Siempre hubo un lugar para vos en nuestro cielo.</p>}
             <button className="primary-action" onClick={next} disabled={stars.length < 3}>
               {stars.length < 3 ? `Descubrí ${3 - stars.length} más` : "Continuar"}
             </button>
@@ -530,9 +553,9 @@ export default function ExperienceEngine({
 
       case "letter":
         return (
-          <section className={`scene scene-letter ${isGrandparents ? "scene-letter-archive" : ""} ${isAnniversary ? "scene-letter-anniversary" : ""} ${isProposal ? "scene-letter-proposal" : ""} ${isMother ? "scene-letter-mother" : ""} ${isFather ? "scene-letter-father" : ""} ${isFriendship ? "scene-letter-friendship" : ""}`}>
-            <p className="scene-kicker">{isGrandparents ? "Una carta que debía existir" : isAnniversary ? "Después de todo este tiempo" : isProposal ? "Antes de hacerte la pregunta" : isMother ? "La parte que no podía entrar en una foto" : isFather ? "Hay cosas que de chico no sabía decir" : isFriendship ? "Bueno. Ahora sí me voy a poner sentimental." : "La parte que no podía entrar en una foto"}</p>
-            <h2>{isGrandparents ? "Hay gracias que no deberían quedarse para después." : isAnniversary ? "Hay cosas que sigo eligiendo decirte." : isProposal ? "Primero quiero que sepas por qué llegué hasta acá." : isMother ? "Hay palabras que merecen abrirse despacio." : isFather ? "Quiero decirte lo que aprendí incluso cuando vos no estabas intentando enseñarme." : isFriendship ? "Porque entre tanto chiste hay algo que sí quiero que sepas en serio." : "Hay palabras que merecen abrirse despacio."}</h2>
+          <section className={`scene scene-letter ${isChild ? "scene-letter-child" : ""} ${isGrandparents ? "scene-letter-archive" : ""} ${isAnniversary ? "scene-letter-anniversary" : ""} ${isProposal ? "scene-letter-proposal" : ""} ${isMother ? "scene-letter-mother" : ""} ${isFather ? "scene-letter-father" : ""} ${isFriendship ? "scene-letter-friendship" : ""}`}>
+            <p className="scene-kicker">{isGrandparents ? "Una carta que debía existir" : isAnniversary ? "Después de todo este tiempo" : isProposal ? "Antes de hacerte la pregunta" : isMother ? "La parte que no podía entrar en una foto" : isFather ? "Hay cosas que de chico no sabía decir" : isFriendship ? "Bueno. Ahora sí me voy a poner sentimental." : isChild ? "Algo que queremos que tengas siempre" : "La parte que no podía entrar en una foto"}</p>
+            <h2>{isGrandparents ? "Hay gracias que no deberían quedarse para después." : isAnniversary ? "Hay cosas que sigo eligiendo decirte." : isProposal ? "Primero quiero que sepas por qué llegué hasta acá." : isMother ? "Hay palabras que merecen abrirse despacio." : isFather ? "Quiero decirte lo que aprendí incluso cuando vos no estabas intentando enseñarme." : isFriendship ? "Porque entre tanto chiste hay algo que sí quiero que sepas en serio." : isChild ? "Hay palabras que te van a acompañar incluso cuando no estemos cerca." : "Hay palabras que merecen abrirse despacio."}</h2>
             <button
               className={`envelope ${letterOpen ? "open" : ""}`}
               onClick={openLetter}
@@ -560,7 +583,7 @@ export default function ExperienceEngine({
               <span className="envelope-back" />
               <span className="paper">
                 <small>Para {experience.demoRecipient}</small>
-                <strong>{letterText || (isGrandparents ? "Gracias por todo lo que hiciste cuando nadie estaba sacando una foto. Por las veces que cuidaste, esperaste, cocinaste, llamaste, abrazaste y seguiste. Muchas de las cosas que hoy somos empezaron en vos." : isAnniversary ? "No te quiero sólo por todo lo lindo que vivimos. Te quiero también por lo que arreglamos, por lo que aprendimos, por las veces que volvimos a encontrarnos y por la vida común que, sin hacer ruido, se volvió nuestra." : isProposal ? "No llegué a esta pregunta por un día perfecto. Llegué por todos los días: por cómo me hacés sentir acompañado, por lo que aprendimos juntos, por la paz de imaginarte en mi futuro y porque cuando pienso en una vida que valga la pena construir, estás vos." : isMother ? "De chico veía lo que hacías. De grande empecé a entender lo que había detrás. Gracias por cada cosa que parecía pequeña, por todo lo que sostuviste en silencio y por hacer hogar tantas veces sin pedir que nadie lo notara." : isFather ? "Gracias por las veces que me mostraste cómo hacer algo y por las veces que simplemente te quedaste cerca mientras yo aprendía. Hoy entiendo mejor tus esfuerzos, tus dudas y muchas formas de querer que antes me pasaban por al lado." : isFriendship ? "Gracias por conocer versiones mías que ya ni existen y quererme también en esas. Por celebrar conmigo sin competir, por decirme la verdad cuando no era lo que quería escuchar y por aparecer tantas veces sin que tuviera que pedirlo." : "Gracias por convertir tantos días comunes en recuerdos extraordinarios.")}</strong>
+                <strong>{letterText || (isGrandparents ? "Gracias por todo lo que hiciste cuando nadie estaba sacando una foto. Por las veces que cuidaste, esperaste, cocinaste, llamaste, abrazaste y seguiste. Muchas de las cosas que hoy somos empezaron en vos." : isAnniversary ? "No te quiero sólo por todo lo lindo que vivimos. Te quiero también por lo que arreglamos, por lo que aprendimos, por las veces que volvimos a encontrarnos y por la vida común que, sin hacer ruido, se volvió nuestra." : isProposal ? "No llegué a esta pregunta por un día perfecto. Llegué por todos los días: por cómo me hacés sentir acompañado, por lo que aprendimos juntos, por la paz de imaginarte en mi futuro y porque cuando pienso en una vida que valga la pena construir, estás vos." : isMother ? "De chico veía lo que hacías. De grande empecé a entender lo que había detrás. Gracias por cada cosa que parecía pequeña, por todo lo que sostuviste en silencio y por hacer hogar tantas veces sin pedir que nadie lo notara." : isFather ? "Gracias por las veces que me mostraste cómo hacer algo y por las veces que simplemente te quedaste cerca mientras yo aprendía. Hoy entiendo mejor tus esfuerzos, tus dudas y muchas formas de querer que antes me pasaban por al lado." : isFriendship ? "Gracias por conocer versiones mías que ya ni existen y quererme también en esas. Por celebrar conmigo sin competir, por decirme la verdad cuando no era lo que quería escuchar y por aparecer tantas veces sin que tuviera que pedirlo." : isChild ? "Desde que llegaste, nuestra vida tiene tu forma de reír, de preguntar y de descubrir. No necesitás ser perfecto ni convertirte en lo que nadie espera. Queremos que seas vos, que encuentres tu camino y que sepas, incluso en los días difíciles, cuánto te amamos." : "Gracias por convertir tantos días comunes en recuerdos extraordinarios.")}</strong>
                 <em>— {experience.demoGiver}</em>
               </span>
               <span className="envelope-front" />
@@ -621,11 +644,18 @@ export default function ExperienceEngine({
 
       case "timeline":
         return (
-          <section className={`scene scene-timeline ${isGrandparents ? "scene-timeline-archive" : ""} ${isAnniversary ? "scene-timeline-anniversary" : ""}`}>
-            <p className="scene-kicker">{isGrandparents ? "Una vida no entra en una fecha" : isAnniversary ? "No fue de golpe. Fue de a poco." : "El tiempo también cuenta historias"}</p>
-            <h2>{isGrandparents ? "Antes de ser abuela, ya habías vivido un mundo entero." : isAnniversary ? "Un día éramos dos personas con planes. Después empezamos a tener planes nuestros." : "Tres momentos. Una misma historia."}</h2>
+          <section className={`scene scene-timeline ${isChild ? "scene-timeline-child" : ""} ${isGrandparents ? "scene-timeline-archive" : ""} ${isAnniversary ? "scene-timeline-anniversary" : ""}`}>
+            <p className="scene-kicker">{isGrandparents ? "Una vida no entra en una fecha" : isAnniversary ? "No fue de golpe. Fue de a poco." : isChild ? "La historia más linda que vimos crecer" : "El tiempo también cuenta historias"}</p>
+            <h2>{isGrandparents ? "Antes de ser abuela, ya habías vivido un mundo entero." : isAnniversary ? "Un día éramos dos personas con planes. Después empezamos a tener planes nuestros." : isChild ? "Todo empezó con vos. Y cada etapa nos enseñó a quererte de una forma nueva." : "Tres momentos. Una misma historia."}</h2>
             <div className="timeline">
-              {isGrandparents ? (
+              {isChild ? (
+                <>
+                  <article><span>01 · EL COMIENZO</span><strong>El día que llegaste</strong><p>No sabíamos todo lo que iba a cambiar. Pero desde el primer instante supimos que queríamos descubrirlo con vos.</p></article>
+                  <article><span>02 · LAS PRIMERAS VECES</span><strong>Un mundo nuevo</strong><p>Una palabra, un paso, una pregunta. Tantas cosas pequeñas que para nosotros fueron enormes.</p></article>
+                  <article><span>03 · TU PROPIO CAMINO</span><strong>Empezaste a ser vos</strong><p>Y fue hermoso descubrir tus ideas, tu carácter y esa manera tan tuya de mirar las cosas.</p></article>
+                  <article><span>04 · LO QUE VIENE</span><strong>La historia sigue</strong><p>No sabemos adónde te va a llevar la vida. Sí sabemos cuánto nos alegra acompañarte.</p></article>
+                </>
+              ) : isGrandparents ? (
                 <>
                   <article><span>1958</span><strong>Antes de nosotros</strong><p>Una versión tuya que conocemos por historias, fotos y esas anécdotas que siempre vuelven a la mesa.</p></article>
                   <article><span>1979</span><strong>La casa empieza a llenarse</strong><p>Nombres nuevos, rutinas, domingos, preocupaciones y una familia tomando forma.</p></article>
@@ -647,7 +677,7 @@ export default function ExperienceEngine({
                 </>
               )}
             </div>
-            <button className="primary-action" onClick={next}>{isGrandparents ? "Abrir el álbum" : isAnniversary ? "Ver lo que fuimos guardando" : "Seguir la historia"}</button>
+            <button className="primary-action" onClick={next}>{isGrandparents ? "Abrir el álbum" : isAnniversary ? "Ver lo que fuimos guardando" : isChild ? "Abrir nuestros recuerdos" : "Seguir la historia"}</button>
           </section>
         );
 
@@ -658,7 +688,9 @@ export default function ExperienceEngine({
           "Otra voz",
           "Una última voz",
         ];
-        const voiceQuote = isGrandparents
+        const voiceQuote = isChild
+          ? "“Si alguna vez dudás de vos, escuchá nuestra voz: te amamos por quien sos.”"
+          : isGrandparents
           ? "“Hay cosas tuyas que hacemos sin darnos cuenta. Ahí entendemos cuánto de vos vive en nosotros.”"
           : isMother
             ? "“Ahora que soy grande entiendo mejor todo lo que hacías cuando yo sólo veía que mamá estaba ahí.”"
@@ -667,9 +699,11 @@ export default function ExperienceEngine({
               : "“Te quiero muchísimo. Gracias por estar siempre.”";
 
         return (
-          <section className={`scene scene-voices ${isGrandparents ? "scene-voices-archive" : ""} ${isMother ? "scene-voices-mother" : ""} ${isFather ? "scene-voices-father" : ""}`}>
+          <section className={`scene scene-voices ${isChild ? "scene-voices-child" : ""} ${isGrandparents ? "scene-voices-archive" : ""} ${isMother ? "scene-voices-mother" : ""} ${isFather ? "scene-voices-father" : ""}`}>
             <p className="scene-kicker">
-              {isGrandparents
+              {isChild
+                ? "Hay voces que siempre te van a encontrar"
+                : isGrandparents
                 ? "Hay sonidos que también son hogar"
                 : isMother
                   ? "Hay voces que crecieron alrededor tuyo"
@@ -678,7 +712,9 @@ export default function ExperienceEngine({
                     : "Hay gente esperando decirte algo"}
             </p>
             <h2>
-              {isGrandparents
+              {isChild
+                ? "Una voz para escuchar ahora y volver a escuchar siempre."
+                : isGrandparents
                 ? "Escuchá lo que dejaste en nosotros."
                 : isMother
                   ? "Escuchá todo lo que hoy podemos ver distinto."
@@ -786,13 +822,13 @@ export default function ExperienceEngine({
 
       case "capsule":
         return (
-          <section className="scene scene-capsule">
-            <p className="scene-kicker">Para volver algún día</p>
-            <h2>Guardamos algo para tu yo del futuro.</h2>
+          <section className={`scene scene-capsule ${isChild ? "scene-capsule-child" : ""}`}>
+            <p className="scene-kicker">{isChild ? "Una cápsula para cuando la necesites" : "Para volver algún día"}</p>
+            <h2>{isChild ? "Para un día en que necesites acordarte de cuánto valés." : "Guardamos algo para tu yo del futuro."}</h2>
             <button className={`capsule ${capsuleOpen ? "open" : ""}`} onClick={() => setCapsuleOpen(true)}>
-              <span>2036</span>
-              <strong>{capsuleOpen ? "Abriste una cápsula del tiempo" : "Abrir cápsula"}</strong>
-              <p>{capsuleOpen ? "Ojalá cuando leas esto sigas teniendo esa misma curiosidad por el mundo." : "Hay palabras que pueden esperar."}</p>
+              <span>{isChild ? "✦" : "2036"}</span>
+              <strong>{capsuleOpen ? isChild ? "Este mensaje es para vos" : "Abriste una cápsula del tiempo" : isChild ? "Abrí cuando lo necesites" : "Abrir cápsula"}</strong>
+              <p>{capsuleOpen ? isChild ? "Ojalá nunca olvides que podés empezar de nuevo todas las veces que haga falta. Nuestro amor no depende de tus logros; te acompaña siempre." : "Ojalá cuando leas esto sigas teniendo esa misma curiosidad por el mundo." : isChild ? "No tiene fecha de vencimiento. Es tuyo para siempre." : "Hay palabras que pueden esperar."}</p>
             </button>
             {capsuleOpen && <button className="primary-action" onClick={next}>Guardar este momento</button>}
           </section>
@@ -924,10 +960,10 @@ export default function ExperienceEngine({
                 : "Hay cosas importantes que se entienden mejor cuando todo lo demás hace silencio.";
 
         return (
-          <section className={`scene scene-light ${lightOpen ? "open" : ""}`}>
+          <section className={`scene scene-light ${isChild ? "scene-light-child" : ""} ${lightOpen ? "open" : ""}`}>
             <div className="light-darkness" />
             <p className="scene-kicker">Un momento sin ruido</p>
-            <h2>{lightOpen ? lightCopy : "Tocá la luz."}</h2>
+            <h2>{lightOpen ? lightCopy : isChild ? "Hubo una luz nueva en casa. Tocá para encontrarla." : "Tocá la luz."}</h2>
             <button className="light-source" onClick={() => setLightOpen(true)} aria-label="Encender la luz">
               <span />
             </button>
@@ -948,7 +984,7 @@ export default function ExperienceEngine({
                 : "Algunas promesas merecen más que un toque rápido.";
 
         return (
-          <section className={`scene scene-hold ${holdOpen ? "open" : ""}`}>
+          <section className={`scene scene-hold ${isChild ? "scene-hold-child" : ""} ${holdOpen ? "open" : ""}`}>
             <p className="scene-kicker">Esto sí quiero que quede</p>
             <h2>{holdOpen ? holdCopy : "Hay una promesa guardada acá."}</h2>
             {!holdOpen ? (
@@ -968,7 +1004,7 @@ export default function ExperienceEngine({
                     setHoldHolding(false);
                   }
                 }} />
-                <strong>Mantené presionado</strong>
+                <strong>{isChild ? "Sostené este abrazo" : "Mantené presionado"}</strong>
               </button>
             ) : (
               <button className="primary-action" onClick={next}>Guardar y seguir</button>
@@ -1436,11 +1472,11 @@ export default function ExperienceEngine({
       case "finale":
       default:
         return (
-          <section className={`scene scene-finale ${isGrandparents ? "scene-finale-legacy" : ""} ${isAnniversary ? "scene-finale-anniversary" : ""} ${isMother ? "scene-finale-mother" : ""} ${isFather ? "scene-finale-father" : ""} ${isFriendship ? "scene-finale-friendship" : ""}`}>
+          <section className={`scene scene-finale ${isChild ? "scene-finale-child" : ""} ${isGrandparents ? "scene-finale-legacy" : ""} ${isAnniversary ? "scene-finale-anniversary" : ""} ${isMother ? "scene-finale-mother" : ""} ${isFather ? "scene-finale-father" : ""} ${isFriendship ? "scene-finale-friendship" : ""}`}>
             <div className="finale-ring" />
-            <p className="scene-kicker">Una última cosa</p>
+            <p className="scene-kicker">{isChild ? "Con todo nuestro amor, para siempre" : "Una última cosa"}</p>
             <h2>{experience.closing}</h2>
-            <p>{isGrandparents ? "Y mientras alguien de la familia recuerde una historia tuya, una parte de este lugar también va a seguir viviendo afuera de la pantalla." : isAnniversary ? "No celebro que sigamos siendo los mismos. Celebro todo lo que cambió y que, aun así, seguimos encontrando una manera de ser nosotros." : isMother ? "Ahora que crecí, puedo volver a muchas escenas de mi infancia y encontrarte ahí haciendo cosas que entonces parecían normales. Hoy sé que no lo eran." : isFather ? "Crecer también fue empezar a entenderte como persona. Y descubrir que muchas de las cosas que admiro en mí tuvieron alguna vez tu forma." : isFriendship ? "La familia no siempre llega dada. A veces aparece un día cualquiera, se queda después de demasiadas historias y un día te das cuenta de que ya era casa." : "Este lugar va a seguir acá para cuando quieras volver."}</p>
+            <p>{isGrandparents ? "Y mientras alguien de la familia recuerde una historia tuya, una parte de este lugar también va a seguir viviendo afuera de la pantalla." : isAnniversary ? "No celebro que sigamos siendo los mismos. Celebro todo lo que cambió y que, aun así, seguimos encontrando una manera de ser nosotros." : isMother ? "Ahora que crecí, puedo volver a muchas escenas de mi infancia y encontrarte ahí haciendo cosas que entonces parecían normales. Hoy sé que no lo eran." : isFather ? "Crecer también fue empezar a entenderte como persona. Y descubrir que muchas de las cosas que admiro en mí tuvieron alguna vez tu forma." : isFriendship ? "La familia no siempre llega dada. A veces aparece un día cualquiera, se queda después de demasiadas historias y un día te das cuenta de que ya era casa." : isChild ? "No importa la edad que tengas ni lo lejos que vayas. Antes de conocer todos tus caminos, ya tenías nuestro amor." : "Este lugar va a seguir acá para cuando quieras volver."}</p>
             <div className="reaction-row">
               {["🥹", "❤️", "😭", "✨"].map((reaction) => <button key={reaction}>{reaction}</button>)}
             </div>
