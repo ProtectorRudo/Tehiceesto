@@ -5554,3 +5554,497 @@ body:has(.experience-shell--mama[data-current-scene="letter"]) .floating-whatsap
     animation:none;
   }
 }
+
+
+/* ============================================================
+   HIJOS — Desde que llegaste
+   Diseño editorial / amanecer / constelaciones. Exclusivo de la
+   experiencia de hijo(a); no afecta las otras ocho experiencias.
+   ============================================================ */
+
+.experience-shell--hijos {
+  --child-deep:#08141c;
+  --child-night:#10212b;
+  --child-mist:#d6e8e2;
+  --child-gold:#efcb93;
+  --child-accent:#9cddd0;
+  background:var(--child-deep);
+  color:#f9f3e9;
+}
+.experience-shell--hijos .scene {
+  background:linear-gradient(165deg,#12242c 0%,#0a1720 60%,#071119 100%);
+  isolation:isolate;
+}
+.experience-shell--hijos .scene-kicker {
+  color:var(--child-gold);
+  font-size:10px;
+  letter-spacing:.25em;
+}
+.experience-shell--hijos .scene h1,
+.experience-shell--hijos .scene h2 {
+  color:#f7efe2;
+  text-wrap:balance;
+}
+.experience-shell--hijos .primary-action {
+  background:#c5e9df;
+  color:#18332e;
+  border:1px solid rgba(255,255,255,.4);
+  box-shadow:0 13px 36px rgba(54,157,141,.13),inset 0 1px rgba(255,255,255,.4);
+  transition:transform .22s,background .22s,box-shadow .22s;
+}
+.experience-shell--hijos .primary-action:hover:not(:disabled){
+  background:#ddf3e9;
+  transform:translateY(-2px);
+  box-shadow:0 16px 40px rgba(54,157,141,.19);
+}
+.experience-shell--hijos .experience-topbar {
+  background:rgba(7,23,30,.77);
+  border-color:rgba(227,222,199,.2);
+  color:#becbc4;
+}
+.experience-shell--hijos .progress-track {background:rgba(219,236,229,.12)}
+.experience-shell--hijos .progress-track span {background:linear-gradient(90deg,#93d5c8,#f0d09e)}
+
+/* 01 — Un sol aún escondido detrás de su nombre */
+.experience-shell--hijos .scene-intro-child {
+  background:
+    radial-gradient(ellipse at 50% 94%,rgba(239,190,136,.18),transparent 47%),
+    linear-gradient(180deg,#09131e 0%,#122832 76%,#263735 100%);
+}
+.scene-intro-child .orb-one {background:#edcc91;opacity:.1;filter:blur(110px)}
+.scene-intro-child .orb-two {background:#77cbbd;opacity:.11;filter:blur(100px)}
+.child-intro-art{
+  width:min(74vw,570px);
+  aspect-ratio:1;
+  position:absolute;
+  top:48%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  z-index:0;
+  pointer-events:none;
+  display:grid;
+  place-items:center;
+}
+.child-intro-sun{
+  display:block;
+  width:56%;
+  aspect-ratio:1;
+  border-radius:50%;
+  background:radial-gradient(circle at 40% 32%,#f2d5a2,#e4b77e 48%,rgba(217,156,97,.3) 72%,transparent 75%);
+  box-shadow:0 0 85px 34px rgba(241,181,104,.12),0 0 180px 64px rgba(131,191,164,.08);
+  filter:blur(2px);
+  opacity:.53;
+  animation:childSunBreath 7s ease-in-out infinite alternate;
+}
+.child-intro-art i{
+  position:absolute;
+  width:80%;
+  aspect-ratio:1;
+  border:1px solid rgba(226,215,185,.11);
+  border-radius:50%;
+}
+.child-intro-art i:nth-of-type(2){width:95%;border-color:rgba(177,216,203,.08)}
+.child-intro-art i:nth-of-type(3){width:110%;border-style:dotted;opacity:.45}
+.scene-intro-child .scene-kicker,
+.scene-intro-child h1,
+.scene-intro-child .scene-lead,
+.scene-intro-child .primary-action,
+.scene-intro-child small,
+.child-intro-divider{position:relative;z-index:2}
+.scene-intro-child h1{
+  font-size:clamp(78px,16vw,166px);
+  margin:7px 0 4px;
+  font-weight:500;
+  letter-spacing:-.072em;
+  text-shadow:0 8px 46px rgba(3,16,22,.54);
+}
+.scene-intro-child .scene-lead{
+  max-width:490px;
+  color:#d4ded7;
+  font-family:"Playfair Display",Georgia,serif;
+  font-size:clamp(17px,2vw,21px);
+  line-height:1.6;
+}
+.child-intro-divider{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  color:#f0d09e;
+  font-size:14px;
+  margin:5px auto 14px;
+}
+.child-intro-divider span{height:1px;width:52px;background:linear-gradient(90deg,transparent,#f0d09e)}
+.child-intro-divider span:last-child{transform:rotate(180deg)}
+@keyframes childSunBreath{
+  from{transform:translateY(6px) scale(.97);opacity:.43}
+  to{transform:translateY(-8px) scale(1.05);opacity:.65}
+}
+
+/* 02 — Los cuatro capítulos del crecimiento */
+.scene-timeline-child .timeline{
+  width:min(1060px,100%);
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+  margin:27px 0 4px;
+}
+.scene-timeline-child .timeline:before{display:none}
+.scene-timeline-child .timeline article{
+  border:1px solid rgba(223,205,172,.18);
+  border-radius:4px 28px 4px 4px;
+  min-height:255px;
+  padding:78px 22px 28px;
+  background:linear-gradient(165deg,rgba(231,230,214,.085),rgba(214,227,214,.013));
+  box-shadow:0 12px 48px rgba(0,0,0,.1);
+}
+.scene-timeline-child .timeline article:before{
+  content:"";
+  position:absolute;
+  top:53px;left:22px;
+  width:38px;height:1px;
+  background:#e1bf8e;
+  opacity:.7;
+}
+.scene-timeline-child .timeline article span{
+  color:#e2c494;
+  top:26px;left:22px;
+  font-size:9px;
+  letter-spacing:.11em;
+}
+.scene-timeline-child .timeline article strong{
+  color:#f4eadc;
+  font-size:clamp(21px,2.2vw,28px);
+  line-height:1.09;
+  font-weight:500;
+  margin-bottom:16px;
+}
+.scene-timeline-child .timeline article p{
+  color:#b2c5bd;
+  font-size:12px;
+  line-height:1.74;
+}
+
+/* 03 — Fotos guardadas como pequeñas piezas de un álbum */
+.scene-memories-child{
+  background:radial-gradient(ellipse at 50% 88%,rgba(135,180,161,.12),transparent 64%),#0d1a22!important;
+}
+.scene-memories-child .film-strip{gap:18px;align-items:start}
+.scene-memories-child .memory-card{
+  border-radius:3px;
+  background:#f6efe5;
+  padding:10px 10px 30px;
+  transform:none!important;
+  box-shadow:0 21px 50px rgba(0,0,0,.27),0 2px 6px rgba(0,0,0,.1);
+}
+.scene-memories-child .memory-card:nth-child(even){margin-top:20px}
+.scene-memories-child .memory-image{filter:saturate(.83) contrast(.95);border-radius:1px}
+.scene-memories-child .memory-card p{color:#4d4d49;line-height:1.48;font-size:clamp(14px,1.5vw,17px)}
+.scene-memories-child .memory-card>span{color:#a08d75}
+
+/* 04 — Una voz a la que siempre se puede volver */
+.scene-voices-child .voice-grid>button,
+.scene-voices-child .voice-audio-card{
+  border-radius:8px 24px 8px 8px;
+  border-color:rgba(230,203,164,.2);
+  background:linear-gradient(150deg,rgba(227,196,154,.07),rgba(157,217,201,.025));
+}
+.scene-voices-child .voice-grid>button.played{background:rgba(155,216,200,.11)}
+.scene-voices-child .voice-grid>button>span{background:#d5e8db;color:#15342f}
+
+/* 05 — La luz en casa */
+.scene-light-child{
+  background:radial-gradient(circle at 50% 53%,rgba(231,184,127,.07),transparent 26%),#060f17!important;
+}
+.scene-light-child.open{
+  background:radial-gradient(ellipse at 50% 58%,rgba(235,199,143,.2),transparent 51%),#13202a!important;
+}
+.scene-light-child .light-source:before{background:#f2d09c}
+.scene-light-child.open .light-source:before{
+  box-shadow:0 0 26px 8px rgba(251,206,145,.4),0 0 85px 38px rgba(246,203,148,.22),0 0 165px 90px rgba(246,203,148,.085);
+}
+.scene-light-child.open h2{color:#fff0da}
+.scene-light-child .scene-hint{color:#a9bdb5}
+
+/* 06 — Las estrellas forman algo sólo al descubrirlas */
+.scene-stars-child{
+  background:
+    radial-gradient(circle at 17% 20%,rgba(183,225,210,.12) 0 1px,transparent 1.5px),
+    radial-gradient(circle at 73% 62%,rgba(244,206,155,.16) 0 1px,transparent 1.5px),
+    radial-gradient(ellipse at 50% 50%,rgba(60,116,112,.13),transparent 67%),#06111e!important;
+  background-size:113px 97px,173px 151px,auto;
+}
+.scene-stars-child .star-field{width:min(720px,100%);min-height:370px}
+.scene-stars-child .star-button{
+  z-index:2;
+  min-height:102px;
+  padding:6px;
+  width:168px;
+  border-radius:16px;
+  transition:background .4s,transform .4s;
+}
+.scene-stars-child .star-button span{color:#eacb96;text-shadow:0 0 22px rgba(239,206,149,.55)}
+.scene-stars-child .star-button em{
+  color:#98aead;
+  font-size:11px;
+  line-height:1.4;
+}
+.scene-stars-child .star-button.revealed{
+  background:radial-gradient(ellipse at center,rgba(195,220,206,.08),transparent 84%);
+}
+.scene-stars-child .star-button.revealed em{color:#e9ece3}
+.scene-stars-child .star-button:nth-of-type(1){left:4%;top:7%}
+.scene-stars-child .star-button:nth-of-type(2){right:4%;top:7%}
+.scene-stars-child .star-button:nth-of-type(3){left:calc(50% - 84px);top:34%}
+.scene-stars-child .star-button:nth-of-type(4){left:9%;bottom:0}
+.scene-stars-child .star-button:nth-of-type(5){right:9%;bottom:0}
+.child-constellation{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:0;
+}
+.child-constellation svg{height:100%;width:100%;overflow:visible}
+.child-constellation path{
+  fill:rgba(236,188,145,.013);
+  stroke:#edc99a;
+  stroke-width:1.5px;
+  stroke-dasharray:8 13;
+  opacity:.08;
+  transition:opacity 1.25s,fill 1.5s,stroke-dasharray 1.2s;
+  filter:drop-shadow(0 0 13px rgba(231,194,148,.14));
+}
+.child-constellation.complete path{
+  opacity:.86;
+  stroke-dasharray:0;
+  fill:rgba(236,188,145,.045);
+}
+.child-constellation-caption{
+  margin:0 0 8px;
+  font-family:"Playfair Display",serif;
+  font-style:italic;
+  color:#efd5aa;
+  animation:legacyAppear .8s both;
+}
+
+/* 07 — La cápsula ya no depende de un año prefijado */
+.scene-capsule-child{
+  background:radial-gradient(ellipse at 50% 50%,rgba(231,192,140,.095),transparent 55%),#0a151c!important;
+}
+.scene-capsule-child .capsule{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  width:min(500px,94vw);
+  min-height:280px;
+  border-radius:4px 36px 4px 4px;
+  border:1px solid rgba(220,181,136,.35);
+  background:linear-gradient(135deg,rgba(247,239,225,.98),rgba(228,215,195,.98));
+  box-shadow:0 28px 80px rgba(0,0,0,.35),inset 0 0 0 9px rgba(255,255,255,.18);
+  text-align:center;
+  gap:12px;
+  padding:33px 34px;
+  color:#403d38;
+}
+.scene-capsule-child .capsule>span{
+  width:64px;height:64px;
+  border-color:#a88a5e;
+  color:#977147;
+  font-size:25px;
+  background:rgba(255,255,255,.4);
+}
+.scene-capsule-child .capsule strong{
+  font-size:clamp(23px,4vw,33px);
+  font-weight:500;
+  color:#35413e;
+  line-height:1.16;
+}
+.scene-capsule-child .capsule p{
+  color:#726b5d;
+  max-width:360px;
+  font-size:14px;
+  line-height:1.65;
+}
+.scene-capsule-child .capsule.open{
+  transform:translateY(-4px);
+  box-shadow:0 35px 92px rgba(0,0,0,.36),0 0 62px rgba(235,202,151,.14);
+}
+.scene-capsule-child .capsule.open>span{animation:childSealGlow .7s both}
+@keyframes childSealGlow{from{transform:scale(.75);opacity:.4}to{transform:scale(1);opacity:1}}
+
+/* 08 — Un abrazo que se sostiene, no un botón veloz */
+.scene-hold-child{
+  background:radial-gradient(circle at 50% 58%,rgba(141,214,197,.13),transparent 30%),#08151b!important;
+}
+.scene-hold-child .hold-button{
+  width:186px;height:186px;
+  border-color:rgba(199,235,223,.27);
+  box-shadow:0 0 80px rgba(134,206,189,.07),inset 0 0 55px rgba(138,218,198,.035);
+  color:#dcece6;
+}
+.scene-hold-child .hold-button:before{
+  content:"♥";
+  position:absolute;
+  top:40px;
+  color:#d8bfa2;
+  opacity:.7;
+  font-size:29px;
+}
+.scene-hold-child .hold-button strong{font-size:10px;letter-spacing:.05em;margin-top:53px}
+.scene-hold-child.open h2{color:#ecf8ec}
+
+/* 09 — Una carta auténtica, no otra tarjeta */
+.scene-letter-child .envelope-back{background:#b7a083}
+.scene-letter-child .envelope-back:after{border-top-color:#d8c4a5}
+.scene-letter-child .envelope-front{background:linear-gradient(35deg,#c2ad91 50%,transparent 50%)}
+.scene-letter-child .paper{
+  background:#f8f1e6;
+  color:#3f3933;
+  box-shadow:0 15px 35px rgba(0,0,0,.15);
+}
+.scene-letter-child .paper small{color:#9d7e58}
+.scene-letter-child .paper strong{color:#413b35;font-weight:500}
+.scene-letter-child .paper em{color:#90795f}
+.scene-letter-child .wax{background:#a4784f;box-shadow:0 3px 17px rgba(88,45,24,.25)}
+
+/* 10 — No un final: un lugar al que volver */
+.scene-finale-child{
+  background:
+    radial-gradient(ellipse at 50% 100%,rgba(250,205,148,.23),transparent 54%),
+    radial-gradient(ellipse at 50% 95%,rgba(139,201,184,.13),transparent 71%),
+    linear-gradient(180deg,#08151f 0%,#15333a 100%)!important;
+}
+.scene-finale-child .finale-ring{
+  width:min(65vw,520px);
+  border-color:rgba(244,212,159,.3);
+  box-shadow:0 0 120px rgba(237,195,146,.09),inset 0 0 90px rgba(172,224,206,.05);
+}
+.scene-finale-child h2{
+  font-size:clamp(40px,6.6vw,75px);
+  font-weight:500;
+  max-width:850px;
+  line-height:1.14;
+}
+.scene-finale-child>p:not(.scene-kicker){
+  color:#d4e4dc;
+  font-family:"Playfair Display",serif;
+  max-width:540px;
+  font-size:clamp(16px,1.6vw,20px);
+  line-height:1.7;
+}
+
+/* Mobile: las escenas deben invitar a tocar, nunca a hacer zoom */
+@media(max-width:860px){
+  .scene-timeline-child .timeline{grid-template-columns:repeat(2,minmax(0,1fr));max-width:620px}
+  .scene-timeline-child .timeline article{min-height:205px}
+}
+@media(max-width:560px){
+  .scene-intro-child h1{font-size:clamp(64px,17vw,110px)}
+  .child-intro-art{width:100vw;top:45%}
+  .scene-intro-child .scene-lead{font-size:17px;max-width:315px}
+  .scene-timeline-child .timeline{
+    grid-template-columns:1fr;
+    gap:10px;
+    max-width:370px;
+    width:100%;
+    margin:16px 0 4px;
+  }
+  .scene-timeline-child .timeline article{min-height:0;padding:55px 21px 17px}
+  .scene-timeline-child .timeline article span{top:15px}
+  .scene-timeline-child .timeline article:before{top:39px}
+  .scene-timeline-child .timeline article strong{margin-bottom:8px;font-size:23px}
+  .scene-timeline-child .timeline article p{font-size:12px;line-height:1.55}
+  .scene-memories-child .film-strip{
+    display:flex;
+    overflow-x:auto;
+    scroll-snap-type:x mandatory;
+    scroll-padding-inline:8vw;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-x:contain;
+    margin-inline:-20px;
+    padding:8px 8vw 27px;
+  }
+  .scene-memories-child .memory-card{
+    min-width:77vw;
+    flex:0 0 77vw;
+    scroll-snap-align:center;
+  }
+  .scene-memories-child .memory-card:nth-child(even){margin-top:0}
+  .scene-stars-child .star-field{min-height:405px;width:100%}
+  .scene-stars-child .star-button{width:119px;min-height:90px}
+  .scene-stars-child .star-button:nth-of-type(1){left:0;top:9%}
+  .scene-stars-child .star-button:nth-of-type(2){right:0;top:9%}
+  .scene-stars-child .star-button:nth-of-type(3){left:calc(50% - 60px);top:37%}
+  .scene-stars-child .star-button:nth-of-type(4){left:1%;bottom:1%}
+  .scene-stars-child .star-button:nth-of-type(5){right:1%;bottom:1%}
+  .scene-stars-child .star-button em{font-size:10px;line-height:1.3}
+  .scene-capsule-child .capsule{min-height:278px;width:100%;padding:25px 23px}
+  .scene-capsule-child .capsule p{font-size:13px}
+  .scene-hold-child .hold-button{width:160px;height:160px}
+  .scene-hold-child .hold-button:before{top:30px}
+  .scene-letter-child .envelope{margin-top:55px}
+  .scene-letter-child .paper{padding:26px 22px}
+  .scene-letter-child .paper strong{font-size:16px}
+  .scene-finale-child h2{font-size:clamp(38px,11vw,55px)}
+}
+@media(prefers-reduced-motion:reduce){
+  .child-intro-sun,.scene-stars-child .star-button span{animation:none!important}
+  .child-constellation path,.scene-capsule-child .capsule,.experience-shell--hijos .primary-action{transition:none!important}
+}
+
+
+/* La carta puede contener un texto extenso: no recortar palabras en móvil. */
+.scene-letter-child .envelope:not(.open) .paper{
+  height:235px;
+  max-height:235px;
+  min-height:0;
+  overflow:hidden;
+}
+.scene-letter-child .envelope.open{
+  width:min(650px,92vw);
+  min-height:420px;
+  height:auto;
+  padding:16px;
+  margin:30px auto 10px;
+  display:flex;
+  align-items:stretch;
+  justify-content:center;
+  touch-action:pan-y;
+}
+.scene-letter-child .envelope.open .envelope-front,
+.scene-letter-child .envelope.open .envelope-back,
+.scene-letter-child .envelope.open .wax{
+  opacity:0;
+  pointer-events:none;
+}
+.scene-letter-child .envelope.open .paper{
+  position:relative;
+  left:auto;right:auto;bottom:auto;
+  transform:none;
+  width:100%;
+  min-height:320px;
+  max-height:min(64svh,620px);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+  padding:36px clamp(22px,6vw,48px);
+  border-radius:3px;
+  box-shadow:0 25px 65px rgba(0,0,0,.28);
+  z-index:4;
+  -webkit-overflow-scrolling:touch;
+}
+.scene-letter-child .envelope.open .paper strong{
+  font-size:clamp(17px,2.5vw,24px);
+  line-height:1.55;
+  overflow-wrap:anywhere;
+}
+.scene-letter-child .envelope.open .paper small{margin-bottom:18px}
+@media(max-width:560px){
+  .scene-letter-child .envelope.open{padding:0;width:min(94vw,440px);min-height:350px}
+  .scene-letter-child .envelope.open .paper{
+    min-height:310px;
+    max-height:56svh;
+    padding:25px 22px;
+  }
+  .scene-letter-child .envelope.open .paper strong{font-size:17px;line-height:1.48}
+}
