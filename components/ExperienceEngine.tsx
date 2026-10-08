@@ -519,8 +519,8 @@ export default function ExperienceEngine({
               ))}
             </div>
             {isChild && stars.length === 5 && <p className="child-constellation-caption">Siempre hubo un lugar para vos en nuestro cielo.</p>}
-            <button className="primary-action" onClick={next} disabled={stars.length < 3}>
-              {stars.length < 3 ? `Descubrí ${3 - stars.length} más` : "Continuar"}
+            <button className="primary-action" onClick={next} disabled={stars.length < (isChild ? 5 : 3)}>
+              {stars.length < (isChild ? 5 : 3) ? `Descubrí ${(isChild ? 5 : 3) - stars.length} más` : isChild ? "Guardar estas cinco luces" : "Continuar"}
             </button>
           </section>
         );
@@ -587,7 +587,7 @@ export default function ExperienceEngine({
                 <em>— {experience.demoGiver}</em>
               </span>
               <span className="envelope-front" />
-              <span className="wax">{isProposal ? "◇" : "♥"}</span>
+              <span className="wax">{isProposal || isChild ? "✦" : "♥"}</span>
             </button>
             {!letterOpen && <p className="scene-hint">{isMother ? "Deslizá para abrir" : "Rompé el sello"}</p>}
             {letterOpen && <button className="primary-action" onClick={next}>{isMother || isFather || isFriendship ? "Hay algo más" : "Última parte"}</button>}
@@ -682,11 +682,14 @@ export default function ExperienceEngine({
         );
 
       case "voices": {
-        const voiceNames = [
-          experience.demoGiver,
-          "Otro mensaje",
-          "Otra voz",
-          "Una última voz",
+        const voiceNames = isChild
+          ? [experience.demoGiver, "Para los días difíciles", "Para tus nuevos comienzos", "Para cuando vuelvas"]
+          : [experience.demoGiver, "Otro mensaje", "Otra voz", "Una última voz"];
+        const childVoiceQuotes = [
+          "Si alguna vez dudás de vos, escuchá nuestra voz: te amamos por quien sos.",
+          "No tenés que poder con todo. Siempre podés pedir ayuda y siempre vas a tener nuestro abrazo.",
+          "Nos va a hacer felices verte encontrar tu camino, incluso cuando sea distinto del que imaginábamos.",
+          "Cuando necesites volver a casa, que estas palabras te recuerden cuánto te queremos.",
         ];
         const voiceQuote = isChild
           ? "“Si alguna vez dudás de vos, escuchá nuestra voz: te amamos por quien sos.”"
@@ -713,7 +716,7 @@ export default function ExperienceEngine({
             </p>
             <h2>
               {isChild
-                ? "Una voz para escuchar ahora y volver a escuchar siempre."
+                ? audioMedia && audioMedia.length > 0 ? "Una voz para escuchar ahora y volver a escuchar siempre." : "Guardamos estas palabras para que puedas volver a ellas."
                 : isGrandparents
                 ? "Escuchá lo que dejaste en nosotros."
                 : isMother
@@ -752,7 +755,7 @@ export default function ExperienceEngine({
                     >
                       <span>{voicesPlayed.includes(index) ? "▶" : "●"}</span>
                       <strong>{name}</strong>
-                      <small>{voicesPlayed.includes(index) ? voiceQuote : "Tocar para escuchar"}</small>
+                      <small>{voicesPlayed.includes(index) ? isChild ? `“${childVoiceQuotes[index]}”` : voiceQuote : isChild ? "Tocá para leer" : "Tocar para escuchar"}</small>
                     </button>
                   ))}
             </div>
@@ -830,7 +833,7 @@ export default function ExperienceEngine({
               <strong>{capsuleOpen ? isChild ? "Este mensaje es para vos" : "Abriste una cápsula del tiempo" : isChild ? "Abrí cuando lo necesites" : "Abrir cápsula"}</strong>
               <p>{capsuleOpen ? isChild ? "Ojalá nunca olvides que podés empezar de nuevo todas las veces que haga falta. Nuestro amor no depende de tus logros; te acompaña siempre." : "Ojalá cuando leas esto sigas teniendo esa misma curiosidad por el mundo." : isChild ? "No tiene fecha de vencimiento. Es tuyo para siempre." : "Hay palabras que pueden esperar."}</p>
             </button>
-            {capsuleOpen && <button className="primary-action" onClick={next}>Guardar este momento</button>}
+            {capsuleOpen && <button className="primary-action" onClick={next}>{isChild ? "Llevarme estas palabras" : "Guardar este momento"}</button>}
           </section>
         );
 
