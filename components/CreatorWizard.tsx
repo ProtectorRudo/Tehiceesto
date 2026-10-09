@@ -113,6 +113,16 @@ const creatorPrompts: Record<string, {
     wordsHeading: "Decile lo que aprendiste incluso cuando él no estaba intentando enseñarte.",
     letterPlaceholder: "Qué comprendiste de grande, qué admirás hoy y qué cosas suyas descubrís viviendo en vos...",
   },
+  secreto: {
+    relationshipLabel: "¿Qué gran noticia o sorpresa querés revelar?",
+    relationshipPlaceholder: "Ej. Vas a ser abuela, nos vamos de viaje, quiero que seas madrina... El secreto sólo aparecerá al final.",
+    dateLabel: "Una fecha importante para la historia (si la hay)",
+    anecdoteLabel: "¿Qué pistas podemos ir sembrando sin revelar la sorpresa?",
+    anecdotePlaceholder: "Contanos recuerdos, símbolos y pequeños detalles que cobren sentido cuando vea la sorpresa.",
+    photoHeading: "Elegí hasta diez imágenes. Usaremos las primeras tres como museo de recuerdos.",
+    wordsHeading: "Escribí una carta íntima y después prepará la frase de la gran revelación.",
+    letterPlaceholder: "Antes de la sorpresa final, ¿qué te gustaría decirle para que este momento sea inolvidable?",
+  },
   amistad: {
     relationshipLabel: "¿Cómo llegó esta amistad a convertirse en esto?",
     relationshipPlaceholder: "Cómo se conocieron, qué códigos nacieron, qué atravesaron y por qué esa persona ya es parte de tu vida...",
@@ -150,7 +160,10 @@ export default function CreatorWizard() {
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
-      if (saved) setDraft({ ...emptyDraft, ...(JSON.parse(saved) as Draft) });
+      const selected = new URLSearchParams(window.location.search).get("experiencia");
+      const validSelected = selected && experiences.some((item) => item.slug === selected);
+      if (saved) setDraft({ ...emptyDraft, ...(JSON.parse(saved) as Draft), ...(validSelected ? { experience: selected } : {}) });
+      else if (validSelected) setDraft({ ...emptyDraft, experience: selected });
     } catch {
       // A broken local draft should never block creation.
     } finally {
@@ -201,6 +214,7 @@ export default function CreatorWizard() {
       `Fotos seleccionadas: ${photoUrls.length}`,
       draft.musicUrl ? `Canción elegida: ${clip(draft.musicUrl, 160)}` : "",
       `Carta escrita: ${draft.letter.trim() ? "sí" : "todavía no"}`,
+      baseExperience.slug === "secreto" ? `Revelación final: ${clip(draft.closing || baseExperience.closing, 200)}` : "",
       "",
       "Quiero avanzar con la creación. ¿Cómo seguimos?",
     ].filter(Boolean);
