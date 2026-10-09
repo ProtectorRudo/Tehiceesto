@@ -39,7 +39,17 @@ export type SceneType =
   | "insidejokes"
   | "incidents"
   | "proof"
-  | "pact";
+  | "pact"
+  | "invitation"
+  | "portal"
+  | "gallery"
+  | "timepiece"
+  | "recording"
+  | "clues"
+  | "confession"
+  | "passage"
+  | "reveal"
+  | "keepsake";
 
 export type Experience = {
   slug: string;
@@ -193,6 +203,22 @@ export const experiences: Experience[] = [
     tags: ["Amistad", "Códigos", "Recuerdos"],
     recipe: ["intro", "casefile", "memories", "insidejokes", "incidents", "proof", "letter", "pact", "finale"],
   },
+  {
+    slug: "secreto",
+    eyebrow: "Sorpresas y grandes noticias · NUEVO",
+    title: "Te guardé un secreto",
+    short: "Diez escenas, pistas y una revelación inolvidable. Hay noticias que merecen mucho más que un mensaje.",
+    description: "Un sobre sellado, una puerta, recuerdos, una voz, pistas y una sorpresa que sólo aparece al final. Todo personalizado para su destinatario.",
+    icon: "✧",
+    accent: "#d9b77a",
+    demoRecipient: "Mamá",
+    demoGiver: "Lucía",
+    opening: "No quería contártelo con un mensaje. Quería que lo descubrieras.",
+    closing: "Mamá… vas a ser abuela.",
+    tags: ["Sorpresas", "Noticias", "Revelaciones", "Familia"],
+    recipe: ["invitation", "portal", "gallery", "timepiece", "recording", "clues", "confession", "passage", "reveal", "keepsake"],
+  },
+
 ];
 
 export function getExperience(slug: string) {
