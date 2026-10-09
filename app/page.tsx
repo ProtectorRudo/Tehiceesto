@@ -8,7 +8,7 @@ export default function Home() {
         <div className="home-hero-grid" aria-hidden="true" />
         <div className="home-hero-meta">
           <span>TE HICE ESTO · ESTUDIO DIGITAL</span>
-          <span>01—09 EXPERIENCIAS</span>
+          <span>01—10 EXPERIENCIAS</span>
         </div>
 
         <div className="home-hero-copy">
@@ -78,8 +78,8 @@ export default function Home() {
       <section className="catalog-section catalog-editorial" id="experiencias">
         <header className="catalog-editorial-head">
           <div>
-            <span className="eyebrow">Colección 01—09</span>
-            <h2>Nueve historias.<br/><em>Nueve mundos distintos.</em></h2>
+            <span className="eyebrow">Colección 01—10</span>
+            <h2>Diez historias.<br/><em>Diez mundos distintos.</em></h2>
           </div>
           <p>
             Cada ocasión tiene su propia dirección de arte, ritmo e interacciones.
