@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Experience, SceneType } from "@/data/experiences";
 import type { SceneTextOverrides } from "@/data/scene-text";
+import FriendshipScenes from "./FriendshipScenes";
 
 export type ExperiencePhoto = {
   url: string;
@@ -419,6 +420,21 @@ export default function ExperienceEngine({
   };
 
   const renderScene = (scene: SceneType) => {
+    if (isFriendship) {
+      return (
+        <FriendshipScenes
+          key={sceneIndex}
+          scene={scene}
+          experience={experience}
+          photos={displayPhotos}
+          memory={memory}
+          letterText={letterText}
+          anecdote={storyContext?.anecdote}
+          date={storyDateLabel}
+          next={next}
+        />
+      );
+    }
     switch (scene) {
       case "intro":
         return (
