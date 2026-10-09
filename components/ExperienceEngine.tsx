@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Experience, SceneType } from "@/data/experiences";
 import type { SceneTextOverrides } from "@/data/scene-text";
 import FriendshipScenes from "./FriendshipScenes";
+import SecretExperience from "./SecretExperience";
 
 export type ExperiencePhoto = {
   url: string;
@@ -61,7 +62,7 @@ const friendshipDemoPhotos = [
   "https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=1200&q=85",
 ];
 
-export default function ExperienceEngine({
+function StandardExperienceEngine({
   experience,
   letterText,
   photoUrls,
@@ -1520,4 +1521,11 @@ export default function ExperienceEngine({
       {renderScene(currentScene)}
     </main>
   );
+}
+
+
+// All private and demo renders share the same immutable model; only the content changes.
+export default function ExperienceEngine(props: Props) {
+  if (props.experience.slug === "secreto") return <SecretExperience {...props} />;
+  return <StandardExperienceEngine {...props} />;
 }
