@@ -153,16 +153,17 @@ function App(){
     if(name==="ambar"||name==="azul"||name==="rojo"){
       if(current==="inicio"){show("Los interruptores están bloqueados. Primero encontrá tu asiento.");return;}
       if(current!=="luces"){show("El sistema de iluminación ya está sincronizado.");return;}
+      if(!fuseReady.current){show("Primero tenés que instalar el fusible de porcelana.",5000);return;}
       const order:["ambar","azul","rojo"]=["ambar","azul","rojo"];
       if(name===order[sequence.current]){
         world.current?.markLight(sequence.current);sequence.current++;
         if(sequence.current===3){
           setPhase("proyector");sound.current.play("found");
-          setStory("La electricidad volvió. Un reloj detenido guarda el código de las tres ruedas del proyector.");
+          setStory("Volvió la electricidad… pero hay alguien detrás de la cortina del Palco 1, arriba a la izquierda. Mirá.");
           show("Las luces recorren el escenario. El acomodador ya no está donde lo viste.",6200);
         }else show("Circuito "+sequence.current+"/3 activado. Escuchás un relé detrás del muro.");
       }else{
-        sequence.current=0;world.current?.resetLights();sound.current.play("wrong");
+        sequence.current=0;world.current?.resetLights();world.current?.triggerFailedCircuit();sound.current.play("wrong");
         show("Una alarma chirría. La secuencia volvió a cero. Recordá: ÁMBAR, AZUL, ROJO.");
       }
       return;
@@ -181,9 +182,11 @@ function App(){
     if(name==="proyector"){
       if(current==="proyector"){
         const values=world.current?.getWheelValues();
+        if(!reelReady.current){show("El proyector no arranca sin la bobina montada.",5200);return;}
+        if(focusReady.current!==2){show("La imagen está borrosa. Ajustá el enfoque físico a la marca 2.",5200);return;}
         if(values&&values[0]===3&&values[1]===1&&values[2]===7){
           sound.current.play("found");world.current?.playRecoveredFilm();setPhase("telon");
-          setStory("La cinta se proyecta. Los espectadores desaparecieron a las 03:17. El telón puede abrirse.");
+          setStory("Una filmación prohibida recorre las butacas vacías. Algo se mueve arriba, en el Palco 1.");
           show("La película vuelve a girar. Escuchás tres golpes detrás del telón.",6200);
         }else{
           sound.current.play("wrong");
@@ -197,10 +200,10 @@ function App(){
       if(current==="telon"){
         setPhase("final");sound.current.play("curtain");
         setStory("La maquinaria del teatro vuelve a la vida.");
-        show("Damas y caballeros… la función está por comenzar.",5000);
+        show("El telón se detiene a mitad de camino. Una voz murmura: todavía no terminó.",6100);
         world.current?.setRevealText(invite.nombre,invite.evento);
-        world.current?.openCurtain();
-        window.setTimeout(()=>{sound.current.play("success");setReveal(true);},5150);
+        window.setTimeout(()=>{world.current?.openCurtain();sound.current.play("curtain");setHauntingCaption("LA ÚLTIMA FUNCIÓN… SOS VOS");},2250);
+        window.setTimeout(()=>{sound.current.play("success");setReveal(true);setHauntingCaption("");},7300);
       }else show("El telón está asegurado. Necesitás restaurar la película antes de levantarlo.");
     }
   };
@@ -267,7 +270,7 @@ function App(){
     show("«Por favor, encuentre su asiento. El director lo está esperando»",6500);
     timerRef.current=window.setInterval(()=>{
       const s=Math.floor((Date.now()-startAt.current)/1000);setSeconds(s);
-      if(s>=480){
+      if(s>=600){
         if(timerRef.current!==null){window.clearInterval(timerRef.current);timerRef.current=null;}
         if(phaseRef.current!=="final"){setTimedOut(true);world.current?.stop();}
       }
@@ -286,7 +289,7 @@ function App(){
     const x=dx/max/n,y=dy/max/n;setJoystick({x,y});world.current?.setMove(x,-y);
   };
   const minutes=(s:number)=>Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
-  const remaining=Math.max(0,420-seconds);
+  const remaining=Math.max(0,540-seconds);
   const progress=phase==="inicio"?0:phase==="luces"?1:phase==="proyector"?2:phase==="telon"?3:4;
   return <main className="app">
     <div className="scene-host" ref={mount}/>
@@ -319,7 +322,7 @@ function App(){
         <div className="hud-brand"><span className="hud-spark">✦</span><div>LA ÚLTIMA FUNCIÓN<small>TEATRO BELLADONNA</small></div></div>
         <div className="hud-right">
           <button className="icon-button" onClick={()=>{const v=!muted;setMuted(v);sound.current.setMuted(v);}} aria-label={muted?"Activar audio":"Silenciar audio"}>{muted?"♩̸":"♫"}</button>
-          <span className={"timer "+(seconds>=420?"timer-alert":"")}>{seconds<420?minutes(remaining):"+"+minutes(Math.max(0,480-seconds))}<small>{seconds>=420?"TIEMPO EXTRA":"RESTANTE"}</small></span>
+          <span className={"timer "+(seconds>=540?"timer-alert":"")}>{seconds<540?minutes(remaining):"+"+minutes(Math.max(0,600-seconds))}<small>{seconds>=540?"TIEMPO EXTRA":"RESTANTE"}</small></span>
         </div>
       </header>
       {!finished&&<div className="mission">
