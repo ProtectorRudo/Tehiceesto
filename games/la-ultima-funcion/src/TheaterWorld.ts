@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 
-export type TheaterAction = "butaca" | "ambar" | "azul" | "rojo" | "proyector" | "telon" | "programa";
+export type TheaterAction = "butaca" | "ambar" | "azul" | "rojo" | "rueda1" | "rueda2" | "rueda3" | "proyector" | "telon" | "programa";
 export type TheaterPhase = "inicio" | "luces" | "proyector" | "telon" | "final";
 type SoundEvent = "pasos" | "apagón" | "susurro" | "aplausos";
 export interface WorldEvents { onFocus:(target:TheaterAction|null)=>void; onAction:(target:TheaterAction)=>void; onEvent:(event:SoundEvent)=>void; onListener:(x:number,y:number,z:number,fx:number,fy:number,fz:number)=>void; }
@@ -53,6 +53,7 @@ export class TheaterWorld{
   private curtainProgress=0;private lamps:THREE.PointLight[]=[];
   private scenery=new THREE.Group();private chandelierPlaceholder?:THREE.Group;private lightsDone=false;
   private projectorReel?:THREE.Group;private specialSeat?:THREE.Group;private seatKey?:THREE.Group;
+  private wheelFaces:THREE.MeshBasicMaterial[]=[];private wheelValues:[number,number,number]=[0,0,0];
   private projectorScreen?:THREE.Mesh;
   private phase:TheaterPhase="inicio";private clockTime=0;
   private usherGoal=new THREE.Vector3(5.8,0,-12.3);
@@ -107,6 +108,26 @@ export class TheaterWorld{
   resetLights(){this.emitterLights.forEach(m=>m.emissiveIntensity=.16);}
   collectKey(){if(this.seatKey){this.seatKey.visible=false;this.seatKey=undefined;}}
   getCharacterStatus(){return {human:this.usher.children.some(x=>x.name==="AcomodadorHumanoRiggeado"),idle:!!this.usherIdle,walk:!!this.usherWalk};}
+  turnWheel(index:number){
+    if(index<0||index>2)return;
+    this.wheelValues[index]=(this.wheelValues[index]+1)%10;
+    this.paintWheel(index);
+  }
+  getWheelValues(){return [...this.wheelValues] as [number,number,number];}
+  private paintWheel(index:number){
+    const m=this.wheelFaces[index];if(!m)return;
+    m.map?.dispose();
+    const value=this.wheelValues[index];
+    const canvas=document.createElement("canvas");canvas.width=192;canvas.height=256;
+    const ctx=canvas.getContext("2d")!;
+    const gradient=ctx.createLinearGradient(0,0,192,0);
+    gradient.addColorStop(0,"#181619");gradient.addColorStop(.5,"#5f5651");gradient.addColorStop(1,"#19171b");
+    ctx.fillStyle=gradient;ctx.fillRect(0,0,192,256);
+    ctx.strokeStyle="#bf965c";ctx.lineWidth=6;ctx.strokeRect(5,5,182,246);
+    ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#f3dfaa";
+    ctx.font="bold 178px Georgia";ctx.fillText(String(value),96,131);
+    m.map=new THREE.CanvasTexture(canvas);m.map.colorSpace=THREE.SRGBColorSpace;m.needsUpdate=true;
+  }
   setRevealText(name:string,event:string){
     const target=this.projectorScreen;if(!target)return;
     const material=target.material as THREE.MeshBasicMaterial;
@@ -210,11 +231,38 @@ export class TheaterWorld{
       addMesh(new THREE.SphereGeometry(.17,10,8),new THREE.MeshStandardMaterial({color:0xffe3ab,emissive:0xffb363,emissiveIntensity:1.15}),[Math.cos(a)*1.25,6.25,6.2+Math.sin(a)*1.25],placeholder);
     }
     // Lobby sign and player instruction.
+    this.buildFrozenClock();
     const sign=this.textPlane(["TEATRO BELLADONNA","ÚLTIMA FUNCIÓN","EST. 1968"],3.9,2.3);
     sign.position.set(0,3.5,15.83);sign.rotation.y=Math.PI;room.add(sign);
     const ticket=this.textPlane(["ENTRADA RESERVADA","FILA 3  •  ASIENTO 8","NO PIERDA SU BOLETO"],2.25,1.55);
     ticket.position.set(-8.95,2.1,12);ticket.rotation.y=Math.PI/2;room.add(ticket);this.bind(ticket,"programa");
     this.colliders.push({x:-8.95,z:12,rx:.28,rz:.9});
+  }
+  private buildFrozenClock(){
+    // The clock stopped at 03:17 on the night everyone vanished. Real hands,
+    // engraved number markers and brass details provide the clue visually.
+    const c=new THREE.Group();c.position.set(-7.75,3.92,10.8);
+    c.rotation.y=Math.PI/2;
+    const woodRing=addMesh(new THREE.CylinderGeometry(.84,.84,.23,48),wood,[0,0,-.13],c);woodRing.rotation.x=Math.PI/2;
+    const metalRing=addMesh(new THREE.TorusGeometry(.73,.055,12,48),brass,[0,0,.02],c);
+    const face=addMesh(new THREE.CircleGeometry(.69,48),cream,[0,0,.019],c);
+    const markerMat=mat(0x36271f,.7,.28);
+    for(let i=0;i<12;i++){
+      const a=Math.PI*2*i/12;
+      const tick=addMesh(new THREE.BoxGeometry(.036,i%3===0?.15:.09,.022),markerMat,
+        [Math.sin(a)*.57,Math.cos(a)*.57,.046],c);
+      tick.rotation.z=-a;
+    }
+    const hand=(angle:number,length:number,width:number,z:number)=>{
+      const arm=addMesh(new THREE.BoxGeometry(width,length,.028),markerMat,
+        [Math.sin(angle)*length*.38,Math.cos(angle)*length*.38,z],c);
+      arm.rotation.z=-angle;
+    };
+    hand((3+17/60)*Math.PI/6,.39,.064,.07);
+    hand(17*Math.PI/30,.57,.038,.10);
+    addMesh(new THREE.SphereGeometry(.08,12,9),brass,[0,0,.12],c);
+    this.scenery.add(c);
+    this.colliders.push({x:-7.82,z:10.8,rx:.23,rz:.9});
   }
   private textPlane(lines:string[],w:number,h:number){
     const texture=labelTexture(lines);const plane=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide}));
@@ -299,7 +347,24 @@ export class TheaterWorld{
     const reflector=new THREE.SpotLight(0xc9d9ff,0,12,Math.PI/7,.6);reflector.position.set(7.2,1.65,-10.5);
     reflector.target.position.set(0,3,-17.7);this.scene.add(reflector,reflector.target);
     this.bind(pr,"proyector");
-    const pl=this.textPlane(["ARCHIVO 03:17","INTRODUZCA EL CÓDIGO"],2.25,1.05);
+    // The three combination wheels belong to the actual projector cabinet. They are
+    // clickable 3D pieces, with physically located number faces.
+    const dialCabinet=addMesh(new THREE.BoxGeometry(1.65,.66,.4),mat(0x2a292b,.36,.7),[0,1.13,.52],pr);
+    addMesh(new THREE.BoxGeometry(1.71,.1,.48),brass,[0,1.51,.52],pr);
+    for(let i=0;i<3;i++){
+      const px=(i-1)*.49;
+      const knurl=addMesh(new THREE.CylinderGeometry(.2,.2,.36,20),mat(0x574e47,.34,.75),[px,1.16,.78],pr);
+      knurl.rotation.x=Math.PI/2;
+      const faceMat=new THREE.MeshBasicMaterial({side:THREE.DoubleSide});
+      const face=addMesh(new THREE.PlaneGeometry(.35,.44),faceMat,[px,1.16,1.00],pr);
+      this.wheelFaces.push(faceMat);
+      this.paintWheel(i);
+      // Bind both the face and the mechanical wheel, not an invisible UI layer.
+      this.bind(face,("rueda"+(i+1)) as TheaterAction);
+      this.bind(knurl,("rueda"+(i+1)) as TheaterAction);
+    }
+    this.colliders.push({x:7.2,z:-9.9,rx:.72,rz:.68},{x:-7.25,z:-9.7,rx:.72,rz:.68});
+    const pl=this.textPlane(["ARCHIVO BELLADONNA","CONSULTE EL RELOJ"],2.25,1.05);
     pl.position.set(0,2.9,.04);pr.add(pl);
   }
   private curtainGeometry(width:number,height:number){
