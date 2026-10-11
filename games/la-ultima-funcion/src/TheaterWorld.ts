@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 
 export type TheaterAction = "butaca" | "ambar" | "azul" | "rojo" | "proyector" | "telon" | "programa";
 export type TheaterPhase = "inicio" | "luces" | "proyector" | "telon" | "final";
@@ -403,7 +404,7 @@ export class TheaterWorld{
   }
   private async loadDecorGLTF(url:string,where:THREE.Vector3Tuple,height:number,yaw:number){
     try{
-      const gltf=await new GLTFLoader().loadAsync(url);
+      const gltf=await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(url);
       const model=gltf.scene;
       if(gltf.animations.length){
         const mixer=new THREE.AnimationMixer(model);
@@ -423,7 +424,7 @@ export class TheaterWorld{
   }
   private async useUsherGLB(url:string){
     try{
-      const gltf=await new GLTFLoader().loadAsync(url);
+      const gltf=await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(url);
       const model=gltf.scene;model.name="AcomodadorHumanoRiggeado";
       // Scale to 2.15m and ground the feet regardless of original authoring units.
       const bounds=new THREE.Box3().setFromObject(model),size=bounds.getSize(new THREE.Vector3());
