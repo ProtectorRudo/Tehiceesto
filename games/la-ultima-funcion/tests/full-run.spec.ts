@@ -33,6 +33,14 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
   await page.screenshot({path:testInfo.outputPath("04-filas-senalizadas.png")});
   expect(await page.evaluate(()=>(window as any).__BELLADONNA_QA__?.viewNumberedSeat?.())).toBe(true);
   await page.screenshot({path:testInfo.outputPath("05-asiento-3-8.png")});
+  // The warning references a real upper gallery, not empty ceiling.
+  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.boxes?.()),{timeout:10000})
+    .toMatchObject({count:2,labels:[true,true]});
+  expect(await page.evaluate(()=>(window as any).__BELLADONNA_QA__?.viewBox?.())).toBe(true);
+  await page.screenshot({path:testInfo.outputPath("06-palco-visible.png")});
+  // The actor must never enter the raised stage or float at a changed root Y.
+  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.usherGround?.()),{timeout:15000})
+    .toMatchObject({safe:true,stageBoundary:-11.12});
   // The old CG placeholder must be gone: the actual GLB skeleton wears
   // a stage uniform with a separately rigged cap, and looks toward the visitor.
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.usher?.()),{timeout:50000})
@@ -41,10 +49,12 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.usher?.()?.eyeContact),{timeout:12000}).toBe(true);
   await page.screenshot({path:testInfo.outputPath("03-acomodador.png")});
   await action(page,"butaca");await expectPhase(page,"luces");
+  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.usherGround?.()?.safe),{timeout:12000}).toBe(true);
   // La secuencia errónea debe bloquear la progresión.
   await action(page,"azul");await expectPhase(page,"luces");
   for(const a of ["ambar","azul","rojo"])await action(page,a);
   await expectPhase(page,"proyector");
+  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.usherGround?.()?.safe),{timeout:12000}).toBe(true);
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.cinema?.()?.act)).toBe("proyector");
   // Genuine cinematic surprise: silence, an appearance physically behind the
   // player, then a reaction only when the camera turns toward the usher.
