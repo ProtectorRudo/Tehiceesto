@@ -103,7 +103,7 @@ function App(){
       if(current==="proyector"){
         const values=world.current?.getWheelValues();
         if(values&&values[0]===3&&values[1]===1&&values[2]===7){
-          sound.current.play("found");setPhase("telon");
+          sound.current.play("found");world.current?.playRecoveredFilm();setPhase("telon");
           setStory("La cinta se proyecta. Los espectadores desaparecieron a las 03:17. El telón puede abrirse.");
           show("La película vuelve a girar. Escuchás tres golpes detrás del telón.",6200);
         }else{
