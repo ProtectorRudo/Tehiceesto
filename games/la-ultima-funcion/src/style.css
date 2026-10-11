@@ -16,3 +16,28 @@
 @media(max-width:380px){.hud-brand{font-size:13px;gap:5px}.hud-spark{font-size:22px}.story-caption{top:21%;max-width:72vw}.hint-button{font-size:9px}.intro-central h1{font-size:3.8rem}.intro-bottom span:nth-child(3){display:none}}
 @media(min-width:900px){.joystick-area{opacity:.43}.drag-tip{opacity:.4}.game-bottom{bottom:37px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+
+
+/* The usher's warning is deliberately separate from puzzle hints and UI toasts. */
+.haunting-caption{
+  pointer-events:none;
+  position:absolute;
+  z-index:8;
+  left:50%;
+  bottom:35%;
+  width:min(87vw,730px);
+  transform:translateX(-50%);
+  padding:14px 16px;
+  text-align:center;
+  color:#f3e1d0;
+  font:italic clamp(23px,5.7vw,42px)/1.1 "Cormorant Garamond",Georgia,serif;
+  letter-spacing:.025em;
+  text-shadow:0 2px 8px #000,0 4px 26px #000,0 0 35px #8a1217;
+  background:radial-gradient(ellipse,rgba(0,0,0,.58),rgba(0,0,0,0) 72%);
+  animation:hauntingIn .48s ease-out both;
+}
+@keyframes hauntingIn{
+  from{opacity:0;filter:blur(6px);transform:translate(-50%,13px)}
+  to{opacity:1;filter:blur(0);transform:translate(-50%,0)}
+}
+@media(prefers-reduced-motion:reduce){.haunting-caption{animation:none}}
