@@ -56,6 +56,7 @@ export class TheaterWorld{
   private phase:TheaterPhase="inicio";private clockTime=0;
   private usherGoal=new THREE.Vector3(5.8,0,-12.3);
   private decorMixers:THREE.AnimationMixer[]=[];
+  private usherIdle?:THREE.AnimationAction;private usherWalk?:THREE.AnimationAction;private usherWalking=false;
   private watchers:THREE.Group[]=[];
   private dust?:THREE.Points;
   private frameTimeAccumulator=0;private frameTimeSamples=0;private nextScareAt=24;private lastWalkerSfx=0;
@@ -375,6 +376,7 @@ export class TheaterWorld{
       const response=await fetch("/models/manifest.json");
       if(!response.ok)return;
       const manifest=await response.json() as {assets?:Record<string,string>};
+      if(manifest.assets?.usher)void this.useUsherGLB(manifest.assets.usher);
       if(manifest.assets?.chandelier){
         const decoration=await this.loadDecorGLTF(manifest.assets.chandelier,[0,6.1,6.2],1.85,0);
         if(decoration&&this.chandelierPlaceholder)this.chandelierPlaceholder.visible=false;
@@ -422,10 +424,28 @@ export class TheaterWorld{
   private async useUsherGLB(url:string){
     try{
       const gltf=await new GLTFLoader().loadAsync(url);
-      this.usher.clear();gltf.scene.name="ModeloAcomodador";this.usher.add(gltf.scene);
-      this.usherMixer=new THREE.AnimationMixer(gltf.scene);
-      if(gltf.animations.length)this.usherMixer.clipAction(gltf.animations[0]).play();
-    }catch(err){console.warn("Modelo premium no disponible, se conserva el personaje de desarrollo.",err);}
+      const model=gltf.scene;model.name="AcomodadorHumanoRiggeado";
+      // Scale to 2.15m and ground the feet regardless of original authoring units.
+      const bounds=new THREE.Box3().setFromObject(model),size=bounds.getSize(new THREE.Vector3());
+      model.scale.multiplyScalar(2.15/Math.max(.1,size.y));
+      model.updateMatrixWorld(true);
+      const newBounds=new THREE.Box3().setFromObject(model);
+      model.position.y-=newBounds.min.y;
+      model.traverse(o=>{if(o instanceof THREE.Mesh || o instanceof THREE.SkinnedMesh){
+        o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;
+      }});
+      const mixer=new THREE.AnimationMixer(model);
+      const idle=gltf.animations.find(a=>/idle/i.test(a.name))||gltf.animations[0];
+      const walk=gltf.animations.find(a=>/relaxed.*walk|walk.*relaxed|walk/i.test(a.name))||gltf.animations[1];
+      if(idle){this.usherIdle=mixer.clipAction(idle);this.usherIdle.play();}
+      if(walk&&walk!==idle){
+        this.usherWalk=mixer.clipAction(walk);
+        this.usherWalk.setLoop(THREE.LoopRepeat,Infinity);
+        this.usherWalk.setEffectiveWeight(0);
+        this.usherWalk.play();
+      }
+      this.usher.clear();this.usher.add(model);this.usherMixer=mixer;
+    }catch(err){console.warn("No se pudo incorporar el humano animado, se conserva el Acomodador provisional.",err);}
   }
   private setupControls(){
     const down=(e:PointerEvent)=>{if(!this.active)return;if((e.target as HTMLElement)!==this.canvas)return;this.dragId=e.pointerId;this.pointerX=e.clientX;this.pointerY=e.clientY;this.canvas.setPointerCapture(e.pointerId);};
@@ -499,7 +519,14 @@ export class TheaterWorld{
         this.events.onEvent("susurro");
         this.watchers.forEach(w=>w.visible=!w.visible);
       }
-      if(this.usher.position.distanceToSquared(this.usherGoal)>.06){
+      const actorMoving=this.usher.position.distanceToSquared(this.usherGoal)>.06;
+      if(this.usherIdle&&this.usherWalk&&this.usherWalking!==actorMoving){
+        const previous=this.usherWalking?this.usherWalk:this.usherIdle;
+        const next=actorMoving?this.usherWalk:this.usherIdle;
+        next.reset().play();previous.crossFadeTo(next,.34,false);
+        this.usherWalking=actorMoving;
+      }
+      if(actorMoving){
         const distance=this.usher.position.distanceTo(this.usherGoal);
         this.usher.position.lerp(this.usherGoal,Math.min(1,dt*.75));
         this.usher.rotation.y=Math.atan2(this.usherGoal.x-this.usher.position.x,-(this.usherGoal.z-this.usher.position.z));
