@@ -139,6 +139,14 @@ export class TheaterWorld{
   collectKey(){if(this.seatKey){this.seatKey.visible=false;this.seatKey=undefined;}}
   getCharacterStatus(){return {human:this.usher.children.some(x=>x.name==="AcomodadorHumanoRiggeado"),idle:!!this.usherIdle,walk:!!this.usherWalk};}
   getUsherDetails(){return this.usherDirector?.getStatus();}
+  viewUsherForTest(){
+    if(!import.meta.env.DEV||!this.usherDirector)return false;
+    const actor=this.usher.position;
+    this.camera.position.set(actor.x+1.5,1.64,actor.z-3.0);
+    this.camera.lookAt(actor.x,1.7,actor.z);
+    this.yaw=this.camera.rotation.y;this.pitch=this.camera.rotation.x;
+    return true;
+  }
   getCinematicStatus(){return {projectorModel:this.projectorProfessionalLoaded,director:!!this.cinema,velvetPBR:this.velvetReady,threatVisible:!!this.threatMessage?.visible,act:this.phase};}
   getPerformanceStatus(){
     return {
@@ -912,6 +920,7 @@ export class TheaterWorld{
   dispose(){
     cancelAnimationFrame(this.frame);window.removeEventListener("resize",this.resize);this.cleanupFns.forEach(f=>f());
     this.cinema?.dispose();
+    this.usherDirector?.dispose();this.usherDirector=undefined;
     this.warningLight?.parent?.remove(this.warningLight);this.warningLight=undefined;
     this.scenery.traverse(obj=>{if(obj instanceof THREE.Mesh||obj instanceof THREE.InstancedMesh){obj.geometry.dispose();const a=Array.isArray(obj.material)?obj.material:[obj.material];
       a.forEach(m=>{if("map" in m&&(m as any).map)(m as any).map.dispose();m.dispose();});}});
