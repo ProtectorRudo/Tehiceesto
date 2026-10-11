@@ -17,12 +17,13 @@ function invitation():Invite{
 const steps=[{phase:"inicio",title:"La butaca reservada"},{phase:"luces",title:"La consola de luces"},{phase:"proyector",title:"La película perdida"},{phase:"telon",title:"La última función"}];
 const labels:Record<TheaterAction,string>={
   butaca:"Examinar butaca reservada",ambar:"Activar interruptor ámbar",azul:"Activar interruptor azul",
-  rojo:"Activar interruptor rojo",proyector:"Examinar proyector",telon:"Accionar palanca del telón",programa:"Leer programa"
+  rojo:"Activar interruptor rojo",rueda1:"Girar rueda izquierda",rueda2:"Girar rueda central",
+  rueda3:"Girar rueda derecha",proyector:"Reproducir cinta",telon:"Accionar palanca del telón",programa:"Leer programa"
 };
 const hints:Record<TheaterPhase,string>={
   inicio:"Tu boleto dice «FILA 3 · ASIENTO 8». Buscá una butaca con una placa dorada, a la derecha del pasillo central.",
   luces:"La consola se encuentra al costado izquierdo del escenario. La vieja inscripción revela el orden: ÁMBAR, AZUL, ROJO.",
-  proyector:"El proyector está junto al lado derecho del escenario. La pantalla revela las cifras 3 · 1 · 7. Girá las tres ruedas.",
+  proyector:"El proyector está a la derecha del escenario. Su combinación corresponde a la hora que marca el reloj detenido desde 1968: 03:17. Girá cada rueda física y después tocá la máquina.",
   telon:"El mecanismo final está sobre el escenario, justo frente al telón rojo. Hay una palanca con una esfera oscura.",
   final:"La función comenzó. Ahora descubrí para qué te estaban esperando."
 };
@@ -44,8 +45,6 @@ function App(){
   const [toast,setToastState]=useState("");
   const [seconds,setSeconds]=useState(0);
   const [hintsOpen,setHintsOpen]=useState(false);
-  const [inspection,setInspection]=useState(false);
-  const [dials,setDials]=useState<[number,number,number]>([0,0,0]);
   const [blackout,setBlackout]=useState(false);
   const [reveal,setReveal]=useState(false);
   const [timedOut,setTimedOut]=useState(false);
@@ -80,7 +79,7 @@ function App(){
         world.current?.markLight(sequence.current);sequence.current++;
         if(sequence.current===3){
           setPhase("proyector");sound.current.play("found");
-          setStory("La pantalla despertó: 3 · 1 · 7. Ahora repará el proyector.");
+          setStory("La electricidad volvió. Un reloj detenido guarda el código de las tres ruedas del proyector.");
           show("Las luces recorren el escenario. El acomodador ya no está donde lo viste.",6200);
         }else show("Circuito "+sequence.current+"/3 activado. Escuchás un relé detrás del muro.");
       }else{
@@ -89,10 +88,30 @@ function App(){
       }
       return;
     }
+    if(name==="rueda1"||name==="rueda2"||name==="rueda3"){
+      if(current!=="proyector"){
+        show(current==="inicio"||current==="luces"?"El mecanismo sigue apagado. Primero encendé las luces.":"Las bobinas ya están aseguradas.");
+        return;
+      }
+      const index=Number(name.slice(-1))-1;
+      world.current?.turnWheel(index);
+      const values=world.current?.getWheelValues()??[0,0,0];
+      show("CÓDIGO DEL PROYECTOR  ·  "+values.join("  •  "),1500);
+      return;
+    }
     if(name==="proyector"){
-      if(current==="proyector"){setInspection(true);show("Alineá las tres ruedas de la película.");}
-      else if(current==="inicio"||current==="luces")show("El proyector está apagado. Primero restablecé las luces.");
-      else show("La cinta está girando. Ya recuperaste la grabación.");
+      if(current==="proyector"){
+        const values=world.current?.getWheelValues();
+        if(values&&values[0]===3&&values[1]===1&&values[2]===7){
+          sound.current.play("found");setPhase("telon");
+          setStory("La cinta se proyecta. Los espectadores desaparecieron a las 03:17. El telón puede abrirse.");
+          show("La película vuelve a girar. Escuchás tres golpes detrás del telón.",6200);
+        }else{
+          sound.current.play("wrong");
+          show("La cinta se atasca. Observá el reloj del vestíbulo y corregí las ruedas.",5400);
+        }
+      }else if(current==="inicio"||current==="luces")show("El proyector está apagado. Primero restablecé las luces.");
+      else show("La película ya se recuperó.");
       return;
     }
     if(name==="telon"){
@@ -145,23 +164,12 @@ function App(){
       }
     },250);
   };
-  const dialTurn=(index:number)=>{
-    sound.current.play("click");
-    setDials(old=>{const next:[number,number,number]=[...old];next[index]=(next[index]+1)%10;return next;});
-  };
-  const verifyDials=()=>{
-    if(dials[0]===3&&dials[1]===1&&dials[2]===7){
-      sound.current.play("found");setInspection(false);setPhase("telon");
-      setStory("La película revela una fecha imposible y la última palanca del escenario.");
-      show("El proyector cobra vida. Alguien golpea tres veces detrás del telón.",6200);
-    }else{sound.current.play("wrong");show("La cinta se atasca. La combinación no corresponde al archivo 03:17.");}
-  };
   // Development-only QA hooks exercise the real puzzle reducer, not a fake solved screen.
   // Vite removes this block from the production build.
   if(import.meta.env.DEV)(window as Window & {
-    __BELLADONNA_QA__?:{action:(a:TheaterAction)=>void; verify:()=>void; getPhase:()=>TheaterPhase; character:()=>{human:boolean;idle:boolean;walk:boolean}|undefined;}
+    __BELLADONNA_QA__?:{action:(a:TheaterAction)=>void; getPhase:()=>TheaterPhase; character:()=>{human:boolean;idle:boolean;walk:boolean}|undefined; wheels:()=>[number,number,number]|undefined;}
   }).__BELLADONNA_QA__={
-    action:a=>actionRef.current(a),verify:verifyDials,getPhase:()=>phaseRef.current,character:()=>world.current?.getCharacterStatus()
+    action:a=>actionRef.current(a),getPhase:()=>phaseRef.current,character:()=>world.current?.getCharacterStatus(),wheels:()=>world.current?.getWheelValues()
   };
   const joyMove=(e:React.PointerEvent<HTMLDivElement>)=>{
     const r=e.currentTarget.getBoundingClientRect();const dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);
@@ -205,7 +213,7 @@ function App(){
       </div>}
       {story&&<div className="story-caption">{story}</div>}
       <div className="crosshair" aria-hidden="true"><i/><i/></div>
-      {focus&& !inspection&& !timedOut&& !finished&&<div className="interaction">
+      {focus&& !hintsOpen&& !timedOut&& !finished&&<div className="interaction">
         <span className="interaction-label">{labels[focus]}</span>
         <button onClick={()=>world.current?.activate()}>INTERACTUAR <span>✦</span></button>
       </div>}
@@ -221,24 +229,10 @@ function App(){
       </div>
       <div className="desktop-tip">W A S D PARA CAMINAR · MOUSE PARA MIRAR · E PARA INTERACTUAR</div>
       {toast&&<div role="status" className="toast">{toast}</div>}
-      {hintsOpen&& !inspection&& <div className="modal-scrim" onClick={()=>setHintsOpen(false)}>
+      {hintsOpen&& <div className="modal-scrim" onClick={()=>setHintsOpen(false)}>
         <div className="clue-card" onClick={e=>e.stopPropagation()}>
           <p className="overline">DEL DIARIO DEL TRAMOYISTA</p><h2>Una pista del teatro</h2><p>{hints[phase]}</p>
           <button onClick={()=>setHintsOpen(false)}>VOLVER A LA FUNCIÓN</button>
-        </div>
-      </div>}
-      {inspection&&<div className="modal-scrim">
-        <div className="projector-card">
-          <p className="overline">CABINA DE PROYECCIÓN · ARCHIVO 03:17</p>
-          <h2>El proyector</h2>
-          <p>Girás tres ruedas mecánicas. La pantalla recuperada muestra: <strong>3 · 1 · 7</strong></p>
-          <div className="dials">
-            {dials.map((num,i)=><button key={i} className="dial" onClick={()=>dialTurn(i)} aria-label={"Girar rueda "+(i+1)}>
-              <small>BOBINA {i+1}</small><span>{num}</span><em>↻ TOCAR</em>
-            </button>)}
-          </div>
-          <button className="main-cta smaller" onClick={verifyDials}>REPRODUCIR LA CINTA</button>
-          <button className="text-button" onClick={()=>setInspection(false)}>CERRAR LA CABINA</button>
         </div>
       </div>}
       {timedOut&&!finished&&<div className="modal-scrim">
