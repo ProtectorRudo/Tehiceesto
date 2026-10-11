@@ -8,7 +8,7 @@ const expectPhase=async(page:import("@playwright/test").Page,p:string)=>{
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.getPhase?.())).toBe(p);
 };
 test("recorrido completo: butaca, iluminación, proyector y gran revelación",async({page})=>{
-  test.setTimeout(140000); // Include a full real skinned GLB download on software-rendered CI.
+  test.setTimeout(160000); // Real models and full playthrough in software-rendered browser.
   const errors:string[]=[];page.on("pageerror",err=>errors.push(err.message));
   await page.goto("/?nombre=Martina&evento=Fiesta%20de%20cumplea%C3%B1os&fecha=24%2F10%2F2026&hora=21%3A00&lugar=Sal%C3%B3n%20Belladonna");
   await page.getByRole("button",{name:/ABRIR LAS PUERTAS/}).click();
@@ -17,11 +17,15 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.character?.()),{timeout:45000}).toEqual({
     human:true,idle:true,walk:true
   });
+  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.cinema?.()),{timeout:60000}).toMatchObject({
+    projectorModel:true,director:true,act:"inicio"
+  });
   await action(page,"butaca");await expectPhase(page,"luces");
   // La secuencia errónea debe bloquear la progresión.
   await action(page,"azul");await expectPhase(page,"luces");
   for(const a of ["ambar","azul","rojo"])await action(page,a);
   await expectPhase(page,"proyector");
+  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.cinema?.()?.act)).toBe("proyector");
   // The cabinet now has three physical 3D number wheels, not a popup.
   await action(page,"proyector");
   await expectPhase(page,"proyector");
