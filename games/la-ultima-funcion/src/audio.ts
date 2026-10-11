@@ -139,10 +139,9 @@ export class TheaterAudio{
       const available=synth.getVoices().filter(v=>v.lang.toLowerCase().startsWith("es"));
       const preferred=available.find(v=>v.lang.toLowerCase()==="es-ar")||
         available.find(v=>v.lang.toLowerCase().startsWith("es-es"))||available[0];
-      if(!preferred)return false;
       synth.cancel();
       const utterance=new SpeechSynthesisUtterance(text);
-      utterance.lang=preferred.lang;utterance.voice=preferred;utterance.rate=.77;utterance.pitch=.68;utterance.volume=.86;
+      utterance.lang=preferred?.lang||"es-AR";if(preferred)utterance.voice=preferred;utterance.rate=.77;utterance.pitch=.68;utterance.volume=.86;
       this.pendingVoice=utterance;
       utterance.onend=()=>{if(this.pendingVoice===utterance)this.pendingVoice=undefined;};
       synth.speak(utterance);return true;
