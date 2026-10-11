@@ -8,7 +8,7 @@ const expectPhase=async(page:import("@playwright/test").Page,p:string)=>{
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.getPhase?.())).toBe(p);
 };
 test("recorrido completo: butaca, iluminación, proyector y gran revelación",async({page},testInfo)=>{
-  test.setTimeout(160000); // Real models and full playthrough in software-rendered browser.
+  test.setTimeout(230000); // Real models and full playthrough in software-rendered browser.
   const errors:string[]=[];page.on("pageerror",err=>errors.push(err.message));
   await page.goto("/?nombre=Martina&evento=Fiesta%20de%20cumplea%C3%B1os&fecha=24%2F10%2F2026&hora=21%3A00&lugar=Sal%C3%B3n%20Belladonna");
   await page.getByRole("button",{name:/ABRIR LAS PUERTAS/}).click();
@@ -50,12 +50,24 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
   await page.screenshot({path:testInfo.outputPath("03-acomodador.png")});
   await action(page,"butaca");await expectPhase(page,"luces");
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.usherGround?.()?.safe),{timeout:12000}).toBe(true);
+  // Physical electrical circuit: cannot activate anything before finding
+  // and inserting the ceramic fuse in the actual 3D electrical cabinet.
+  await action(page,"ambar");await expectPhase(page,"luces");
+  await action(page,"fusible");await expectPhase(page,"luces");
+  await action(page,"portafusible");
+  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.mechanics?.()?.fuseInstalled)).toBe(true);
   // La secuencia errónea debe bloquear la progresión.
   await action(page,"azul");await expectPhase(page,"luces");
   for(const a of ["ambar","azul","rojo"])await action(page,a);
   await expectPhase(page,"proyector");
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.usherGround?.()?.safe),{timeout:12000}).toBe(true);
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.cinema?.()?.act)).toBe("proyector");
+  // A second human, not a floating primitive silhouette, is present in the
+  // physical balcony and disappears when the player actually looks at it.
+  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.mechanics?.()?.boxFigure),{timeout:45000}).toBe(true);
+  expect(await page.evaluate(()=>(window as any).__BELLADONNA_QA__?.viewFigure?.())).toBe(true);
+  await page.screenshot({path:testInfo.outputPath("07-figura-palco-1.png")});
+  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.mechanics?.()?.boxSeen),{timeout:20000}).toBe(true);
   // Genuine cinematic surprise: silence, an appearance physically behind the
   // player, then a reaction only when the camera turns toward the usher.
   expect(await page.evaluate(()=>(window as any).__BELLADONNA_QA__?.forceWarning())).toBe(true);
@@ -66,9 +78,16 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.warning?.().seen),{timeout:8000}).toBe(true);
   expect(await page.evaluate(()=>(window as any).__BELLADONNA_QA__?.finishWarning())).toBe(true);
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.warning?.().stage),{timeout:8000}).toBe("resolved");
+  // The projector cannot start with only the numerical code:
+  // the reel must be found, installed and the lens calibrated.
+  await action(page,"proyector");await expectPhase(page,"proyector");
+  await action(page,"bobina");await action(page,"montar");
+  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.mechanics?.()?.reelMounted)).toBe(true);
+  await action(page,"enfoque");await action(page,"enfoque");
+  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.mechanics?.()?.focus)).toBe(2);
+  expect(await page.evaluate(()=>(window as any).__BELLADONNA_QA__?.viewMechanical?.())).toBe(true);
+  await page.screenshot({path:testInfo.outputPath("08-maquina-enfoque-bobina.png")});
   // The cabinet now has three physical 3D number wheels, not a popup.
-  await action(page,"proyector");
-  await expectPhase(page,"proyector");
   // Tap the *actual rendered 3D number wheel* to test the mobile pointer raycast.
   const aimed=await page.evaluate(()=>(window as any).__BELLADONNA_QA__?.aim?.("rueda1"));
   expect(aimed).toBe(true);
