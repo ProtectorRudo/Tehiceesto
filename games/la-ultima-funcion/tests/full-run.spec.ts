@@ -12,6 +12,10 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
   await page.goto("/?nombre=Martina&evento=Fiesta%20de%20cumplea%C3%B1os&fecha=24%2F10%2F2026&hora=21%3A00&lugar=Sal%C3%B3n%20Belladonna");
   await page.getByRole("button",{name:/ABRIR LAS PUERTAS/}).click();
   await expectPhase(page,"inicio");
+  // No basta con que compile: el humano skinned debe cargar y disponer de ambas animaciones.
+  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.character?.()),{timeout:45000}).toEqual({
+    human:true,idle:true,walk:true
+  });
   await action(page,"butaca");await expectPhase(page,"luces");
   // La secuencia errónea debe bloquear la progresión.
   await action(page,"azul");await expectPhase(page,"luces");
