@@ -111,11 +111,16 @@ function App(){
       const w=new TheaterWorld(mount.current,{
         onFocus:a=>setFocus(a),
         onAction:a=>actionRef.current(a),
+        onListener:(x,y,z,fx,fy,fz)=>sound.current.updateListener(x,y,z,fx,fy,fz),
         onEvent:e=>{
           if(e==="apagón"){
             setBlackout(true);sound.current.play("scare");
             window.setTimeout(()=>{setBlackout(false);setStory("¿Viste al acomodador? Algo cambió cerca del escenario.");},1200);
-          }else sound.current.play("steps");
+          }else if(e==="pasos")sound.current.play("steps");
+          else if(e==="susurro"){
+            sound.current.play("whisper");
+            if(phaseRef.current!=="final")show("«No mire hacia el palco. Todavía no…»",4300);
+          }else if(e==="aplausos")sound.current.play("applause");
         }
       });
       world.current=w;
@@ -148,6 +153,13 @@ function App(){
       setStory("La película revela una fecha imposible y la última palanca del escenario.");
       show("El proyector cobra vida. Alguien golpea tres veces detrás del telón.",6200);
     }else{sound.current.play("wrong");show("La cinta se atasca. La combinación no corresponde al archivo 03:17.");}
+  };
+  // Development-only QA hooks exercise the real puzzle reducer, not a fake solved screen.
+  // Vite removes this block from the production build.
+  if(import.meta.env.DEV)(window as Window & {
+    __BELLADONNA_QA__?:{action:(a:TheaterAction)=>void; verify:()=>void; getPhase:()=>TheaterPhase;}
+  }).__BELLADONNA_QA__={
+    action:a=>actionRef.current(a),verify:verifyDials,getPhase:()=>phaseRef.current
   };
   const joyMove=(e:React.PointerEvent<HTMLDivElement>)=>{
     const r=e.currentTarget.getBoundingClientRect();const dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);
