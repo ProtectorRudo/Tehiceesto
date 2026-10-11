@@ -46,6 +46,7 @@ function App(){
   const [seconds,setSeconds]=useState(0);
   const [hintsOpen,setHintsOpen]=useState(false);
   const [blackout,setBlackout]=useState(false);
+  const [hauntingCaption,setHauntingCaption]=useState("");
   const [reveal,setReveal]=useState(false);
   const [timedOut,setTimedOut]=useState(false);
   const [muted,setMuted]=useState(false);
@@ -137,6 +138,26 @@ function App(){
           if(e==="apagón"){
             setBlackout(true);sound.current.play("scare");
             window.setTimeout(()=>{setBlackout(false);setStory("¿Viste al acomodador? Algo cambió cerca del escenario.");},1200);
+          }else if(e==="advertencia"){
+            sound.current.silenceFor(1.1);
+            setHauntingCaption("...");
+            window.setTimeout(()=>{
+              if(phaseRef.current==="final")return;
+              setHauntingCaption("«Disculpe… ese no es su asiento»");
+              sound.current.speakWarning("Disculpe... ese no es su asiento.");
+            },1150);
+            window.setTimeout(()=>setHauntingCaption(""),5900);
+          }else if(e==="presencia"){
+            sound.current.play("whisper");
+            if(typeof navigator!=="undefined"&&navigator.vibrate)navigator.vibrate(20);
+          }else if(e==="aparicion"){
+            sound.current.play("scare");
+            setHauntingCaption("NO ESTÁS SOLO");
+            if(typeof navigator!=="undefined"&&navigator.vibrate)navigator.vibrate([65,45,110]);
+            window.setTimeout(()=>setHauntingCaption(""),1750);
+          }else if(e==="retirada"){
+            sound.current.play("steps");
+            setStory("Una voz susurró detrás tuyo. El pasillo volvió a quedar vacío.");
           }else if(e==="portazo"){sound.current.play("door");show("Las puertas se cerraron detrás tuyo. La función ya comenzó.",3500);}
           else if(e==="pasos")sound.current.play("steps");
           else if(e==="susurro"){
@@ -214,6 +235,7 @@ function App(){
       </div>}
       {story&&<div className="story-caption">{story}</div>}
       <div className="crosshair" aria-hidden="true"><i/><i/></div>
+      {hauntingCaption&&<div className="haunting-caption" role="status">{hauntingCaption}</div>}
       {focus&& !hintsOpen&& !timedOut&& !finished&&<div className="interaction">
         <span className="interaction-label">{labels[focus]}</span>
         <button onClick={()=>world.current?.activate()}>INTERACTUAR <span>✦</span></button>
