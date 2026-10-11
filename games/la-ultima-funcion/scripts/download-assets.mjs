@@ -37,5 +37,20 @@ for(const a of assets){
     manifest.assets[a.key]="/models/"+a.folder+"/"+list[0][0];
   }catch(err){console.warn("El modelo CC0 "+a.id+" no pudo descargarse. Continúa el escenario de respaldo.",String(err));}
 }
+// A genuine skinned and animated adult, licensed CC0, downloaded at build time.
+// Model by Innerscene, built from MakeHuman/MPFB CC0. It contains 7 named clips.
+// Source: https://www.innerscene.com/tools/library/3d-parts/locomotion-collection-jordan-3d-person-animated-911f1584
+try{
+  const characterUrl="https://www.innerscene.com/api/library/locomotion-collection-jordan-3d-person-animated-911f1584/download";
+  const res=await retrieve(characterUrl);
+  const bytes=Buffer.from(await res.arrayBuffer());
+  if(bytes.byteLength<100000||bytes.toString("ascii",0,4)!=="glTF")throw new Error("Archivo GLB inválido");
+  await mkdir(join(root,"usher"),{recursive:true});
+  await writeFile(join(root,"usher","usher.glb"),bytes);
+  manifest.assets.usher="/models/usher/usher.glb";
+  console.log("Acomodador humano riggeado CC0 instalado:",(bytes.byteLength/1048576).toFixed(2)+" MB");
+}catch(err){
+  console.warn("No se pudo preparar al Acomodador riggeado, se conserva la figura alternativa.",String(err));
+}
 await writeFile(join(root,"manifest.json"),JSON.stringify(manifest,null,2));
 console.log("Modelos de producción disponibles:",Object.keys(manifest.assets));
