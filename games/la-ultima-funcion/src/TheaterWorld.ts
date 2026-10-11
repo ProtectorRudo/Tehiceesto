@@ -165,14 +165,28 @@ export class TheaterWorld{
     this.camera.position.set(0,1.64,0);
     this.yaw=0;this.pitch=0;this.camera.rotation.set(0,0,0,"YXZ");
     this.warningStage="queued";this.warningAt=this.elapsed;
+    this.startWarning(); // Real event handler, deterministic under software WebGL.
     return true;
+  }
+  advanceWarningForTest(){
+    if(!import.meta.env.DEV||this.warningStage!=="silence")return false;
+    this.spawnApparition();
+    return true;
+  }
+  finishWarningForTest(){
+    if(!import.meta.env.DEV||this.warningStage!=="apparition"||!this.warningSeen)return false;
+    this.warningAppearedAt=this.elapsed-3;
+    this.updateWarning();
+    return this.warningStage==="resolved";
   }
   turnToApparitionForTest(){
     if(!import.meta.env.DEV||this.warningStage!=="apparition")return false;
     const target=this.usher.position.clone();target.y=1.65;
     this.camera.lookAt(target);
     this.yaw=this.camera.rotation.y;this.pitch=this.camera.rotation.x;
-    return true;
+    this.camera.getWorldDirection(this.forwardScratch);
+    this.updateWarning();
+    return this.warningSeen;
   }
   private cancelWarning(){
     if(this.warningStage==="idle"||this.warningStage==="resolved")return;
@@ -732,6 +746,9 @@ export class TheaterWorld{
     try{
       const gltf=await this.loadModel(url);
       const model=cloneRigged(gltf.scene);model.name="AcomodadorHumanoRiggeado";
+      // The authored Jordan rig faces +Z. The theatre navigation and the
+      // player-facing costume details use -Z as forward.
+      model.rotation.y=Math.PI;
       // Scale to 2.15m and ground the feet regardless of original authoring units.
       const bounds=new THREE.Box3().setFromObject(model),size=bounds.getSize(new THREE.Vector3());
       model.scale.multiplyScalar(2.15/Math.max(.1,size.y));
