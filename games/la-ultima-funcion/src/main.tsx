@@ -99,6 +99,7 @@ function App(){
         setPhase("final");sound.current.play("curtain");
         setStory("La maquinaria del teatro vuelve a la vida.");
         show("Damas y caballeros… la función está por comenzar.",5000);
+        world.current?.setRevealText(invite.nombre,invite.evento);
         world.current?.openCurtain();
         window.setTimeout(()=>{sound.current.play("success");setReveal(true);},5150);
       }else show("El telón está asegurado. Necesitás restaurar la película antes de levantarlo.");
@@ -183,6 +184,7 @@ function App(){
         <p className="intro-person">Pero hoy… <strong>{invite.nombre}</strong> tiene una entrada reservada.</p>
         {!supported&&<p className="error">{error||"Se necesita un dispositivo compatible con WebGL2."}</p>}
         <button className="main-cta" disabled={!supported} onClick={begin}>ABRIR LAS PUERTAS <span>↗</span></button>
+        {!supported&&<button className="text-button accessible-reveal" onClick={()=>{setReveal(true);setStarted(true);}}>VER MI INVITACIÓN SIN 3D</button>}
         <p className="micro">Usá auriculares para una mejor experiencia · 7 minutos</p>
       </div>
       <div className="intro-bottom"><span>ÚLTIMO ACTO</span><span>SOLO HAY UNA SALIDA</span><span>DECORADOS CC0: POLY HAVEN</span></div>
@@ -243,6 +245,7 @@ function App(){
           <p className="overline">LA FUNCIÓN SE INTERRUMPIÓ</p><h2>El teatro vuelve a quedar en silencio.</h2>
           <p>El minuto adicional terminó. Todavía podés volver a intentarlo.</p>
           <button onClick={()=>location.reload()}>REINICIAR PARTIDA</button>
+          <button className="text-button" onClick={()=>setReveal(true)}>CONSULTAR LA INVITACIÓN</button>
         </div>
       </div>}
       <div className={"blackout "+(blackout?"visible":"")} aria-hidden="true"/>
