@@ -46,6 +46,7 @@ export class TheaterWorld{
   private ray=new THREE.Raycaster();private targets:THREE.Object3D[]=[];
   private actionTarget:TheaterAction|null=null;
   private dragId:number|null=null;private pointerX=0;private pointerY=0;
+  private pointerStartX=0;private pointerStartY=0;private pointerStartTime=0;
   private active=false;private ended=false;private elapsed=0;private eventDone=false;
   private cleanupFns:Array<()=>void>=[];
   private usher=new THREE.Group();private usherMixer?:THREE.AnimationMixer;
@@ -515,14 +516,40 @@ export class TheaterWorld{
     }catch(err){console.warn("No se pudo incorporar el humano animado, se conserva el Acomodador provisional.",err);}
   }
   private setupControls(){
-    const down=(e:PointerEvent)=>{if(!this.active)return;if((e.target as HTMLElement)!==this.canvas)return;this.dragId=e.pointerId;this.pointerX=e.clientX;this.pointerY=e.clientY;this.canvas.setPointerCapture(e.pointerId);};
+    const down=(e:PointerEvent)=>{
+      if(!this.active)return;
+      if((e.target as HTMLElement)!==this.canvas || this.dragId!==null)return;
+      this.dragId=e.pointerId;this.pointerX=e.clientX;this.pointerY=e.clientY;
+      this.pointerStartX=e.clientX;this.pointerStartY=e.clientY;this.pointerStartTime=performance.now();
+      this.canvas.setPointerCapture(e.pointerId);
+    };
     const move=(e:PointerEvent)=>{if(this.dragId!==e.pointerId||!this.active)return;
       const scale=matchMedia("(pointer:coarse)").matches?.004:.003;
       this.yaw-=(e.clientX-this.pointerX)*scale;this.pitch-=(e.clientY-this.pointerY)*scale;
       this.pitch=THREE.MathUtils.clamp(this.pitch,-1.08,1.02);
       this.pointerX=e.clientX;this.pointerY=e.clientY;
     };
-    const up=(e:PointerEvent)=>{if(e.pointerId===this.dragId)this.dragId=null;};
+    const up=(e:PointerEvent)=>{
+      if(e.pointerId!==this.dragId)return;
+      this.dragId=null;
+      const drag=Math.hypot(e.clientX-this.pointerStartX,e.clientY-this.pointerStartY);
+      if(e.type==="pointerup"&&this.active&&drag<13&&performance.now()-this.pointerStartTime<550){
+        // Directly touch the actual 3D furniture/machine, not just a floating popup.
+        const rect=this.canvas.getBoundingClientRect();
+        const x=(e.clientX-rect.left)/rect.width*2-1;
+        const y=-((e.clientY-rect.top)/rect.height*2-1);
+        this.ray.setFromCamera(new THREE.Vector2(x,y),this.camera);
+        for(const hit of this.ray.intersectObjects(this.targets,true)){
+          let item:THREE.Object3D|null=hit.object;
+          while(item&&!item.userData.action)item=item.parent;
+          if(item?.userData.action&&hit.distance<=3.5){
+            this.events.onAction(item.userData.action as TheaterAction);
+            if(navigator.vibrate)navigator.vibrate(18);
+            break;
+          }
+        }
+      }
+    };
     const keyDown=(e:KeyboardEvent)=>{this.keys.add(e.code);if((e.code==="KeyE"||e.code==="Space")&&this.active){e.preventDefault();this.activate();}};
     const keyUp=(e:KeyboardEvent)=>this.keys.delete(e.code);
     this.canvas.addEventListener("pointerdown",down);this.canvas.addEventListener("pointermove",move);
@@ -533,9 +560,14 @@ export class TheaterWorld{
       window.removeEventListener("keydown",keyDown);window.removeEventListener("keyup",keyUp);});
   }
   private closestObject():TheaterAction|null{
-    let best=2.0,ret:TheaterAction|null=null;const p=this.camera.position;
-    for(const root of this.targets){const pos=new THREE.Vector3();root.getWorldPosition(pos);const dist=pos.distanceTo(p);
-      if(dist<best){best=dist;ret=root.userData.action as TheaterAction;}
+    let best=1.8,ret:TheaterAction|null=null;const p=this.camera.position;
+    const forward=new THREE.Vector3();this.camera.getWorldDirection(forward);
+    for(const root of this.targets){
+      const pos=new THREE.Vector3();root.getWorldPosition(pos);
+      const toTarget=pos.clone().sub(p),dist=toTarget.length();
+      if(!root.userData.action||dist>best||dist<.001)continue;
+      if(toTarget.normalize().dot(forward)<.55)continue;
+      best=dist;ret=root.userData.action as TheaterAction;
     }return ret;
   }
   private checkFocus(){
