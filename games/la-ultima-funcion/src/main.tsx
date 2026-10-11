@@ -173,7 +173,7 @@ function App(){
         <button className="main-cta" disabled={!supported} onClick={begin}>ABRIR LAS PUERTAS <span>↗</span></button>
         <p className="micro">Usá auriculares para una mejor experiencia · 7 minutos</p>
       </div>
-      <div className="intro-bottom"><span>ÚLTIMO ACTO</span><span>SOLO HAY UNA SALIDA</span><span>© BELLADONNA</span></div>
+      <div className="intro-bottom"><span>ÚLTIMO ACTO</span><span>SOLO HAY UNA SALIDA</span><span>DECORADOS CC0: POLY HAVEN</span></div>
     </section>}
     {started&&!reveal&&<div className="hud">
       <header className="hud-header">
