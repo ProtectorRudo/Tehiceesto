@@ -64,7 +64,7 @@ export class TheaterAudio{
       const source=ctx.createBufferSource(),level=ctx.createGain();
       source.buffer=buffer;source.loop=true;
       level.gain.setValueAtTime(0,ctx.currentTime);
-      level.gain.setTargetAtTime(this.finalAct?.025:.17,ctx.currentTime,1.6);
+      level.gain.setTargetAtTime(this.finalAct ? 0.025 : 0.17,ctx.currentTime,1.6);
       source.connect(level);level.connect(master);source.start();
       this.musicSource=source;this.musicLevel=level;
     }catch(error){
@@ -74,7 +74,7 @@ export class TheaterAudio{
   setScene(scene:"inicio"|"luces"|"proyector"|"telon"|"final"){
     this.finalAct=scene==="final";
     const ctx=this.ctx,level=this.musicLevel;
-    if(ctx&&level)level.gain.setTargetAtTime(this.finalAct?.025:.17,ctx.currentTime,.7);
+    if(ctx&&level)level.gain.setTargetAtTime(this.finalAct ? 0.025 : 0.17,ctx.currentTime,.7);
   }
   updateListener(x:number,y:number,z:number,fx:number,fy:number,fz:number){
     this.listener=[x,y,z];this.listenerForward=[fx,fy,fz];
