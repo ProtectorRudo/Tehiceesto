@@ -32,12 +32,15 @@ export class UsherDirector {
   private readonly dirtyMaterials:THREE.Material[]=[];
   private readonly footJoints:THREE.Bone[]=[];
   private readonly footProbe=new THREE.Vector3();
-  private footReferenceY:number|null=null;
+  private readonly anchor:THREE.Object3D;
+  private groundingFrames=0;
+  private readonly groundBounds=new THREE.Box3();
   private footError=0;
   private readonly capTexture:THREE.Texture;
 
   constructor(root:THREE.Group,model:THREE.Object3D,camera:THREE.Camera){
     this.root=root;this.model=model;this.camera=camera;
+    this.anchor=model.parent??model;
     const bones:THREE.Bone[]=[];
     model.traverse(object=>{
       if(object instanceof THREE.Bone)bones.push(object);
@@ -211,29 +214,39 @@ export class UsherDirector {
   }
 
   correctFootContact(dt:number){
-    // Don't recalculate every skinned vertex or disable skeletal animation.
-    // Correct only the gradual vertical root drift using the lowermost foot
-    // joint, while allowing the feet to alternate during an actual step.
-    if(!this.footJoints.length)return;
-    this.model.updateWorldMatrix(true,true);
-    let lowest=Infinity;
-    for(const joint of this.footJoints){
-      joint.getWorldPosition(this.footProbe);
-      lowest=Math.min(lowest,this.footProbe.y);
+    // Fix the root cause: animation clips change the rig pose AFTER the original
+    // GLB import was grounded. Correct the independent rig anchor, never the
+    // skinned skeleton or the world-space path-finding root.
+    if(!this.model.visible)return;
+    if(++this.groundingFrames%3!==0)return;
+    let footY=Infinity;
+    if(this.footJoints.length){
+      this.model.updateWorldMatrix(true,true);
+      for(const foot of this.footJoints){
+        foot.getWorldPosition(this.footProbe);
+        footY=Math.min(footY,this.footProbe.y);
+      }
     }
-    if(!Number.isFinite(lowest))return;
-    if(this.footReferenceY===null){this.footReferenceY=lowest;return;}
-    const error=this.footReferenceY-lowest;
-    // Skip normal 2-3cm bobbing and prevent large corrections from teleporting
-    // the actor up when an imported animation has both feet lifted.
-    if(Math.abs(error)>.035){
-      const correction=THREE.MathUtils.clamp(error*(1-Math.exp(-7*dt)),-.022,.022);
-      this.model.position.y+=correction;
+    // Some MakeHuman exports put "foot" joints above the soles, while some
+    // do not name the joints at all. Grounding a skinned bounds every third
+    // frame is too expensive on Android, so we sample every twelfth frame.
+    if(this.footJoints.length===0 && this.groundingFrames%12===0){
+      this.groundBounds.setFromObject(this.model,true);
+      footY=this.groundBounds.min.y;
     }
+    if(!Number.isFinite(footY))return;
+    const targetY=this.footJoints.length?.085:.025;
+    const error=THREE.MathUtils.clamp(targetY-footY,-1.45,1.45);
     this.footError=error;
+    if(Math.abs(error)<.028)return;
+    const velocity=Math.min(Math.abs(error),Math.max(.045,dt*16));
+    this.anchor.position.y=THREE.MathUtils.clamp(
+      this.anchor.position.y+Math.sign(error)*velocity,-1.15,1.5
+    );
   }
   getGroundingStatus(){
-    return {footBones:this.footJoints.length,footError:Number(this.footError.toFixed(3))};
+    return {footBones:this.footJoints.length,footError:Number(this.footError.toFixed(3)),
+      anchorY:Number(this.anchor.position.y.toFixed(3))};
   }
   getStatus(){
     return {headBone:!!(this.head||this.neck),chestBone:!!this.chest,
