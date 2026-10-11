@@ -132,6 +132,21 @@ export class TheaterWorld{
   getCharacterStatus(){return {human:this.usher.children.some(x=>x.name==="AcomodadorHumanoRiggeado"),idle:!!this.usherIdle,walk:!!this.usherWalk};}
   getCinematicStatus(){return {projectorModel:this.projectorProfessionalLoaded,director:!!this.cinema,threatVisible:!!this.threatMessage?.visible,act:this.phase};}
   getWarningStatus(){return {stage:this.warningStage,seen:this.warningSeen};}
+  forceWarningForTest(){
+    if(!import.meta.env.DEV||this.phase!=="proyector")return false;
+    // Move to a free aisle before triggering a scripted scare in the headless browser.
+    this.camera.position.set(0,1.64,0);
+    this.yaw=0;this.pitch=0;this.camera.rotation.set(0,0,0,"YXZ");
+    this.warningStage="queued";this.warningAt=this.elapsed;
+    return true;
+  }
+  turnToApparitionForTest(){
+    if(!import.meta.env.DEV||this.warningStage!=="apparition")return false;
+    const target=this.usher.position.clone();target.y=1.65;
+    this.camera.lookAt(target);
+    this.yaw=this.camera.rotation.y;this.pitch=this.camera.rotation.x;
+    return true;
+  }
   private cancelWarning(){
     if(this.warningStage==="idle"||this.warningStage==="resolved")return;
     this.warningStage="resolved";
