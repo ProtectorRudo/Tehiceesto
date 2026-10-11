@@ -30,7 +30,7 @@ export class TheaterCinematics{
       blending:THREE.AdditiveBlending,
       uniforms:{uAmount:{value:0},uPulse:{value:0}},
       vertexShader:"varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}",
-      fragmentShader:"uniform float uAmount; uniform float uPulse; varying vec2 vUv; void main(){float nearLight=smoothstep(.98,.60,vUv.y);float rim=pow(abs(sin(vUv.x*6.28318)),.65);float slice=smoothstep(0.,.11,vUv.y)*(1.-smoothstep(.88,1.,vUv.y));float alpha=uAmount*(.023+.025*rim)*nearLight*slice*(.92+.08*uPulse);gl_FragColor=vec4(.60,.72,1.,alpha);}"
+      fragmentShader:"uniform float uAmount; uniform float uPulse; varying vec2 vUv; void main(){float nearLight=1.0-smoothstep(.60,.98,vUv.y);float rim=pow(abs(sin(vUv.x*6.28318)),.65);float slice=smoothstep(0.,.11,vUv.y)*(1.-smoothstep(.88,1.,vUv.y));float alpha=uAmount*(.023+.025*rim)*nearLight*slice*(.92+.08*uPulse);gl_FragColor=vec4(.60,.72,1.,alpha);}"
     });
     const beam=new THREE.Mesh(geometry,material);
     beam.position.copy(source).add(destination).multiplyScalar(.5);
