@@ -30,6 +30,10 @@ export class UsherDirector {
   private readonly up=new THREE.Vector3(0,1,0);
   private readonly side=new THREE.Vector3(1,0,0);
   private readonly dirtyMaterials:THREE.Material[]=[];
+  private readonly footJoints:THREE.Bone[]=[];
+  private readonly footProbe=new THREE.Vector3();
+  private footReferenceY:number|null=null;
+  private footError=0;
   private readonly capTexture:THREE.Texture;
 
   constructor(root:THREE.Group,model:THREE.Object3D,camera:THREE.Camera){
@@ -39,6 +43,9 @@ export class UsherDirector {
       if(object instanceof THREE.Bone)bones.push(object);
     });
     const find=(names:RegExp[])=>bones.find(b=>names.some(p=>p.test(b.name)))||null;
+    this.footJoints.push(...bones.filter(b=>/(?:left|right|l_|r_)?(?:foot|ankle)(?:$|[_:.])/i.test(b.name)));
+    // With imported Mixamo-style armatures, the final foot/ankle joints are
+    // reliable ground contacts, unlike the animated skinned bounding box.
     this.head=find([/(^|[_\s:])head($|[_\s:])/i,/head/i]);
     this.neck=find([/(^|[_\s:])neck($|[_\s:])/i,/neck/i]);
     this.chest=find([/(^|[_\s:])spine.?2/i,/(^|[_\s:])chest($|[_\s:])/i,/spine.?1/i,/spine/i]);
@@ -203,6 +210,31 @@ export class UsherDirector {
     this.appliedLastFrame=true;
   }
 
+  correctFootContact(dt:number){
+    // Don't recalculate every skinned vertex or disable skeletal animation.
+    // Correct only the gradual vertical root drift using the lowermost foot
+    // joint, while allowing the feet to alternate during an actual step.
+    if(!this.footJoints.length)return;
+    this.model.updateWorldMatrix(true,true);
+    let lowest=Infinity;
+    for(const joint of this.footJoints){
+      joint.getWorldPosition(this.footProbe);
+      lowest=Math.min(lowest,this.footProbe.y);
+    }
+    if(!Number.isFinite(lowest))return;
+    if(this.footReferenceY===null){this.footReferenceY=lowest;return;}
+    const error=this.footReferenceY-lowest;
+    // Skip normal 2-3cm bobbing and prevent large corrections from teleporting
+    // the actor up when an imported animation has both feet lifted.
+    if(Math.abs(error)>.035){
+      const correction=THREE.MathUtils.clamp(error*(1-Math.exp(-7*dt)),-.022,.022);
+      this.model.position.y+=correction;
+    }
+    this.footError=error;
+  }
+  getGroundingStatus(){
+    return {footBones:this.footJoints.length,footError:Number(this.footError.toFixed(3))};
+  }
   getStatus(){
     return {headBone:!!(this.head||this.neck),chestBone:!!this.chest,
       periodCap:this.accessories.some(a=>a.name==="BelladonnaUniformCap"),
