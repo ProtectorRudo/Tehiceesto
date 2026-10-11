@@ -82,6 +82,7 @@ export class TheaterWorld{
   private sharedLoader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
   private velvetMaterials:THREE.MeshStandardMaterial[]=[];
   private velvetReady=false;
+  private seatNumberMeshes:THREE.InstancedMesh[]=[];
   private usherIdle?:THREE.AnimationAction;private usherWalk?:THREE.AnimationAction;private usherWalking=false;
   private watchers:THREE.Group[]=[];
   private dust?:THREE.Points;
@@ -138,6 +139,13 @@ export class TheaterWorld{
   markLight(index:number){if(this.emitterLights[index])this.emitterLights[index].emissiveIntensity=1.9;this.cinema?.activateCircuit(index);}
   resetLights(){this.emitterLights.forEach(m=>m.emissiveIntensity=.16);this.cinema?.resetCircuits();}
   collectKey(){if(this.seatKey){this.seatKey.visible=false;this.seatKey=undefined;}}
+  getSeatNumberingStatus(){
+    return {rows:8,perRow:10,
+      numbered:this.seatNumberMeshes.reduce((sum,m)=>sum+m.count,0),
+      digits:this.seatNumberMeshes.length,
+      target:"FILA 3 · ASIENTO 8",
+      targetPosition:this.specialSeat?.position.toArray()};
+  }
   getCharacterStatus(){return {human:this.usher.children.some(x=>x.name==="AcomodadorHumanoRiggeado"),idle:!!this.usherIdle,walk:!!this.usherWalk};}
   getUsherDetails(){return this.usherDirector?.getStatus();}
   viewUsherForTest(){
@@ -454,8 +462,8 @@ export class TheaterWorld{
   private buildSeats(){
     const frame=mat(0x483129,.72),fabric=new THREE.MeshStandardMaterial({map:fabricTexture(),color:0xffffff,roughness:.99});
     this.velvetMaterials.push(fabric);
-    // Velvet theatre seats have rounded cushioning and carved wooden borders.
-    // Parts use instancing so richer geometry adds almost no draw-call cost.
+    // The 80 theatre chairs retain their detailed instanced upholstery. The
+    // numbering is physical 3D signage — 10 GPU batches, not 80 separate draws.
     const items:Array<{geo:THREE.BufferGeometry,m:THREE.Material,p:THREE.Vector3Tuple,tilt?:number}>=[
       {geo:new RoundedBoxGeometry(.79,.15,.7,3,.045),m:frame,p:[0,.51,0]},
       {geo:new RoundedBoxGeometry(.70,.21,.65,4,.095),m:fabric,p:[0,.64,-.045]},
@@ -466,26 +474,114 @@ export class TheaterWorld{
       {geo:new THREE.CylinderGeometry(.055,.075,.52,8),m:frame,p:[-.36,.25,-.3]},
       {geo:new THREE.CylinderGeometry(.055,.075,.52,8),m:frame,p:[.36,.25,-.3]},
     ];
-    const positions:THREE.Vector3Tuple[]=[];
-    let selected:THREE.Vector3Tuple=[3.6,0,3];
     const xs=[-6.3,-5.4,-4.5,-3.6,-2.7,2.7,3.6,4.5,5.4,6.3];
-    for(let row=0;row<8;row++){const z=7-row*2;
-      for(let col=0;col<10;col++){const x=xs[col];if(row===2&&col===7){selected=[x,0,z];continue;}positions.push([x,0,z]);this.colliders.push({x,z,rx:.38,rz:.35});}
+    const allSeats:Array<{row:number;number:number;p:THREE.Vector3Tuple}>=[];
+    const positions:THREE.Vector3Tuple[]=[];
+    let selected:THREE.Vector3Tuple=[4.5,0,3];
+    for(let row=0;row<8;row++){
+      const z=7-row*2;
+      for(let col=0;col<10;col++){
+        const x=xs[col],p:THREE.Vector3Tuple=[x,0,z];
+        allSeats.push({row:row+1,number:col+1,p});
+        if(row===2&&col===7){selected=p;continue;}
+        positions.push(p);this.colliders.push({x,z,rx:.38,rz:.35});
+      }
     }
+    const matrix=new THREE.Object3D();
     for(const part of items){
-      const inst=new THREE.InstancedMesh(part.geo,part.m,positions.length);const d=new THREE.Object3D();
-      positions.forEach((p,i)=>{d.position.set(p[0]+part.p[0],p[1]+part.p[1],p[2]+part.p[2]);d.rotation.x=part.tilt??0;d.updateMatrix();inst.setMatrixAt(i,d.matrix);});
+      const inst=new THREE.InstancedMesh(part.geo,part.m,positions.length);
+      positions.forEach((p,i)=>{
+        matrix.position.set(p[0]+part.p[0],p[1]+part.p[1],p[2]+part.p[2]);
+        matrix.rotation.set(part.tilt??0,0,0);
+        matrix.scale.set(1,1,1);matrix.updateMatrix();inst.setMatrixAt(i,matrix.matrix);
+      });
       inst.instanceMatrix.needsUpdate=true;this.scenery.add(inst);
     }
     const special=new THREE.Group();special.position.set(...selected);
+    special.name="Fila 3 · Asiento 8";
     items.forEach(part=>{const piece=addMesh(part.geo,part.m,part.p,special);piece.rotation.x=part.tilt??0;});
-    // Readable, physically attached brass plaque instead of a generic yellow rectangle.
-    addMesh(new THREE.BoxGeometry(.82,.38,.065),brass,[0,1.53,.425],special);
-    const numberPlate=new THREE.Mesh(new THREE.PlaneGeometry(.73,.29),new THREE.MeshBasicMaterial({
-      map:labelTexture(["FILA 3","ASIENTO 8"],"#f8e9bf","#543b30"),side:THREE.DoubleSide
-    }));
-    numberPlate.position.set(0,1.53,.467);special.add(numberPlate);
-    // The first puzzle's collectible actually exists in the world.
+    // Every backrest, including the target, receives a numbered brass plaque.
+    const plateGeo=new RoundedBoxGeometry(.38,.29,.025,2,.045);
+    const ordinaryPlate=new THREE.MeshStandardMaterial({color:0x987747,metalness:.76,roughness:.3});
+    const platePositions=allSeats.filter(s=>!(s.row===3&&s.number===8));
+    const plates=new THREE.InstancedMesh(plateGeo,ordinaryPlate,platePositions.length);
+    platePositions.forEach((seat,i)=>{
+      const p=seat.p;
+      matrix.position.set(p[0],1.52,p[2]+.548);
+      matrix.rotation.set(0,0,0);matrix.scale.set(1,1,1);matrix.updateMatrix();
+      plates.setMatrixAt(i,matrix.matrix);
+    });
+    plates.instanceMatrix.needsUpdate=true;plates.name="Placas metálicas de asientos numerados";
+    this.scenery.add(plates);
+    addMesh(new RoundedBoxGeometry(.40,.31,.03,3,.049),brass,[0,1.52,.551],special);
+    // BasicMaterial keeps the old ivory engraving legible in theatrical low light.
+    const plaqueSurface=new THREE.PlaneGeometry(.31,.235);
+    const numberedSeatMeshes:THREE.InstancedMesh[]=[];
+    for(let number=1;number<=10;number++){
+      const canvas=document.createElement("canvas");canvas.width=256;canvas.height=192;
+      const ctx=canvas.getContext("2d")!;
+      const grad=ctx.createLinearGradient(0,0,256,192);
+      grad.addColorStop(0,"#30201b");grad.addColorStop(1,"#4a3029");
+      ctx.fillStyle=grad;ctx.fillRect(0,0,256,192);
+      ctx.lineWidth=7;ctx.strokeStyle="#c59b56";ctx.strokeRect(10,10,236,172);
+      ctx.fillStyle="#f9e9bd";ctx.font="bold 145px Georgia,serif";
+      ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(String(number),128,105);
+      const map=new THREE.CanvasTexture(canvas);map.colorSpace=THREE.SRGBColorSpace;
+      const material=new THREE.MeshBasicMaterial({map,side:THREE.DoubleSide});
+      const group=allSeats.filter(seat=>seat.number===number);
+      const mesh=new THREE.InstancedMesh(plaqueSurface,material,group.length);
+      mesh.name="ASIENTO "+number;
+      mesh.userData.seats=group.map(seat=>({fila:seat.row,asiento:seat.number}));
+      group.forEach((seat,i)=>{
+        const p=seat.p;
+        // A tiny forward offset avoids z-fighting with the brass backing.
+        matrix.position.set(p[0],1.52,p[2]+.570);
+        matrix.rotation.set(0,0,0);matrix.scale.set(1,1,1);matrix.updateMatrix();
+        mesh.setMatrixAt(i,matrix.matrix);
+      });
+      mesh.instanceMatrix.needsUpdate=true;numberedSeatMeshes.push(mesh);
+      this.scenery.add(mesh);
+    }
+    // Real row markers attached to the aisle-end chairs, seen while walking
+    // towards the stage. "FILA 1" is the first row from the theatre entrance.
+    const signBacking=new THREE.InstancedMesh(
+      new RoundedBoxGeometry(.58,.37,.037,2,.035),brass,16);
+    const signBracket=new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(.016,.016,.35,8),fadedGold,16);
+    for(let row=1;row<=8;row++){
+      const canvas=document.createElement("canvas");canvas.width=512;canvas.height=256;
+      const ctx=canvas.getContext("2d")!;
+      ctx.fillStyle="#35221e";ctx.fillRect(0,0,512,256);
+      ctx.strokeStyle="#c79d5d";ctx.lineWidth=10;ctx.strokeRect(13,13,486,230);
+      ctx.textAlign="center";ctx.fillStyle="#f8e5bf";ctx.textBaseline="middle";
+      ctx.font="bold 62px Georgia,serif";ctx.fillText("FILA",256,84);
+      ctx.font="bold 114px Georgia,serif";ctx.fillText(String(row),256,178);
+      const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
+      const labelMat=new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide});
+      const rowMesh=new THREE.InstancedMesh(new THREE.PlaneGeometry(.51,.3),labelMat,2);
+      rowMesh.name="Señal de FILA "+row;
+      for(let side=0;side<2;side++){
+        const x=side===0?-2.35:2.35,z=7-(row-1)*2;
+        matrix.position.set(x,1.91,z+.58);
+        matrix.rotation.set(0,0,0);matrix.scale.set(1,1,1);matrix.updateMatrix();
+        rowMesh.setMatrixAt(side,matrix.matrix);
+        matrix.position.set(x,1.91,z+.550);matrix.updateMatrix();
+        signBacking.setMatrixAt((row-1)*2+side,matrix.matrix);
+        matrix.position.set(x,1.65,z+.548);matrix.scale.set(1,1,1);matrix.updateMatrix();
+        signBracket.setMatrixAt((row-1)*2+side,matrix.matrix);
+      }
+      rowMesh.instanceMatrix.needsUpdate=true;this.scenery.add(rowMesh);
+    }
+    signBacking.instanceMatrix.needsUpdate=true;signBracket.instanceMatrix.needsUpdate=true;
+    this.scenery.add(signBacking,signBracket);
+    // The numbered target is distinguished by a worn reserved-seat tab,
+    // but remains readable only once the player approaches the correct row.
+    const reserved=new THREE.Mesh(
+      new THREE.PlaneGeometry(.52,.12),
+      new THREE.MeshBasicMaterial({map:labelTexture(["RESERVADO"],"#e7be7b","#4b2521"),side:THREE.DoubleSide})
+    );
+    reserved.position.set(0,1.25,.559);reserved.name="Placa RESERVADO";
+    special.add(reserved);
     const key=new THREE.Group();key.position.set(.13,.77,-.24);
     const shaft=addMesh(new THREE.CylinderGeometry(.035,.035,.45,12),brass,[.12,0,0],key);
     shaft.rotation.z=Math.PI/2;
@@ -496,6 +592,7 @@ export class TheaterWorld{
     const halo=new THREE.PointLight(0xf2b867,1.25,2.6);halo.position.set(0,1.7,.7);special.add(halo);
     this.scenery.add(special);this.bind(special,"butaca");this.specialSeat=special;
     this.colliders.push({x:selected[0],z:selected[2],rx:.38,rz:.36});
+    this.seatNumberMeshes=numberedSeatMeshes;
   }
   private buildPanels(){
     const pedestal=(x:number,z:number)=>{const g=new THREE.Group();g.position.set(x,0,z);
