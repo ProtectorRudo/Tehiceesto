@@ -49,7 +49,7 @@ export class TheaterWorld{
   private actionTarget:TheaterAction|null=null;
   private dragId:number|null=null;private pointerX=0;private pointerY=0;
   private pointerStartX=0;private pointerStartY=0;private pointerStartTime=0;
-  private active=false;private ended=false;private elapsed=0;private eventDone=false;
+  private active=false;private ended=false;private elapsed=0;private startWallAt=0;private eventDone=false;
   private cleanupFns:Array<()=>void>=[];
   private usher=new THREE.Group();private usherMixer?:THREE.AnimationMixer;
   private curtainLeft?:THREE.Mesh;private curtainRight?:THREE.Mesh;
@@ -98,7 +98,7 @@ export class TheaterWorld{
     this.resize();window.addEventListener("resize",this.resize);
     this.frame=requestAnimationFrame(this.animate);
   }
-  start(){this.active=true;this.clock.getDelta();}
+  start(){this.active=true;this.startWallAt=performance.now()-this.elapsed*1000;this.clock.getDelta();}
   stop(){this.active=false;}
   setPhase(p:TheaterPhase){
     this.phase=p;this.cinema?.setAct(p);
@@ -778,7 +778,10 @@ export class TheaterWorld{
     this.frame=requestAnimationFrame(this.animate);
     const dt=Math.min(.05,this.clock.getDelta());this.clockTime+=dt;
     if(this.active){
-      this.elapsed+=dt;this.updateMovement(dt);this.checkFocus();
+      // Narrative events use monotonic elapsed wall time. dt is clamped only for
+      // animation/physics, so a slow mobile GPU cannot delay a scare by minutes.
+      this.elapsed=Math.max(this.elapsed,(performance.now()-this.startWallAt)/1000);
+      this.updateMovement(dt);this.checkFocus();
       if(this.entranceDoors.length&&!this.entranceClosed){
         const eased=THREE.MathUtils.smoothstep(this.elapsed,.35,1.75);
         for(let i=0;i<2;i++){
