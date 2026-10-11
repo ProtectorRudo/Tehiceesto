@@ -6,6 +6,9 @@ on:
       - 'games/la-ultima-funcion/**'
       - '.github/workflows/la-ultima-funcion-ci.yml'
   workflow_dispatch:
+concurrency:
+  group: ultima-funcion-qa-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
