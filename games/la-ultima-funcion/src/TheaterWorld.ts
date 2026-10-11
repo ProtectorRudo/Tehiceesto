@@ -901,6 +901,7 @@ export class TheaterWorld{
     if(this.warningLight)this.warningLight.intensity=4.7+Math.sin(this.clockTime*9)*.6;
     if(this.warningFlash>0){this.warningFlash=Math.max(0,this.warningFlash-dt);this.renderer.toneMappingExposure=1.32+this.warningFlash*2.4;}
     else if(this.renderer.toneMappingExposure!==1.32)this.renderer.toneMappingExposure=1.32;
+    this.usherDirector?.beforeAnimation();
     this.usherMixer?.update(dt);
     this.usherDirector?.update(dt,this.active&&!this.ended);
     this.decorMixers.forEach(m=>m.update(dt));
