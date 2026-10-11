@@ -98,7 +98,7 @@ export class UsherDirector {
 
   private createUniformAccents(){
     // Small accessories are shaped surfaces, not body-replacement cubes.
-    const burgundy=new THREE.MeshStandardMaterial({color:0x371a27,roughness:.82,metalness:.08,side:THREE.DoubleSide});
+    const burgundy=new THREE.MeshStandardMaterial({color:0x291a21,roughness:.88,metalness:.05,side:THREE.DoubleSide});
     const brim=new THREE.MeshStandardMaterial({color:0x21161b,roughness:.62,metalness:.1});
     const piping=new THREE.MeshStandardMaterial({color:0xa98752,roughness:.37,metalness:.72});
     this.dirtyMaterials.push(burgundy,brim,piping);
@@ -111,7 +111,7 @@ export class UsherDirector {
     ],32);
     const cap=new THREE.Group();cap.name="BelladonnaUniformCap";
     // The cap must frame the face, not look like a wide-brimmed mushroom hat.
-    cap.scale.setScalar(.69);
+    cap.scale.setScalar(.66);
     const shell=new THREE.Mesh(geometry,burgundy);shell.castShadow=true;cap.add(shell);
     const peak=new THREE.Mesh(new THREE.SphereGeometry(1,24,10,0,Math.PI*2,0,Math.PI*.5),brim);
     peak.scale.set(.25,.025,.15);peak.position.set(0,-.153,-.18);
@@ -149,7 +149,7 @@ export class UsherDirector {
     const top=bounds.max.y;
     const bone=this.head||this.neck;
     const p=bone?.getWorldPosition(new THREE.Vector3())||bounds.getCenter(new THREE.Vector3());
-    cap.position.set(p.x,top+.095,p.z+.065);
+    cap.position.set(p.x,top-.075,p.z+.035);
     if(bone)bone.attach(cap);else this.model.attach(cap);
   }
 
