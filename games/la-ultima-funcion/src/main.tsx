@@ -15,7 +15,7 @@ function invitation():Invite{
     rsvp:get("rsvp","").replace(/\D/g,"")};
 }
 const steps=[
-  {phase:"inicio",title:"La butaca reservada",objective:"Seguí las placas de FILA y los números de los respaldos hasta llegar al 3 · 8."},
+  {phase:"inicio",title:"La butaca reservada",objective:"Seguí los carteles de las filas y la numeración de los respaldos hasta encontrar fila 3, asiento 8."},
   {phase:"luces",title:"La consola de luces",objective:"Con la llave encontrada, restaurá la electricidad."},
   {phase:"proyector",title:"La película perdida",objective:"Descubrí la combinación de las tres ruedas del proyector."},
   {phase:"telon",title:"La última función",objective:"Subí al escenario y accioná la palanca del telón."}
