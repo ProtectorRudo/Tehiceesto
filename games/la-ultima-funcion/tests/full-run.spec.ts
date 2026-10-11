@@ -20,6 +20,12 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.cinema?.()),{timeout:60000}).toMatchObject({
     projectorModel:true,director:true,velvetPBR:true,act:"inicio"
   });
+  // The old CG placeholder must be gone: the actual GLB skeleton wears
+  // a stage uniform with a separately rigged cap, and looks toward the visitor.
+  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.usher?.()),{timeout:50000})
+    .toMatchObject({headBone:true,periodCap:true});
+  expect(await page.evaluate(()=>(window as any).__BELLADONNA_QA__?.viewUsher?.())).toBe(true);
+  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.usher?.()?.eyeContact),{timeout:12000}).toBe(true);
   await action(page,"butaca");await expectPhase(page,"luces");
   // La secuencia errónea debe bloquear la progresión.
   await action(page,"azul");await expectPhase(page,"luces");
