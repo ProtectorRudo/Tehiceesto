@@ -65,6 +65,7 @@ function App(){
     if(name==="programa"){show("PROGRAMA · Fila 3, asiento 8. El orden de luces es ÁMBAR — AZUL — ROJO.",6000);return;}
     if(name==="butaca"){
       if(current==="inicio"){
+        world.current?.collectKey();
         setPhase("luces");sound.current.play("found");
         setStory("Encontraste la llave del tramoyista. La consola izquierda se ha desbloqueado.");
         show("Una llave fría descansa bajo el terciopelo. Algo se movió en el balcón…",6000);
