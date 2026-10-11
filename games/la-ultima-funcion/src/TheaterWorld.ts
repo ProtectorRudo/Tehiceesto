@@ -55,7 +55,7 @@ export class TheaterWorld{
   private scenery=new THREE.Group();private chandelierPlaceholder?:THREE.Group;private lightsDone=false;
   private projectorReel?:THREE.Group;private specialSeat?:THREE.Group;private seatKey?:THREE.Group;
   private wheelFaces:THREE.MeshBasicMaterial[]=[];private wheelValues:[number,number,number]=[0,0,0];
-  private projectorScreen?:THREE.Mesh;
+  private projectorScreen?:THREE.Mesh;private projectorBeam?:THREE.SpotLight;
   private phase:TheaterPhase="inicio";private clockTime=0;
   private usherGoal=new THREE.Vector3(5.8,0,-12.3);
   private decorMixers:THREE.AnimationMixer[]=[];
@@ -89,7 +89,7 @@ export class TheaterWorld{
     this.phase=p;
     if(p==="luces"){this.usherGoal.set(-5.9,0,-11.7);this.events.onEvent("pasos");}
     if(p==="proyector"){
-      this.lightsDone=true;this.setScreen("3  ·  1  ·  7");
+      this.lightsDone=false;this.setScreen("PROYECCIÓN INTERRUMPIDA");
       this.usherGoal.set(6.7,0,-9.9);this.events.onEvent("susurro");
       this.watchers.forEach(w=>w.visible=true);
     }
@@ -346,11 +346,11 @@ export class TheaterWorld{
     const lens=addMesh(new THREE.CylinderGeometry(.23,.15,.52,16),mat(0x525660,.22,.8),[0,1.52,-.53],pr);lens.rotation.x=Math.PI/2;
     addMesh(new THREE.CylinderGeometry(.11,.13,.51,12),mat(0x191b29,.13,.65),[0,1.52,-.82],pr).rotation.x=Math.PI/2;
     const reflector=new THREE.SpotLight(0xc9d9ff,0,12,Math.PI/7,.6);reflector.position.set(7.2,1.65,-10.5);
-    reflector.target.position.set(0,3,-17.7);this.scene.add(reflector,reflector.target);
+    reflector.target.position.set(0,3,-17.7);this.scene.add(reflector,reflector.target);this.projectorBeam=reflector;
     this.bind(pr,"proyector");
     // The three combination wheels belong to the actual projector cabinet. They are
     // clickable 3D pieces, with physically located number faces.
-    const dialCabinet=addMesh(new THREE.BoxGeometry(1.65,.66,.4),mat(0x2a292b,.36,.7),[0,1.13,.52],pr);
+    addMesh(new THREE.BoxGeometry(1.65,.66,.4),mat(0x2a292b,.36,.7),[0,1.13,.52],pr);
     addMesh(new THREE.BoxGeometry(1.71,.1,.48),brass,[0,1.51,.52],pr);
     for(let i=0;i<3;i++){
       const px=(i-1)*.49;
@@ -407,6 +407,12 @@ export class TheaterWorld{
     addMesh(new THREE.SphereGeometry(.18,16,12),redVelvet,[.14,2.04,0],mechanism);
     this.bind(mechanism,"telon");
     const inv=new THREE.PointLight(0xffd3a0,0,17);inv.position.set(0,5,-18.2);this.scene.add(inv);this.lamps.push(inv);
+  }
+  playRecoveredFilm(){
+    this.lightsDone=true;
+    if(this.projectorBeam)this.projectorBeam.intensity=26;
+    this.setScreen("17 OCTUBRE 1968  ·  03:17");
+    this.events.onEvent("susurro");
   }
   private setScreen(text:string){
     const target=this.projectorScreen;if(!target)return;
