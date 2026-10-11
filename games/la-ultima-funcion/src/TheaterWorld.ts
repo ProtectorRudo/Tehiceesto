@@ -141,7 +141,7 @@ export class TheaterWorld{
       }
       this.lightsDone=false;this.setScreen("FALTA BOBINA · ENFOQUE 2");
       this.usherGoal.set(5.9,0,-10.95);this.events.onEvent("susurro");
-      this.watchers.forEach(w=>w.visible=true);
+      this.watchers.forEach(w=>w.visible=false);
     }
     if(p==="telon"){
       this.projectorReel?.rotateZ(.2);this.usherGoal.set(-6.0,0,-10.95);
@@ -486,7 +486,7 @@ export class TheaterWorld{
   private updateBoxSpecter(dt:number){
     if(!this.boxSpecterCue||this.ended)return;
     if(this.boxSpecter)this.boxSpecter.visible=this.boxSpecterVisible;
-    const box=new THREE.Vector3(-6.5,6.5,-4.8);
+    const box=new THREE.Vector3(-6.0,6.4,-13.1);
     const delta=box.sub(this.camera.position);
     const length=delta.length();
     this.camera.getWorldDirection(this.forwardScratch);
@@ -520,8 +520,12 @@ export class TheaterWorld{
     for(const side of [-1,1]){
       const group=new THREE.Group();
       group.name=side<0?"Palco 1 - izquierdo":"Palco 2 - derecho";
-      group.position.set(side*6.5,0,-4.8);
+      group.position.set(side*6.0,0,-13.1);
       this.scenery.add(group);this.privateBoxes.push(group);
+      // A warm focus illuminates the labelled box from the orchestra; no
+      // shadow map is needed on mobile, and the figure remains readable.
+      const rim=new THREE.PointLight(side<0?0xea9196:0xf1b57f,side<0?7.5:4.5,6.3,2);
+      rim.position.set(0,6.85,1.6);rim.castShadow=false;group.add(rim);
       const timberFloor=addMesh(new RoundedBoxGeometry(2.98,.23,3.7,3,.065),walnut,[0,5.05,-.15],group);
       timberFloor.receiveShadow=true;
       addMesh(new RoundedBoxGeometry(3.05,.17,.3,3,.04),gilt,[0,4.97,1.57],group);
@@ -560,6 +564,13 @@ export class TheaterWorld{
       label.position.set(0,6.91,1.62);group.add(label);
     }
   }
+  viewActorOnStageForTest(){
+    if(!import.meta.env.DEV)return false;
+    this.camera.position.set(0,1.64,-6.5);
+    this.camera.lookAt(this.usher.position.x,1.5,this.usher.position.z);
+    this.yaw=this.camera.rotation.y;this.pitch=this.camera.rotation.x;
+    return true;
+  }
   getPrivateBoxesStatus(){
     return {count:this.privateBoxes.length,
       names:this.privateBoxes.map(p=>p.name),
@@ -568,7 +579,7 @@ export class TheaterWorld{
   viewPrivateBoxForTest(){
     if(!import.meta.env.DEV||this.privateBoxes.length!==2)return false;
     this.camera.position.set(0,1.64,4);
-    this.camera.lookAt(-6.5,6.38,-4);
+    this.camera.lookAt(-6.0,6.38,-13.1);
     this.yaw=this.camera.rotation.y;this.pitch=this.camera.rotation.x;
     return true;
   }
@@ -1233,7 +1244,7 @@ export class TheaterWorld{
       if(this.elapsed>this.nextScareAt&&!this.ended){
         this.nextScareAt+=39;
         this.events.onEvent("susurro");
-        this.watchers.forEach(w=>w.visible=!w.visible);
+        this.boxSpecterCue&&this.boxSpecterVisible&&(this.boxGazeSeconds+=.04);
       }
       const actorMoving=this.warningStage!=="apparition" && this.warningStage!=="silence" && this.usher.position.distanceToSquared(this.usherGoal)>.06;
       if(this.usherIdle&&this.usherWalk&&this.usherWalking!==actorMoving){
