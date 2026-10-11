@@ -6,7 +6,7 @@ import { TheaterCinematics } from "./TheaterCinematics";
 
 export type TheaterAction = "butaca" | "ambar" | "azul" | "rojo" | "rueda1" | "rueda2" | "rueda3" | "proyector" | "telon" | "programa";
 export type TheaterPhase = "inicio" | "luces" | "proyector" | "telon" | "final";
-type SoundEvent = "pasos" | "apagón" | "susurro" | "aplausos" | "portazo" | "advertencia" | "aparicion" | "retirada";
+type SoundEvent = "pasos" | "apagón" | "susurro" | "aplausos" | "portazo" | "advertencia" | "presencia" | "aparicion" | "retirada";
 export interface WorldEvents { onFocus:(target:TheaterAction|null)=>void; onAction:(target:TheaterAction)=>void; onEvent:(event:SoundEvent)=>void; onListener:(x:number,y:number,z:number,fx:number,fy:number,fz:number)=>void; }
 
 type Collider={x:number;z:number;rx:number;rz:number};
@@ -175,11 +175,11 @@ export class TheaterWorld{
     this.warningLight=new THREE.PointLight(0xc87569,5.2,4.1,2);
     this.warningLight.position.set(loc.x,2.05,loc.z);
     this.scene.add(this.warningLight);
-    this.events.onEvent("aparicion");
+    this.events.onEvent("presencia");
   }
   private updateWarning(){
     if(this.warningStage==="queued"&&this.elapsed>=this.warningAt)this.startWarning();
-    if(this.warningStage==="silence"&&this.elapsed-this.warningStart>=1.15)this.spawnApparition();
+    if(this.warningStage==="silence"&&this.elapsed-this.warningStart>=1.75)this.spawnApparition();
     if(this.warningStage!=="apparition")return;
     const direction=this.usher.position.clone().sub(this.camera.position);
     const distance=direction.length();
