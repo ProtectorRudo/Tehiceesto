@@ -22,11 +22,14 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
   await action(page,"azul");await expectPhase(page,"luces");
   for(const a of ["ambar","azul","rojo"])await action(page,a);
   await expectPhase(page,"proyector");
-  await action(page,"proyector");await expect(page.locator(".projector-card")).toBeVisible();
-  const reels=page.locator(".dial");for(const [index,turns] of [[0,3],[1,1],[2,7]]){
-    for(let j=0;j<turns;j++)await reels.nth(index).click();
+  // The cabinet now has three physical 3D number wheels, not a popup.
+  await action(page,"proyector");
+  await expectPhase(page,"proyector");
+  for(const [index,turns] of [[1,3],[2,1],[3,7]]){
+    for(let j=0;j<turns;j++)await action(page,"rueda"+index);
   }
-  await page.getByRole("button",{name:/REPRODUCIR LA CINTA/}).click();
+  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.wheels?.())).toEqual([3,1,7]);
+  await action(page,"proyector");
   await expectPhase(page,"telon");
   await action(page,"telon");
   await expectPhase(page,"final");
