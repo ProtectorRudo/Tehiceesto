@@ -7,7 +7,7 @@ import { TheaterCinematics } from "./TheaterCinematics";
 export type TheaterAction = "butaca" | "ambar" | "azul" | "rojo" | "rueda1" | "rueda2" | "rueda3" | "proyector" | "telon" | "programa";
 export type TheaterPhase = "inicio" | "luces" | "proyector" | "telon" | "final";
 type SoundEvent = "pasos" | "apagón" | "susurro" | "aplausos" | "portazo" | "advertencia" | "presencia" | "aparicion" | "retirada";
-export interface WorldEvents { onFocus:(target:TheaterAction|null)=>void; onAction:(target:TheaterAction)=>void; onEvent:(event:SoundEvent)=>void; onListener:(x:number,y:number,z:number,fx:number,fy:number,fz:number)=>void; }
+export interface WorldEvents { onFocus:(target:TheaterAction|null)=>void; onAction:(target:TheaterAction)=>void; onEvent:(event:SoundEvent)=>void; onListener:(x:number,y:number,z:number,fx:number,fy:number,fz:number,ux:number,uy:number,uz:number)=>void; }
 
 type Collider={x:number;z:number;rx:number;rz:number};
 const golden=0xc8a56a, velvet=0x651f29;
@@ -789,7 +789,7 @@ export class TheaterWorld{
       }
       this.camera.getWorldDirection(this.forwardScratch);const p=this.camera.position,dir=this.forwardScratch;
       this.updateWarning();
-      this.events.onListener(p.x,p.y,p.z,dir.x,dir.y,dir.z);
+      this.events.onListener(p.x,p.y,p.z,dir.x,dir.y,dir.z,this.usher.position.x,this.usher.position.y+1,this.usher.position.z);
       if(this.elapsed>52&&!this.eventDone&&this.phase!=="final"){
         this.eventDone=true;this.events.onEvent("apagón");
         if(this.threatMessage)this.threatMessage.visible=true;
