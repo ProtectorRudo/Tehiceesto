@@ -1,0 +1,261 @@
+import React,{useEffect,useRef,useState} from "react";
+import {createRoot} from "react-dom/client";
+import {TheaterWorld,type TheaterAction,type TheaterPhase} from "./TheaterWorld";
+import {TheaterAudio} from "./audio";
+import "./style.css";
+
+type Invite={nombre:string;evento:string;fecha:string;hora:string;lugar:string;mensaje:string;rsvp:string};
+function invitation():Invite{
+  const q=new URLSearchParams(location.search);
+  const get=(k:string,fallback:string)=>{const v=q.get(k)?.trim();return v?v.slice(0,160):fallback;};
+  return {nombre:get("nombre","INVITADO ESPECIAL"),evento:get("evento","Una celebración inolvidable"),
+    fecha:get("fecha","Próximamente"),hora:get("hora","Horario por confirmar"),
+    lugar:get("lugar","El lugar de nuestra celebración"),
+    mensaje:get("mensaje","Tu presencia hace que esta función sea única."),
+    rsvp:get("rsvp","").replace(/\D/g,"")};
+}
+const steps=[{phase:"inicio",title:"La butaca reservada"},{phase:"luces",title:"La consola de luces"},{phase:"proyector",title:"La película perdida"},{phase:"telon",title:"La última función"}];
+const labels:Record<TheaterAction,string>={
+  butaca:"Examinar butaca reservada",ambar:"Activar interruptor ámbar",azul:"Activar interruptor azul",
+  rojo:"Activar interruptor rojo",proyector:"Examinar proyector",telon:"Accionar palanca del telón",programa:"Leer programa"
+};
+const hints:Record<TheaterPhase,string>={
+  inicio:"Tu boleto dice «FILA 3 · ASIENTO 8». Buscá una butaca con una placa dorada, a la derecha del pasillo central.",
+  luces:"La consola se encuentra al costado izquierdo del escenario. La vieja inscripción revela el orden: ÁMBAR, AZUL, ROJO.",
+  proyector:"El proyector está junto al lado derecho del escenario. La pantalla revela las cifras 3 · 1 · 7. Girá las tres ruedas.",
+  telon:"El mecanismo final está sobre el escenario, justo frente al telón rojo. Hay una palanca con una esfera oscura.",
+  final:"La función comenzó. Ahora descubrí para qué te estaban esperando."
+};
+function App(){
+  const invite=useRef(invitation()).current;
+  const mount=useRef<HTMLDivElement>(null);
+  const world=useRef<TheaterWorld|null>(null);
+  const sound=useRef(new TheaterAudio());
+  const phaseRef=useRef<TheaterPhase>("inicio");
+  const actionRef=useRef<(a:TheaterAction)=>void>(()=>{});
+  const timerRef=useRef<number|null>(null);
+  const toastTimer=useRef<number|null>(null);
+  const startAt=useRef(0);const sequence=useRef(0);
+  const [supported,setSupported]=useState(true);
+  const [started,setStarted]=useState(false);
+  const [phase,setPhaseState]=useState<TheaterPhase>("inicio");
+  const [focus,setFocus]=useState<TheaterAction|null>(null);
+  const [story,setStory]=useState("");
+  const [toast,setToastState]=useState("");
+  const [seconds,setSeconds]=useState(0);
+  const [hintsOpen,setHintsOpen]=useState(false);
+  const [inspection,setInspection]=useState(false);
+  const [dials,setDials]=useState<[number,number,number]>([0,0,0]);
+  const [blackout,setBlackout]=useState(false);
+  const [reveal,setReveal]=useState(false);
+  const [timedOut,setTimedOut]=useState(false);
+  const [muted,setMuted]=useState(false);
+  const [joystick,setJoystick]=useState({x:0,y:0});
+  const [error,setError]=useState("");
+  const finished=phase==="final";
+  const setPhase=(p:TheaterPhase)=>{phaseRef.current=p;setPhaseState(p);world.current?.setPhase(p);};
+  const show=(message:string,duration=3900)=>{
+    setToastState(message);
+    if(toastTimer.current!==null)window.clearTimeout(toastTimer.current);
+    toastTimer.current=window.setTimeout(()=>setToastState(""),duration);
+  };
+  const handleAction=(name:TheaterAction)=>{
+    if(phaseRef.current==="final")return;
+    sound.current.play("click");const current=phaseRef.current;
+    if(name==="programa"){show("PROGRAMA · Fila 3, asiento 8. El orden de luces es ÁMBAR — AZUL — ROJO.",6000);return;}
+    if(name==="butaca"){
+      if(current==="inicio"){
+        setPhase("luces");sound.current.play("found");
+        setStory("Encontraste la llave del tramoyista. La consola izquierda se ha desbloqueado.");
+        show("Una llave fría descansa bajo el terciopelo. Algo se movió en el balcón…",6000);
+      }else show("La butaca está vacía. Ya tomaste lo que necesitabas.");
+      return;
+    }
+    if(name==="ambar"||name==="azul"||name==="rojo"){
+      if(current==="inicio"){show("Los interruptores están bloqueados. Primero encontrá tu asiento.");return;}
+      if(current!=="luces"){show("El sistema de iluminación ya está sincronizado.");return;}
+      const order:["ambar","azul","rojo"]=["ambar","azul","rojo"];
+      if(name===order[sequence.current]){
+        world.current?.markLight(sequence.current);sequence.current++;
+        if(sequence.current===3){
+          setPhase("proyector");sound.current.play("found");
+          setStory("La pantalla despertó: 3 · 1 · 7. Ahora repará el proyector.");
+          show("Las luces recorren el escenario. El acomodador ya no está donde lo viste.",6200);
+        }else show("Circuito "+sequence.current+"/3 activado. Escuchás un relé detrás del muro.");
+      }else{
+        sequence.current=0;world.current?.resetLights();sound.current.play("wrong");
+        show("Una alarma chirría. La secuencia volvió a cero. Recordá: ÁMBAR, AZUL, ROJO.");
+      }
+      return;
+    }
+    if(name==="proyector"){
+      if(current==="proyector"){setInspection(true);show("Alineá las tres ruedas de la película.");}
+      else if(current==="inicio"||current==="luces")show("El proyector está apagado. Primero restablecé las luces.");
+      else show("La cinta está girando. Ya recuperaste la grabación.");
+      return;
+    }
+    if(name==="telon"){
+      if(current==="telon"){
+        setPhase("final");sound.current.play("curtain");
+        setStory("La maquinaria del teatro vuelve a la vida.");
+        show("Damas y caballeros… la función está por comenzar.",5000);
+        world.current?.openCurtain();
+        window.setTimeout(()=>{sound.current.play("success");setReveal(true);},5150);
+      }else show("El telón está asegurado. Necesitás restaurar la película antes de levantarlo.");
+    }
+  };
+  actionRef.current=handleAction;
+  useEffect(()=>{
+    if(!mount.current)return;
+    try{
+      const w=new TheaterWorld(mount.current,{
+        onFocus:a=>setFocus(a),
+        onAction:a=>actionRef.current(a),
+        onEvent:e=>{
+          if(e==="apagón"){
+            setBlackout(true);sound.current.play("scare");
+            window.setTimeout(()=>{setBlackout(false);setStory("¿Viste al acomodador? Algo cambió cerca del escenario.");},1200);
+          }else sound.current.play("steps");
+        }
+      });
+      world.current=w;
+    }catch(e){
+      setSupported(false);setError(e instanceof Error?e.message:"No se pudo inicializar el escenario 3D.");
+    }
+    return ()=>{world.current?.dispose();world.current=null;sound.current.dispose();if(timerRef.current!==null)clearInterval(timerRef.current);};
+  },[]);
+  const begin=()=>{
+    if(!supported||!world.current)return;
+    sound.current.unlock();sound.current.play("found");
+    setStarted(true);world.current.start();startAt.current=Date.now();
+    setStory("El último espectador ha llegado. Encontrá tu butaca: fila 3, asiento 8.");
+    show("«Por favor, encuentre su asiento. El director lo está esperando»",6500);
+    timerRef.current=window.setInterval(()=>{
+      const s=Math.floor((Date.now()-startAt.current)/1000);setSeconds(s);
+      if(s>=480){
+        if(timerRef.current!==null){window.clearInterval(timerRef.current);timerRef.current=null;}
+        if(phaseRef.current!=="final"){setTimedOut(true);world.current?.stop();}
+      }
+    },250);
+  };
+  const dialTurn=(index:number)=>{
+    sound.current.play("click");
+    setDials(old=>{const next:[number,number,number]=[...old];next[index]=(next[index]+1)%10;return next;});
+  };
+  const verifyDials=()=>{
+    if(dials[0]===3&&dials[1]===1&&dials[2]===7){
+      sound.current.play("found");setInspection(false);setPhase("telon");
+      setStory("La película revela una fecha imposible y la última palanca del escenario.");
+      show("El proyector cobra vida. Alguien golpea tres veces detrás del telón.",6200);
+    }else{sound.current.play("wrong");show("La cinta se atasca. La combinación no corresponde al archivo 03:17.");}
+  };
+  const joyMove=(e:React.PointerEvent<HTMLDivElement>)=>{
+    const r=e.currentTarget.getBoundingClientRect();const dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);
+    const max=r.width*.37;const n=Math.max(1,Math.hypot(dx,dy)/max);
+    const x=dx/max/n,y=dy/max/n;setJoystick({x,y});world.current?.setMove(x,-y);
+  };
+  const minutes=(s:number)=>Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
+  const remaining=Math.max(0,420-seconds);
+  const progress=phase==="inicio"?0:phase==="luces"?1:phase==="proyector"?2:phase==="telon"?3:4;
+  return <main className="app">
+    <div className="scene-host" ref={mount}/>
+    <div className="film-grain" aria-hidden="true"/>
+    {!started&&!reveal&&<section className="intro-screen">
+      <div className="intro-corners" aria-hidden="true"/>
+      <div className="topline"><span>TEATRO BELLADONNA</span><span>EST. 1968</span></div>
+      <div className="intro-central">
+        <p className="overline">UNA EXPERIENCIA INTERACTIVA</p>
+        <div className="ornament">✦</div>
+        <h1>LA ÚLTIMA<br/><em>FUNCIÓN</em></h1>
+        <p className="premise">83 espectadores desaparecieron aquella noche.<br/>La función nunca terminó.</p>
+        <p className="intro-person">Pero hoy… <strong>{invite.nombre}</strong> tiene una entrada reservada.</p>
+        {!supported&&<p className="error">{error||"Se necesita un dispositivo compatible con WebGL2."}</p>}
+        <button className="main-cta" disabled={!supported} onClick={begin}>ABRIR LAS PUERTAS <span>↗</span></button>
+        <p className="micro">Usá auriculares para una mejor experiencia · 7 minutos</p>
+      </div>
+      <div className="intro-bottom"><span>ÚLTIMO ACTO</span><span>SOLO HAY UNA SALIDA</span><span>© BELLADONNA</span></div>
+    </section>}
+    {started&&!reveal&&<div className="hud">
+      <header className="hud-header">
+        <div className="hud-brand"><span className="hud-spark">✦</span><div>LA ÚLTIMA FUNCIÓN<small>TEATRO BELLADONNA</small></div></div>
+        <div className="hud-right">
+          <button className="icon-button" onClick={()=>{const v=!muted;setMuted(v);sound.current.setMuted(v);}} aria-label={muted?"Activar audio":"Silenciar audio"}>{muted?"♩̸":"♫"}</button>
+          <span className={"timer "+(seconds>=420?"timer-alert":"")}>{seconds<420?minutes(remaining):"+"+minutes(Math.max(0,480-seconds))}<small>{seconds>=420?"TIEMPO EXTRA":"RESTANTE"}</small></span>
+        </div>
+      </header>
+      {!finished&&<div className="mission">
+        <span className="mission-index">ACTO {progress+1} / 4</span>
+        <div className="mission-title">{steps[Math.min(progress,3)].title}</div>
+        <div className="mission-bar"><span style={{width:(progress/4)*100+"%"}}/></div>
+      </div>}
+      {story&&<div className="story-caption">{story}</div>}
+      <div className="crosshair" aria-hidden="true"><i/><i/></div>
+      {focus&& !inspection&& !timedOut&& !finished&&<div className="interaction">
+        <span className="interaction-label">{labels[focus]}</span>
+        <button onClick={()=>world.current?.activate()}>INTERACTUAR <span>✦</span></button>
+      </div>}
+      <div className="game-bottom">
+        <div className="joystick-area" onPointerDown={e=>{e.preventDefault();e.currentTarget.setPointerCapture(e.pointerId);joyMove(e);}} onPointerMove={e=>{if(e.currentTarget.hasPointerCapture(e.pointerId))joyMove(e);}} onPointerUp={()=>{setJoystick({x:0,y:0});world.current?.setMove(0,0);}} onPointerCancel={()=>{setJoystick({x:0,y:0});world.current?.setMove(0,0);}}>
+          <div className="joystick-ring"><div className="joystick-knob" style={{transform:"translate("+(joystick.x*30)+"px,"+(joystick.y*30)+"px)"}}/></div>
+          <small>MOVER</small>
+        </div>
+        <div className="right-controls">
+          <span className="drag-tip">DESLIZÁ PARA MIRAR ↔</span>
+          <button className="hint-button" onClick={()=>setHintsOpen(v=>!v)}>¿UNA PISTA? <span>?</span></button>
+        </div>
+      </div>
+      <div className="desktop-tip">W A S D PARA CAMINAR · MOUSE PARA MIRAR · E PARA INTERACTUAR</div>
+      {toast&&<div role="status" className="toast">{toast}</div>}
+      {hintsOpen&& !inspection&& <div className="modal-scrim" onClick={()=>setHintsOpen(false)}>
+        <div className="clue-card" onClick={e=>e.stopPropagation()}>
+          <p className="overline">DEL DIARIO DEL TRAMOYISTA</p><h2>Una pista del teatro</h2><p>{hints[phase]}</p>
+          <button onClick={()=>setHintsOpen(false)}>VOLVER A LA FUNCIÓN</button>
+        </div>
+      </div>}
+      {inspection&&<div className="modal-scrim">
+        <div className="projector-card">
+          <p className="overline">CABINA DE PROYECCIÓN · ARCHIVO 03:17</p>
+          <h2>El proyector</h2>
+          <p>Girás tres ruedas mecánicas. La pantalla recuperada muestra: <strong>3 · 1 · 7</strong></p>
+          <div className="dials">
+            {dials.map((num,i)=><button key={i} className="dial" onClick={()=>dialTurn(i)} aria-label={"Girar rueda "+(i+1)}>
+              <small>BOBINA {i+1}</small><span>{num}</span><em>↻ TOCAR</em>
+            </button>)}
+          </div>
+          <button className="main-cta smaller" onClick={verifyDials}>REPRODUCIR LA CINTA</button>
+          <button className="text-button" onClick={()=>setInspection(false)}>CERRAR LA CABINA</button>
+        </div>
+      </div>}
+      {timedOut&&!finished&&<div className="modal-scrim">
+        <div className="clue-card">
+          <p className="overline">LA FUNCIÓN SE INTERRUMPIÓ</p><h2>El teatro vuelve a quedar en silencio.</h2>
+          <p>El minuto adicional terminó. Todavía podés volver a intentarlo.</p>
+          <button onClick={()=>location.reload()}>REINICIAR PARTIDA</button>
+        </div>
+      </div>}
+      <div className={"blackout "+(blackout?"visible":"")} aria-hidden="true"/>
+    </div>}
+    {reveal&&<section className="finale-screen">
+      <div className="finale-glow"/>
+      <div className="finale-confetti" aria-hidden="true">{Array.from({length:25},(_,i)=><i key={i} style={{left:(i*41%100)+"%",animationDelay:(i*.13)+"s",animationDuration:(3.5+i%5)+"s"}}/>)}</div>
+      <p className="overline">EL TEATRO BELLADONNA PRESENTA</p>
+      <div className="ornament">✦</div>
+      <p className="finale-announce">Nunca fuiste un espectador más.</p>
+      <h1>VOS ERAS<br/><em>EL INVITADO</em></h1>
+      <article className="invitation-ticket">
+        <div className="ticket-top">UNA FUNCIÓN IRREPETIBLE <span>ADMIT ONE · ★</span></div>
+        <div className="ticket-body">
+          <p>LA CELEBRACIÓN MÁS ESPERADA</p><h2>{invite.evento}</h2>
+          <div className="ticket-rule"/>
+          <div className="invite-data"><div><small>FECHA</small><strong>{invite.fecha}</strong></div><div><small>HORA</small><strong>{invite.hora}</strong></div></div>
+          <div className="invite-place"><small>LUGAR</small><strong>{invite.lugar}</strong></div>
+          <p className="message">{invite.mensaje}</p>
+          <small className="exclusive">ENTRADA PERSONAL E INTRANSFERIBLE · {invite.nombre}</small>
+        </div>
+      </article>
+      {invite.rsvp&&<a className="main-cta rsvp" target="_blank" rel="noopener noreferrer" href={"https://wa.me/"+invite.rsvp+"?text="+encodeURIComponent("¡Confirmo mi asistencia a "+invite.evento+"!")}>CONFIRMAR ASISTENCIA ↗</a>}
+      <p className="finale-end">Ahora sí… podemos comenzar.</p>
+    </section>}
+  </main>;
+}
+createRoot(document.getElementById("root")!).render(<App/>);
