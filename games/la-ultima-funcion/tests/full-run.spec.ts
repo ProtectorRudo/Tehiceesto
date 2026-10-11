@@ -18,7 +18,7 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
     human:true,idle:true,walk:true
   });
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.cinema?.()),{timeout:60000}).toMatchObject({
-    projectorModel:true,director:true,act:"inicio"
+    projectorModel:true,director:true,velvetPBR:true,act:"inicio"
   });
   await action(page,"butaca");await expectPhase(page,"luces");
   // La secuencia errónea debe bloquear la progresión.
