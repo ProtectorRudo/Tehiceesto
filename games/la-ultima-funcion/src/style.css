@@ -202,3 +202,25 @@
   .briefing-ticket{padding:8px;margin:10px 0}
 }
 @media(prefers-reduced-motion:reduce){.briefing-frame{animation:none}}
+
+/* Cinematic spatial cue for the physically modelled boxes — does not obscure
+   the 3D audience, puzzle focus or the touch joystick. */
+.balcony-callout{
+  position:absolute;z-index:5;top:31%;left:50%;transform:translateX(-50%);
+  display:flex;gap:9px;align-items:center;justify-content:center;
+  max-width:80vw;padding:10px 14px;
+  color:#f2d7b2;font:700 10px/1.35 "DM Sans",sans-serif;
+  letter-spacing:1.9px;text-align:center;
+  background:linear-gradient(90deg,transparent,rgba(22,8,17,.84) 16%,rgba(22,8,17,.84) 84%,transparent);
+  text-shadow:0 2px 11px #000;pointer-events:none;
+  animation:balconyCue 2.4s ease-in-out infinite;
+}
+.balcony-callout span{font:600 27px/1 Georgia,serif;color:#db987a}
+@keyframes balconyCue{
+  0%,100%{opacity:.67;filter:brightness(.85)}
+  50%{opacity:1;filter:brightness(1.2)}
+}
+@media(max-width:750px) and (orientation:portrait){
+  .balcony-callout{top:39%;left:50%;max-width:84vw;width:80vw;letter-spacing:1px;font-size:9px}
+}
+@media(prefers-reduced-motion:reduce){.balcony-callout{animation:none}}
