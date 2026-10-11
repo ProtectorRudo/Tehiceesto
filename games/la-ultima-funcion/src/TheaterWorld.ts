@@ -106,6 +106,7 @@ export class TheaterWorld{
   markLight(index:number){if(this.emitterLights[index])this.emitterLights[index].emissiveIntensity=1.9;}
   resetLights(){this.emitterLights.forEach(m=>m.emissiveIntensity=.16);}
   collectKey(){if(this.seatKey){this.seatKey.visible=false;this.seatKey=undefined;}}
+  getCharacterStatus(){return {human:this.usher.children.some(x=>x.name==="AcomodadorHumanoRiggeado"),idle:!!this.usherIdle,walk:!!this.usherWalk};}
   setRevealText(name:string,event:string){
     const target=this.projectorScreen;if(!target)return;
     const material=target.material as THREE.MeshBasicMaterial;
