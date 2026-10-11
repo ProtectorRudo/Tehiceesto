@@ -32,7 +32,7 @@ test("La Última Función abre, activa controles y muestra pistas",async({page},
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.seatNumbers?.()),{timeout:10000})
     .toMatchObject({rows:8,perRow:10,numbered:80,digits:10,target:"FILA 3 · ASIENTO 8"});
   await page.getByRole("button",{name:/UNA PISTA/i}).click();
-  await expect(page.getByText(/FILA 3 · ASIENTO 8/)).toBeVisible();
+  await expect(page.getByText(/Las filas están señalizadas junto al pasillo central/)).toBeVisible();
   await page.getByRole("button",{name:/VOLVER A LA FUNCIÓN/i}).click();
   await page.screenshot({path:testInfo.outputPath("02-teatro.png")});
   expect(failures).toEqual([]);
