@@ -139,6 +139,21 @@ export class TheaterWorld{
   markLight(index:number){if(this.emitterLights[index])this.emitterLights[index].emissiveIntensity=1.9;this.cinema?.activateCircuit(index);}
   resetLights(){this.emitterLights.forEach(m=>m.emissiveIntensity=.16);this.cinema?.resetCircuits();}
   collectKey(){if(this.seatKey){this.seatKey.visible=false;this.seatKey=undefined;}}
+  viewNumberedSeatForTest(){
+    if(!import.meta.env.DEV||!this.specialSeat)return false;
+    const p=this.specialSeat.position;
+    this.camera.position.set(p.x,1.6,p.z+1.55);
+    this.camera.lookAt(p.x,1.48,p.z+.54);
+    this.yaw=this.camera.rotation.y;this.pitch=this.camera.rotation.x;
+    return true;
+  }
+  viewRowSignageForTest(){
+    if(!import.meta.env.DEV)return false;
+    this.camera.position.set(0,1.68,9.5);
+    this.camera.lookAt(0,1.82,2.4);
+    this.yaw=this.camera.rotation.y;this.pitch=this.camera.rotation.x;
+    return true;
+  }
   getSeatNumberingStatus(){
     return {rows:8,perRow:10,
       numbered:this.seatNumberMeshes.reduce((sum,m)=>sum+m.count,0),
