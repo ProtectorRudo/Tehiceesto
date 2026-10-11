@@ -51,7 +51,7 @@ export class TheaterWorld{
   private curtainLeft?:THREE.Mesh;private curtainRight?:THREE.Mesh;
   private curtainProgress=0;private lamps:THREE.PointLight[]=[];
   private scenery=new THREE.Group();private chandelierPlaceholder?:THREE.Group;private lightsDone=false;
-  private projectorReel?:THREE.Group;private specialSeat?:THREE.Group;
+  private projectorReel?:THREE.Group;private specialSeat?:THREE.Group;private seatKey?:THREE.Group;
   private projectorScreen?:THREE.Mesh;
   private phase:TheaterPhase="inicio";private clockTime=0;
   private usherGoal=new THREE.Vector3(5.8,0,-12.3);
@@ -103,6 +103,7 @@ export class TheaterWorld{
   activate(){if(this.actionTarget){this.events.onAction(this.actionTarget);return;}const closest=this.closestObject();if(closest)this.events.onAction(closest);}
   markLight(index:number){if(this.emitterLights[index])this.emitterLights[index].emissiveIntensity=1.9;}
   resetLights(){this.emitterLights.forEach(m=>m.emissiveIntensity=.16);}
+  collectKey(){if(this.seatKey){this.seatKey.visible=false;this.seatKey=undefined;}}
   setRevealText(name:string,event:string){
     const target=this.projectorScreen;if(!target)return;
     const material=target.material as THREE.MeshBasicMaterial;
@@ -244,8 +245,20 @@ export class TheaterWorld{
     }
     const special=new THREE.Group();special.position.set(...selected);
     items.forEach(part=>addMesh(part.geo,part.m,[part.p[0],part.p[1],part.p[2]],special));
-    const medal=addMesh(new THREE.BoxGeometry(.29,.2,.045),brass,[0,1.42,.402],special);
-    medal.material=brass;
+    // Readable, physically attached brass plaque instead of a generic yellow rectangle.
+    addMesh(new THREE.BoxGeometry(.82,.38,.065),brass,[0,1.53,.425],special);
+    const numberPlate=new THREE.Mesh(new THREE.PlaneGeometry(.73,.29),new THREE.MeshBasicMaterial({
+      map:labelTexture(["FILA 3","ASIENTO 8"],"#f8e9bf","#543b30"),side:THREE.DoubleSide
+    }));
+    numberPlate.position.set(0,1.53,.467);special.add(numberPlate);
+    // The first puzzle's collectible actually exists in the world.
+    const key=new THREE.Group();key.position.set(.13,.77,-.24);
+    const shaft=addMesh(new THREE.CylinderGeometry(.035,.035,.45,12),brass,[.12,0,0],key);
+    shaft.rotation.z=Math.PI/2;
+    addMesh(new THREE.TorusGeometry(.13,.038,8,20),brass,[-.14,0,0],key);
+    addMesh(new THREE.BoxGeometry(.05,.12,.06),brass,[.3,-.08,0],key);
+    addMesh(new THREE.BoxGeometry(.05,.1,.06),brass,[.21,-.09,0],key);
+    special.add(key);this.seatKey=key;
     const halo=new THREE.PointLight(0xf2b867,1.25,2.6);halo.position.set(0,1.7,.7);special.add(halo);
     this.scenery.add(special);this.bind(special,"butaca");this.specialSeat=special;
     this.colliders.push({x:selected[0],z:selected[2],rx:.38,rz:.36});
