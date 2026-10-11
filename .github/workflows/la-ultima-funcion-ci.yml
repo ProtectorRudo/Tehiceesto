@@ -29,6 +29,20 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Compilar TypeScript y Vite
         run: npm run build
+      - name: Validar paquetes PBR reales
+        run: |
+          node --input-type=module -e '
+          import fs from "node:fs";
+          const manifest=JSON.parse(fs.readFileSync("public/models/manifest.json","utf8"));
+          if(!manifest.materials?.velvet)throw Error("Falta terciopelo real PBR");
+          for(const key of ["color","normal","arm"]){
+            const url=manifest.materials.velvet[key];
+            if(!url||!fs.existsSync("public"+url))throw Error("Falta mapa "+key);
+            const buffer=fs.readFileSync("public"+url);
+            if(buffer.length<2000)throw Error("Mapa corrupto: "+key);
+            console.log(key,buffer.length,"bytes");
+          }
+          '
       - name: Preparar navegadores
         run: npx playwright install --with-deps chromium
       - name: Probar Android vertical y escritorio
