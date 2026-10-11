@@ -29,7 +29,7 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
   // Genuine cinematic surprise: silence, an appearance physically behind the
   // player, then a reaction only when the camera turns toward the usher.
   expect(await page.evaluate(()=>(window as any).__BELLADONNA_QA__?.forceWarning())).toBe(true);
-  await expect(page.locator(".haunting-caption")).toBeVisible({timeout:12000});
+  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.warningCues?.()),{timeout:12000}).toBeGreaterThan(0);
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.warning?.().stage),{timeout:15000}).toBe("apparition");
   expect(await page.evaluate(()=>(window as any).__BELLADONNA_QA__?.turnBehind())).toBe(true);
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.warning?.().seen),{timeout:8000}).toBe(true);
