@@ -5,6 +5,9 @@ export class TheaterAudio{
   private master:GainNode|null=null;
   private ambience:OscillatorNode[]=[];
   private metronome:number|null=null;
+  private musicSource?:AudioBufferSourceNode;
+  private musicLevel?:GainNode;
+  private finalAct=false;
   private noise?:AudioBuffer;
   private muted=false;
   private listener:Vec3=[0,1.64,13.1];
@@ -45,6 +48,33 @@ export class TheaterAudio{
     const low=ctx.createBiquadFilter();low.type="lowpass";low.frequency.value=220;
     const vol=ctx.createGain();vol.gain.value=.095;
     bed.connect(low);low.connect(vol);vol.connect(master);bed.start();
+    void this.loadLicensedMusic(ctx,master);
+  }
+  private async loadLicensedMusic(ctx:AudioContext,master:GainNode){
+    try{
+      // Optional recording, verified CC0. A synthesized bed remains when missing
+      // or when the browser cannot decode Vorbis (older iOS releases).
+      const prefix=import.meta.env.BASE_URL||"/";
+      const response=await fetch(prefix+"audio/lost.ogg");
+      if(!response.ok) return;
+      const payload=await response.arrayBuffer();
+      if(this.ctx!==ctx)return;
+      const buffer=await ctx.decodeAudioData(payload);
+      if(this.ctx!==ctx)return;
+      const source=ctx.createBufferSource(),level=ctx.createGain();
+      source.buffer=buffer;source.loop=true;
+      level.gain.setValueAtTime(0,ctx.currentTime);
+      level.gain.setTargetAtTime(this.finalAct?.025:.17,ctx.currentTime,1.6);
+      source.connect(level);level.connect(master);source.start();
+      this.musicSource=source;this.musicLevel=level;
+    }catch(error){
+      console.info("La música CC0 no está disponible; continúa el ambiente sintetizado.",error);
+    }
+  }
+  setScene(scene:"inicio"|"luces"|"proyector"|"telon"|"final"){
+    this.finalAct=scene==="final";
+    const ctx=this.ctx,level=this.musicLevel;
+    if(ctx&&level)level.gain.setTargetAtTime(this.finalAct?.025:.17,ctx.currentTime,.7);
   }
   updateListener(x:number,y:number,z:number,fx:number,fy:number,fz:number){
     this.listener=[x,y,z];this.listenerForward=[fx,fy,fz];
@@ -137,5 +167,5 @@ export class TheaterAudio{
     osc.connect(gain);gain.connect(out);osc.start(at);osc.stop(at+length+.02);
     osc.onended=()=>{osc.disconnect();gain.disconnect();if(out instanceof PannerNode)out.disconnect();};
   }
-  dispose(){if(this.metronome!==null)window.clearInterval(this.metronome);this.metronome=null;this.ambience.forEach(o=>{try{o.stop();}catch{}});void this.ctx?.close();this.ctx=null;}
+  dispose(){if(this.metronome!==null)window.clearInterval(this.metronome);this.metronome=null;try{this.musicSource?.stop();}catch{}this.musicSource=undefined;this.musicLevel=undefined;this.ambience.forEach(o=>{try{o.stop();}catch{}});void this.ctx?.close();this.ctx=null;}
 }
