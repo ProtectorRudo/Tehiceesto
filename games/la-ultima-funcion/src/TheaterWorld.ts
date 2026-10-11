@@ -85,6 +85,7 @@ export class TheaterWorld{
   private seatNumberMeshes:THREE.InstancedMesh[]=[];
   private usherIdle?:THREE.AnimationAction;private usherWalk?:THREE.AnimationAction;private usherWalking=false;
   private watchers:THREE.Group[]=[];
+  private privateBoxes:THREE.Group[]=[];
   private dust?:THREE.Points;
   private frameTimeAccumulator=0;private frameTimeSamples=0;private nextScareAt=24;private lastWalkerSfx=0;
   private fpsSamples=0;private fpsDuration=0;private measuredFps=0;
@@ -336,7 +337,7 @@ export class TheaterWorld{
     const stageLight=new THREE.SpotLight(0xffd6a0,110,29,Math.PI/5,.6,1.6);stageLight.position.set(0,8.5,-9);stageLight.target.position.set(0,1,-17);s.add(stageLight,stageLight.target);
     const stageBlue=new THREE.PointLight(0x5874bf,22,16,2);stageBlue.position.set(-6,5,-17);s.add(stageBlue);
     this.primaryStageSpot=stageLight;this.blueStageFill=stageBlue;
-    this.buildStructure();this.buildEntranceDoors();this.buildSeats();this.buildPanels();this.buildStage();this.buildUsher();this.buildThreatMessage();
+    this.buildStructure();this.buildPrivateBoxes();this.buildEntranceDoors();this.buildSeats();this.buildPanels();this.buildStage();this.buildUsher();this.buildThreatMessage();
     this.buildAtmosphere();
     if(this.primaryStageSpot&&this.blueStageFill&&this.projectorBeam)this.cinema=new TheaterCinematics(s,this.primaryStageSpot,this.blueStageFill,this.projectorBeam);
     void this.loadDecorManifest();
@@ -429,6 +430,71 @@ export class TheaterWorld{
     const ticket=this.textPlane(["ENTRADA RESERVADA","FILA 3  •  ASIENTO 8","NO PIERDA SU BOLETO"],2.25,1.55);
     ticket.position.set(-8.95,2.1,12);ticket.rotation.y=Math.PI/2;room.add(ticket);this.bind(ticket,"programa");
     this.colliders.push({x:-8.95,z:12,rx:.28,rz:.9});
+  }
+  private buildPrivateBoxes(){
+    // Before, upper rails and silhouettes suggested a balcony but there was
+    // no identifiable, physical box. These two elevated private galleries
+    // have platforms, depth, curtained entrances, gilded parapets and signs.
+    const timber=new THREE.MeshStandardMaterial({color:0x3b2928,roughness:.77,metalness:.04});
+    const walnut=new THREE.MeshStandardMaterial({color:0x5b3833,roughness:.64,metalness:.08});
+    const gilt=new THREE.MeshStandardMaterial({color:0xaf864e,roughness:.32,metalness:.75});
+    const curtain=new THREE.MeshStandardMaterial({color:0x682537,roughness:.92,metalness:0,side:THREE.DoubleSide});
+    const darkInterior=new THREE.MeshStandardMaterial({color:0x1b121a,roughness:.98,side:THREE.DoubleSide});
+    const bulb=new THREE.MeshStandardMaterial({color:0xffdaa0,emissive:0xffa868,emissiveIntensity:2.7,roughness:.27});
+    for(const side of [-1,1]){
+      const group=new THREE.Group();
+      group.name=side<0?"Palco 1 - izquierdo":"Palco 2 - derecho";
+      group.position.set(side*6.5,0,-4.8);
+      this.scenery.add(group);this.privateBoxes.push(group);
+      const timberFloor=addMesh(new RoundedBoxGeometry(2.98,.23,3.7,3,.065),walnut,[0,5.05,-.15],group);
+      timberFloor.receiveShadow=true;
+      addMesh(new RoundedBoxGeometry(3.05,.17,.3,3,.04),gilt,[0,4.97,1.57],group);
+      addMesh(new THREE.PlaneGeometry(2.92,2.55),darkInterior,[0,6.5,-1.84],group);
+      // Side enclosure around the 1968 theater private box.
+      for(const x of [-1.48,1.48]){
+        addMesh(new RoundedBoxGeometry(.16,2.15,2.9,2,.055),timber,[x,6.25,-.32],group);
+        const column=addMesh(new THREE.CylinderGeometry(.135,.155,2.55,14),walnut,[x,6.35,1.47],group);
+        column.castShadow=true;
+        addMesh(new THREE.SphereGeometry(.18,12,9),gilt,[x,7.69,1.47],group);
+        addMesh(new THREE.SphereGeometry(.15,12,9),bulb,[x*.84,6.86,-1.34],group);
+      }
+      // Art Deco/victorian proscenium and carved upper arch.
+      const archBeam=new THREE.Mesh(new THREE.TorusGeometry(1.42,.095,10,42,Math.PI),gilt);
+      archBeam.position.set(0,7.65,1.49);group.add(archBeam);
+      addMesh(new RoundedBoxGeometry(3.17,.28,.28,3,.09),gilt,[0,7.7,1.45],group);
+      // The heavy drapes are pleated geometry, not 2D backdrops.
+      for(const x of [-1.16,1.16]){
+        const curtainFold=new THREE.Mesh(this.curtainGeometry(.55,2.0),curtain);
+        curtainFold.position.set(x,5.2,1.54);
+        curtainFold.rotation.y=x>0?-.13:.13;
+        curtainFold.castShadow=true;group.add(curtainFold);
+        addMesh(new THREE.TorusGeometry(.16,.03,8,18,Math.PI),gilt,[x,5.91,1.59],group).rotation.y=Math.PI/2;
+      }
+      // Raised protective front parapet with visible vertical balusters.
+      addMesh(new RoundedBoxGeometry(2.96,.24,.33,3,.08),walnut,[0,5.74,1.62],group);
+      addMesh(new RoundedBoxGeometry(3.05,.09,.36,3,.032),gilt,[0,5.88,1.62],group);
+      const bars=new THREE.InstancedMesh(new THREE.CylinderGeometry(.039,.056,.57,9),gilt,9);
+      const d=new THREE.Object3D();
+      for(let i=0;i<9;i++){d.position.set(-1.25+i*.3125,5.40,1.62);d.updateMatrix();bars.setMatrixAt(i,d.matrix);}
+      bars.instanceMatrix.needsUpdate=true;group.add(bars);
+      addMesh(new RoundedBoxGeometry(2.95,.1,.33,2,.045),gilt,[0,5.09,1.62],group);
+      // This sign can be read from the auditorium floor looking up.
+      const label=this.textPlane([side<0?"PALCO 1":"PALCO 2",side<0?"IZQUIERDO":"DERECHO"],1.51,.72);
+      label.name="Identificación de "+group.name;
+      label.position.set(0,6.91,1.62);group.add(label);
+    }
+  }
+  getPrivateBoxesStatus(){
+    return {count:this.privateBoxes.length,
+      names:this.privateBoxes.map(p=>p.name),
+      labels:this.privateBoxes.map(p=>p.children.some(c=>c.name.startsWith("Identificación de")))};
+  }
+  viewPrivateBoxForTest(){
+    if(!import.meta.env.DEV||this.privateBoxes.length!==2)return false;
+    this.camera.position.set(0,1.64,4);
+    this.camera.lookAt(-6.5,6.38,-4);
+    this.yaw=this.camera.rotation.y;this.pitch=this.camera.rotation.x;
+    return true;
   }
   private buildEntranceDoors(){
     const dmat=mat(0x58372b,.63),inlay=mat(0x8f6144,.52),hinges=brass;
