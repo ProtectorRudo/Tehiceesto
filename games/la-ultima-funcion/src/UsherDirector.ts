@@ -12,7 +12,7 @@ export class UsherDirector {
   readonly chest:THREE.Bone|null;
   readonly accessories:THREE.Group[]=[];
   private readonly root:THREE.Group;
-  private readonly model:THREE.Group;
+  private readonly model:THREE.Object3D;
   private readonly camera:THREE.Camera;
   private yaw=0;
   private eyeContact=false;
@@ -30,7 +30,7 @@ export class UsherDirector {
   private readonly dirtyMaterials:THREE.Material[]=[];
   private readonly capTexture:THREE.Texture;
 
-  constructor(root:THREE.Group,model:THREE.Group,camera:THREE.Camera){
+  constructor(root:THREE.Group,model:THREE.Object3D,camera:THREE.Camera){
     this.root=root;this.model=model;this.camera=camera;
     const bones:THREE.Bone[]=[];
     model.traverse(object=>{
