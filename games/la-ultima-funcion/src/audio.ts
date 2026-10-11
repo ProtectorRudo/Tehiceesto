@@ -1,4 +1,4 @@
-type SoundKind="click"|"found"|"wrong"|"scare"|"success"|"steps"|"curtain"|"whisper"|"applause";
+type SoundKind="click"|"found"|"wrong"|"scare"|"success"|"steps"|"curtain"|"whisper"|"applause"|"door";
 type Vec3=[number,number,number];
 export class TheaterAudio{
   private ctx:AudioContext|null=null;
@@ -61,6 +61,13 @@ export class TheaterAudio{
   play(kind:SoundKind="click"){
     const ctx=this.ctx,master=this.master;if(!ctx||!master)return;
     const at=ctx.currentTime;
+    if(kind==="door"){
+      const pos:[number,number,number]=[0,1.7,15.7];
+      this.breath(at,.31,.6,pos,96);
+      this.tone(108,45,at,.6,"triangle",.38,pos);
+      this.tone(620,135,at+.05,.19,"triangle",.07,pos);
+      return;
+    }
     if(kind==="steps"){
       for(let i=0;i<3;i++){
         this.tone(75+i*4,43,at+i*.33,.18,"triangle",.26,[-2,0,-10.5]);
