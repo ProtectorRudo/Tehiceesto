@@ -4,7 +4,7 @@ import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 
 export type TheaterAction = "butaca" | "ambar" | "azul" | "rojo" | "rueda1" | "rueda2" | "rueda3" | "proyector" | "telon" | "programa";
 export type TheaterPhase = "inicio" | "luces" | "proyector" | "telon" | "final";
-type SoundEvent = "pasos" | "apagón" | "susurro" | "aplausos";
+type SoundEvent = "pasos" | "apagón" | "susurro" | "aplausos" | "portazo";
 export interface WorldEvents { onFocus:(target:TheaterAction|null)=>void; onAction:(target:TheaterAction)=>void; onEvent:(event:SoundEvent)=>void; onListener:(x:number,y:number,z:number,fx:number,fy:number,fz:number)=>void; }
 
 type Collider={x:number;z:number;rx:number;rz:number};
@@ -51,6 +51,7 @@ export class TheaterWorld{
   private cleanupFns:Array<()=>void>=[];
   private usher=new THREE.Group();private usherMixer?:THREE.AnimationMixer;
   private curtainLeft?:THREE.Mesh;private curtainRight?:THREE.Mesh;
+  private entranceDoors:THREE.Group[]=[];private entranceClosed=false;private entranceSlam=false;
   private curtainProgress=0;private lamps:THREE.PointLight[]=[];
   private scenery=new THREE.Group();private chandelierPlaceholder?:THREE.Group;private lightsDone=false;
   private projectorReel?:THREE.Group;private specialSeat?:THREE.Group;private seatKey?:THREE.Group;
@@ -146,7 +147,7 @@ export class TheaterWorld{
     const warm=new THREE.PointLight(0xffad64,26,26,1.9);warm.position.set(0,7,3);s.add(warm);this.lamps.push(warm);
     const stageLight=new THREE.SpotLight(0xffd6a0,110,29,Math.PI/5,.6,1.6);stageLight.position.set(0,8.5,-9);stageLight.target.position.set(0,1,-17);s.add(stageLight,stageLight.target);
     const stageBlue=new THREE.PointLight(0x5874bf,22,16,2);stageBlue.position.set(-6,5,-17);s.add(stageBlue);
-    this.buildStructure();this.buildSeats();this.buildPanels();this.buildStage();this.buildUsher();
+    this.buildStructure();this.buildEntranceDoors();this.buildSeats();this.buildPanels();this.buildStage();this.buildUsher();
     this.buildAtmosphere();
     void this.loadDecorManifest();
     const premium=(import.meta as any).env?.VITE_USHER_GLB;
@@ -238,6 +239,28 @@ export class TheaterWorld{
     const ticket=this.textPlane(["ENTRADA RESERVADA","FILA 3  •  ASIENTO 8","NO PIERDA SU BOLETO"],2.25,1.55);
     ticket.position.set(-8.95,2.1,12);ticket.rotation.y=Math.PI/2;room.add(ticket);this.bind(ticket,"programa");
     this.colliders.push({x:-8.95,z:12,rx:.28,rz:.9});
+  }
+  private buildEntranceDoors(){
+    const dmat=mat(0x58372b,.63),inlay=mat(0x8f6144,.52),hinges=brass;
+    for(const side of [-1,1]){
+      const pivot=new THREE.Group();pivot.position.set(side*1.5,0,15.82);this.scenery.add(pivot);
+      const slab=addMesh(new THREE.BoxGeometry(1.48,3.9,.19),dmat,[-side*.74,2.01,0],pivot,true);
+      for(const height of [1.2,2.65]){
+        const panel=addMesh(new THREE.BoxGeometry(1.13,1.15,.035),inlay,[-side*.74,height,-.12],pivot);
+        addMesh(new THREE.BoxGeometry(1.06,1.07,.05),dmat,[-side*.74,height,-.15],pivot);
+      }
+      const handle=addMesh(new THREE.SphereGeometry(.095,12,8),hinges,[-side*1.33,1.83,-.19],pivot);
+      for(const yy of [.48,2.1,3.5]){
+        addMesh(new THREE.BoxGeometry(.12,.3,.1),hinges,[-side*.07,yy,0],pivot);
+      }
+      pivot.rotation.y=-side*1.35;
+      this.entranceDoors.push(pivot);
+    }
+    const sign=this.textPlane(["BELLADONNA","SALIDA"],3.45,1.1);
+    sign.position.set(0,4.5,15.76);sign.rotation.y=Math.PI;
+    this.scenery.add(sign);
+    // Rear doors remain closed; the player hears them lock behind them.
+    this.colliders.push({x:0,z:15.82,rx:1.52,rz:.18});
   }
   private buildFrozenClock(){
     // The clock stopped at 03:17 on the night everyone vanished. Real hands,
@@ -613,6 +636,14 @@ export class TheaterWorld{
     const dt=Math.min(.05,this.clock.getDelta());this.clockTime+=dt;
     if(this.active){
       this.elapsed+=dt;this.updateMovement(dt);this.checkFocus();
+      if(this.entranceDoors.length&&!this.entranceClosed){
+        const eased=THREE.MathUtils.smoothstep(this.elapsed,.35,1.75);
+        for(let i=0;i<2;i++){
+          const side=i===0?-1:1;
+          this.entranceDoors[i].rotation.y=(-side*1.35)*(1-eased);
+        }
+        if(eased>=1){this.entranceClosed=true;if(!this.entranceSlam){this.entranceSlam=true;this.events.onEvent("portazo");}}
+      }
       this.camera.getWorldDirection(this.forwardScratch);const p=this.camera.position,dir=this.forwardScratch;
       this.events.onListener(p.x,p.y,p.z,dir.x,dir.y,dir.z);
       if(this.elapsed>52&&!this.eventDone&&this.phase!=="final"){
