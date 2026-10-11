@@ -51,7 +51,7 @@ try{
     return entry?.["1k"]?.jpg||entry?.["1k"]?.png||entry?.["2k"]?.jpg||entry?.["2k"]?.png;
   };
   const mats={};
-  for(const [key,role] of [["diffuse","color"],["nor_gl","normal"],["arm","arm"]]){
+  for(const [key,role] of [["diff","color"],["nor_gl","normal"],["arm","arm"]]){
     const file=choose(key);if(!file?.url)throw new Error("Mapa PBR no disponible: "+key);
     const ext=new URL(file.url).pathname.endsWith(".png")?"png":"jpg";
     const bytes=Buffer.from(await(await retrieve(file.url)).arrayBuffer());
