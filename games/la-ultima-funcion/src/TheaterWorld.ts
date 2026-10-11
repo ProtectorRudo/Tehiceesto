@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import { TheaterCinematics } from "./TheaterCinematics";
 
 export type TheaterAction = "butaca" | "ambar" | "azul" | "rojo" | "rueda1" | "rueda2" | "rueda3" | "proyector" | "telon" | "programa";
 export type TheaterPhase = "inicio" | "luces" | "proyector" | "telon" | "final";
@@ -57,6 +58,9 @@ export class TheaterWorld{
   private projectorReel?:THREE.Group;private specialSeat?:THREE.Group;private seatKey?:THREE.Group;
   private wheelFaces:THREE.MeshBasicMaterial[]=[];private wheelValues:[number,number,number]=[0,0,0];
   private projectorScreen?:THREE.Mesh;private projectorBeam?:THREE.SpotLight;
+  private cinema?:TheaterCinematics;
+  private primaryStageSpot?:THREE.SpotLight;
+  private blueStageFill?:THREE.PointLight;
   private phase:TheaterPhase="inicio";private clockTime=0;
   private usherGoal=new THREE.Vector3(5.8,0,-12.3);
   private decorMixers:THREE.AnimationMixer[]=[];
@@ -87,7 +91,7 @@ export class TheaterWorld{
   start(){this.active=true;this.clock.getDelta();}
   stop(){this.active=false;}
   setPhase(p:TheaterPhase){
-    this.phase=p;
+    this.phase=p;this.cinema?.setAct(p);
     if(p==="luces"){this.usherGoal.set(-5.9,0,-11.7);this.events.onEvent("pasos");}
     if(p==="proyector"){
       this.lightsDone=false;this.setScreen("PROYECCIÓN INTERRUMPIDA");
@@ -106,8 +110,8 @@ export class TheaterWorld{
   }
   setMove(x:number,y:number){this.move={x,y};}
   activate(){if(this.actionTarget){this.events.onAction(this.actionTarget);return;}const closest=this.closestObject();if(closest)this.events.onAction(closest);}
-  markLight(index:number){if(this.emitterLights[index])this.emitterLights[index].emissiveIntensity=1.9;}
-  resetLights(){this.emitterLights.forEach(m=>m.emissiveIntensity=.16);}
+  markLight(index:number){if(this.emitterLights[index])this.emitterLights[index].emissiveIntensity=1.9;this.cinema?.activateCircuit(index);}
+  resetLights(){this.emitterLights.forEach(m=>m.emissiveIntensity=.16);this.cinema?.resetCircuits();}
   collectKey(){if(this.seatKey){this.seatKey.visible=false;this.seatKey=undefined;}}
   getCharacterStatus(){return {human:this.usher.children.some(x=>x.name==="AcomodadorHumanoRiggeado"),idle:!!this.usherIdle,walk:!!this.usherWalk};}
   turnWheel(index:number){
@@ -156,8 +160,10 @@ export class TheaterWorld{
     const warm=new THREE.PointLight(0xffad64,26,26,1.9);warm.position.set(0,7,3);s.add(warm);this.lamps.push(warm);
     const stageLight=new THREE.SpotLight(0xffd6a0,110,29,Math.PI/5,.6,1.6);stageLight.position.set(0,8.5,-9);stageLight.target.position.set(0,1,-17);s.add(stageLight,stageLight.target);
     const stageBlue=new THREE.PointLight(0x5874bf,22,16,2);stageBlue.position.set(-6,5,-17);s.add(stageBlue);
+    this.primaryStageSpot=stageLight;this.blueStageFill=stageBlue;
     this.buildStructure();this.buildEntranceDoors();this.buildSeats();this.buildPanels();this.buildStage();this.buildUsher();
     this.buildAtmosphere();
+    if(this.primaryStageSpot&&this.blueStageFill&&this.projectorBeam)this.cinema=new TheaterCinematics(s,this.primaryStageSpot,this.blueStageFill,this.projectorBeam);
     void this.loadDecorManifest();
     const premium=(import.meta as any).env?.VITE_USHER_GLB;
     if(typeof premium==="string" && premium)this.useUsherGLB(premium);
@@ -442,6 +448,7 @@ export class TheaterWorld{
   }
   playRecoveredFilm(){
     this.lightsDone=true;
+    this.cinema?.showFilm();
     if(this.projectorBeam)this.projectorBeam.intensity=26;
     this.setScreen("17 OCTUBRE 1968  ·  03:17");
     this.events.onEvent("susurro");
@@ -687,6 +694,7 @@ export class TheaterWorld{
         this.frameTimeAccumulator=0;this.frameTimeSamples=0;
       }
     }
+    this.cinema?.update(dt);
     this.usherMixer?.update(dt);this.decorMixers.forEach(m=>m.update(dt));
     if(this.dust)this.dust.rotation.y=Math.sin(this.clockTime*.1)*.007;
     this.watchers.forEach((w,i)=>{w.rotation.y=Math.sin(this.clockTime*.45+i)*.12;});
@@ -703,6 +711,7 @@ export class TheaterWorld{
   };
   dispose(){
     cancelAnimationFrame(this.frame);window.removeEventListener("resize",this.resize);this.cleanupFns.forEach(f=>f());
+    this.cinema?.dispose();
     this.scenery.traverse(obj=>{if(obj instanceof THREE.Mesh||obj instanceof THREE.InstancedMesh){obj.geometry.dispose();const a=Array.isArray(obj.material)?obj.material:[obj.material];
       a.forEach(m=>{if("map" in m&&(m as any).map)(m as any).map.dispose();m.dispose();});}});
     this.renderer.dispose();this.canvas.remove();
