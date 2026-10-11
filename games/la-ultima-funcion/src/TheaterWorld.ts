@@ -57,6 +57,7 @@ export class TheaterWorld{
   private usherDirector?:UsherDirector;
   private usherRigAnchor?:THREE.Group;
   private boxSpecter?:THREE.Group;
+  private boxSpecterLight?:THREE.PointLight;
   private boxSpecterMixer?:THREE.AnimationMixer;
   private boxSpecterStartedAt=-1;
   private boxSpecterLooked=false;
@@ -540,7 +541,8 @@ export class TheaterWorld{
       // A warm focus illuminates the labelled box from the orchestra; no
       // shadow map is needed on mobile, and the figure remains readable.
       const rim=new THREE.PointLight(side<0?0xea9196:0xf1b57f,side<0?7.5:4.5,6.3,2);
-      rim.position.set(0,6.85,1.6);rim.castShadow=false;group.add(rim);
+      rim.position.set(0,6.8,1.75);rim.castShadow=false;group.add(rim);
+      if(side<0)this.boxSpecterLight=rim;
       const timberFloor=addMesh(new RoundedBoxGeometry(2.98,.23,3.7,3,.065),walnut,[0,5.05,-.15],group);
       timberFloor.receiveShadow=true;
       addMesh(new RoundedBoxGeometry(3.05,.17,.3,3,.04),gilt,[0,4.97,1.57],group);
@@ -576,7 +578,7 @@ export class TheaterWorld{
       // This sign can be read from the auditorium floor looking up.
       const label=this.textPlane([side<0?"PALCO 1":"PALCO 2",side<0?"IZQUIERDO":"DERECHO"],1.51,.72);
       label.name="Identificación de "+group.name;
-      label.position.set(0,6.91,1.62);group.add(label);
+      label.position.set(0,5.34,1.86);group.add(label);
     }
   }
   viewActorOnStageForTest(){
@@ -1131,7 +1133,7 @@ export class TheaterWorld{
           }
         });
         const figure=new THREE.Group();figure.name="Silueta viva del PALCO 1";
-        figure.position.set(0,5.22,-.47);figure.add(shadow);
+        figure.position.set(.72,5.24,.84);figure.add(shadow);
         figure.visible=false;this.privateBoxes[0].add(figure);
         this.boxSpecter=figure;
         if(idle){
