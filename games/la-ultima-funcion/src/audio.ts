@@ -4,6 +4,7 @@ export class TheaterAudio{
   private ctx:AudioContext|null=null;
   private master:GainNode|null=null;
   private ambience:OscillatorNode[]=[];
+  private metronome:number|null=null;
   private noise?:AudioBuffer;
   private muted=false;
   private listener:Vec3=[0,1.64,13.1];
@@ -24,6 +25,22 @@ export class TheaterAudio{
       last=(last+.016*((seed/4294967295)*2-1))/1.016;data[i]=last*2.9;
     }
     this.noise=buffer;
+    // Dissonant, low orchestral pedal with almost imperceptible tremolo.
+    for(const hz of [82.41,103.83,123.47]){
+      const strings=ctx.createOscillator();strings.type="sawtooth";strings.frequency.value=hz;
+      const low=ctx.createBiquadFilter();low.type="lowpass";low.frequency.value=275;
+      const gain=ctx.createGain();gain.gain.value=.005;
+      const lfo=ctx.createOscillator();lfo.frequency.value=.13+hz/1000;
+      const depth=ctx.createGain();depth.gain.value=.003;
+      lfo.connect(depth);depth.connect(gain.gain);
+      strings.connect(low);low.connect(gain);gain.connect(master);
+      strings.start();lfo.start();this.ambience.push(strings,lfo);
+    }
+    // A diegetic clock placed by the entrance, rather than a global timer beep.
+    this.metronome=window.setInterval(()=>{
+      if(!this.ctx||this.ctx.state!=="running"||this.muted)return;
+      this.tone(1240,630,this.ctx.currentTime,.049,"triangle",.038,[-8.35,1.6,13.25]);
+    },1130);
     const bed=ctx.createBufferSource();bed.buffer=buffer;bed.loop=true;
     const low=ctx.createBiquadFilter();low.type="lowpass";low.frequency.value=220;
     const vol=ctx.createGain();vol.gain.value=.095;
@@ -113,5 +130,5 @@ export class TheaterAudio{
     osc.connect(gain);gain.connect(out);osc.start(at);osc.stop(at+length+.02);
     osc.onended=()=>{osc.disconnect();gain.disconnect();if(out instanceof PannerNode)out.disconnect();};
   }
-  dispose(){this.ambience.forEach(o=>{try{o.stop();}catch{}});void this.ctx?.close();this.ctx=null;}
+  dispose(){if(this.metronome!==null)window.clearInterval(this.metronome);this.metronome=null;this.ambience.forEach(o=>{try{o.stop();}catch{}});void this.ctx?.close();this.ctx=null;}
 }
