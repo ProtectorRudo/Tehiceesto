@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { TheaterCinematics } from "./TheaterCinematics";
 
 export type TheaterAction = "butaca" | "ambar" | "azul" | "rojo" | "rueda1" | "rueda2" | "rueda3" | "proyector" | "telon" | "programa";
@@ -315,15 +316,17 @@ export class TheaterWorld{
   private bind(o:THREE.Object3D,action:TheaterAction){o.userData.action=action;this.targets.push(o);}
   private buildSeats(){
     const frame=mat(0x483129,.72),fabric=new THREE.MeshStandardMaterial({map:fabricTexture(),color:0xffffff,roughness:.99});
-    const items=[
-      {geo:new THREE.BoxGeometry(.75,.15,.68),m:frame,p:[0,.51,0]},
-      {geo:new THREE.BoxGeometry(.69,.19,.64),m:fabric,p:[0,.63,-.03]},
-      {geo:new THREE.BoxGeometry(.75,1.1,.2),m:frame,p:[0,1.13,.28]},
-      {geo:new THREE.BoxGeometry(.64,.82,.12),m:fabric,p:[0,1.13,.40]},
-      {geo:new THREE.BoxGeometry(.12,.09,.89),m:fadedGold,p:[-.42,.93,0]},
-      {geo:new THREE.BoxGeometry(.12,.09,.89),m:fadedGold,p:[.42,.93,0]},
-      {geo:new THREE.CylinderGeometry(.055,.075,.52,7),m:frame,p:[-.36,.25,-.3]},
-      {geo:new THREE.CylinderGeometry(.055,.075,.52,7),m:frame,p:[.36,.25,-.3]},
+    // Velvet theatre seats have rounded cushioning and carved wooden borders.
+    // Parts use instancing so richer geometry adds almost no draw-call cost.
+    const items:Array<{geo:THREE.BufferGeometry,m:THREE.Material,p:THREE.Vector3Tuple,tilt?:number}>=[
+      {geo:new RoundedBoxGeometry(.79,.15,.7,3,.045),m:frame,p:[0,.51,0]},
+      {geo:new RoundedBoxGeometry(.70,.21,.65,4,.095),m:fabric,p:[0,.64,-.045]},
+      {geo:new RoundedBoxGeometry(.78,1.1,.23,3,.06),m:frame,p:[0,1.12,.31],tilt:.07},
+      {geo:new RoundedBoxGeometry(.67,.90,.15,4,.066),m:fabric,p:[0,1.13,.434],tilt:.07},
+      {geo:new RoundedBoxGeometry(.11,.09,.87,3,.035),m:fadedGold,p:[-.425,.94,0]},
+      {geo:new RoundedBoxGeometry(.11,.09,.87,3,.035),m:fadedGold,p:[.425,.94,0]},
+      {geo:new THREE.CylinderGeometry(.055,.075,.52,8),m:frame,p:[-.36,.25,-.3]},
+      {geo:new THREE.CylinderGeometry(.055,.075,.52,8),m:frame,p:[.36,.25,-.3]},
     ];
     const positions:THREE.Vector3Tuple[]=[];
     let selected:THREE.Vector3Tuple=[3.6,0,3];
@@ -333,11 +336,11 @@ export class TheaterWorld{
     }
     for(const part of items){
       const inst=new THREE.InstancedMesh(part.geo,part.m,positions.length);const d=new THREE.Object3D();
-      positions.forEach((p,i)=>{d.position.set(p[0]+part.p[0],p[1]+part.p[1],p[2]+part.p[2]);d.updateMatrix();inst.setMatrixAt(i,d.matrix);});
+      positions.forEach((p,i)=>{d.position.set(p[0]+part.p[0],p[1]+part.p[1],p[2]+part.p[2]);d.rotation.x=part.tilt??0;d.updateMatrix();inst.setMatrixAt(i,d.matrix);});
       inst.instanceMatrix.needsUpdate=true;this.scenery.add(inst);
     }
     const special=new THREE.Group();special.position.set(...selected);
-    items.forEach(part=>addMesh(part.geo,part.m,[part.p[0],part.p[1],part.p[2]],special));
+    items.forEach(part=>{const piece=addMesh(part.geo,part.m,part.p,special);piece.rotation.x=part.tilt??0;});
     // Readable, physically attached brass plaque instead of a generic yellow rectangle.
     addMesh(new THREE.BoxGeometry(.82,.38,.065),brass,[0,1.53,.425],special);
     const numberPlate=new THREE.Mesh(new THREE.PlaneGeometry(.73,.29),new THREE.MeshBasicMaterial({
