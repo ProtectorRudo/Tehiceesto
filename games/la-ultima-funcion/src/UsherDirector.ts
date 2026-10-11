@@ -20,6 +20,7 @@ export class UsherDirector {
   private readonly relative=new THREE.Vector3();
   private readonly headWorld=new THREE.Vector3();
   private readonly rot=new THREE.Quaternion();
+  private readonly inverseDelta=new THREE.Quaternion();
   private readonly previousNeckDelta=new THREE.Quaternion();
   private readonly previousHeadDelta=new THREE.Quaternion();
   private readonly previousBreathDelta=new THREE.Quaternion();
@@ -154,10 +155,10 @@ export class UsherDirector {
     // unkeyed bone accumulates rotation and eventually spins unnaturally.
     if(!this.appliedLastFrame)return;
     if(this.head){
-      this.head.quaternion.multiply(this.previousBreathDelta.clone().invert());
-      this.head.quaternion.multiply(this.previousHeadDelta.clone().invert());
+      this.head.quaternion.multiply(this.inverseDelta.copy(this.previousBreathDelta).invert());
+      this.head.quaternion.multiply(this.inverseDelta.copy(this.previousHeadDelta).invert());
     }
-    if(this.neck)this.neck.quaternion.multiply(this.previousNeckDelta.clone().invert());
+    if(this.neck)this.neck.quaternion.multiply(this.inverseDelta.copy(this.previousNeckDelta).invert());
     this.appliedLastFrame=false;
   }
 
