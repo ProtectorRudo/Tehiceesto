@@ -501,6 +501,8 @@ export class TheaterWorld{
   }
   private updateBoxSpecter(dt:number){
     if(!this.boxSpecterCue||this.ended)return;
+    if(this.boxSpecterLight)this.boxSpecterLight.intensity=this.boxSpecterVisible?
+      15.5+Math.sin(this.clockTime*3.7)*3.5:5.5;
     if(this.boxSpecter)this.boxSpecter.visible=this.boxSpecterVisible;
     const box=new THREE.Vector3(-6.0,6.4,-13.1);
     const delta=box.sub(this.camera.position);
