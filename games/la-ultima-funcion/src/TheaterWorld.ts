@@ -6,7 +6,7 @@ import { TheaterCinematics } from "./TheaterCinematics";
 
 export type TheaterAction = "butaca" | "ambar" | "azul" | "rojo" | "rueda1" | "rueda2" | "rueda3" | "proyector" | "telon" | "programa";
 export type TheaterPhase = "inicio" | "luces" | "proyector" | "telon" | "final";
-type SoundEvent = "pasos" | "apagón" | "susurro" | "aplausos" | "portazo";
+type SoundEvent = "pasos" | "apagón" | "susurro" | "aplausos" | "portazo" | "advertencia" | "aparicion" | "retirada";
 export interface WorldEvents { onFocus:(target:TheaterAction|null)=>void; onAction:(target:TheaterAction)=>void; onEvent:(event:SoundEvent)=>void; onListener:(x:number,y:number,z:number,fx:number,fy:number,fz:number)=>void; }
 
 type Collider={x:number;z:number;rx:number;rz:number};
@@ -65,6 +65,14 @@ export class TheaterWorld{
   private blueStageFill?:THREE.PointLight;
   private phase:TheaterPhase="inicio";private clockTime=0;
   private usherGoal=new THREE.Vector3(5.8,0,-12.3);
+  private warningStage:"idle"|"queued"|"silence"|"apparition"|"resolved"="idle";
+  private warningAt=Infinity;
+  private warningAppearedAt=Infinity;
+  private warningStart=0;
+  private warningSeen=false;
+  private warningPreviousDestination=new THREE.Vector3();
+  private warningFlash=0;
+  private warningLight?:THREE.PointLight;
   private decorMixers:THREE.AnimationMixer[]=[];
   private usherIdle?:THREE.AnimationAction;private usherWalk?:THREE.AnimationAction;private usherWalking=false;
   private watchers:THREE.Group[]=[];
@@ -96,6 +104,10 @@ export class TheaterWorld{
     this.phase=p;this.cinema?.setAct(p);
     if(p==="luces"){this.usherGoal.set(-5.9,0,-11.7);this.events.onEvent("pasos");}
     if(p==="proyector"){
+      if(this.warningStage==="idle"){
+        this.warningStage="queued";
+        this.warningAt=this.elapsed+4.5;
+      }
       this.lightsDone=false;this.setScreen("PROYECCIÓN INTERRUMPIDA");
       this.usherGoal.set(6.7,0,-9.9);this.events.onEvent("susurro");
       this.watchers.forEach(w=>w.visible=true);
@@ -105,6 +117,7 @@ export class TheaterWorld{
       this.events.onEvent("pasos");
     }
     if(p==="final"){
+      this.cancelWarning();
       if(this.threatMessage)this.threatMessage.visible=false;
       this.ended=true;this.events.onEvent("aplausos");
       this.scene.background=new THREE.Color(0x25131d);
@@ -118,6 +131,74 @@ export class TheaterWorld{
   collectKey(){if(this.seatKey){this.seatKey.visible=false;this.seatKey=undefined;}}
   getCharacterStatus(){return {human:this.usher.children.some(x=>x.name==="AcomodadorHumanoRiggeado"),idle:!!this.usherIdle,walk:!!this.usherWalk};}
   getCinematicStatus(){return {projectorModel:this.projectorProfessionalLoaded,director:!!this.cinema,threatVisible:!!this.threatMessage?.visible,act:this.phase};}
+  getWarningStatus(){return {stage:this.warningStage,seen:this.warningSeen};}
+  private cancelWarning(){
+    if(this.warningStage==="idle"||this.warningStage==="resolved")return;
+    this.warningStage="resolved";
+    this.warningLight?.parent?.remove(this.warningLight);
+    this.warningLight=undefined;
+    this.usherGoal.copy(this.warningPreviousDestination.lengthSq()?this.warningPreviousDestination:new THREE.Vector3(-6.6,0,-11.8));
+    this.warningFlash=0;
+  }
+  private startWarning(){
+    if(this.warningStage!=="queued"||this.ended)return;
+    this.warningStage="silence";this.warningStart=this.elapsed;
+    this.warningPreviousDestination.copy(this.usherGoal);
+    this.events.onEvent("advertencia");
+  }
+  private chooseApparitionPosition(){
+    // The actor appears where there is space behind the camera, not through a chair.
+    const p=this.camera.position;
+    const forward=new THREE.Vector3();
+    this.camera.getWorldDirection(forward);forward.y=0;forward.normalize();
+    const toBack=forward.clone().multiplyScalar(-1);
+    const options:THREE.Vector3[]=[];
+    for(const distance of [1.9,2.5,3.2]){
+      for(const offset of [0, .6, -.6,1.25,-1.25]){
+        const lateral=new THREE.Vector3(-forward.z,0,forward.x).multiplyScalar(offset);
+        options.push(new THREE.Vector3(p.x+toBack.x*distance+lateral.x,0,p.z+toBack.z*distance+lateral.z));
+      }
+    }
+    const good=options.find(v=>this.valid(v.x,v.z));
+    if(good)return good;
+    // Safe aisle fallback when player is between rows of seats.
+    const aisles=[new THREE.Vector3(0,0,p.z),new THREE.Vector3(7.7,0,p.z),new THREE.Vector3(-7.7,0,p.z)];
+    return aisles.find(v=>this.valid(v.x,v.z))||new THREE.Vector3(0,0,-12);
+  }
+  private spawnApparition(){
+    if(this.warningStage!=="silence"||this.ended)return;
+    this.warningStage="apparition";this.warningAppearedAt=this.elapsed;
+    const loc=this.chooseApparitionPosition();
+    this.usher.position.copy(loc);this.usherGoal.copy(loc);
+    const dir=this.camera.position.clone().sub(loc);
+    this.usher.rotation.y=Math.atan2(dir.x,-dir.z);
+    this.warningLight=new THREE.PointLight(0xc87569,5.2,4.1,2);
+    this.warningLight.position.set(loc.x,2.05,loc.z);
+    this.scene.add(this.warningLight);
+    this.events.onEvent("aparicion");
+  }
+  private updateWarning(){
+    if(this.warningStage==="queued"&&this.elapsed>=this.warningAt)this.startWarning();
+    if(this.warningStage==="silence"&&this.elapsed-this.warningStart>=1.15)this.spawnApparition();
+    if(this.warningStage!=="apparition")return;
+    const direction=this.usher.position.clone().sub(this.camera.position);
+    const distance=direction.length();
+    direction.y=0;direction.normalize();
+    const facing=this.forwardScratch.clone();facing.y=0;facing.normalize();
+    const looking=distance<4.5&&facing.dot(direction)>.75;
+    if(looking&&!this.warningSeen){
+      this.warningSeen=true;
+      this.warningFlash=.22;
+      this.events.onEvent("aparicion");
+    }
+    const time=this.elapsed-this.warningAppearedAt;
+    if(time>(this.warningSeen?2.1:9.0)){
+      this.warningStage="resolved";
+      this.warningLight?.parent?.remove(this.warningLight);this.warningLight=undefined;
+      this.usher.position.set(-6.6,0,-11.8);this.usherGoal.copy(this.warningPreviousDestination);
+      this.events.onEvent("retirada");
+    }
+  }
   turnWheel(index:number){
     if(index<0||index>2)return;
     this.wheelValues[index]=(this.wheelValues[index]+1)%10;
@@ -692,6 +773,7 @@ export class TheaterWorld{
         if(eased>=1){this.entranceClosed=true;if(!this.entranceSlam){this.entranceSlam=true;this.events.onEvent("portazo");}}
       }
       this.camera.getWorldDirection(this.forwardScratch);const p=this.camera.position,dir=this.forwardScratch;
+      this.updateWarning();
       this.events.onListener(p.x,p.y,p.z,dir.x,dir.y,dir.z);
       if(this.elapsed>52&&!this.eventDone&&this.phase!=="final"){
         this.eventDone=true;this.events.onEvent("apagón");
@@ -703,7 +785,7 @@ export class TheaterWorld{
         this.events.onEvent("susurro");
         this.watchers.forEach(w=>w.visible=!w.visible);
       }
-      const actorMoving=this.usher.position.distanceToSquared(this.usherGoal)>.06;
+      const actorMoving=this.warningStage!=="apparition" && this.warningStage!=="silence" && this.usher.position.distanceToSquared(this.usherGoal)>.06;
       if(this.usherIdle&&this.usherWalk&&this.usherWalking!==actorMoving){
         const previous=this.usherWalking?this.usherWalk:this.usherIdle;
         const next=actorMoving?this.usherWalk:this.usherIdle;
@@ -727,6 +809,9 @@ export class TheaterWorld{
       }
     }
     this.cinema?.update(dt);
+    if(this.warningLight)this.warningLight.intensity=4.7+Math.sin(this.clockTime*9)*.6;
+    if(this.warningFlash>0){this.warningFlash=Math.max(0,this.warningFlash-dt);this.renderer.toneMappingExposure=1.32+this.warningFlash*2.4;}
+    else if(this.renderer.toneMappingExposure!==1.32)this.renderer.toneMappingExposure=1.32;
     this.usherMixer?.update(dt);this.decorMixers.forEach(m=>m.update(dt));
     if(this.dust)this.dust.rotation.y=Math.sin(this.clockTime*.1)*.007;
     this.watchers.forEach((w,i)=>{w.rotation.y=Math.sin(this.clockTime*.45+i)*.12;});
@@ -744,6 +829,7 @@ export class TheaterWorld{
   dispose(){
     cancelAnimationFrame(this.frame);window.removeEventListener("resize",this.resize);this.cleanupFns.forEach(f=>f());
     this.cinema?.dispose();
+    this.warningLight?.parent?.remove(this.warningLight);this.warningLight=undefined;
     this.scenery.traverse(obj=>{if(obj instanceof THREE.Mesh||obj instanceof THREE.InstancedMesh){obj.geometry.dispose();const a=Array.isArray(obj.material)?obj.material:[obj.material];
       a.forEach(m=>{if("map" in m&&(m as any).map)(m as any).map.dispose();m.dispose();});}});
     this.renderer.dispose();this.canvas.remove();
