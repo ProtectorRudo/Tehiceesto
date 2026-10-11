@@ -883,8 +883,14 @@ export class TheaterWorld{
       }
       if(actorMoving){
         const distance=this.usher.position.distanceTo(this.usherGoal);
-        this.usher.position.lerp(this.usherGoal,Math.min(1,dt*.75));
-        this.usher.rotation.y=Math.atan2(this.usherGoal.x-this.usher.position.x,-(this.usherGoal.z-this.usher.position.z));
+        // Fixed world-space stride (m/s) instead of an exponential lerp that
+        // stalls near the destination. Damped turning prevents instant pivots.
+        const direction=this.usherGoal.clone().sub(this.usher.position);
+        const desiredYaw=Math.atan2(direction.x,-direction.z);
+        const yawError=Math.atan2(Math.sin(desiredYaw-this.usher.rotation.y),Math.cos(desiredYaw-this.usher.rotation.y));
+        this.usher.rotation.y+=yawError*(1-Math.exp(-4.3*dt));
+        const stride=Math.min(distance,dt*1.24);
+        if(distance>.0001)this.usher.position.addScaledVector(direction,stride/distance);
         if(this.clockTime-this.lastWalkerSfx>1.25&&distance>.9){
           this.lastWalkerSfx=this.clockTime;this.events.onEvent("pasos");
         }
