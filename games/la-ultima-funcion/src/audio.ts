@@ -15,6 +15,7 @@ export class TheaterAudio{
   private recordings:Partial<Record<"footstep"|"door",AudioBuffer>>={};
   private muted=false;
   private listener:Vec3=[0,1.64,13.1];
+  private usherPosition:Vec3=[-2,1,-10.5];
   private listenerForward:Vec3=[0,0,-1];
   unlock(){
     if(this.ctx){void this.ctx.resume();return;}
@@ -106,8 +107,8 @@ export class TheaterAudio{
     source.onended=()=>{source.disconnect();gain.disconnect();if(out instanceof PannerNode)out.disconnect();};
     return true;
   }
-  updateListener(x:number,y:number,z:number,fx:number,fy:number,fz:number){
-    this.listener=[x,y,z];this.listenerForward=[fx,fy,fz];
+  updateListener(x:number,y:number,z:number,fx:number,fy:number,fz:number,ux:number,uy:number,uz:number){
+    this.usherPosition=[ux,uy,uz];this.listener=[x,y,z];this.listenerForward=[fx,fy,fz];
     const ctx=this.ctx;if(!ctx)return;
     const l=ctx.listener,time=ctx.currentTime;
     if(l.positionX){
@@ -160,12 +161,13 @@ export class TheaterAudio{
     }
     if(kind==="steps"){
       if(this.recordings.footstep){
-        for(let i=0;i<3;i++)this.playRecording("footstep",[-2+i*.22,0,-10.5],.55,i*.31);
+        for(let i=0;i<3;i++)this.playRecording("footstep",[this.usherPosition[0]+(i%2?-.17:.17),this.usherPosition[1]-.85,this.usherPosition[2]],.55,i*.31);
         return;
       }
       for(let i=0;i<3;i++){
-        this.tone(75+i*4,43,at+i*.33,.18,"triangle",.26,[-2,0,-10.5]);
-        this.breath(at+i*.33,.09,.13,[-2,0,-10.5],160);
+        const loc=this.usherPosition;
+        this.tone(75+i*4,43,at+i*.33,.18,"triangle",.26,[loc[0],loc[1]-.9,loc[2]]);
+        this.breath(at+i*.33,.09,.13,[loc[0],loc[1]-.9,loc[2]],160);
       }
       return;
     }
