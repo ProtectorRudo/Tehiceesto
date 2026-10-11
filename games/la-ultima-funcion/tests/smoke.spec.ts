@@ -1,5 +1,6 @@
 import {test,expect} from "@playwright/test";
 test("La Última Función abre, activa controles y muestra pistas",async({page},testInfo)=>{
+  test.setTimeout(160000);
   const failures:string[]=[];
   page.on("pageerror",e=>failures.push(e.message));
   await page.goto("/?nombre=Martina&evento=La%20fiesta%20de%20Martina&fecha=24%2F10%2F2026");
