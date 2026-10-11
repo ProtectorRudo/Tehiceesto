@@ -1,0 +1,63 @@
+name: La Ultima Funcion - publicar GitHub Pages
+on:
+  push:
+    branches: [juego-la-ultima-funcion]
+    paths:
+      - 'games/la-ultima-funcion/**'
+      - '.github/workflows/la-ultima-funcion-pages.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: belladonna-pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    defaults:
+      run:
+        working-directory: games/la-ultima-funcion
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar dependencias
+        run: npm install --no-fund --no-audit
+      - name: Compilar Vite para ruta GitHub Pages
+        run: npm run build -- --base /Tehiceesto/
+      - name: Ajustar rutas de recursos glTF a la ruta Pages
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFile,writeFile,readdir} from 'node:fs/promises';
+          const prefix='/Tehiceesto';
+          const file='dist/models/manifest.json';
+          const json=JSON.parse(await readFile(file,'utf8'));
+          for (const key of Object.keys(json.assets||{})) {
+            json.assets[key]=prefix+json.assets[key];
+          }
+          await writeFile(file,JSON.stringify(json,null,2));
+          for(const name of await readdir('dist/assets')){
+            if(!name.endsWith('.js'))continue;
+            const file='dist/assets/'+name;
+            let code=await readFile(file,'utf8');
+            code=code.replaceAll('/models/manifest.json',prefix+'/models/manifest.json');
+            await writeFile(file,code);
+          }
+          NODE
+      - name: Habilitar y preparar GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Subir archivos estáticos
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: games/la-ultima-funcion/dist
+      - name: Desplegar página
+        id: deployment
+        uses: actions/deploy-pages@v4
