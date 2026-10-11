@@ -3,6 +3,9 @@ type Vec3=[number,number,number];
 export class TheaterAudio{
   private ctx:AudioContext|null=null;
   private master:GainNode|null=null;
+  private ambientBus:GainNode|null=null;
+  private quietUntil=0;
+  private pendingVoice?:SpeechSynthesisUtterance;
   private ambience:OscillatorNode[]=[];
   private metronome:number|null=null;
   private musicSource?:AudioBufferSourceNode;
@@ -16,9 +19,10 @@ export class TheaterAudio{
     if(this.ctx){void this.ctx.resume();return;}
     const ctx=new AudioContext();this.ctx=ctx;
     const master=ctx.createGain();master.gain.value=.55;master.connect(ctx.destination);this.master=master;
+    const ambientBus=ctx.createGain();ambientBus.gain.value=1;ambientBus.connect(master);this.ambientBus=ambientBus;
     for(const [frequency,amp] of [[55,.019],[82.41,.012],[110.7,.005]]){
       const osc=ctx.createOscillator();osc.type="sine";osc.frequency.value=frequency;
-      const gain=ctx.createGain();gain.gain.value=amp;osc.connect(gain);gain.connect(master);osc.start();this.ambience.push(osc);
+      const gain=ctx.createGain();gain.gain.value=amp;osc.connect(gain);gain.connect(ambientBus);osc.start();this.ambience.push(osc);
     }
     // A generated, low-frequency air bed: no copyrighted recordings or browser autoplay problem.
     const buffer=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate),data=buffer.getChannelData(0);
@@ -36,19 +40,19 @@ export class TheaterAudio{
       const lfo=ctx.createOscillator();lfo.frequency.value=.13+hz/1000;
       const depth=ctx.createGain();depth.gain.value=.003;
       lfo.connect(depth);depth.connect(gain.gain);
-      strings.connect(low);low.connect(gain);gain.connect(master);
+      strings.connect(low);low.connect(gain);gain.connect(ambientBus);
       strings.start();lfo.start();this.ambience.push(strings,lfo);
     }
     // A diegetic clock placed by the entrance, rather than a global timer beep.
     this.metronome=window.setInterval(()=>{
-      if(!this.ctx||this.ctx.state!=="running"||this.muted)return;
+      if(!this.ctx||this.ctx.state!=="running"||this.muted||this.ctx.currentTime<this.quietUntil)return;
       this.tone(1240,630,this.ctx.currentTime,.049,"triangle",.038,[-8.35,1.6,13.25]);
     },1130);
     const bed=ctx.createBufferSource();bed.buffer=buffer;bed.loop=true;
     const low=ctx.createBiquadFilter();low.type="lowpass";low.frequency.value=220;
     const vol=ctx.createGain();vol.gain.value=.095;
-    bed.connect(low);low.connect(vol);vol.connect(master);bed.start();
-    void this.loadLicensedMusic(ctx,master);
+    bed.connect(low);low.connect(vol);vol.connect(ambientBus);bed.start();
+    void this.loadLicensedMusic(ctx,ambientBus);
   }
   private async loadLicensedMusic(ctx:AudioContext,master:GainNode){
     try{
@@ -88,6 +92,35 @@ export class TheaterAudio{
   }
   setMuted(value:boolean){this.muted=value;if(this.master&&this.ctx)this.master.gain.setTargetAtTime(value?0:.55,this.ctx.currentTime,.03);}
   isMuted(){return this.muted;}
+  silenceFor(seconds:number){
+    const ctx=this.ctx,bus=this.ambientBus;if(!ctx||!bus)return;
+    const at=ctx.currentTime;
+    const duration=Math.max(.2,Math.min(4,seconds));
+    this.quietUntil=at+duration;
+    bus.gain.cancelScheduledValues(at);
+    bus.gain.setValueAtTime(bus.gain.value,at);
+    bus.gain.linearRampToValueAtTime(.0001,at+.15);
+    bus.gain.setValueAtTime(.0001,at+duration);
+    bus.gain.linearRampToValueAtTime(1,at+duration+.95);
+  }
+  speakWarning(text="Disculpe… ese no es su asiento."){
+    // Narration fallback when no licensed studio recording is installed.
+    // Browser voices differ by device; text is always subtitled by the UI.
+    if(this.muted||typeof window==="undefined"||!("speechSynthesis" in window))return false;
+    try{
+      const synth=window.speechSynthesis;
+      const available=synth.getVoices().filter(v=>v.lang.toLowerCase().startsWith("es"));
+      const preferred=available.find(v=>v.lang.toLowerCase()==="es-ar")||
+        available.find(v=>v.lang.toLowerCase().startsWith("es-es"))||available[0];
+      if(!preferred)return false;
+      synth.cancel();
+      const utterance=new SpeechSynthesisUtterance(text);
+      utterance.lang=preferred.lang;utterance.voice=preferred;utterance.rate=.77;utterance.pitch=.68;utterance.volume=.86;
+      this.pendingVoice=utterance;
+      utterance.onend=()=>{if(this.pendingVoice===utterance)this.pendingVoice=undefined;};
+      synth.speak(utterance);return true;
+    }catch{return false;}
+  }
   play(kind:SoundKind="click"){
     const ctx=this.ctx,master=this.master;if(!ctx||!master)return;
     const at=ctx.currentTime;
@@ -167,5 +200,5 @@ export class TheaterAudio{
     osc.connect(gain);gain.connect(out);osc.start(at);osc.stop(at+length+.02);
     osc.onended=()=>{osc.disconnect();gain.disconnect();if(out instanceof PannerNode)out.disconnect();};
   }
-  dispose(){if(this.metronome!==null)window.clearInterval(this.metronome);this.metronome=null;try{this.musicSource?.stop();}catch{}this.musicSource=undefined;this.musicLevel=undefined;this.ambience.forEach(o=>{try{o.stop();}catch{}});void this.ctx?.close();this.ctx=null;}
+  dispose(){if(typeof window!=="undefined"&&this.pendingVoice&&"speechSynthesis" in window)window.speechSynthesis.cancel();this.pendingVoice=undefined;if(this.metronome!==null)window.clearInterval(this.metronome);this.metronome=null;try{this.musicSource?.stop();}catch{}this.musicSource=undefined;this.musicLevel=undefined;this.ambience.forEach(o=>{try{o.stop();}catch{}});void this.ctx?.close();this.ctx=null;}
 }
