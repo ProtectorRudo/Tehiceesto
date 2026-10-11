@@ -209,7 +209,7 @@ export class TheaterWorld{
   }
   private updateWarning(){
     if(this.warningStage==="queued"&&this.elapsed>=this.warningAt)this.startWarning();
-    if(this.warningStage==="silence"&&this.elapsed-this.warningStart>=1.75)this.spawnApparition();
+    if(this.warningStage==="silence"&&this.elapsed-this.warningStart>=3.25)this.spawnApparition();
     if(this.warningStage!=="apparition")return;
     const direction=this.usher.position.clone().sub(this.camera.position);
     const distance=direction.length();
