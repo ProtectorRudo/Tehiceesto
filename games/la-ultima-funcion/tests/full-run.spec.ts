@@ -1,0 +1,32 @@
+import {test,expect} from "@playwright/test";
+
+type QA={action:(a:string)=>void;getPhase:()=>string};
+const action=async(page:import("@playwright/test").Page,target:string)=>{
+  await page.evaluate((name)=>{const q=(window as any).__BELLADONNA_QA__ as QA;q.action(name);},target);
+};
+const expectPhase=async(page:import("@playwright/test").Page,p:string)=>{
+  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.getPhase?.())).toBe(p);
+};
+test("recorrido completo: butaca, iluminación, proyector y gran revelación",async({page})=>{
+  const errors:string[]=[];page.on("pageerror",err=>errors.push(err.message));
+  await page.goto("/?nombre=Martina&evento=Fiesta%20de%20cumplea%C3%B1os&fecha=24%2F10%2F2026&hora=21%3A00&lugar=Sal%C3%B3n%20Belladonna");
+  await page.getByRole("button",{name:/ABRIR LAS PUERTAS/}).click();
+  await expectPhase(page,"inicio");
+  await action(page,"butaca");await expectPhase(page,"luces");
+  // La secuencia errónea debe bloquear la progresión.
+  await action(page,"azul");await expectPhase(page,"luces");
+  for(const a of ["ambar","azul","rojo"])await action(page,a);
+  await expectPhase(page,"proyector");
+  await action(page,"proyector");await expect(page.locator(".projector-card")).toBeVisible();
+  const reels=page.locator(".dial");for(const [index,turns] of [[0,3],[1,1],[2,7]]){
+    for(let j=0;j<turns;j++)await reels.nth(index).click();
+  }
+  await page.getByRole("button",{name:/REPRODUCIR LA CINTA/}).click();
+  await expectPhase(page,"telon");
+  await action(page,"telon");
+  await expectPhase(page,"final");
+  await expect(page.getByRole("heading",{name:/VOS ERAS/i})).toBeVisible({timeout:12000});
+  await expect(page.locator(".invitation-ticket")).toContainText("Martina");
+  await expect(page.locator(".invitation-ticket")).toContainText("Fiesta de cumpleaños");
+  expect(errors).toEqual([]);
+});
