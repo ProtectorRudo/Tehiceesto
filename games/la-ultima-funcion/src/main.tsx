@@ -14,7 +14,12 @@ function invitation():Invite{
     mensaje:get("mensaje","Tu presencia hace que esta función sea única."),
     rsvp:get("rsvp","").replace(/\D/g,"")};
 }
-const steps=[{phase:"inicio",title:"La butaca reservada"},{phase:"luces",title:"La consola de luces"},{phase:"proyector",title:"La película perdida"},{phase:"telon",title:"La última función"}];
+const steps=[
+  {phase:"inicio",title:"La butaca reservada",objective:"Encontrá la fila 3, asiento 8. Revisá debajo del terciopelo."},
+  {phase:"luces",title:"La consola de luces",objective:"Con la llave encontrada, restaurá la electricidad."},
+  {phase:"proyector",title:"La película perdida",objective:"Descubrí la combinación de las tres ruedas del proyector."},
+  {phase:"telon",title:"La última función",objective:"Subí al escenario y accioná la palanca del telón."}
+];
 const labels:Record<TheaterAction,string>={
   butaca:"Examinar butaca reservada",ambar:"Activar interruptor ámbar",azul:"Activar interruptor azul",
   rojo:"Activar interruptor rojo",rueda1:"Girar rueda izquierda",rueda2:"Girar rueda central",
@@ -27,6 +32,37 @@ const hints:Record<TheaterPhase,string>={
   telon:"El mecanismo final está sobre el escenario, justo frente al telón rojo. Hay una palanca con una esfera oscura.",
   final:"La función comenzó. Ahora descubrí para qué te estaban esperando."
 };
+function MissionLetter({name,returning,onProceed}:{name:string;returning:boolean;onProceed:()=>void}){
+  return <section className={"briefing-screen"+(returning?" briefing-recall":"")} role="dialog" aria-modal="true" aria-labelledby="briefing-title" aria-describedby="briefing-summary">
+    <div className="briefing-darkness" aria-hidden="true"/>
+    <div className="briefing-frame">
+      <div className="briefing-envelope-crest" aria-hidden="true">B</div>
+      <article className="briefing-paper">
+        <div className="briefing-paper-top"><span>TEATRO BELLADONNA</span><span>ARCHIVO · 1968</span></div>
+        <p className="briefing-kicker">CARTA DEL ÚLTIMO TRAMOYISTA</p>
+        <h2 id="briefing-title">La función que nunca terminó</h2>
+        <div className="briefing-ink-rule" aria-hidden="true"/>
+        <div className="briefing-body" id="briefing-summary">
+          <p>En 1968, las luces del Belladonna se apagaron en plena función. <strong>Ochenta y tres espectadores desaparecieron.</strong> Nunca encontraron sus cuerpos. El teatro quedó clausurado.</p>
+          <p>Esta noche llegó una entrada a nombre de <strong>{name}</strong>. Alguien abrió las puertas solo para vos. Pero el Acomodador sigue allí… y no permite que termine la función.</p>
+          <p><strong>Tu misión:</strong> encontrar las pistas que dejaron los desaparecidos, devolverle la electricidad al teatro, recuperar la última película y descubrir qué oculta el telón antes de que se agote el tiempo.</p>
+          <div className="briefing-ticket" aria-label="Primera pista">
+            <span className="briefing-ticket-label">PRIMERA PISTA · ENTRADA RESERVADA</span>
+            <strong>FILA 3 <span>·</span> ASIENTO 8</strong>
+            <small>Buscá la butaca marcada con una placa dorada. Empezá por ahí.</small>
+          </div>
+          <p className="briefing-directions">En el celular: usá el círculo izquierdo para <strong>caminar</strong>, deslizá sobre la escena para <strong>mirar</strong> y tocá los objetos para <strong>interactuar</strong>. Si te perdés, consultá <strong>¿UNA PISTA?</strong></p>
+        </div>
+        <div className="briefing-paper-end">
+          <span className="briefing-countdown">7 MINUTOS · 1 MINUTO EXTRA</span>
+          <button className="briefing-start" onClick={onProceed}>{returning?"VOLVER AL TEATRO":"ENTENDÍ MI MISIÓN · ENTRAR"} <span aria-hidden="true">↗</span></button>
+          {!returning&&<small>El tiempo empieza únicamente cuando entrás.</small>}
+        </div>
+        <div className="briefing-signature" aria-hidden="true">El último tramoyista</div>
+      </article>
+    </div>
+  </section>;
+}
 function App(){
   const invite=useRef(invitation()).current;
   const mount=useRef<HTMLDivElement>(null);
@@ -40,6 +76,8 @@ function App(){
   const startAt=useRef(0);const sequence=useRef(0);
   const [supported,setSupported]=useState(true);
   const [started,setStarted]=useState(false);
+  const [briefingOpen,setBriefingOpen]=useState(false);
+  const [briefingRecall,setBriefingRecall]=useState(false);
   const [phase,setPhaseState]=useState<TheaterPhase>("inicio");
   const [focus,setFocus]=useState<TheaterAction|null>(null);
   const [story,setStory]=useState("");
@@ -184,7 +222,8 @@ function App(){
     return ()=>window.clearInterval(refresh);
   },[diagnosticsEnabled]);
   const begin=()=>{
-    if(!supported||!world.current)return;
+    if(started||!briefingOpen||!supported||!world.current)return;
+    setBriefingOpen(false);
     sound.current.unlock();sound.current.play("found");
     setStarted(true);world.current.start();startAt.current=Date.now();
     setStory("El último espectador ha llegado. Encontrá tu butaca: fila 3, asiento 8.");
@@ -215,7 +254,7 @@ function App(){
   return <main className="app">
     <div className="scene-host" ref={mount}/>
     <div className="film-grain" aria-hidden="true"/>
-    {!started&&!reveal&&<section className="intro-screen">
+    {!started&&!reveal&&!briefingOpen&&<section className="intro-screen">
       <div className="intro-corners" aria-hidden="true"/>
       <div className="topline"><span>TEATRO BELLADONNA</span><span>EST. 1968</span></div>
       <div className="intro-central">
@@ -225,12 +264,13 @@ function App(){
         <p className="premise">83 espectadores desaparecieron aquella noche.<br/>La función nunca terminó.</p>
         <p className="intro-person">Pero hoy… <strong>{invite.nombre}</strong> tiene una entrada reservada.</p>
         {!supported&&<p className="error">{error||"Se necesita un dispositivo compatible con WebGL2."}</p>}
-        <button className="main-cta" disabled={!supported} onClick={begin}>ABRIR LAS PUERTAS <span>↗</span></button>
+        <button className="main-cta" disabled={!supported} onClick={()=>{sound.current.unlock();sound.current.play("found");setBriefingOpen(true);}}>ABRIR LAS PUERTAS <span>↗</span></button>
         {!supported&&<button className="text-button accessible-reveal" onClick={()=>{setReveal(true);setStarted(true);}}>VER MI INVITACIÓN SIN 3D</button>}
         <p className="micro">Usá auriculares para una mejor experiencia · 7 minutos</p>
       </div>
       <div className="intro-bottom"><span>ÚLTIMO ACTO</span><span>SOLO HAY UNA SALIDA</span><span>DECORADOS CC0: POLY HAVEN</span></div>
     </section>}
+    {!started&&!reveal&&briefingOpen&&<MissionLetter name={invite.nombre} returning={false} onProceed={begin}/>}
     {started&&!reveal&&<div className="hud">
       {diagnosticsEnabled&&performance&&<aside className="perf-panel" aria-label="Diagnóstico gráfico">
         <strong>DIAGNÓSTICO 3D</strong>
@@ -248,6 +288,7 @@ function App(){
       {!finished&&<div className="mission">
         <span className="mission-index">ACTO {progress+1} / 4</span>
         <div className="mission-title">{steps[Math.min(progress,3)].title}</div>
+        <p className="mission-objective">{steps[Math.min(progress,3)].objective}</p>
         <div className="mission-bar"><span style={{width:(progress/4)*100+"%"}}/></div>
       </div>}
       {story&&<div className="story-caption">{story}</div>}
@@ -264,11 +305,13 @@ function App(){
         </div>
         <div className="right-controls">
           <span className="drag-tip">DESLIZÁ PARA MIRAR ↔</span>
+          <button className="story-button" onClick={()=>{setHintsOpen(false);setBriefingRecall(true);}}>VER MI MISIÓN <span>✦</span></button>
           <button className="hint-button" onClick={()=>setHintsOpen(v=>!v)}>¿UNA PISTA? <span>?</span></button>
         </div>
       </div>
       <div className="desktop-tip">W A S D PARA CAMINAR · MOUSE PARA MIRAR · E PARA INTERACTUAR</div>
       {toast&&<div role="status" className="toast">{toast}</div>}
+      {briefingRecall&&<MissionLetter name={invite.nombre} returning={true} onProceed={()=>setBriefingRecall(false)}/>}
       {hintsOpen&& <div className="modal-scrim" onClick={()=>setHintsOpen(false)}>
         <div className="clue-card" onClick={e=>e.stopPropagation()}>
           <p className="overline">DEL DIARIO DEL TRAMOYISTA</p><h2>Una pista del teatro</h2><p>{hints[phase]}</p>
