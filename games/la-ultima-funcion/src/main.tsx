@@ -52,7 +52,7 @@ function App(){
   const [joystick,setJoystick]=useState({x:0,y:0});
   const [error,setError]=useState("");
   const finished=phase==="final";
-  const setPhase=(p:TheaterPhase)=>{phaseRef.current=p;setPhaseState(p);world.current?.setPhase(p);};
+  const setPhase=(p:TheaterPhase)=>{phaseRef.current=p;setPhaseState(p);world.current?.setPhase(p);sound.current.setScene(p);};
   const show=(message:string,duration=3900)=>{
     setToastState(message);
     if(toastTimer.current!==null)window.clearTimeout(toastTimer.current);
