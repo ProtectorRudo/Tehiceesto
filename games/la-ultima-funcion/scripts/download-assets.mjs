@@ -9,7 +9,9 @@ const assets=[
   {id:"side_table_tall_01",key:"sideTable",folder:"side_table",source:"https://polyhaven.com/a/side_table_tall_01"},
   {id:"mantel_clock_01",key:"mantelClock",folder:"mantel_clock",source:"https://polyhaven.com/a/mantel_clock_01"},
   {id:"marble_bust_01",key:"marbleBust",folder:"marble_bust",source:"https://polyhaven.com/a/marble_bust_01"},
-  {id:"filmstrip_projector_8mm",key:"projector",folder:"projector",source:"https://polyhaven.com/a/filmstrip_projector_8mm"}
+  {id:"filmstrip_projector_8mm",key:"projector",folder:"projector",source:"https://polyhaven.com/a/filmstrip_projector_8mm"},
+  {id:"ClassicConsole_01",key:"victorianConsole",folder:"victorian_console",source:"https://polyhaven.com/a/ClassicConsole_01"},
+  {id:"ClassicNightstand_01",key:"ornateSideTable",folder:"ornate_side_table",source:"https://polyhaven.com/a/ClassicNightstand_01"}
 ];
 const root="public/models";
 const manifest={source:"Poly Haven CC0",credit:"https://polyhaven.com/license",assets:{}};
@@ -39,6 +41,28 @@ for(const a of assets){
     manifest.assets[a.key]="/models/"+a.folder+"/"+list[0][0];
   }catch(err){console.warn("El modelo CC0 "+a.id+" no pudo descargarse. Continúa el escenario de respaldo.",String(err));}
 }
+// Physically-based red velvet: color, OpenGL normal and packed AO/Rough/Metal.
+// 1K resolution limits texture memory; maps are shared by all seats and the curtain.
+try{
+  const files=await (await retrieve("https://api.polyhaven.com/files/velour_velvet")).json();
+  const directory="public/materials/velvet";await mkdir(directory,{recursive:true});
+  const choose=(name)=>{
+    const entry=files[name];
+    return entry?.["1k"]?.jpg||entry?.["1k"]?.png||entry?.["2k"]?.jpg||entry?.["2k"]?.png;
+  };
+  const mats={};
+  for(const [key,role] of [["diffuse","color"],["nor_gl","normal"],["arm","arm"]]){
+    const file=choose(key);if(!file?.url)throw new Error("Mapa PBR no disponible: "+key);
+    const ext=new URL(file.url).pathname.endsWith(".png")?"png":"jpg";
+    const bytes=Buffer.from(await(await retrieve(file.url)).arrayBuffer());
+    const filename=role+"."+ext;
+    await writeFile(join(directory,filename),bytes);
+    mats[role]="/materials/velvet/"+filename;
+    console.log("Terciopelo PBR CC0",key,(bytes.byteLength/1048576).toFixed(2)+" MB");
+  }
+  manifest.materials={velvet:mats};
+}catch(error){console.warn("Texturas PBR CC0 no disponibles; queda el tejido de respaldo.",String(error));}
+
 // A genuine skinned and animated adult, licensed CC0, downloaded at build time.
 // Model by Innerscene, built from MakeHuman/MPFB CC0. It contains 7 named clips.
 // Source: https://www.innerscene.com/tools/library/3d-parts/locomotion-collection-jordan-3d-person-animated-911f1584
