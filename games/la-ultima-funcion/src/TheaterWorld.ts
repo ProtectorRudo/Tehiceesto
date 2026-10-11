@@ -66,6 +66,7 @@ export class TheaterWorld{
   private filmSequenceStartedAt=-1;
   private filmFrame=0;
   private fusePickup?:THREE.Group;
+  private installedFuse?:THREE.Group;
   private reelPickup?:THREE.Group;
   private mountedReel?:THREE.Group;
   private fuseInstalled=false;
@@ -162,7 +163,7 @@ export class TheaterWorld{
   resetLights(){this.emitterLights.forEach(m=>m.emissiveIntensity=.16);this.cinema?.resetCircuits();}
   collectKey(){if(this.seatKey){this.seatKey.visible=false;this.seatKey=undefined;}}
   collectFuse(){if(this.fusePickup)this.fusePickup.visible=false;}
-  installFuse(){this.fuseInstalled=true;this.emitterLights.forEach(m=>m.emissiveIntensity=.43);}
+  installFuse(){this.fuseInstalled=true;if(this.installedFuse)this.installedFuse.visible=true;this.emitterLights.forEach(m=>m.emissiveIntensity=.43);}
   collectReel(){if(this.reelPickup)this.reelPickup.visible=false;}
   mountReel(){this.reelMounted=true;if(this.mountedReel)this.mountedReel.visible=true;}
   rotateFocus(){
@@ -820,6 +821,11 @@ export class TheaterWorld{
     socketPlate.material=mat(0x222126,.38,.45);
     addMesh(new THREE.TorusGeometry(.15,.03,8,22),brass,[0,0,.073],socket);
     this.bind(socket,"portafusible");
+    const insertedFuse=new THREE.Group();insertedFuse.visible=false;
+    const installedBody=addMesh(new THREE.CylinderGeometry(.095,.095,.37,16),cream,[0,0,.19],insertedFuse);
+    installedBody.rotation.z=Math.PI/2;
+    for(const x of [-.205,.205])addMesh(new THREE.CylinderGeometry(.12,.12,.07,14),brass,[x,0,.19],insertedFuse).rotation.z=Math.PI/2;
+    socket.add(insertedFuse);this.installedFuse=insertedFuse;
     // Projector apparatus with two independent mechanical reels, prism lens and plinth.
     const pr=pedestal(7.2,-9.9);
     const fallback=new THREE.Group();pr.add(fallback);this.projectorFallback=fallback;
