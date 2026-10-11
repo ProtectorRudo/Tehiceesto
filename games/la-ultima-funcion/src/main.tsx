@@ -159,9 +159,9 @@ function App(){
   // Development-only QA hooks exercise the real puzzle reducer, not a fake solved screen.
   // Vite removes this block from the production build.
   if(import.meta.env.DEV)(window as Window & {
-    __BELLADONNA_QA__?:{action:(a:TheaterAction)=>void; verify:()=>void; getPhase:()=>TheaterPhase;}
+    __BELLADONNA_QA__?:{action:(a:TheaterAction)=>void; verify:()=>void; getPhase:()=>TheaterPhase; character:()=>{human:boolean;idle:boolean;walk:boolean}|undefined;}
   }).__BELLADONNA_QA__={
-    action:a=>actionRef.current(a),verify:verifyDials,getPhase:()=>phaseRef.current
+    action:a=>actionRef.current(a),verify:verifyDials,getPhase:()=>phaseRef.current,character:()=>world.current?.getCharacterStatus()
   };
   const joyMove=(e:React.PointerEvent<HTMLDivElement>)=>{
     const r=e.currentTarget.getBoundingClientRect();const dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);
