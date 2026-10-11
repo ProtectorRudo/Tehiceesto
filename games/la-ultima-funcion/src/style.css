@@ -41,3 +41,18 @@
   to{opacity:1;filter:blur(0);transform:translate(-50%,0)}
 }
 @media(prefers-reduced-motion:reduce){.haunting-caption{animation:none}}
+
+
+/* Optional QA overlay: enabled only with ?diagnostico=1. */
+.perf-panel{
+  position:absolute;z-index:7;right:12px;top:116px;
+  display:flex;flex-direction:column;gap:4px;
+  min-width:190px;max-width:min(84vw,280px);
+  padding:10px 12px;
+  background:rgba(11,9,12,.89);border:1px solid rgba(226,173,97,.58);
+  box-shadow:0 4px 20px rgba(0,0,0,.35);
+  color:#e7d1af;font:10px/1.4 "DM Sans",sans-serif;
+  text-align:left;pointer-events:none;
+}
+.perf-panel strong{letter-spacing:1.4px;color:#e5b982;font-size:9px}
+@media(max-width:700px){.perf-panel{top:74px;right:9px;min-width:150px;padding:7px 9px;font-size:9px}}
