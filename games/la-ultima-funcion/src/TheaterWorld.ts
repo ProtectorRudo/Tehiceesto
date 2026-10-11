@@ -58,6 +58,7 @@ export class TheaterWorld{
   private projectorReel?:THREE.Group;private projectorFallback?:THREE.Group;private specialSeat?:THREE.Group;private seatKey?:THREE.Group;
   private wheelFaces:THREE.MeshBasicMaterial[]=[];private wheelValues:[number,number,number]=[0,0,0];
   private projectorScreen?:THREE.Mesh;private projectorBeam?:THREE.SpotLight;
+  private threatMessage?:THREE.Mesh;private projectorProfessionalLoaded=false;
   private cinema?:TheaterCinematics;
   private primaryStageSpot?:THREE.SpotLight;
   private blueStageFill?:THREE.PointLight;
@@ -103,6 +104,7 @@ export class TheaterWorld{
       this.events.onEvent("pasos");
     }
     if(p==="final"){
+      if(this.threatMessage)this.threatMessage.visible=false;
       this.ended=true;this.events.onEvent("aplausos");
       this.scene.background=new THREE.Color(0x25131d);
       if(this.lamps[1])this.lamps[1].intensity=25;
@@ -114,6 +116,7 @@ export class TheaterWorld{
   resetLights(){this.emitterLights.forEach(m=>m.emissiveIntensity=.16);this.cinema?.resetCircuits();}
   collectKey(){if(this.seatKey){this.seatKey.visible=false;this.seatKey=undefined;}}
   getCharacterStatus(){return {human:this.usher.children.some(x=>x.name==="AcomodadorHumanoRiggeado"),idle:!!this.usherIdle,walk:!!this.usherWalk};}
+  getCinematicStatus(){return {projectorModel:this.projectorProfessionalLoaded,director:!!this.cinema,threatVisible:!!this.threatMessage?.visible,act:this.phase};}
   turnWheel(index:number){
     if(index<0||index>2)return;
     this.wheelValues[index]=(this.wheelValues[index]+1)%10;
@@ -161,7 +164,7 @@ export class TheaterWorld{
     const stageLight=new THREE.SpotLight(0xffd6a0,110,29,Math.PI/5,.6,1.6);stageLight.position.set(0,8.5,-9);stageLight.target.position.set(0,1,-17);s.add(stageLight,stageLight.target);
     const stageBlue=new THREE.PointLight(0x5874bf,22,16,2);stageBlue.position.set(-6,5,-17);s.add(stageBlue);
     this.primaryStageSpot=stageLight;this.blueStageFill=stageBlue;
-    this.buildStructure();this.buildEntranceDoors();this.buildSeats();this.buildPanels();this.buildStage();this.buildUsher();
+    this.buildStructure();this.buildEntranceDoors();this.buildSeats();this.buildPanels();this.buildStage();this.buildUsher();this.buildThreatMessage();
     this.buildAtmosphere();
     if(this.primaryStageSpot&&this.blueStageFill&&this.projectorBeam)this.cinema=new TheaterCinematics(s,this.primaryStageSpot,this.blueStageFill,this.projectorBeam);
     void this.loadDecorManifest();
@@ -418,6 +421,22 @@ export class TheaterWorld{
     for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const a=j*(nx+1)+i,b=a+1,c=a+(nx+1),d=c+1;ind.push(a,c,b,b,c,d);}
     const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.Float32BufferAttribute(verts,3));g.setAttribute("uv",new THREE.Float32BufferAttribute(uv,2));g.setIndex(ind);g.computeVertexNormals();return g;
   }
+  private buildThreatMessage(){
+    const c=document.createElement("canvas");c.width=1024;c.height=256;
+    const q=c.getContext("2d")!;
+    q.clearRect(0,0,1024,256);
+    q.textBaseline="middle";q.textAlign="center";
+    q.font="bold 115px Georgia";
+    q.shadowColor="#c0001d";q.shadowBlur=29;
+    q.strokeStyle="rgba(80,0,13,.72)";q.lineWidth=12;
+    q.strokeText("TE ESTÁN MIRANDO",512,125,960);
+    q.fillStyle="#e53035";q.fillText("TE ESTÁN MIRANDO",512,125,960);
+    const texture=new THREE.CanvasTexture(c);texture.colorSpace=THREE.SRGBColorSpace;
+    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(5.9,1.47),
+      new THREE.MeshBasicMaterial({map:texture,transparent:true,depthWrite:false,side:THREE.DoubleSide,opacity:.94}));
+    mesh.position.set(0,4.8,-15.52);mesh.visible=false;this.scenery.add(mesh);
+    this.threatMessage=mesh;
+  }
   private buildStage(){
     const st=this.scenery;
     for(let i=0;i<4;i++)addMesh(new THREE.BoxGeometry(3.1,.13,.37),wood,[0,.085+i*.11,-12.2-i*.36],st);
@@ -495,6 +514,7 @@ export class TheaterWorld{
         void this.loadDecorGLTF(manifest.assets.projector,[7.2,1.64,-9.9],.78,Math.PI).then(model=>{
           if(!model)return;
           if(this.projectorFallback)this.projectorFallback.visible=false;
+          this.projectorProfessionalLoaded=true;
           this.bind(model,"proyector");
         });
       }
@@ -672,6 +692,7 @@ export class TheaterWorld{
       this.events.onListener(p.x,p.y,p.z,dir.x,dir.y,dir.z);
       if(this.elapsed>52&&!this.eventDone&&this.phase!=="final"){
         this.eventDone=true;this.events.onEvent("apagón");
+        if(this.threatMessage)this.threatMessage.visible=true;
         this.usher.position.set(-1.4,0,-12.0);this.usherGoal.set(-1.4,0,-12.0);
       }
       if(this.elapsed>this.nextScareAt&&!this.ended){
