@@ -3,7 +3,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 export type TheaterAction = "butaca" | "ambar" | "azul" | "rojo" | "proyector" | "telon" | "programa";
 export type TheaterPhase = "inicio" | "luces" | "proyector" | "telon" | "final";
-type SoundEvent = "pasos" | "apagón";
+type SoundEvent = "pasos" | "apagón" | "susurro" | "aplausos";
 export interface WorldEvents { onFocus:(target:TheaterAction|null)=>void; onAction:(target:TheaterAction)=>void; onEvent:(event:SoundEvent)=>void; }
 
 type Collider={x:number;z:number;rx:number;rz:number};
@@ -54,6 +54,10 @@ export class TheaterWorld{
   private projectorReel?:THREE.Group;private specialSeat?:THREE.Group;
   private projectorScreen?:THREE.Mesh;
   private phase:TheaterPhase="inicio";private clockTime=0;
+  private usherGoal=new THREE.Vector3(5.8,0,-12.3);
+  private watchers:THREE.Group[]=[];
+  private dust?:THREE.Points;
+  private frameTimeAccumulator=0;private frameTimeSamples=0;private nextScareAt=24;private lastWalkerSfx=0;
   private emitterLights:THREE.MeshStandardMaterial[]=[];
   readonly events:WorldEvents;
   constructor(mount:HTMLElement,events:WorldEvents){
@@ -75,7 +79,20 @@ export class TheaterWorld{
   }
   start(){this.active=true;this.clock.getDelta();}
   stop(){this.active=false;}
-  setPhase(p:TheaterPhase){this.phase=p;if(p==="proyector"){this.lightsDone=true;this.setScreen("3  ·  1  ·  7");this.usher.position.set(6.9,0,-8.5);}if(p==="telon"){this.projectorReel?.rotateZ(.2);this.usher.position.set(-6.6,0,-11.8);}if(p==="final"){this.ended=true;this.lamps.forEach(l=>l.intensity=2.8);}}
+  setPhase(p:TheaterPhase){
+    this.phase=p;
+    if(p==="luces"){this.usherGoal.set(-5.9,0,-11.7);this.events.onEvent("pasos");}
+    if(p==="proyector"){
+      this.lightsDone=true;this.setScreen("3  ·  1  ·  7");
+      this.usherGoal.set(6.7,0,-9.9);this.events.onEvent("susurro");
+      this.watchers.forEach(w=>w.visible=true);
+    }
+    if(p==="telon"){
+      this.projectorReel?.rotateZ(.2);this.usherGoal.set(-6.6,0,-11.8);
+      this.events.onEvent("pasos");
+    }
+    if(p==="final"){this.ended=true;this.events.onEvent("aplausos");this.lamps.forEach(l=>l.intensity=2.8);}
+  }
   setMove(x:number,y:number){this.move={x,y};}
   activate(){if(this.actionTarget){this.events.onAction(this.actionTarget);return;}const closest=this.closestObject();if(closest)this.events.onAction(closest);}
   markLight(index:number){if(this.emitterLights[index])this.emitterLights[index].emissiveIntensity=1.9;}
@@ -90,9 +107,41 @@ export class TheaterWorld{
     const stageLight=new THREE.SpotLight(0xffd6a0,110,29,Math.PI/5,.6,1.6);stageLight.position.set(0,8.5,-9);stageLight.target.position.set(0,1,-17);s.add(stageLight,stageLight.target);
     const stageBlue=new THREE.PointLight(0x5874bf,22,16,2);stageBlue.position.set(-6,5,-17);s.add(stageBlue);
     this.buildStructure();this.buildSeats();this.buildPanels();this.buildStage();this.buildUsher();
+    this.buildAtmosphere();
     void this.loadDecorManifest();
     const premium=(import.meta as any).env?.VITE_USHER_GLB;
     if(typeof premium==="string" && premium)this.useUsherGLB(premium);
+  }
+  private buildAtmosphere(){
+    // Suspended auditorium dust; one Points draw call instead of hundreds of objects.
+    const positions=new Float32Array(300*3);let seed=1968;
+    for(let i=0;i<300;i++){
+      seed=(seed*1664525+1013904223)>>>0;positions[i*3]=((seed%20000)/10000-1)*8.6;
+      seed=(seed*1664525+1013904223)>>>0;positions[i*3+1]=1.7+(seed%6500)/1000;
+      seed=(seed*1664525+1013904223)>>>0;positions[i*3+2]=-15+(seed%30000)/1000;
+    }
+    const geo=new THREE.BufferGeometry();geo.setAttribute("position",new THREE.BufferAttribute(positions,3));
+    const dust=new THREE.Points(geo,new THREE.PointsMaterial({color:0xe9c9a0,size:.032,transparent:true,opacity:.48,depthWrite:false}));
+    this.scenery.add(dust);this.dust=dust;
+    // Spectators at a safe distance: visible only when the old film starts.
+    const silhouetteMaterial=mat(0x131117,1);
+    for(const x of [-6.5,6.5]){
+      const watcher=new THREE.Group();watcher.position.set(x,5.5,-4);watcher.visible=false;
+      addMesh(new THREE.SphereGeometry(.21,12,9),silhouetteMaterial,[0,.9,0],watcher);
+      addMesh(new THREE.CylinderGeometry(.23,.35,.96,12),silhouetteMaterial,[0,.13,0],watcher);
+      this.scenery.add(watcher);this.watchers.push(watcher);
+    }
+    // Theater footlights, all emissive with no additional dynamic shadow-casting lights.
+    const glass=new THREE.MeshStandardMaterial({color:0xf3ca8d,emissive:0xffa357,emissiveIntensity:1.25,roughness:.32});
+    const bulbs=new THREE.InstancedMesh(new THREE.SphereGeometry(.1,8,7),glass,18);const obj=new THREE.Object3D();
+    for(let i=0;i<18;i++){obj.position.set(-7.65+i*.9,.39,-12.42);obj.updateMatrix();bulbs.setMatrixAt(i,obj.matrix);}
+    bulbs.instanceMatrix.needsUpdate=true;this.scenery.add(bulbs);
+    // Paintings in gilded frames to break up uniform walls and provide atmosphere.
+    for(const side of [-1,1])for(const z of [-7,3,10]){
+      const artwork=this.textPlane(["BELLADONNA","GRAN ESTRENO","17 · X · 1968"],1.28,2.0);
+      artwork.position.set(side*8.93,3.55,z);artwork.rotation.y=side===1?-Math.PI/2:Math.PI/2;
+      this.scenery.add(artwork);
+    }
   }
   private buildStructure(){
     const room=this.scenery;
@@ -172,7 +221,7 @@ export class TheaterWorld{
     let selected:THREE.Vector3Tuple=[3.6,0,3];
     const xs=[-6.3,-5.4,-4.5,-3.6,-2.7,2.7,3.6,4.5,5.4,6.3];
     for(let row=0;row<8;row++){const z=7-row*2;
-      for(let col=0;col<10;col++){const x=xs[col];if(row===2&&col===6){selected=[x,0,z];continue;}positions.push([x,0,z]);this.colliders.push({x,z,rx:.38,rz:.35});}
+      for(let col=0;col<10;col++){const x=xs[col];if(row===2&&col===7){selected=[x,0,z];continue;}positions.push([x,0,z]);this.colliders.push({x,z,rx:.38,rz:.35});}
     }
     for(const part of items){
       const inst=new THREE.InstancedMesh(part.geo,part.m,positions.length);const d=new THREE.Object3D();
@@ -303,10 +352,24 @@ export class TheaterWorld{
         const decoration=await this.loadDecorGLTF(manifest.assets.chandelier,[0,6.1,6.2],1.85,0);
         if(decoration&&this.chandelierPlaceholder)this.chandelierPlaceholder.visible=false;
       }
+      // Each room receives real PBR geometry, scaled to believable measurements.
       if(manifest.assets?.armchair){
-        await this.loadDecorGLTF(manifest.assets.armchair,[-6.4,.61,11.7],1.18,.65);
-        await this.loadDecorGLTF(manifest.assets.armchair,[6.4,.61,11.7],1.18,-.65);
+        await Promise.all([
+          this.loadDecorGLTF(manifest.assets.armchair,[-6.4,.61,11.7],1.18,.65),
+          this.loadDecorGLTF(manifest.assets.armchair,[6.4,.61,11.7],1.18,-.65)
+        ]);
       }
+      const furniture=[
+        ["grandfatherClock",[-8.35,1.1,13.25],2.18,Math.PI/2],
+        ["sideTable",[-7.8,.41,-13.8],.82,.2],
+        ["sideTable",[7.8,.41,-13.8],.82,-.2],
+        ["mantelClock",[-7.8,1.04,-13.8],.43,.1],
+        ["marbleBust",[7.8,1.2,-13.8],.48,0]
+      ] as const;
+      await Promise.all(furniture.map(async ([key,position,height,angle])=>{
+        const url=manifest.assets?.[key];
+        if(url)await this.loadDecorGLTF(url,[...position] as THREE.Vector3Tuple,height,angle);
+      }));
     }catch(err){console.warn("No se pudo cargar todo el decorado GLTF, se conserva el entorno.",err);}
   }
   private async loadDecorGLTF(url:string,where:THREE.Vector3Tuple,height:number,yaw:number){
@@ -394,10 +457,34 @@ export class TheaterWorld{
     if(this.active){
       this.elapsed+=dt;this.updateMovement(dt);this.checkFocus();
       if(this.elapsed>52&&!this.eventDone&&this.phase!=="final"){
-        this.eventDone=true;this.events.onEvent("apagón");this.usher.position.set(-1.4,0,-12.0);
+        this.eventDone=true;this.events.onEvent("apagón");
+        this.usher.position.set(-1.4,0,-12.0);this.usherGoal.set(-1.4,0,-12.0);
+      }
+      if(this.elapsed>this.nextScareAt&&!this.ended){
+        this.nextScareAt+=39;
+        this.events.onEvent("susurro");
+        this.watchers.forEach(w=>w.visible=!w.visible);
+      }
+      if(this.usher.position.distanceToSquared(this.usherGoal)>.06){
+        const distance=this.usher.position.distanceTo(this.usherGoal);
+        this.usher.position.lerp(this.usherGoal,Math.min(1,dt*.75));
+        this.usher.rotation.y=Math.atan2(this.usherGoal.x-this.usher.position.x,-(this.usherGoal.z-this.usher.position.z));
+        if(this.clockTime-this.lastWalkerSfx>1.25&&distance>.9){
+          this.lastWalkerSfx=this.clockTime;this.events.onEvent("pasos");
+        }
+      }
+      this.frameTimeAccumulator+=dt;this.frameTimeSamples++;
+      if(this.frameTimeSamples>=200){
+        const avg=this.frameTimeAccumulator/this.frameTimeSamples;
+        const pixelRatio=this.renderer.getPixelRatio();
+        if(avg>.032&&pixelRatio>.85)this.renderer.setPixelRatio(Math.max(.85,pixelRatio-.13));
+        this.frameTimeAccumulator=0;this.frameTimeSamples=0;
       }
     }
-    this.usherMixer?.update(dt);if(this.projectorReel&&this.phase!=="inicio"&&this.lightsDone)this.projectorReel.rotation.z+=dt*1.2;
+    this.usherMixer?.update(dt);
+    if(this.dust)this.dust.rotation.y=Math.sin(this.clockTime*.1)*.007;
+    this.watchers.forEach((w,i)=>{w.rotation.y=Math.sin(this.clockTime*.45+i)*.12;});
+    if(this.projectorReel&&this.phase!=="inicio"&&this.lightsDone)this.projectorReel.rotation.z+=dt*1.2;
     if(this.ended&&this.curtainProgress<1){
       this.curtainProgress=Math.min(1,this.curtainProgress+dt*.23);
       const e=THREE.MathUtils.smoothstep(this.curtainProgress,0,1);
