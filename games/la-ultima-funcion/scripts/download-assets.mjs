@@ -46,15 +46,43 @@ for(const a of assets){
 try{
   const files=await (await retrieve("https://api.polyhaven.com/files/velour_velvet")).json();
   const directory="public/materials/velvet";await mkdir(directory,{recursive:true});
+  console.log("API Poly Haven mapas terciopelo:",Object.keys(files).join(", "));
   const choose=(name)=>{
-    const entry=files[name];
-    return entry?.["1k"]?.jpg||entry?.["1k"]?.png||entry?.["2k"]?.jpg||entry?.["2k"]?.png;
+    const names={
+      diff:["diff","diffuse","col","color","albedo"],
+      nor_gl:["nor_gl","normal","normal_gl"],
+      arm:["arm","ao_rough_metal","orm"]
+    }[name]||[name];
+    const exact=Object.keys(files).find(key=>names.some(candidate=>key.toLowerCase()===candidate));
+    const entry=files[exact||name];
+    if(!entry)return null;
+    for(const resolution of ["1k","2k"]){
+      for(const format of ["jpg","png"]){
+        if(entry?.[resolution]?.[format]?.url)return entry[resolution][format].url;
+      }
+    }
+    return null;
   };
   const mats={};
   for(const [key,role] of [["diff","color"],["nor_gl","normal"],["arm","arm"]]){
-    const file=choose(key);if(!file?.url)throw new Error("Mapa PBR no disponible: "+key);
-    const ext=new URL(file.url).pathname.endsWith(".png")?"png":"jpg";
-    const bytes=Buffer.from(await(await retrieve(file.url)).arrayBuffer());
+    const base="https://dl.polyhaven.org/file/ph-assets/Textures";
+    const directName="velour_velvet_"+key+"_1k";
+    const options=[choose(key),
+      base+"/jpg/1k/velour_velvet/"+directName+".jpg",
+      base+"/png/1k/velour_velvet/"+directName+".png"].filter(Boolean);
+    let bytes,ext;
+    for(const url of options){
+      try{
+        const res=await retrieve(url);
+        const candidate=Buffer.from(await res.arrayBuffer());
+        const jpeg=candidate.length>4&&candidate[0]===0xff&&candidate[1]===0xd8;
+        const png=candidate.toString("ascii",1,4)==="PNG";
+        if(!jpeg&&!png)throw new Error("Formato no es JPG/PNG");
+        if(candidate.length<2000)throw new Error("Mapa incompleto");
+        bytes=candidate;ext=png?"png":"jpg";break;
+      }catch(error){console.warn("Intento de textura PBR:",url,String(error));}
+    }
+    if(!bytes||!ext)throw new Error("Mapa PBR no disponible: "+key);
     const filename=role+"."+ext;
     await writeFile(join(directory,filename),bytes);
     mats[role]="/materials/velvet/"+filename;
