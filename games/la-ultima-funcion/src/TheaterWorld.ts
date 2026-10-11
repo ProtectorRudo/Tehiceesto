@@ -55,7 +55,7 @@ export class TheaterWorld{
   private entranceDoors:THREE.Group[]=[];private entranceClosed=false;private entranceSlam=false;
   private curtainProgress=0;private lamps:THREE.PointLight[]=[];
   private scenery=new THREE.Group();private chandelierPlaceholder?:THREE.Group;private lightsDone=false;
-  private projectorReel?:THREE.Group;private specialSeat?:THREE.Group;private seatKey?:THREE.Group;
+  private projectorReel?:THREE.Group;private projectorFallback?:THREE.Group;private specialSeat?:THREE.Group;private seatKey?:THREE.Group;
   private wheelFaces:THREE.MeshBasicMaterial[]=[];private wheelValues:[number,number,number]=[0,0,0];
   private projectorScreen?:THREE.Mesh;private projectorBeam?:THREE.SpotLight;
   private cinema?:TheaterCinematics;
@@ -372,8 +372,9 @@ export class TheaterWorld{
     });
     // Projector apparatus with two independent mechanical reels, prism lens and plinth.
     const pr=pedestal(7.2,-9.9);
-    const body=addMesh(new THREE.BoxGeometry(.82,.55,.68),mat(0x33363b,.39,.7),[0,1.55,0],pr);body.rotation.y=.24;
-    const reel=new THREE.Group();reel.position.set(0,1.99,.03);pr.add(reel);this.projectorReel=reel;
+    const fallback=new THREE.Group();pr.add(fallback);this.projectorFallback=fallback;
+    const body=addMesh(new THREE.BoxGeometry(.82,.55,.68),mat(0x33363b,.39,.7),[0,1.55,0],fallback);body.rotation.y=.24;
+    const reel=new THREE.Group();reel.position.set(0,1.99,.03);fallback.add(reel);this.projectorReel=reel;
     for(const x of [-.26,.27]){
       addMesh(new THREE.TorusGeometry(.3,.062,9,24),fadedGold,[x,0,0],reel);
       addMesh(new THREE.CylinderGeometry(.09,.09,.13,12),brass,[x,0,0],reel).rotation.z=Math.PI/2;
@@ -381,8 +382,8 @@ export class TheaterWorld{
         const arm=addMesh(new THREE.BoxGeometry(.2,.034,.037),fadedGold,[x+Math.cos(a)*.12,Math.sin(a)*.12,0],reel);arm.rotation.z=a;
       }
     }
-    const lens=addMesh(new THREE.CylinderGeometry(.23,.15,.52,16),mat(0x525660,.22,.8),[0,1.52,-.53],pr);lens.rotation.x=Math.PI/2;
-    addMesh(new THREE.CylinderGeometry(.11,.13,.51,12),mat(0x191b29,.13,.65),[0,1.52,-.82],pr).rotation.x=Math.PI/2;
+    const lens=addMesh(new THREE.CylinderGeometry(.23,.15,.52,16),mat(0x525660,.22,.8),[0,1.52,-.53],fallback);lens.rotation.x=Math.PI/2;
+    addMesh(new THREE.CylinderGeometry(.11,.13,.51,12),mat(0x191b29,.13,.65),[0,1.52,-.82],fallback).rotation.x=Math.PI/2;
     const reflector=new THREE.SpotLight(0xc9d9ff,0,12,Math.PI/7,.6);reflector.position.set(7.2,1.65,-10.5);
     reflector.target.position.set(0,3,-17.7);this.scene.add(reflector,reflector.target);this.projectorBeam=reflector;
     this.bind(pr,"proyector");
@@ -490,6 +491,13 @@ export class TheaterWorld{
       if(!response.ok)return;
       const manifest=await response.json() as {assets?:Record<string,string>};
       if(manifest.assets?.usher)void this.useUsherGLB(manifest.assets.usher);
+      if(manifest.assets?.projector){
+        void this.loadDecorGLTF(manifest.assets.projector,[7.2,1.64,-9.9],.78,Math.PI).then(model=>{
+          if(!model)return;
+          if(this.projectorFallback)this.projectorFallback.visible=false;
+          this.bind(model,"proyector");
+        });
+      }
       if(manifest.assets?.chandelier){
         const decoration=await this.loadDecorGLTF(manifest.assets.chandelier,[0,6.1,6.2],1.85,0);
         if(decoration&&this.chandelierPlaceholder)this.chandelierPlaceholder.visible=false;
