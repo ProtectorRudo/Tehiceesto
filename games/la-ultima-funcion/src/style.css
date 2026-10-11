@@ -56,3 +56,20 @@
 }
 .perf-panel strong{letter-spacing:1.4px;color:#e5b982;font-size:9px}
 @media(max-width:700px){.perf-panel{top:74px;right:9px;min-width:150px;padding:7px 9px;font-size:9px}}
+
+
+/* Portrait QA: narration must not collide with the active puzzle header. */
+@media(max-width:750px) and (orientation:portrait){
+  .mission{top:77px;max-width:min(59vw,208px)}
+  .story-caption{
+    top:190px;
+    left:50%;width:min(84vw,430px);max-width:none;
+    padding:8px 13px;
+    font-size:16px;line-height:1.24;
+    color:#efddc8;opacity:.96;
+    border-radius:4px;
+    background:linear-gradient(90deg,transparent,rgba(10,7,10,.69) 12%,rgba(10,7,10,.69) 88%,transparent);
+    text-shadow:0 2px 11px #000;
+    pointer-events:none;
+  }
+}
