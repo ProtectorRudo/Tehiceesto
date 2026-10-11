@@ -189,9 +189,9 @@ function App(){
   // Development-only QA hooks exercise the real puzzle reducer, not a fake solved screen.
   // Vite removes this block from the production build.
   if(import.meta.env.DEV)(window as Window & {
-    __BELLADONNA_QA__?:{action:(a:TheaterAction)=>void; getPhase:()=>TheaterPhase; character:()=>{human:boolean;idle:boolean;walk:boolean}|undefined; wheels:()=>[number,number,number]|undefined; aim:(a:TheaterAction)=>boolean; cinema:()=>{projectorModel:boolean;director:boolean;threatVisible:boolean;act:TheaterPhase}|undefined;}
+    __BELLADONNA_QA__?:{action:(a:TheaterAction)=>void; getPhase:()=>TheaterPhase; character:()=>{human:boolean;idle:boolean;walk:boolean}|undefined; wheels:()=>[number,number,number]|undefined; aim:(a:TheaterAction)=>boolean; cinema:()=>{projectorModel:boolean;director:boolean;threatVisible:boolean;act:TheaterPhase}|undefined; warning:()=>{stage:string;seen:boolean}|undefined; forceWarning:()=>boolean; turnBehind:()=>boolean;}
   }).__BELLADONNA_QA__={
-    action:a=>actionRef.current(a),getPhase:()=>phaseRef.current,character:()=>world.current?.getCharacterStatus(),wheels:()=>world.current?.getWheelValues(),aim:a=>world.current?.aimAtForTest(a)??false,cinema:()=>world.current?.getCinematicStatus()
+    action:a=>actionRef.current(a),getPhase:()=>phaseRef.current,character:()=>world.current?.getCharacterStatus(),wheels:()=>world.current?.getWheelValues(),aim:a=>world.current?.aimAtForTest(a)??false,cinema:()=>world.current?.getCinematicStatus(),warning:()=>world.current?.getWarningStatus(),forceWarning:()=>world.current?.forceWarningForTest()??false,turnBehind:()=>world.current?.turnToApparitionForTest()??false
   };
   const joyMove=(e:React.PointerEvent<HTMLDivElement>)=>{
     const r=e.currentTarget.getBoundingClientRect();const dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);
