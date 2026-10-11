@@ -216,7 +216,34 @@ function App(){
         onAction:a=>actionRef.current(a),
         onListener:(x,y,z,fx,fy,fz,ux,uy,uz)=>sound.current.updateListener(x,y,z,fx,fy,fz,ux,uy,uz),
         onEvent:e=>{
-          if(e==="apagón"){
+          if(e==="electricidad"){
+            setBlackout(true);sound.current.play("scare");
+            setStory("Volvió la electricidad, pero la figura del Palco 1 no desapareció. Mirá arriba.");
+            window.setTimeout(()=>{setBlackout(false);setHauntingCaption("↑ PALCO 1 · MIRÁ ARRIBA");},760);
+            window.setTimeout(()=>setHauntingCaption(""),3700);
+          }else if(e==="fallo_luces"){
+            sound.current.play("wrong");setBlackout(true);
+            window.setTimeout(()=>setBlackout(false),400);
+            show("DESCARGA ELÉCTRICA · Alguien está detrás tuyo.",4500);
+          }else if(e==="palco_aparicion"){
+            setBoxEncountered(false);
+            setStory("Se abrió una cortina en el PALCO 1, arriba a la izquierda. Algo te está observando.");
+          }else if(e==="palco_visto"){
+            setBoxEncountered(true);sound.current.play("scare");
+            setHauntingCaption("TE ESTÁ MIRANDO");
+            if(typeof navigator!=="undefined"&&navigator.vibrate)navigator.vibrate([100,60,140]);
+            window.setTimeout(()=>setHauntingCaption(""),2600);
+          }else if(e==="palco_desvanecido"){
+            sound.current.play("door");
+            setStory("El Palco 1 está vacío otra vez. En la pantalla apareció una advertencia de 1968.");
+          }else if(e==="film_terror"){
+            sound.current.play("whisper");
+            show("ARCHIVO BELLADONNA · LA CINTA MUESTRA UNA FILA DE ESPECTADORES DESAPARECIDOS.",6000);
+          }else if(e==="final_falso"){
+            setBlackout(true);sound.current.play("scare");
+            setHauntingCaption("LA FUNCIÓN NO TERMINÓ");
+            window.setTimeout(()=>{setBlackout(false);setHauntingCaption("");},2100);
+          }else if(e==="apagón"){
             setBlackout(true);sound.current.play("scare");
             window.setTimeout(()=>{setBlackout(false);setStory("¿Viste al acomodador? Algo cambió cerca del escenario.");},1200);
           }else if(e==="advertencia"){
@@ -349,6 +376,9 @@ function App(){
           <button className="hint-button" onClick={()=>setHintsOpen(v=>!v)}>¿UNA PISTA? <span>?</span></button>
         </div>
       </div>
+      {phase==="proyector"&&!boxEncountered&&!finished&&<div className="balcony-callout" role="status">
+        <span aria-hidden="true">↑</span> PALCO 1 · ARRIBA A LA IZQUIERDA
+      </div>}
       <div className="desktop-tip">W A S D PARA CAMINAR · MOUSE PARA MIRAR · E PARA INTERACTUAR</div>
       {toast&&<div role="status" className="toast">{toast}</div>}
       {briefingRecall&&<MissionLetter name={invite.nombre} returning={true} onProceed={()=>setBriefingRecall(false)}/>}
