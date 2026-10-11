@@ -68,7 +68,7 @@ export class TheaterWorld{
   private primaryStageSpot?:THREE.SpotLight;
   private blueStageFill?:THREE.PointLight;
   private phase:TheaterPhase="inicio";private clockTime=0;
-  private usherGoal=new THREE.Vector3(5.8,0,-12.3);
+  private usherGoal=new THREE.Vector3(5.8,0,-10.95);
   private warningStage:"idle"|"queued"|"silence"|"apparition"|"resolved"="idle";
   private warningAt=Infinity;
   private warningAppearedAt=Infinity;
@@ -112,18 +112,18 @@ export class TheaterWorld{
   stop(){this.active=false;}
   setPhase(p:TheaterPhase){
     this.phase=p;this.cinema?.setAct(p);
-    if(p==="luces"){this.usherGoal.set(-5.9,0,-11.7);this.events.onEvent("pasos");}
+    if(p==="luces"){this.usherGoal.set(-5.9,0,-10.95);this.events.onEvent("pasos");}
     if(p==="proyector"){
       if(this.warningStage==="idle"){
         this.warningStage="queued";
         this.warningAt=this.elapsed+4.5;
       }
       this.lightsDone=false;this.setScreen("PROYECCIÓN INTERRUMPIDA");
-      this.usherGoal.set(6.7,0,-9.9);this.events.onEvent("susurro");
+      this.usherGoal.set(5.9,0,-10.95);this.events.onEvent("susurro");
       this.watchers.forEach(w=>w.visible=true);
     }
     if(p==="telon"){
-      this.projectorReel?.rotateZ(.2);this.usherGoal.set(-6.6,0,-11.8);
+      this.projectorReel?.rotateZ(.2);this.usherGoal.set(-6.0,0,-10.95);
       this.events.onEvent("pasos");
     }
     if(p==="final"){
@@ -216,7 +216,7 @@ export class TheaterWorld{
     this.warningStage="resolved";
     this.warningLight?.parent?.remove(this.warningLight);
     this.warningLight=undefined;
-    this.usherGoal.copy(this.warningPreviousDestination.lengthSq()?this.warningPreviousDestination:new THREE.Vector3(-6.6,0,-11.8));
+    this.usherGoal.copy(this.warningPreviousDestination.lengthSq()?this.warningPreviousDestination:new THREE.Vector3(-6.0,0,-10.95));
     this.warningFlash=0;
   }
   private startWarning(){
@@ -224,6 +224,17 @@ export class TheaterWorld{
     this.warningStage="silence";this.warningStart=this.elapsed;
     this.warningPreviousDestination.copy(this.usherGoal);
     this.events.onEvent("advertencia");
+  }
+  // The raised stage begins at z ≈ -12.2. The usher is not a ghost:
+  // it must remain on the auditorium floor, clear of stage fascia,
+  // projection equipment and upholstered seats.
+  private usherWalkable(x:number,z:number){
+    return z>=-11.12&&z<=12.1&&Math.abs(x)<=8.1&&this.valid(x,z);
+  }
+  getUsherGroundingStatus(){
+    return {position:this.usher.position.toArray(),stageBoundary:-11.12,
+      safe:this.usherWalkable(this.usher.position.x,this.usher.position.z),
+      footAnchors:this.usherDirector?.getGroundingStatus()};
   }
   private chooseApparitionPosition(){
     // The actor appears where there is space behind the camera, not through a chair.
@@ -238,11 +249,11 @@ export class TheaterWorld{
         options.push(new THREE.Vector3(p.x+toBack.x*distance+lateral.x,0,p.z+toBack.z*distance+lateral.z));
       }
     }
-    const good=options.find(v=>this.valid(v.x,v.z));
+    const good=options.find(v=>this.usherWalkable(v.x,v.z));
     if(good)return good;
     // Safe aisle fallback when player is between rows of seats.
     const aisles=[new THREE.Vector3(0,0,p.z),new THREE.Vector3(7.7,0,p.z),new THREE.Vector3(-7.7,0,p.z)];
-    return aisles.find(v=>this.valid(v.x,v.z))||new THREE.Vector3(0,0,-12);
+    return aisles.find(v=>this.usherWalkable(v.x,v.z))||new THREE.Vector3(0,0,-10.9);
   }
   private spawnApparition(){
     if(this.warningStage!=="silence"||this.ended)return;
@@ -274,7 +285,7 @@ export class TheaterWorld{
     if(time>(this.warningSeen?2.1:9.0)){
       this.warningStage="resolved";
       this.warningLight?.parent?.remove(this.warningLight);this.warningLight=undefined;
-      this.usher.position.set(-6.6,0,-11.8);this.usherGoal.copy(this.warningPreviousDestination);
+      this.usher.position.set(-6.0,0,-10.95);this.usherGoal.copy(this.warningPreviousDestination);
       this.events.onEvent("retirada");
     }
   }
@@ -733,7 +744,7 @@ export class TheaterWorld{
     material.map=labelTexture(["ARCHIVO RECUPERADO",text,"LA CLAVE ESTÁ EN EL TIEMPO"],"#fff0c6","#241f23");material.needsUpdate=true;
   }
   private buildUsher(){
-    const u=this.usher;u.position.set(5.8,0,-12.3);u.name="Acomodador";
+    const u=this.usher;u.position.set(5.8,0,-10.95);u.name="Acomodador";
     // A single unshadowed localized key light restores readable face and
     // uniform at night without lighting the whole auditorium or requiring a flashlight.
     this.usherKey=new THREE.PointLight(0xffd2aa,19,4.7,2);
@@ -1002,7 +1013,7 @@ export class TheaterWorld{
       if(this.elapsed>52&&!this.eventDone&&this.phase!=="final"){
         this.eventDone=true;this.events.onEvent("apagón");
         if(this.threatMessage)this.threatMessage.visible=true;
-        this.usher.position.set(-1.4,0,-12.0);this.usherGoal.set(-1.4,0,-12.0);
+        this.usher.position.set(-1.4,0,-10.9);this.usherGoal.set(-1.4,0,-10.9);
       }
       if(this.elapsed>this.nextScareAt&&!this.ended){
         this.nextScareAt+=39;
@@ -1020,12 +1031,30 @@ export class TheaterWorld{
         const distance=this.usher.position.distanceTo(this.usherGoal);
         // Fixed world-space stride (m/s) instead of an exponential lerp that
         // stalls near the destination. Damped turning prevents instant pivots.
-        const direction=this.usherGoal.clone().sub(this.usher.position);
-        const desiredYaw=Math.atan2(direction.x,-direction.z);
-        const yawError=Math.atan2(Math.sin(desiredYaw-this.usher.rotation.y),Math.cos(desiredYaw-this.usher.rotation.y));
-        this.usher.rotation.y+=yawError*(1-Math.exp(-4.3*dt));
-        const stride=Math.min(distance,dt*1.24);
-        if(distance>.0001)this.usher.position.addScaledVector(direction,stride/distance);
+        // Walk across the clear corridor in front of the stage. Do not use
+        // a straight-line root transform that cuts through the stage facade.
+        const destination=this.usherGoal.clone();
+        destination.y=0;
+        destination.z=Math.max(-11.10,destination.z);
+        const direction=destination.sub(this.usher.position);
+        const targetDistance=direction.length();
+        if(targetDistance>.0001){
+          const stride=Math.min(targetDistance,dt*1.24);
+          const nx=this.usher.position.x+direction.x/targetDistance*stride;
+          const nz=this.usher.position.z+direction.z/targetDistance*stride;
+          const desiredYaw=Math.atan2(direction.x,-direction.z);
+          const yawError=Math.atan2(Math.sin(desiredYaw-this.usher.rotation.y),Math.cos(desiredYaw-this.usher.rotation.y));
+          this.usher.rotation.y+=yawError*(1-Math.exp(-4.3*dt));
+          if(this.usherWalkable(nx,nz)){
+            this.usher.position.set(nx,0,nz);
+          }else{
+            // Keep the actor away from the obstacle and the stage edge.
+            const xCan=this.usherWalkable(nx,this.usher.position.z);
+            const zCan=this.usherWalkable(this.usher.position.x,nz);
+            if(xCan)this.usher.position.x=nx;
+            else if(zCan)this.usher.position.z=nz;
+          }
+        }
         if(this.clockTime-this.lastWalkerSfx>1.25&&distance>.9){
           this.lastWalkerSfx=this.clockTime;this.events.onEvent("pasos");
         }
@@ -1055,6 +1084,7 @@ export class TheaterWorld{
     this.usherDirector?.beforeAnimation();
     this.usherMixer?.update(dt);
     this.usherDirector?.update(dt,this.active&&!this.ended);
+    this.usherDirector?.correctFootContact(dt);
     this.decorMixers.forEach(m=>m.update(dt));
     if(this.dust)this.dust.rotation.y=Math.sin(this.clockTime*.1)*.007;
     this.watchers.forEach((w,i)=>{w.rotation.y=Math.sin(this.clockTime*.45+i)*.12;});
