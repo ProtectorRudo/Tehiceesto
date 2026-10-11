@@ -143,7 +143,7 @@ function App(){
             window.setTimeout(()=>{setBlackout(false);setStory("¿Viste al acomodador? Algo cambió cerca del escenario.");},1200);
           }else if(e==="advertencia"){
             warningCueCount.current++;
-            sound.current.silenceFor(1.1);
+            sound.current.silenceFor(3.0);
             setHauntingCaption("...");
             window.setTimeout(()=>{
               if(phaseRef.current==="final")return;
