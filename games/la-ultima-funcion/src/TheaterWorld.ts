@@ -116,6 +116,15 @@ export class TheaterWorld{
     this.paintWheel(index);
   }
   getWheelValues(){return [...this.wheelValues] as [number,number,number];}
+  aimAtForTest(action:TheaterAction){
+    if(!import.meta.env.DEV)return false;
+    const target=this.targets.find(o=>o.userData.action===action);if(!target)return false;
+    const pos=target.getWorldPosition(new THREE.Vector3());
+    this.camera.position.set(pos.x,1.64,pos.z+2.45);
+    this.camera.lookAt(pos);
+    this.yaw=this.camera.rotation.y;this.pitch=this.camera.rotation.x;
+    return true;
+  }
   private paintWheel(index:number){
     const m=this.wheelFaces[index];if(!m)return;
     m.map?.dispose();
