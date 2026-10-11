@@ -55,6 +55,7 @@ export class TheaterWorld{
   private projectorScreen?:THREE.Mesh;
   private phase:TheaterPhase="inicio";private clockTime=0;
   private usherGoal=new THREE.Vector3(5.8,0,-12.3);
+  private decorMixers:THREE.AnimationMixer[]=[];
   private watchers:THREE.Group[]=[];
   private dust?:THREE.Points;
   private frameTimeAccumulator=0;private frameTimeSamples=0;private nextScareAt=24;private lastWalkerSfx=0;
@@ -98,7 +99,7 @@ export class TheaterWorld{
   activate(){if(this.actionTarget){this.events.onAction(this.actionTarget);return;}const closest=this.closestObject();if(closest)this.events.onAction(closest);}
   markLight(index:number){if(this.emitterLights[index])this.emitterLights[index].emissiveIntensity=1.9;}
   resetLights(){this.emitterLights.forEach(m=>m.emissiveIntensity=.16);}
-  openCurtain(){this.curtainProgress=.0001;this.setPhase("final");}
+  openCurtain(){this.curtainProgress=.0001;if(this.phase!=="final")this.setPhase("final");}
   private construct(){
     const s=this.scene;
     s.add(new THREE.HemisphereLight(0xb7b5c1,0x372025,1.55));
@@ -377,6 +378,11 @@ export class TheaterWorld{
     try{
       const gltf=await new GLTFLoader().loadAsync(url);
       const model=gltf.scene;
+      if(gltf.animations.length){
+        const mixer=new THREE.AnimationMixer(model);
+        const action=mixer.clipAction(gltf.animations[0]);action.setEffectiveTimeScale(.55);action.play();
+        this.decorMixers.push(mixer);
+      }
       const unscaled=new THREE.Box3().setFromObject(model);
       const size=unscaled.getSize(new THREE.Vector3());
       const factor=height/Math.max(size.y,.01);
@@ -484,7 +490,7 @@ export class TheaterWorld{
         this.frameTimeAccumulator=0;this.frameTimeSamples=0;
       }
     }
-    this.usherMixer?.update(dt);
+    this.usherMixer?.update(dt);this.decorMixers.forEach(m=>m.update(dt));
     if(this.dust)this.dust.rotation.y=Math.sin(this.clockTime*.1)*.007;
     this.watchers.forEach((w,i)=>{w.rotation.y=Math.sin(this.clockTime*.45+i)*.12;});
     if(this.projectorReel&&this.phase!=="inicio"&&this.lightsDone)this.projectorReel.rotation.z+=dt*1.2;
