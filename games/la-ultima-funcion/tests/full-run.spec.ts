@@ -25,7 +25,14 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
   // The cabinet now has three physical 3D number wheels, not a popup.
   await action(page,"proyector");
   await expectPhase(page,"proyector");
-  for(const [index,turns] of [[1,3],[2,1],[3,7]]){
+  // Tap the *actual rendered 3D number wheel* to test the mobile pointer raycast.
+  const aimed=await page.evaluate(()=>(window as any).__BELLADONNA_QA__?.aim?.("rueda1"));
+  expect(aimed).toBe(true);
+  await page.waitForTimeout(200);
+  const canvas=page.locator(".three-canvas");
+  await canvas.click({position:{x:(await canvas.boundingBox())!.width/2,y:(await canvas.boundingBox())!.height/2}});
+  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.wheels?.()[0])).toBe(1);
+  for(const [index,turns] of [[1,2],[2,1],[3,7]]){
     for(let j=0;j<turns;j++)await action(page,"rueda"+index);
   }
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.wheels?.())).toEqual([3,1,7]);
