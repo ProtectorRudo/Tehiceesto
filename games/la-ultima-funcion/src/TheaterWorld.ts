@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 export type TheaterAction = "butaca" | "ambar" | "azul" | "rojo" | "proyector" | "telon" | "programa";
 export type TheaterPhase = "inicio" | "luces" | "proyector" | "telon" | "final";
 type SoundEvent = "pasos" | "apagón" | "susurro" | "aplausos";
-export interface WorldEvents { onFocus:(target:TheaterAction|null)=>void; onAction:(target:TheaterAction)=>void; onEvent:(event:SoundEvent)=>void; }
+export interface WorldEvents { onFocus:(target:TheaterAction|null)=>void; onAction:(target:TheaterAction)=>void; onEvent:(event:SoundEvent)=>void; onListener:(x:number,y:number,z:number,fx:number,fy:number,fz:number)=>void; }
 
 type Collider={x:number;z:number;rx:number;rz:number};
 const golden=0xc8a56a, velvet=0x651f29;
@@ -58,6 +58,7 @@ export class TheaterWorld{
   private watchers:THREE.Group[]=[];
   private dust?:THREE.Points;
   private frameTimeAccumulator=0;private frameTimeSamples=0;private nextScareAt=24;private lastWalkerSfx=0;
+  private forwardScratch=new THREE.Vector3();
   private emitterLights:THREE.MeshStandardMaterial[]=[];
   readonly events:WorldEvents;
   constructor(mount:HTMLElement,events:WorldEvents){
@@ -456,6 +457,8 @@ export class TheaterWorld{
     const dt=Math.min(.05,this.clock.getDelta());this.clockTime+=dt;
     if(this.active){
       this.elapsed+=dt;this.updateMovement(dt);this.checkFocus();
+      this.camera.getWorldDirection(this.forwardScratch);const p=this.camera.position,dir=this.forwardScratch;
+      this.events.onListener(p.x,p.y,p.z,dir.x,dir.y,dir.z);
       if(this.elapsed>52&&!this.eventDone&&this.phase!=="final"){
         this.eventDone=true;this.events.onEvent("apagón");
         this.usher.position.set(-1.4,0,-12.0);this.usherGoal.set(-1.4,0,-12.0);
