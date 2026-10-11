@@ -1125,11 +1125,19 @@ export class TheaterWorld{
         shadow.traverse(node=>{
           if(node instanceof THREE.Mesh){
             node.castShadow=false;node.receiveShadow=false;
-            const dark=new THREE.MeshStandardMaterial({
-              color:0x140d15,emissive:0x350b21,emissiveIntensity:.43,roughness:1,
-              side:THREE.DoubleSide,transparent:false
+            const input=Array.isArray(node.material)?node.material[0]:node.material;
+            const slot=(node.name+" "+(input?.name??"")).toLowerCase();
+            const isFace=/(face|skin|head|hand|eye|body)/.test(slot);
+            const source=input instanceof THREE.MeshStandardMaterial?input:undefined;
+            // Preserve normal and albedo maps: a fully dark replacement made
+            // the figure invisible when looking up from a mobile phone.
+            const spectral=new THREE.MeshStandardMaterial({
+              color:isFace?0xdcb8ad:0x99727a,
+              map:source?.map??null,normalMap:source?.normalMap??null,
+              emissive:isFace?0x88555c:0x5c3049,emissiveIntensity:.62,
+              roughness:.86,metalness:0,side:THREE.DoubleSide
             });
-            node.material=dark;
+            node.material=spectral;
           }
         });
         const figure=new THREE.Group();figure.name="Silueta viva del PALCO 1";
