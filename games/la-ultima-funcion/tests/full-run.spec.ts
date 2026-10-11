@@ -27,6 +27,12 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.cinema?.()),{timeout:60000}).toMatchObject({
     projectorModel:true,director:true,velvetPBR:true,act:"inicio"
   });
+  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.seatNumbers?.()),{timeout:10000})
+    .toMatchObject({rows:8,perRow:10,numbered:80,digits:10,target:"FILA 3 · ASIENTO 8"});
+  expect(await page.evaluate(()=>(window as any).__BELLADONNA_QA__?.viewRowSignage?.())).toBe(true);
+  await page.screenshot({path:testInfo.outputPath("04-filas-senalizadas.png")});
+  expect(await page.evaluate(()=>(window as any).__BELLADONNA_QA__?.viewNumberedSeat?.())).toBe(true);
+  await page.screenshot({path:testInfo.outputPath("05-asiento-3-8.png")});
   // The old CG placeholder must be gone: the actual GLB skeleton wears
   // a stage uniform with a separately rigged cap, and looks toward the visitor.
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.usher?.()),{timeout:50000})
