@@ -59,6 +59,7 @@ jobs:
           path: |
             games/la-ultima-funcion/test-results/**/01-entrada.png
             games/la-ultima-funcion/test-results/**/02-teatro.png
+            games/la-ultima-funcion/test-results/**/03-acomodador.png
       - name: Guardar resultados si hay fallos
         if: failure()
         uses: actions/upload-artifact@v4
