@@ -12,6 +12,13 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
   const errors:string[]=[];page.on("pageerror",err=>errors.push(err.message));
   await page.goto("/?nombre=Martina&evento=Fiesta%20de%20cumplea%C3%B1os&fecha=24%2F10%2F2026&hora=21%3A00&lugar=Sal%C3%B3n%20Belladonna");
   await page.getByRole("button",{name:/ABRIR LAS PUERTAS/}).click();
+  const letter=page.getByRole("dialog",{name:/La función que nunca terminó/i});
+  await expect(letter).toBeVisible();
+  await expect(letter).toContainText("FILA 3");
+  await expect(letter).toContainText("ASIENTO 8");
+  await expect(page.locator(".timer")).toHaveCount(0);
+  await page.screenshot({path:testInfo.outputPath("01b-carta-mision.png")});
+  await letter.getByRole("button",{name:/ENTENDÍ MI MISIÓN/i}).click();
   await expectPhase(page,"inicio");
   // No basta con que compile: el humano skinned debe cargar y disponer de ambas animaciones.
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.character?.()),{timeout:45000}).toEqual({
