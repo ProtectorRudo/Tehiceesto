@@ -177,7 +177,7 @@ export class TheaterWorld{
     if(!import.meta.env.DEV||this.warningStage!=="apparition"||!this.warningSeen)return false;
     this.warningAppearedAt=this.elapsed-3;
     this.updateWarning();
-    return this.warningStage==="resolved";
+    return this.getWarningStatus().stage==="resolved";
   }
   turnToApparitionForTest(){
     if(!import.meta.env.DEV||this.warningStage!=="apparition")return false;
