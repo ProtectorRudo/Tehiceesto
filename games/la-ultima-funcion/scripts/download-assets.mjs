@@ -8,7 +8,8 @@ const assets=[
   {id:"vintage_grandfather_clock_01",key:"grandfatherClock",folder:"grandfather_clock",source:"https://polyhaven.com/a/vintage_grandfather_clock_01"},
   {id:"side_table_tall_01",key:"sideTable",folder:"side_table",source:"https://polyhaven.com/a/side_table_tall_01"},
   {id:"mantel_clock_01",key:"mantelClock",folder:"mantel_clock",source:"https://polyhaven.com/a/mantel_clock_01"},
-  {id:"marble_bust_01",key:"marbleBust",folder:"marble_bust",source:"https://polyhaven.com/a/marble_bust_01"}
+  {id:"marble_bust_01",key:"marbleBust",folder:"marble_bust",source:"https://polyhaven.com/a/marble_bust_01"},
+  {id:"filmstrip_projector_8mm",key:"projector",folder:"projector",source:"https://polyhaven.com/a/filmstrip_projector_8mm"}
 ];
 const root="public/models";
 const manifest={source:"Poly Haven CC0",credit:"https://polyhaven.com/license",assets:{}};
