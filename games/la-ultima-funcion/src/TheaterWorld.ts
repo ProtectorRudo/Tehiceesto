@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
+import { clone as cloneRigged } from "three/addons/utils/SkeletonUtils.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { TheaterCinematics } from "./TheaterCinematics";
@@ -74,6 +75,10 @@ export class TheaterWorld{
   private warningFlash=0;
   private warningLight?:THREE.PointLight;
   private decorMixers:THREE.AnimationMixer[]=[];
+  private assets=new Map<string,Promise<GLTF>>();
+  private sharedLoader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+  private velvetMaterials:THREE.MeshStandardMaterial[]=[];
+  private velvetReady=false;
   private usherIdle?:THREE.AnimationAction;private usherWalk?:THREE.AnimationAction;private usherWalking=false;
   private watchers:THREE.Group[]=[];
   private dust?:THREE.Points;
@@ -130,7 +135,7 @@ export class TheaterWorld{
   resetLights(){this.emitterLights.forEach(m=>m.emissiveIntensity=.16);this.cinema?.resetCircuits();}
   collectKey(){if(this.seatKey){this.seatKey.visible=false;this.seatKey=undefined;}}
   getCharacterStatus(){return {human:this.usher.children.some(x=>x.name==="AcomodadorHumanoRiggeado"),idle:!!this.usherIdle,walk:!!this.usherWalk};}
-  getCinematicStatus(){return {projectorModel:this.projectorProfessionalLoaded,director:!!this.cinema,threatVisible:!!this.threatMessage?.visible,act:this.phase};}
+  getCinematicStatus(){return {projectorModel:this.projectorProfessionalLoaded,director:!!this.cinema,velvetPBR:this.velvetReady,threatVisible:!!this.threatMessage?.visible,act:this.phase};}
   getWarningStatus(){return {stage:this.warningStage,seen:this.warningSeen};}
   forceWarningForTest(){
     if(!import.meta.env.DEV||this.phase!=="proyector")return false;
@@ -412,6 +417,7 @@ export class TheaterWorld{
   private bind(o:THREE.Object3D,action:TheaterAction){o.userData.action=action;this.targets.push(o);}
   private buildSeats(){
     const frame=mat(0x483129,.72),fabric=new THREE.MeshStandardMaterial({map:fabricTexture(),color:0xffffff,roughness:.99});
+    this.velvetMaterials.push(fabric);
     // Velvet theatre seats have rounded cushioning and carved wooden borders.
     // Parts use instancing so richer geometry adds almost no draw-call cost.
     const items:Array<{geo:THREE.BufferGeometry,m:THREE.Material,p:THREE.Vector3Tuple,tilt?:number}>=[
@@ -548,7 +554,8 @@ export class TheaterWorld{
     }
     arch(st,0,-15.8,7.4,15.2,1.2);
     addMesh(new THREE.BoxGeometry(15,.43,.44),brass,[0,8.5,-15.8],st);
-    const curtainMat=new THREE.MeshStandardMaterial({color:0x8b2432,roughness:1,metalness:0,side:THREE.DoubleSide,map:fabricTexture()});
+    const curtainMat=new THREE.MeshStandardMaterial({color:0xffffff,roughness:1,metalness:0,side:THREE.DoubleSide,map:fabricTexture()});
+    this.velvetMaterials.push(curtainMat);
     const left=new THREE.Mesh(this.curtainGeometry(6.7,7.2),curtainMat);
     const right=new THREE.Mesh(this.curtainGeometry(6.7,7.2),curtainMat);
     left.position.set(-3.35,.2,-16.08);right.position.set(3.35,.2,-16.08);
@@ -603,11 +610,40 @@ export class TheaterWorld{
     ]);
     this.usherMixer=new THREE.AnimationMixer(u);this.usherMixer.clipAction(clip).play();
   }
+  private loadModel(url:string){
+    const saved=this.assets.get(url);if(saved)return saved;
+    const pending=this.sharedLoader.loadAsync(url).catch(error=>{this.assets.delete(url);throw error;});
+    this.assets.set(url,pending);return pending;
+  }
+  private async loadVelvetPBR(materials:{color?:string;normal?:string;arm?:string}){
+    if(!materials.color||!materials.normal||!materials.arm)return;
+    try{
+      const loader=new THREE.TextureLoader();
+      const [color,normal,arm]=await Promise.all([
+        loader.loadAsync(materials.color),loader.loadAsync(materials.normal),loader.loadAsync(materials.arm)
+      ]);
+      color.colorSpace=THREE.SRGBColorSpace;
+      for(const texture of [color,normal,arm]){
+        texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
+        texture.repeat.set(2,2);
+        texture.anisotropy=Math.min(4,this.renderer.capabilities.getMaxAnisotropy());
+      }
+      if(!this.scenery.parent){color.dispose();normal.dispose();arm.dispose();return;}
+      for(const material of this.velvetMaterials){
+        material.map?.dispose();
+        material.map=color;material.normalMap=normal;material.roughnessMap=arm;
+        material.normalScale.set(.35,.35);material.roughness=.92;material.metalness=0;
+        material.needsUpdate=true;
+      }
+      this.velvetReady=true;
+    }catch(error){console.warn("Terciopelo PBR no disponible, se conserva el tejido procedural.",error);}
+  }
   private async loadDecorManifest(){
     try{
       const response=await fetch("/models/manifest.json");
       if(!response.ok)return;
-      const manifest=await response.json() as {assets?:Record<string,string>};
+      const manifest=await response.json() as {assets?:Record<string,string>;materials?:{velvet?:{color?:string;normal?:string;arm?:string}}};
+      if(manifest.materials?.velvet)void this.loadVelvetPBR(manifest.materials.velvet);
       if(manifest.assets?.usher)void this.useUsherGLB(manifest.assets.usher);
       if(manifest.assets?.projector){
         void this.loadDecorGLTF(manifest.assets.projector,[7.2,1.64,-9.9],.78,Math.PI).then(model=>{
@@ -633,7 +669,11 @@ export class TheaterWorld{
         ["sideTable",[-7.8,.41,-13.8],.82,.2],
         ["sideTable",[7.8,.41,-13.8],.82,-.2],
         ["mantelClock",[-7.8,1.04,-13.8],.43,.1],
-        ["marbleBust",[7.8,1.2,-13.8],.48,0]
+        ["marbleBust",[7.8,1.2,-13.8],.48,0],
+        ["victorianConsole",[-8.15,.72,7.9],1.4,Math.PI/2],
+        ["victorianConsole",[8.15,.72,7.9],1.4,-Math.PI/2],
+        ["ornateSideTable",[-8.15,.36,0.7],.73,Math.PI/2],
+        ["ornateSideTable",[8.15,.36,.7],.73,-Math.PI/2]
       ] as const;
       await Promise.all(furniture.map(async ([key,position,height,angle])=>{
         const url=manifest.assets?.[key];
@@ -643,8 +683,8 @@ export class TheaterWorld{
   }
   private async loadDecorGLTF(url:string,where:THREE.Vector3Tuple,height:number,yaw:number){
     try{
-      const gltf=await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(url);
-      const model=gltf.scene;
+      const gltf=await this.loadModel(url);
+      const model=cloneRigged(gltf.scene);
       if(gltf.animations.length){
         const mixer=new THREE.AnimationMixer(model);
         const action=mixer.clipAction(gltf.animations[0]);action.setEffectiveTimeScale(.55);action.play();
@@ -663,8 +703,8 @@ export class TheaterWorld{
   }
   private async useUsherGLB(url:string){
     try{
-      const gltf=await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(url);
-      const model=gltf.scene;model.name="AcomodadorHumanoRiggeado";
+      const gltf=await this.loadModel(url);
+      const model=cloneRigged(gltf.scene);model.name="AcomodadorHumanoRiggeado";
       // Scale to 2.15m and ground the feet regardless of original authoring units.
       const bounds=new THREE.Box3().setFromObject(model),size=bounds.getSize(new THREE.Vector3());
       model.scale.multiplyScalar(2.15/Math.max(.1,size.y));
