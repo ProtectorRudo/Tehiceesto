@@ -37,10 +37,12 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
   // player, then a reaction only when the camera turns toward the usher.
   expect(await page.evaluate(()=>(window as any).__BELLADONNA_QA__?.forceWarning())).toBe(true);
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.warningCues?.()),{timeout:12000}).toBeGreaterThan(0);
-  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.warning?.().stage),{timeout:15000}).toBe("apparition");
+  expect(await page.evaluate(()=>(window as any).__BELLADONNA_QA__?.advanceWarning())).toBe(true);
+  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.warning?.().stage),{timeout:8000}).toBe("apparition");
   expect(await page.evaluate(()=>(window as any).__BELLADONNA_QA__?.turnBehind())).toBe(true);
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.warning?.().seen),{timeout:8000}).toBe(true);
-  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.warning?.().stage),{timeout:12000}).toBe("resolved");
+  expect(await page.evaluate(()=>(window as any).__BELLADONNA_QA__?.finishWarning())).toBe(true);
+  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.warning?.().stage),{timeout:8000}).toBe("resolved");
   // The cabinet now has three physical 3D number wheels, not a popup.
   await action(page,"proyector");
   await expectPhase(page,"proyector");
