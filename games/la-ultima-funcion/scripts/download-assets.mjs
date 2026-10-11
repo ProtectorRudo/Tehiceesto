@@ -90,5 +90,27 @@ try{
   },null,2));
   console.log("Ambiente sonoro CC0 descargado:",(bytes.length/1048576).toFixed(2)+" MB");
 }catch(err){console.warn("Música CC0 no disponible, se conserva la atmósfera sintetizada.",String(err));}
+
+// Short recorded CC0 sound effects replace procedural footsteps/door impacts
+// when playback is supported. The synthesized effects stay as offline fallback.
+const soundAssets=[
+  {key:"footstep",url:"https://opengameart.org/sites/default/files/01-footstep_0.ogg",
+    source:"https://opengameart.org/content/footsteps-0",artist:"GboxMikeFozzy"},
+  {key:"door",url:"https://opengameart.org/sites/default/files/door_1.ogg",
+    source:"https://opengameart.org/content/rpg-sound-effect-pack",artist:"Delta12 Studio"}
+];
+const soundCredits={};
+for(const asset of soundAssets){
+  try{
+    const bytes=Buffer.from(await(await retrieve(asset.url)).arrayBuffer());
+    if(bytes.byteLength<4500||bytes.toString("ascii",0,4)!=="OggS")throw new Error("Respuesta sin cabecera OggS");
+    await mkdir("public/audio",{recursive:true});
+    await writeFile("public/audio/"+asset.key+".ogg",bytes);
+    soundCredits[asset.key]={artist:asset.artist,source:asset.source,license:"CC0 1.0"};
+    console.log("Efecto de sonido grabado CC0",asset.key,bytes.byteLength);
+  }catch(error){console.warn("Efecto opcional CC0 ausente",asset.key,String(error));}
+}
+await writeFile("public/audio/sfx-credits.json",JSON.stringify(soundCredits,null,2));
+
 await writeFile(join(root,"manifest.json"),JSON.stringify(manifest,null,2));
 console.log("Modelos de producción disponibles:",Object.keys(manifest.assets));
