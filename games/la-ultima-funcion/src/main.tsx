@@ -52,6 +52,8 @@ function App(){
   const [muted,setMuted]=useState(false);
   const [joystick,setJoystick]=useState({x:0,y:0});
   const [error,setError]=useState("");
+  const diagnosticsEnabled=useRef(new URLSearchParams(location.search).has("diagnostico")).current;
+  const [performance,setPerformance]=useState<{fps:number;pixelRatio:number;drawCalls:number;triangles:number;models:boolean}|null>(null);
   const finished=phase==="final";
   const setPhase=(p:TheaterPhase)=>{phaseRef.current=p;setPhaseState(p);world.current?.setPhase(p);sound.current.setScene(p);};
   const show=(message:string,duration=3900)=>{
@@ -172,6 +174,13 @@ function App(){
     }
     return ()=>{world.current?.dispose();world.current=null;sound.current.dispose();if(timerRef.current!==null)clearInterval(timerRef.current);};
   },[]);
+  useEffect(()=>{
+    if(!diagnosticsEnabled)return;
+    const refresh=window.setInterval(()=>{
+      if(world.current)setPerformance(world.current.getPerformanceStatus());
+    },1100);
+    return ()=>window.clearInterval(refresh);
+  },[diagnosticsEnabled]);
   const begin=()=>{
     if(!supported||!world.current)return;
     sound.current.unlock();sound.current.play("found");
@@ -221,6 +230,12 @@ function App(){
       <div className="intro-bottom"><span>ÚLTIMO ACTO</span><span>SOLO HAY UNA SALIDA</span><span>DECORADOS CC0: POLY HAVEN</span></div>
     </section>}
     {started&&!reveal&&<div className="hud">
+      {diagnosticsEnabled&&performance&&<aside className="perf-panel" aria-label="Diagnóstico gráfico">
+        <strong>DIAGNÓSTICO 3D</strong>
+        <span>{performance.fps} FPS · {performance.drawCalls} draw calls</span>
+        <span>{performance.triangles.toLocaleString("es-AR")} triángulos · escala {performance.pixelRatio}×</span>
+        <span>{performance.models?"Texturas y proyector PBR activos":"Cargando recursos PBR…"}</span>
+      </aside>}
       <header className="hud-header">
         <div className="hud-brand"><span className="hud-spark">✦</span><div>LA ÚLTIMA FUNCIÓN<small>TEATRO BELLADONNA</small></div></div>
         <div className="hud-right">
