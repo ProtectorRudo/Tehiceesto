@@ -7,7 +7,7 @@ const action=async(page:import("@playwright/test").Page,target:string)=>{
 const expectPhase=async(page:import("@playwright/test").Page,p:string)=>{
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.getPhase?.())).toBe(p);
 };
-test("recorrido completo: butaca, iluminación, proyector y gran revelación",async({page})=>{
+test("recorrido completo: butaca, iluminación, proyector y gran revelación",async({page},testInfo)=>{
   test.setTimeout(160000); // Real models and full playthrough in software-rendered browser.
   const errors:string[]=[];page.on("pageerror",err=>errors.push(err.message));
   await page.goto("/?nombre=Martina&evento=Fiesta%20de%20cumplea%C3%B1os&fecha=24%2F10%2F2026&hora=21%3A00&lugar=Sal%C3%B3n%20Belladonna");
@@ -26,6 +26,7 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
     .toMatchObject({headBone:true,periodCap:true});
   expect(await page.evaluate(()=>(window as any).__BELLADONNA_QA__?.viewUsher?.())).toBe(true);
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.usher?.()?.eyeContact),{timeout:12000}).toBe(true);
+  await page.screenshot({path:testInfo.outputPath("03-acomodador.png")});
   await action(page,"butaca");await expectPhase(page,"luces");
   // La secuencia errónea debe bloquear la progresión.
   await action(page,"azul");await expectPhase(page,"luces");
