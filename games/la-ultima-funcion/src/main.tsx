@@ -16,19 +16,19 @@ function invitation():Invite{
 }
 const steps=[
   {phase:"inicio",title:"La butaca reservada",objective:"Seguí los carteles de las filas y la numeración de los respaldos hasta encontrar fila 3, asiento 8."},
-  {phase:"luces",title:"La consola de luces",objective:"Con la llave encontrada, restaurá la electricidad."},
-  {phase:"proyector",title:"La película perdida",objective:"Descubrí la combinación de las tres ruedas del proyector."},
+  {phase:"luces",title:"La consola de luces",objective:"Recuperá el fusible, insertalo en la consola y activá los tres circuitos en orden."},
+  {phase:"proyector",title:"La película perdida",objective:"Mirá el Palco 1, recuperá y montá la bobina, regulá el enfoque a 2 y descifrá las ruedas."},
   {phase:"telon",title:"La última función",objective:"Subí al escenario y accioná la palanca del telón."}
 ];
 const labels:Record<TheaterAction,string>={
-  butaca:"Examinar butaca reservada",ambar:"Activar interruptor ámbar",azul:"Activar interruptor azul",
+  butaca:"Examinar butaca reservada",fusible:"Recoger fusible de porcelana",portafusible:"Insertar el fusible en la consola",bobina:"Recoger bobina perdida",montar:"Montar la bobina en el proyector",enfoque:"Girar aro de enfoque",palco:"Examinar el palco 1",ambar:"Activar interruptor ámbar",azul:"Activar interruptor azul",
   rojo:"Activar interruptor rojo",rueda1:"Girar rueda izquierda",rueda2:"Girar rueda central",
   rueda3:"Girar rueda derecha",proyector:"Reproducir cinta",telon:"Accionar palanca del telón",programa:"Leer programa"
 };
 const hints:Record<TheaterPhase,string>={
   inicio:"Las filas están señalizadas junto al pasillo central y cada respaldo tiene su número. Contá desde la entrada: fila 1, fila 2, fila 3. En la tercera, encontrá el asiento 8 del lado derecho y revisá la placa RESERVADO.",
-  luces:"La consola se encuentra al costado izquierdo del escenario. La vieja inscripción revela el orden: ÁMBAR, AZUL, ROJO.",
-  proyector:"El proyector está a la derecha del escenario. Su combinación corresponde a la hora que marca el reloj detenido desde 1968: 03:17. Girá cada rueda física y después tocá la máquina.",
+  luces:"Buscá el fusible de porcelana cerca de la consola izquierda, recogelo e insertalo en el portafusible. El programa del tramoyista revela los tres circuitos: ÁMBAR, AZUL y ROJO. Si te equivocás, hay una descarga.",
+  proyector:"El Palco 1 está arriba a la izquierda. Recuperá la bobina suelta a la derecha del escenario y montala en el proyector. Girá el aro del enfoque hasta la marca 2, poné 3, 1 y 7 en las ruedas (el reloj de 1968) y activá la máquina.",
   telon:"El mecanismo final está sobre el escenario, justo frente al telón rojo. Hay una palanca con una esfera oscura.",
   final:"La función comenzó. Ahora descubrí para qué te estaban esperando."
 };
@@ -54,7 +54,7 @@ function MissionLetter({name,returning,onProceed}:{name:string;returning:boolean
           <p className="briefing-directions">En el celular: usá el círculo izquierdo para <strong>caminar</strong>, deslizá sobre la escena para <strong>mirar</strong> y tocá los objetos para <strong>interactuar</strong>. Si te perdés, consultá <strong>¿UNA PISTA?</strong></p>
         </div>
         <div className="briefing-paper-end">
-          <span className="briefing-countdown">7 MINUTOS · 1 MINUTO EXTRA</span>
+          <span className="briefing-countdown">9 MINUTOS · 1 MINUTO EXTRA</span>
           <button className="briefing-start" onClick={onProceed}>{returning?"VOLVER AL TEATRO":"ENTENDÍ MI MISIÓN · ENTRAR"} <span aria-hidden="true">↗</span></button>
           {!returning&&<small>El tiempo empieza únicamente cuando entrás.</small>}
         </div>
@@ -83,6 +83,8 @@ function App(){
   const [story,setStory]=useState("");
   const [toast,setToastState]=useState("");
   const [seconds,setSeconds]=useState(0);
+  const fuseHeld=useRef(false),fuseReady=useRef(false),reelHeld=useRef(false),reelReady=useRef(false),focusReady=useRef(0);
+  const [boxEncountered,setBoxEncountered]=useState(false);
   const [hintsOpen,setHintsOpen]=useState(false);
   const [blackout,setBlackout]=useState(false);
   const [hauntingCaption,setHauntingCaption]=useState("");
