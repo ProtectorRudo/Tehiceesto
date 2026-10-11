@@ -20,6 +20,10 @@ export class UsherDirector {
   private readonly relative=new THREE.Vector3();
   private readonly headWorld=new THREE.Vector3();
   private readonly rot=new THREE.Quaternion();
+  private readonly previousNeckDelta=new THREE.Quaternion();
+  private readonly previousHeadDelta=new THREE.Quaternion();
+  private readonly previousBreathDelta=new THREE.Quaternion();
+  private appliedLastFrame=false;
   private readonly up=new THREE.Vector3(0,1,0);
   private readonly side=new THREE.Vector3(1,0,0);
   private readonly dirtyMaterials:THREE.Material[]=[];
@@ -144,6 +148,19 @@ export class UsherDirector {
     if(bone)bone.attach(cap);else this.model.attach(cap);
   }
 
+  beforeAnimation(){
+    // The animation clip may not key every head/neck joint. Remove only our
+    // previous additive offsets before AnimationMixer updates; otherwise the
+    // unkeyed bone accumulates rotation and eventually spins unnaturally.
+    if(!this.appliedLastFrame)return;
+    if(this.head){
+      this.head.quaternion.multiply(this.previousBreathDelta.clone().invert());
+      this.head.quaternion.multiply(this.previousHeadDelta.clone().invert());
+    }
+    if(this.neck)this.neck.quaternion.multiply(this.previousNeckDelta.clone().invert());
+    this.appliedLastFrame=false;
+  }
+
   update(dt:number,observing:boolean){
     const targetWorld=this.camera.position;
     this.root.updateMatrixWorld(true);
@@ -165,15 +182,16 @@ export class UsherDirector {
     // AnimationMixer is updated first by caller. Offset each animated quaternion
     // with a subtle neck / head look direction and breathing, retaining walks.
     if(this.neck){
-      this.rot.setFromAxisAngle(this.up,this.yaw*.34);
-      this.neck.quaternion.multiply(this.rot);
+      this.previousNeckDelta.setFromAxisAngle(this.up,this.yaw*.34);
+      this.neck.quaternion.multiply(this.previousNeckDelta);
     }
     if(this.head){
-      this.rot.setFromAxisAngle(this.up,this.yaw*.66);
-      this.head.quaternion.multiply(this.rot);
-      this.rot.setFromAxisAngle(this.side,Math.sin(performance.now()*.0017)*.025);
-      this.head.quaternion.multiply(this.rot);
+      this.previousHeadDelta.setFromAxisAngle(this.up,this.yaw*.66);
+      this.head.quaternion.multiply(this.previousHeadDelta);
+      this.previousBreathDelta.setFromAxisAngle(this.side,Math.sin(performance.now()*.0017)*.025);
+      this.head.quaternion.multiply(this.previousBreathDelta);
     }
+    this.appliedLastFrame=true;
   }
 
   getStatus(){
