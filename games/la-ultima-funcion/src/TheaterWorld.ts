@@ -50,7 +50,7 @@ export class TheaterWorld{
   private usher=new THREE.Group();private usherMixer?:THREE.AnimationMixer;
   private curtainLeft?:THREE.Mesh;private curtainRight?:THREE.Mesh;
   private curtainProgress=0;private lamps:THREE.PointLight[]=[];
-  private scenery=new THREE.Group();private lightsDone=false;
+  private scenery=new THREE.Group();private chandelierPlaceholder?:THREE.Group;private lightsDone=false;
   private projectorReel?:THREE.Group;private specialSeat?:THREE.Group;
   private projectorScreen?:THREE.Mesh;
   private phase:TheaterPhase="inicio";private clockTime=0;
@@ -90,6 +90,7 @@ export class TheaterWorld{
     const stageLight=new THREE.SpotLight(0xffd6a0,110,29,Math.PI/5,.6,1.6);stageLight.position.set(0,8.5,-9);stageLight.target.position.set(0,1,-17);s.add(stageLight,stageLight.target);
     const stageBlue=new THREE.PointLight(0x5874bf,22,16,2);stageBlue.position.set(-6,5,-17);s.add(stageBlue);
     this.buildStructure();this.buildSeats();this.buildPanels();this.buildStage();this.buildUsher();
+    void this.loadDecorManifest();
     const premium=(import.meta as any).env?.VITE_USHER_GLB;
     if(typeof premium==="string" && premium)this.useUsherGLB(premium);
   }
@@ -134,11 +135,12 @@ export class TheaterWorld{
       addMesh(new THREE.CylinderGeometry(.12,.12,.62,10),brass,[x,3.35,z],room);
       addMesh(new THREE.SphereGeometry(.26,12,9),new THREE.MeshStandardMaterial({color:0xffdfa7,emissive:0xffaf58,emissiveIntensity:1.1}),[x,3.7,z],room);
     }
-    // Gilded chandelier.
-    addMesh(new THREE.CylinderGeometry(.04,.04,2.3,8),brass,[0,7.65,6.2],room);
-    addMesh(new THREE.TorusGeometry(1.25,.085,8,28),brass,[0,6.25,6.2],room).rotation.x=Math.PI/2;
+    // Decorative geometry stays as fallback until a professional GLB/glTF is loaded.
+    const placeholder=new THREE.Group();room.add(placeholder);this.chandelierPlaceholder=placeholder;
+    addMesh(new THREE.CylinderGeometry(.04,.04,2.3,8),brass,[0,7.65,6.2],placeholder);
+    addMesh(new THREE.TorusGeometry(1.25,.085,8,28),brass,[0,6.25,6.2],placeholder).rotation.x=Math.PI/2;
     for(let i=0;i<10;i++){const a=Math.PI*2*i/10;
-      addMesh(new THREE.SphereGeometry(.17,10,8),new THREE.MeshStandardMaterial({color:0xffe3ab,emissive:0xffb363,emissiveIntensity:1.15}),[Math.cos(a)*1.25,6.25,6.2+Math.sin(a)*1.25],room);
+      addMesh(new THREE.SphereGeometry(.17,10,8),new THREE.MeshStandardMaterial({color:0xffe3ab,emissive:0xffb363,emissiveIntensity:1.15}),[Math.cos(a)*1.25,6.25,6.2+Math.sin(a)*1.25],placeholder);
     }
     // Lobby sign and player instruction.
     const sign=this.textPlane(["TEATRO BELLADONNA","ÚLTIMA FUNCIÓN","EST. 1968"],3.9,2.3);
@@ -291,6 +293,36 @@ export class TheaterWorld{
       new THREE.NumberKeyframeTrack("Cabeza.rotation[x]",[0,1.2,2,3],[0,-.08,.07,0])
     ]);
     this.usherMixer=new THREE.AnimationMixer(u);this.usherMixer.clipAction(clip).play();
+  }
+  private async loadDecorManifest(){
+    try{
+      const response=await fetch("/models/manifest.json");
+      if(!response.ok)return;
+      const manifest=await response.json() as {assets?:Record<string,string>};
+      if(manifest.assets?.chandelier){
+        const decoration=await this.loadDecorGLTF(manifest.assets.chandelier,[0,6.1,6.2],1.85,0);
+        if(decoration&&this.chandelierPlaceholder)this.chandelierPlaceholder.visible=false;
+      }
+      if(manifest.assets?.armchair){
+        await this.loadDecorGLTF(manifest.assets.armchair,[-6.4,.61,11.7],1.18,.65);
+        await this.loadDecorGLTF(manifest.assets.armchair,[6.4,.61,11.7],1.18,-.65);
+      }
+    }catch(err){console.warn("No se pudo cargar todo el decorado GLTF, se conserva el entorno.",err);}
+  }
+  private async loadDecorGLTF(url:string,where:THREE.Vector3Tuple,height:number,yaw:number){
+    try{
+      const gltf=await new GLTFLoader().loadAsync(url);
+      const model=gltf.scene;
+      const unscaled=new THREE.Box3().setFromObject(model);
+      const size=unscaled.getSize(new THREE.Vector3());
+      const factor=height/Math.max(size.y,.01);
+      model.scale.setScalar(factor);model.rotation.y=yaw;
+      const center=new THREE.Box3().setFromObject(model).getCenter(new THREE.Vector3());
+      model.position.sub(center);
+      const staging=new THREE.Group();staging.position.set(...where);staging.add(model);
+      staging.traverse(o=>{if(o instanceof THREE.Mesh){o.castShadow=true;o.receiveShadow=true;}});
+      this.scenery.add(staging);return staging;
+    }catch(err){console.warn("Decorado glTF no disponible",url,err);return null;}
   }
   private async useUsherGLB(url:string){
     try{
