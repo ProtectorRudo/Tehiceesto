@@ -182,6 +182,20 @@ export class TheaterWorld{
       actorGround:this.usherDirector?.getGroundingStatus()};
   }
   getCharacterPosition(){return this.usher.position.toArray();}
+  viewMechanicalPartsForTest(){
+    if(!import.meta.env.DEV)return false;
+    this.camera.position.set(6.1,1.64,-7.8);
+    this.camera.lookAt(7.25,1.5,-9.5);
+    this.yaw=this.camera.rotation.y;this.pitch=this.camera.rotation.x;
+    return true;
+  }
+  viewBoxFigureForTest(){
+    if(!import.meta.env.DEV)return false;
+    this.camera.position.set(0,1.64,-6.0);
+    this.camera.lookAt(-6.0,6.4,-13.1);
+    this.yaw=this.camera.rotation.y;this.pitch=this.camera.rotation.x;
+    return true;
+  }
 
   viewNumberedSeatForTest(){
     if(!import.meta.env.DEV||!this.specialSeat)return false;
@@ -205,7 +219,7 @@ export class TheaterWorld{
       target:"FILA 3 · ASIENTO 8",
       targetPosition:this.specialSeat?.position.toArray()};
   }
-  getCharacterStatus(){return {human:this.usher.children.some(x=>x.name==="AcomodadorHumanoRiggeado"),idle:!!this.usherIdle,walk:!!this.usherWalk};}
+  getCharacterStatus(){return {human:!!this.usher.getObjectByName("AcomodadorHumanoRiggeado"),idle:!!this.usherIdle,walk:!!this.usherWalk};}
   getUsherDetails(){return this.usherDirector?.getStatus();}
   viewUsherForTest(){
     if(!import.meta.env.DEV||!this.usherDirector)return false;
@@ -1172,7 +1186,7 @@ export class TheaterWorld{
     for(const root of this.targets){
       const pos=new THREE.Vector3();root.getWorldPosition(pos);
       const toTarget=pos.clone().sub(p),dist=toTarget.length();
-      if(!root.userData.action||dist>best||dist<.001)continue;
+      if(!root.visible||!root.userData.action||dist>best||dist<.001)continue;
       if(toTarget.normalize().dot(forward)<.55)continue;
       best=dist;ret=root.userData.action as TheaterAction;
     }return ret;
