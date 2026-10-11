@@ -3,7 +3,11 @@ import {basename,dirname,join,normalize} from "node:path";
 
 const assets=[
   {id:"ArmChair_01",key:"armchair",folder:"armchair",source:"https://polyhaven.com/a/ArmChair_01"},
-  {id:"Chandelier_01",key:"chandelier",folder:"chandelier",source:"https://polyhaven.com/a/Chandelier_01"}
+  {id:"Chandelier_01",key:"chandelier",folder:"chandelier",source:"https://polyhaven.com/a/Chandelier_01"},
+  {id:"vintage_grandfather_clock_01",key:"grandfatherClock",folder:"grandfather_clock",source:"https://polyhaven.com/a/vintage_grandfather_clock_01"},
+  {id:"side_table_tall_01",key:"sideTable",folder:"side_table",source:"https://polyhaven.com/a/side_table_tall_01"},
+  {id:"mantel_clock_01",key:"mantelClock",folder:"mantel_clock",source:"https://polyhaven.com/a/mantel_clock_01"},
+  {id:"marble_bust_01",key:"marbleBust",folder:"marble_bust",source:"https://polyhaven.com/a/marble_bust_01"}
 ];
 const root="public/models";
 const manifest={source:"Poly Haven CC0",credit:"https://polyhaven.com/license",assets:{}};
