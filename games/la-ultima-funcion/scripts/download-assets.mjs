@@ -1,4 +1,5 @@
-import {mkdir,writeFile} from "node:fs/promises";
+import {mkdir,writeFile,stat,unlink} from "node:fs/promises";
+import {execFileSync} from "node:child_process";
 import {basename,dirname,join,normalize} from "node:path";
 
 const assets=[
@@ -46,9 +47,26 @@ try{
   const bytes=Buffer.from(await res.arrayBuffer());
   if(bytes.byteLength<100000||bytes.toString("ascii",0,4)!=="glTF")throw new Error("Archivo GLB inválido");
   await mkdir(join(root,"usher"),{recursive:true});
-  await writeFile(join(root,"usher","usher.glb"),bytes);
+  const original=join(root,"usher","usher.glb");
+  const optimized=join(root,"usher","usher-mobile.glb");
+  await writeFile(original,bytes);
   manifest.assets.usher="/models/usher/usher.glb";
-  console.log("Acomodador humano riggeado CC0 instalado:",(bytes.byteLength/1048576).toFixed(2)+" MB");
+  try{
+    execFileSync("./node_modules/.bin/gltf-transform",[
+      "optimize",original,optimized,
+      "--compress","meshopt",
+      "--texture-compress","webp",
+      "--texture-size","1024",
+      "--flatten","false","--join","false"
+    ],{stdio:"pipe",timeout:120000,maxBuffer:8*1024*1024});
+    const compact=await stat(optimized);
+    if(compact.size<bytes.byteLength&&compact.size>100000){
+      manifest.assets.usher="/models/usher/usher-mobile.glb";
+      await unlink(original);
+      console.log("Acomodador optimizado para móvil:",(compact.size/1048576).toFixed(2)+" MB, tamaño original:",(bytes.byteLength/1048576).toFixed(2)+" MB");
+    }else console.warn("La versión compactada no redujo el tamaño. Se utiliza el original.");
+  }catch(err){console.warn("Compresión opcional fallida. Se conserva el GLB riggeado original.",String(err));}
+  console.log("Acomodador humano CC0 disponible:",manifest.assets.usher);
 }catch(err){
   console.warn("No se pudo preparar al Acomodador riggeado, se conserva la figura alternativa.",String(err));
 }
