@@ -55,6 +55,7 @@ export class TheaterWorld{
   private cleanupFns:Array<()=>void>=[];
   private usher=new THREE.Group();private usherMixer?:THREE.AnimationMixer;
   private usherDirector?:UsherDirector;
+  private usherKey?:THREE.PointLight;
   private curtainLeft?:THREE.Mesh;private curtainRight?:THREE.Mesh;
   private entranceDoors:THREE.Group[]=[];private entranceClosed=false;private entranceSlam=false;
   private curtainProgress=0;private lamps:THREE.PointLight[]=[];
@@ -607,6 +608,11 @@ export class TheaterWorld{
   }
   private buildUsher(){
     const u=this.usher;u.position.set(5.8,0,-12.3);u.name="Acomodador";
+    // A single unshadowed localized key light restores readable face and
+    // uniform at night without lighting the whole auditorium or requiring a flashlight.
+    this.usherKey=new THREE.PointLight(0xffd2aa,23,4.7,2);
+    this.usherKey.castShadow=false;
+    this.scene.add(this.usherKey);
     const jacket=mat(0x391923,.98),skin=mat(0xb8a6a0,.8),mask=mat(0xd8c9ad,.6),boots=mat(0x161417,.54);
     addMesh(new THREE.CylinderGeometry(.35,.34,1.03,16),jacket,[0,1.52,0],u);
     addMesh(new THREE.BoxGeometry(.55,.17,.31),fadedGold,[0,1.86,.19],u);
@@ -904,6 +910,16 @@ export class TheaterWorld{
       }
     }
     this.cinema?.update(dt);
+    if(this.usherKey){
+      const angle=this.usher.rotation.y;
+      const cx=Math.cos(angle),sx=Math.sin(angle);
+      this.usherKey.position.set(
+        this.usher.position.x+.73*cx-1.05*sx,
+        this.usher.position.y+2.02,
+        this.usher.position.z-.73*sx-1.05*cx
+      );
+      this.usherKey.intensity=this.ended?10:23;
+    }
     if(this.warningLight)this.warningLight.intensity=4.7+Math.sin(this.clockTime*9)*.6;
     if(this.warningFlash>0){this.warningFlash=Math.max(0,this.warningFlash-dt);this.renderer.toneMappingExposure=1.32+this.warningFlash*2.4;}
     else if(this.renderer.toneMappingExposure!==1.32)this.renderer.toneMappingExposure=1.32;
@@ -928,6 +944,7 @@ export class TheaterWorld{
     cancelAnimationFrame(this.frame);window.removeEventListener("resize",this.resize);this.cleanupFns.forEach(f=>f());
     this.cinema?.dispose();
     this.usherDirector?.dispose();this.usherDirector=undefined;
+    this.usherKey?.parent?.remove(this.usherKey);this.usherKey=undefined;
     this.warningLight?.parent?.remove(this.warningLight);this.warningLight=undefined;
     this.scenery.traverse(obj=>{if(obj instanceof THREE.Mesh||obj instanceof THREE.InstancedMesh){obj.geometry.dispose();const a=Array.isArray(obj.material)?obj.material:[obj.material];
       a.forEach(m=>{if("map" in m&&(m as any).map)(m as any).map.dispose();m.dispose();});}});
