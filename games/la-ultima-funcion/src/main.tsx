@@ -15,7 +15,7 @@ function invitation():Invite{
     rsvp:get("rsvp","").replace(/\D/g,"")};
 }
 const steps=[
-  {phase:"inicio",title:"La butaca reservada",objective:"Encontrá la fila 3, asiento 8. Revisá debajo del terciopelo."},
+  {phase:"inicio",title:"La butaca reservada",objective:"Seguí las placas de FILA y los números de los respaldos hasta llegar al 3 · 8."},
   {phase:"luces",title:"La consola de luces",objective:"Con la llave encontrada, restaurá la electricidad."},
   {phase:"proyector",title:"La película perdida",objective:"Descubrí la combinación de las tres ruedas del proyector."},
   {phase:"telon",title:"La última función",objective:"Subí al escenario y accioná la palanca del telón."}
@@ -26,7 +26,7 @@ const labels:Record<TheaterAction,string>={
   rueda3:"Girar rueda derecha",proyector:"Reproducir cinta",telon:"Accionar palanca del telón",programa:"Leer programa"
 };
 const hints:Record<TheaterPhase,string>={
-  inicio:"Tu boleto dice «FILA 3 · ASIENTO 8». Buscá una butaca con una placa dorada, a la derecha del pasillo central.",
+  inicio:"Las filas están señalizadas junto al pasillo central y cada respaldo tiene su número. Contá desde la entrada: fila 1, fila 2, fila 3. En la tercera, encontrá el asiento 8 del lado derecho y revisá la placa RESERVADO.",
   luces:"La consola se encuentra al costado izquierdo del escenario. La vieja inscripción revela el orden: ÁMBAR, AZUL, ROJO.",
   proyector:"El proyector está a la derecha del escenario. Su combinación corresponde a la hora que marca el reloj detenido desde 1968: 03:17. Girá cada rueda física y después tocá la máquina.",
   telon:"El mecanismo final está sobre el escenario, justo frente al telón rojo. Hay una palanca con una esfera oscura.",
@@ -49,7 +49,7 @@ function MissionLetter({name,returning,onProceed}:{name:string;returning:boolean
           <div className="briefing-ticket" aria-label="Primera pista">
             <span className="briefing-ticket-label">PRIMERA PISTA · ENTRADA RESERVADA</span>
             <strong>FILA 3 <span>·</span> ASIENTO 8</strong>
-            <small>Buscá la butaca marcada con una placa dorada. Empezá por ahí.</small>
+            <small>Las filas están señalizadas junto al pasillo central. Cada respaldo tiene un número. Encontrá el 8 en la tercera fila.</small>
           </div>
           <p className="briefing-directions">En el celular: usá el círculo izquierdo para <strong>caminar</strong>, deslizá sobre la escena para <strong>mirar</strong> y tocá los objetos para <strong>interactuar</strong>. Si te perdés, consultá <strong>¿UNA PISTA?</strong></p>
         </div>
@@ -239,9 +239,9 @@ function App(){
   // Development-only QA hooks exercise the real puzzle reducer, not a fake solved screen.
   // Vite removes this block from the production build.
   if(import.meta.env.DEV)(window as Window & {
-    __BELLADONNA_QA__?:{action:(a:TheaterAction)=>void; getPhase:()=>TheaterPhase; character:()=>{human:boolean;idle:boolean;walk:boolean}|undefined;usher:()=>{headBone:boolean;chestBone:boolean;periodCap:boolean;insignia:boolean;eyeContact:boolean;rigOffset:number}|undefined;viewUsher:()=>boolean; wheels:()=>[number,number,number]|undefined; aim:(a:TheaterAction)=>boolean; cinema:()=>{projectorModel:boolean;director:boolean;threatVisible:boolean;act:TheaterPhase}|undefined; warning:()=>{stage:string;seen:boolean}|undefined; forceWarning:()=>boolean; advanceWarning:()=>boolean; turnBehind:()=>boolean; finishWarning:()=>boolean; warningCues:()=>number;}
+    __BELLADONNA_QA__?:{action:(a:TheaterAction)=>void; getPhase:()=>TheaterPhase; seatNumbers:()=>{rows:number;perRow:number;numbered:number;digits:number;target:string;targetPosition?:number[]}|undefined; character:()=>{human:boolean;idle:boolean;walk:boolean}|undefined;usher:()=>{headBone:boolean;chestBone:boolean;periodCap:boolean;insignia:boolean;eyeContact:boolean;rigOffset:number}|undefined;viewUsher:()=>boolean; wheels:()=>[number,number,number]|undefined; aim:(a:TheaterAction)=>boolean; cinema:()=>{projectorModel:boolean;director:boolean;threatVisible:boolean;act:TheaterPhase}|undefined; warning:()=>{stage:string;seen:boolean}|undefined; forceWarning:()=>boolean; advanceWarning:()=>boolean; turnBehind:()=>boolean; finishWarning:()=>boolean; warningCues:()=>number;}
   }).__BELLADONNA_QA__={
-    action:a=>actionRef.current(a),getPhase:()=>phaseRef.current,character:()=>world.current?.getCharacterStatus(),usher:()=>world.current?.getUsherDetails(),viewUsher:()=>world.current?.viewUsherForTest()??false,wheels:()=>world.current?.getWheelValues(),aim:a=>world.current?.aimAtForTest(a)??false,cinema:()=>world.current?.getCinematicStatus(),warning:()=>world.current?.getWarningStatus(),forceWarning:()=>world.current?.forceWarningForTest()??false,advanceWarning:()=>world.current?.advanceWarningForTest()??false,turnBehind:()=>world.current?.turnToApparitionForTest()??false,finishWarning:()=>world.current?.finishWarningForTest()??false,warningCues:()=>warningCueCount.current
+    action:a=>actionRef.current(a),getPhase:()=>phaseRef.current,seatNumbers:()=>world.current?.getSeatNumberingStatus(),character:()=>world.current?.getCharacterStatus(),usher:()=>world.current?.getUsherDetails(),viewUsher:()=>world.current?.viewUsherForTest()??false,wheels:()=>world.current?.getWheelValues(),aim:a=>world.current?.aimAtForTest(a)??false,cinema:()=>world.current?.getCinematicStatus(),warning:()=>world.current?.getWarningStatus(),forceWarning:()=>world.current?.forceWarningForTest()??false,advanceWarning:()=>world.current?.advanceWarningForTest()??false,turnBehind:()=>world.current?.turnToApparitionForTest()??false,finishWarning:()=>world.current?.finishWarningForTest()??false,warningCues:()=>warningCueCount.current
   };
   const joyMove=(e:React.PointerEvent<HTMLDivElement>)=>{
     const r=e.currentTarget.getBoundingClientRect();const dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);
