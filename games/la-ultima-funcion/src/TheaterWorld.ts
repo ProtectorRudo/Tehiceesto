@@ -6,9 +6,9 @@ import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.j
 import { TheaterCinematics } from "./TheaterCinematics";
 import { UsherDirector } from "./UsherDirector";
 
-export type TheaterAction = "butaca" | "ambar" | "azul" | "rojo" | "rueda1" | "rueda2" | "rueda3" | "proyector" | "telon" | "programa";
+export type TheaterAction = "butaca" | "fusible" | "portafusible" | "bobina" | "montar" | "enfoque" | "palco" | "ambar" | "azul" | "rojo" | "rueda1" | "rueda2" | "rueda3" | "proyector" | "telon" | "programa";
 export type TheaterPhase = "inicio" | "luces" | "proyector" | "telon" | "final";
-type SoundEvent = "pasos" | "apagón" | "susurro" | "aplausos" | "portazo" | "advertencia" | "presencia" | "aparicion" | "retirada";
+type SoundEvent = "pasos" | "apagón" | "susurro" | "aplausos" | "portazo" | "advertencia" | "presencia" | "aparicion" | "retirada" | "electricidad" | "fallo_luces" | "palco_aparicion" | "palco_visto" | "palco_desvanecido" | "film_terror" | "final_falso";
 export interface WorldEvents { onFocus:(target:TheaterAction|null)=>void; onAction:(target:TheaterAction)=>void; onEvent:(event:SoundEvent)=>void; onListener:(x:number,y:number,z:number,fx:number,fy:number,fz:number,ux:number,uy:number,uz:number)=>void; }
 
 type Collider={x:number;z:number;rx:number;rz:number};
@@ -55,6 +55,24 @@ export class TheaterWorld{
   private cleanupFns:Array<()=>void>=[];
   private usher=new THREE.Group();private usherMixer?:THREE.AnimationMixer;
   private usherDirector?:UsherDirector;
+  private usherRigAnchor?:THREE.Group;
+  private boxSpecter?:THREE.Group;
+  private boxSpecterMixer?:THREE.AnimationMixer;
+  private boxSpecterStartedAt=-1;
+  private boxSpecterLooked=false;
+  private boxSpecterCue=false;
+  private boxSpecterVisible=false;
+  private boxGazeSeconds=0;
+  private filmSequenceStartedAt=-1;
+  private filmFrame=0;
+  private fusePickup?:THREE.Group;
+  private reelPickup?:THREE.Group;
+  private mountedReel?:THREE.Group;
+  private fuseInstalled=false;
+  private reelMounted=false;
+  private focusSetting=0;
+  private focusKnob?:THREE.Mesh;
+
   private usherKey?:THREE.PointLight;
   private curtainLeft?:THREE.Mesh;private curtainRight?:THREE.Mesh;
   private entranceDoors:THREE.Group[]=[];private entranceClosed=false;private entranceSlam=false;
@@ -115,11 +133,13 @@ export class TheaterWorld{
     this.phase=p;this.cinema?.setAct(p);
     if(p==="luces"){this.usherGoal.set(-5.9,0,-10.95);this.events.onEvent("pasos");}
     if(p==="proyector"){
+      this.events.onEvent("electricidad");
+      this.triggerBoxSpecter();
       if(this.warningStage==="idle"){
         this.warningStage="queued";
         this.warningAt=this.elapsed+4.5;
       }
-      this.lightsDone=false;this.setScreen("PROYECCIÓN INTERRUMPIDA");
+      this.lightsDone=false;this.setScreen("FALTA BOBINA · ENFOQUE 2");
       this.usherGoal.set(5.9,0,-10.95);this.events.onEvent("susurro");
       this.watchers.forEach(w=>w.visible=true);
     }
@@ -128,6 +148,7 @@ export class TheaterWorld{
       this.events.onEvent("pasos");
     }
     if(p==="final"){
+      this.events.onEvent("final_falso");
       this.cancelWarning();
       if(this.threatMessage)this.threatMessage.visible=false;
       this.ended=true;this.events.onEvent("aplausos");
@@ -140,6 +161,28 @@ export class TheaterWorld{
   markLight(index:number){if(this.emitterLights[index])this.emitterLights[index].emissiveIntensity=1.9;this.cinema?.activateCircuit(index);}
   resetLights(){this.emitterLights.forEach(m=>m.emissiveIntensity=.16);this.cinema?.resetCircuits();}
   collectKey(){if(this.seatKey){this.seatKey.visible=false;this.seatKey=undefined;}}
+  collectFuse(){if(this.fusePickup)this.fusePickup.visible=false;}
+  installFuse(){this.fuseInstalled=true;this.emitterLights.forEach(m=>m.emissiveIntensity=.43);}
+  collectReel(){if(this.reelPickup)this.reelPickup.visible=false;}
+  mountReel(){this.reelMounted=true;if(this.mountedReel)this.mountedReel.visible=true;}
+  rotateFocus(){
+    this.focusSetting=(this.focusSetting+1)%4;
+    if(this.focusKnob)this.focusKnob.rotation.z=this.focusSetting*Math.PI/2;
+    return this.focusSetting;
+  }
+  triggerFailedCircuit(){
+    this.events.onEvent("fallo_luces");
+    this.usherGoal.set(0,0,-10.83);
+    this.boxSpecterCue=false;
+    this.triggerBoxSpecter();
+  }
+  getMechanicalStatus(){
+    return {fuseInstalled:this.fuseInstalled,reelMounted:this.reelMounted,focus:this.focusSetting,
+      boxFigure:!!this.boxSpecter,boxVisible:!!this.boxSpecter?.visible,boxSeen:this.boxSpecterLooked,
+      actorGround:this.usherDirector?.getGroundingStatus()};
+  }
+  getCharacterPosition(){return this.usher.position.toArray();}
+
   viewNumberedSeatForTest(){
     if(!import.meta.env.DEV||!this.specialSeat)return false;
     const p=this.specialSeat.position;
@@ -431,6 +474,39 @@ export class TheaterWorld{
     ticket.position.set(-8.95,2.1,12);ticket.rotation.y=Math.PI/2;room.add(ticket);this.bind(ticket,"programa");
     this.colliders.push({x:-8.95,z:12,rx:.28,rz:.9});
   }
+  private triggerBoxSpecter(){
+    this.boxSpecterCue=true;
+    this.boxSpecterStartedAt=this.elapsed;
+    this.boxSpecterVisible=true;
+    this.boxSpecterLooked=false;
+    this.boxGazeSeconds=0;
+    if(this.boxSpecter)this.boxSpecter.visible=true;
+    this.events.onEvent("palco_aparicion");
+  }
+  private updateBoxSpecter(dt:number){
+    if(!this.boxSpecterCue||this.ended)return;
+    if(this.boxSpecter)this.boxSpecter.visible=this.boxSpecterVisible;
+    const box=new THREE.Vector3(-6.5,6.5,-4.8);
+    const delta=box.sub(this.camera.position);
+    const length=delta.length();
+    this.camera.getWorldDirection(this.forwardScratch);
+    const looking=this.forwardScratch.dot(delta.normalize())>.91&&length<26;
+    this.boxGazeSeconds=looking?this.boxGazeSeconds+dt:Math.max(0,this.boxGazeSeconds-dt*.7);
+    if(this.boxGazeSeconds>.35&&!this.boxSpecterLooked){
+      this.boxSpecterLooked=true;this.events.onEvent("palco_visto");
+      this.warningFlash=Math.max(this.warningFlash,.18);
+    }
+    if(this.boxSpecterLooked&&this.boxSpecterVisible&&this.boxGazeSeconds>.8){
+      this.boxSpecterVisible=false;
+      if(this.boxSpecter)this.boxSpecter.visible=false;
+      this.events.onEvent("palco_desvanecido");
+    }
+    if(this.elapsed-this.boxSpecterStartedAt>22&&this.boxSpecterVisible){
+      this.boxSpecterVisible=false;
+      if(this.boxSpecter)this.boxSpecter.visible=false;
+      this.events.onEvent("palco_desvanecido");
+    }
+  }
   private buildPrivateBoxes(){
     // Before, upper rails and silhouettes suggested a balcony but there was
     // no identifiable, physical box. These two elevated private galleries
@@ -693,7 +769,7 @@ export class TheaterWorld{
       this.scenery.add(g);return g;
     };
     const p=pedestal(-7.25,-9.7);
-    const plaque=this.textPlane(["ILUMINACIÓN","ÁMBAR  •  AZUL  •  ROJO"],2.4,.92);
+    const plaque=this.textPlane(["CONSOLA ELÉCTRICA","FUSIBLE · TRES CIRCUITOS"],2.4,.92);
     plaque.position.set(0,2.15,-.3);p.add(plaque);
     (["ambar","azul","rojo"] as TheaterAction[]).forEach((name,i)=>{
       const hue=[0xffb65f,0x65a5ff,0xe5595c][i];
@@ -703,6 +779,22 @@ export class TheaterWorld{
       this.bind(button,name);
       addMesh(new THREE.TorusGeometry(.215,.042,8,18),brass,[x,1.24,.02],p).rotation.x=Math.PI/2;
     });
+    // A physical 1968 fuse on the utility shelf. It cannot be used by tapping
+    // a fictitious modal — it must be taken and plugged into the 3D console.
+    const fuse=new THREE.Group();fuse.name="Fusible de porcelana 1968";fuse.position.set(-5.7,.83,-8.4);
+    addMesh(new RoundedBoxGeometry(.74,.08,.54,3,.025),wood,[0,-.1,0],fuse);
+    const fuseBody=addMesh(new THREE.CylinderGeometry(.093,.093,.53,18),cream,[0,.13,0],fuse);
+    fuseBody.rotation.z=Math.PI/2;
+    for(const xx of [-.28,.28]){
+      const metal=addMesh(new THREE.CylinderGeometry(.117,.117,.095,16),brass,[xx,.13,0],fuse);
+      metal.rotation.z=Math.PI/2;
+    }
+    this.scenery.add(fuse);this.bind(fuse,"fusible");this.fusePickup=fuse;
+    const socket=new THREE.Group();socket.name="Portafusible físico";socket.position.set(-.02,1.62,.46);p.add(socket);
+    const socketPlate=addMesh(new RoundedBoxGeometry(.53,.35,.1,3,.05),black,[0,0,0],socket);
+    socketPlate.material=mat(0x222126,.38,.45);
+    addMesh(new THREE.TorusGeometry(.15,.03,8,22),brass,[0,0,.073],socket);
+    this.bind(socket,"portafusible");
     // Projector apparatus with two independent mechanical reels, prism lens and plinth.
     const pr=pedestal(7.2,-9.9);
     const fallback=new THREE.Group();pr.add(fallback);this.projectorFallback=fallback;
@@ -720,6 +812,31 @@ export class TheaterWorld{
     const reflector=new THREE.SpotLight(0xc9d9ff,0,12,Math.PI/7,.6);reflector.position.set(7.2,1.65,-10.5);
     reflector.target.position.set(0,3,-17.7);this.scene.add(reflector,reflector.target);this.projectorBeam=reflector;
     this.bind(pr,"proyector");
+    // An engraved focus ring is part of the machine, not a popup.
+    const focusAssembly=new THREE.Group();focusAssembly.position.set(.82,1.63,.04);pr.add(focusAssembly);
+    addMesh(new THREE.CylinderGeometry(.24,.24,.16,24),mat(0x34343a,.44,.66),[0,0,0],focusAssembly).rotation.z=Math.PI/2;
+    const focusKnob=addMesh(new THREE.TorusGeometry(.21,.04,8,24),brass,[.10,0,0],focusAssembly);
+    focusKnob.rotation.y=Math.PI/2;this.focusKnob=focusKnob;
+    for(let i=0;i<4;i++)addMesh(new THREE.SphereGeometry(.028,8,6),cream,[.115,Math.sin(i*Math.PI/2)*.17,Math.cos(i*Math.PI/2)*.17],focusAssembly);
+    this.bind(focusAssembly,"enfoque");
+    const mount=new THREE.Group();mount.position.set(-.56,1.94,.39);pr.add(mount);
+    addMesh(new THREE.CylinderGeometry(.20,.22,.17,18),mat(0x26282b,.46,.7),[0,0,0],mount).rotation.z=Math.PI/2;
+    this.bind(mount,"montar");
+    const installed=new THREE.Group();installed.position.set(-.59,2.2,.08);installed.visible=false;pr.add(installed);
+    addMesh(new THREE.TorusGeometry(.31,.065,9,32),brass,[0,0,0],installed);
+    for(let i=0;i<6;i++){const a=i*Math.PI/3;
+      const spoke=addMesh(new THREE.BoxGeometry(.32,.037,.04),fadedGold,[Math.cos(a)*.12,Math.sin(a)*.12,0],installed);
+      spoke.rotation.z=a;
+    }
+    this.mountedReel=installed;
+    const looseReel=new THREE.Group();looseReel.name="Bobina perdida";looseReel.position.set(7.93,.9,-7.52);
+    addMesh(new THREE.CylinderGeometry(.19,.23,.12,22),mat(0x332a29,.59,.48),[0,-.15,0],looseReel);
+    addMesh(new THREE.TorusGeometry(.26,.055,10,28),brass,[0,.08,.02],looseReel).rotation.x=Math.PI/2;
+    for(let i=0;i<6;i++){const a=i*Math.PI/3;
+      const spoke=addMesh(new THREE.BoxGeometry(.25,.035,.04),brass,[Math.cos(a)*.1,.10,Math.sin(a)*.1],looseReel);
+      spoke.rotation.y=a;
+    }
+    this.scenery.add(looseReel);this.bind(looseReel,"bobina");this.reelPickup=looseReel;
     // The three combination wheels belong to the actual projector cabinet. They are
     // clickable 3D pieces, with physically located number faces.
     addMesh(new THREE.BoxGeometry(1.65,.66,.4),mat(0x2a292b,.36,.7),[0,1.13,.52],pr);
@@ -798,10 +915,12 @@ export class TheaterWorld{
     const inv=new THREE.PointLight(0xffd3a0,0,17);inv.position.set(0,5,-18.2);this.scene.add(inv);this.lamps.push(inv);
   }
   playRecoveredFilm(){
+    this.filmSequenceStartedAt=this.elapsed;this.filmFrame=0;
+    this.events.onEvent("film_terror");
     this.lightsDone=true;
     this.cinema?.showFilm();
     if(this.projectorBeam)this.projectorBeam.intensity=26;
-    this.setScreen("17 OCTUBRE 1968  ·  03:17");
+    this.setScreen("CINTA 17-X-1968 · NO MIREN ARRIBA");
     this.events.onEvent("susurro");
   }
   private setScreen(text:string){
@@ -957,9 +1076,39 @@ export class TheaterWorld{
         this.usherWalk.setEffectiveWeight(0);
         this.usherWalk.play();
       }
-      this.usher.clear();this.usher.add(model);this.usherMixer=mixer;
+      // Stable external anchor: animated root translation cannot drag the
+      // feet under the theatre floor or pull the model apart from its path.
+      const rigAnchor=new THREE.Group();rigAnchor.name="GroundedRigAnchor";
+      rigAnchor.add(model);
+      this.usher.clear();this.usher.add(rigAnchor);this.usherRigAnchor=rigAnchor;this.usherMixer=mixer;
       this.usherDirector?.dispose();
       this.usherDirector=new UsherDirector(this.usher,model,this.camera);
+      // A genuinely animated second figure inhabits the physical upper box.
+      // Reuse loaded GLB buffers; the ghost has a separate skeleton and mixer.
+      if(this.privateBoxes[0]){
+        const shadow=cloneRigged(gltf.scene);
+        shadow.scale.copy(model.scale);shadow.rotation.copy(model.rotation);
+        shadow.position.copy(model.position);
+        shadow.traverse(node=>{
+          if(node instanceof THREE.Mesh){
+            node.castShadow=false;node.receiveShadow=false;
+            const dark=new THREE.MeshStandardMaterial({
+              color:0x140d15,emissive:0x350b21,emissiveIntensity:.43,roughness:1,
+              side:THREE.DoubleSide,transparent:false
+            });
+            node.material=dark;
+          }
+        });
+        const figure=new THREE.Group();figure.name="Silueta viva del PALCO 1";
+        figure.position.set(0,5.22,-.47);figure.add(shadow);
+        figure.visible=false;this.privateBoxes[0].add(figure);
+        this.boxSpecter=figure;
+        if(idle){
+          const ghostMixer=new THREE.AnimationMixer(shadow);
+          ghostMixer.clipAction(idle).play();this.boxSpecterMixer=ghostMixer;
+        }
+        if(this.phase==="proyector"||this.boxSpecterCue)this.triggerBoxSpecter();
+      }
     }catch(err){console.warn("No se pudo incorporar el humano animado, se conserva el Acomodador provisional.",err);}
   }
   private setupControls(){
@@ -1074,7 +1223,7 @@ export class TheaterWorld{
         if(eased>=1){this.entranceClosed=true;if(!this.entranceSlam){this.entranceSlam=true;this.events.onEvent("portazo");}}
       }
       this.camera.getWorldDirection(this.forwardScratch);const p=this.camera.position,dir=this.forwardScratch;
-      this.updateWarning();
+      this.updateWarning();this.updateBoxSpecter(dt);
       this.events.onListener(p.x,p.y,p.z,dir.x,dir.y,dir.z,this.usher.position.x,this.usher.position.y+1,this.usher.position.z);
       if(this.elapsed>52&&!this.eventDone&&this.phase!=="final"){
         this.eventDone=true;this.events.onEvent("apagón");
@@ -1134,6 +1283,14 @@ export class TheaterWorld{
       }
     }
     this.cinema?.update(dt);
+    if(this.filmSequenceStartedAt>=0&&this.phase!=="final"){
+      const age=this.elapsed-this.filmSequenceStartedAt;
+      const frames=["CINTA 17-X-1968 · ARCHIVO 83","FILA 3 · ASIENTO 8 · VACÍO",
+        "EL PALCO 1 ESTÁ OCUPADO","TODAVÍA QUEDA UN ESPECTADOR"];
+      const index=Math.min(frames.length-1,Math.floor(age/1.4));
+      if(index!==this.filmFrame){this.filmFrame=index;this.setScreen(frames[index]);}
+      if(age>=6.8)this.filmSequenceStartedAt=-1;
+    }
     if(this.usherKey){
       const angle=this.usher.rotation.y;
       const cx=Math.cos(angle),sx=Math.sin(angle);
@@ -1149,6 +1306,7 @@ export class TheaterWorld{
     else if(this.renderer.toneMappingExposure!==1.32)this.renderer.toneMappingExposure=1.32;
     this.usherDirector?.beforeAnimation();
     this.usherMixer?.update(dt);
+    this.boxSpecterMixer?.update(dt);
     this.usherDirector?.update(dt,this.active&&!this.ended);
     this.usherDirector?.correctFootContact(dt);
     this.decorMixers.forEach(m=>m.update(dt));
