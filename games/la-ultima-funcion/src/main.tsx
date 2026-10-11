@@ -137,7 +137,8 @@ function App(){
           if(e==="apagón"){
             setBlackout(true);sound.current.play("scare");
             window.setTimeout(()=>{setBlackout(false);setStory("¿Viste al acomodador? Algo cambió cerca del escenario.");},1200);
-          }else if(e==="pasos")sound.current.play("steps");
+          }else if(e==="portazo"){sound.current.play("door");show("Las puertas se cerraron detrás tuyo. La función ya comenzó.",3500);}
+          else if(e==="pasos")sound.current.play("steps");
           else if(e==="susurro"){
             sound.current.play("whisper");
             if(phaseRef.current!=="final")show("«No mire hacia el palco. Todavía no…»",4300);
