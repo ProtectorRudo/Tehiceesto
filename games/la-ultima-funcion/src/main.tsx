@@ -133,7 +133,7 @@ function App(){
       const w=new TheaterWorld(mount.current,{
         onFocus:a=>setFocus(a),
         onAction:a=>actionRef.current(a),
-        onListener:(x,y,z,fx,fy,fz)=>sound.current.updateListener(x,y,z,fx,fy,fz),
+        onListener:(x,y,z,fx,fy,fz,ux,uy,uz)=>sound.current.updateListener(x,y,z,fx,fy,fz,ux,uy,uz),
         onEvent:e=>{
           if(e==="apagón"){
             setBlackout(true);sound.current.play("scare");
