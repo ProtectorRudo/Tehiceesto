@@ -4,6 +4,7 @@ import { clone as cloneRigged } from "three/addons/utils/SkeletonUtils.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { TheaterCinematics } from "./TheaterCinematics";
+import { UsherDirector } from "./UsherDirector";
 
 export type TheaterAction = "butaca" | "ambar" | "azul" | "rojo" | "rueda1" | "rueda2" | "rueda3" | "proyector" | "telon" | "programa";
 export type TheaterPhase = "inicio" | "luces" | "proyector" | "telon" | "final";
@@ -53,6 +54,7 @@ export class TheaterWorld{
   private active=false;private ended=false;private elapsed=0;private startWallAt=0;private eventDone=false;
   private cleanupFns:Array<()=>void>=[];
   private usher=new THREE.Group();private usherMixer?:THREE.AnimationMixer;
+  private usherDirector?:UsherDirector;
   private curtainLeft?:THREE.Mesh;private curtainRight?:THREE.Mesh;
   private entranceDoors:THREE.Group[]=[];private entranceClosed=false;private entranceSlam=false;
   private curtainProgress=0;private lamps:THREE.PointLight[]=[];
@@ -136,6 +138,7 @@ export class TheaterWorld{
   resetLights(){this.emitterLights.forEach(m=>m.emissiveIntensity=.16);this.cinema?.resetCircuits();}
   collectKey(){if(this.seatKey){this.seatKey.visible=false;this.seatKey=undefined;}}
   getCharacterStatus(){return {human:this.usher.children.some(x=>x.name==="AcomodadorHumanoRiggeado"),idle:!!this.usherIdle,walk:!!this.usherWalk};}
+  getUsherDetails(){return this.usherDirector?.getStatus();}
   getCinematicStatus(){return {projectorModel:this.projectorProfessionalLoaded,director:!!this.cinema,velvetPBR:this.velvetReady,threatVisible:!!this.threatMessage?.visible,act:this.phase};}
   getPerformanceStatus(){
     return {
@@ -735,6 +738,8 @@ export class TheaterWorld{
         this.usherWalk.play();
       }
       this.usher.clear();this.usher.add(model);this.usherMixer=mixer;
+      this.usherDirector?.dispose();
+      this.usherDirector=new UsherDirector(this.usher,model,this.camera);
     }catch(err){console.warn("No se pudo incorporar el humano animado, se conserva el Acomodador provisional.",err);}
   }
   private setupControls(){
@@ -888,7 +893,9 @@ export class TheaterWorld{
     if(this.warningLight)this.warningLight.intensity=4.7+Math.sin(this.clockTime*9)*.6;
     if(this.warningFlash>0){this.warningFlash=Math.max(0,this.warningFlash-dt);this.renderer.toneMappingExposure=1.32+this.warningFlash*2.4;}
     else if(this.renderer.toneMappingExposure!==1.32)this.renderer.toneMappingExposure=1.32;
-    this.usherMixer?.update(dt);this.decorMixers.forEach(m=>m.update(dt));
+    this.usherMixer?.update(dt);
+    this.usherDirector?.update(dt,this.active&&!this.ended);
+    this.decorMixers.forEach(m=>m.update(dt));
     if(this.dust)this.dust.rotation.y=Math.sin(this.clockTime*.1)*.007;
     this.watchers.forEach((w,i)=>{w.rotation.y=Math.sin(this.clockTime*.45+i)*.12;});
     if(this.projectorReel&&this.phase!=="inicio"&&this.lightsDone)this.projectorReel.rotation.z+=dt*1.2;
