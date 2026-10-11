@@ -83,6 +83,7 @@ export class TheaterWorld{
   private watchers:THREE.Group[]=[];
   private dust?:THREE.Points;
   private frameTimeAccumulator=0;private frameTimeSamples=0;private nextScareAt=24;private lastWalkerSfx=0;
+  private fpsSamples=0;private fpsDuration=0;private measuredFps=0;
   private forwardScratch=new THREE.Vector3();
   private emitterLights:THREE.MeshStandardMaterial[]=[];
   readonly events:WorldEvents;
@@ -136,6 +137,15 @@ export class TheaterWorld{
   collectKey(){if(this.seatKey){this.seatKey.visible=false;this.seatKey=undefined;}}
   getCharacterStatus(){return {human:this.usher.children.some(x=>x.name==="AcomodadorHumanoRiggeado"),idle:!!this.usherIdle,walk:!!this.usherWalk};}
   getCinematicStatus(){return {projectorModel:this.projectorProfessionalLoaded,director:!!this.cinema,velvetPBR:this.velvetReady,threatVisible:!!this.threatMessage?.visible,act:this.phase};}
+  getPerformanceStatus(){
+    return {
+      fps:Math.round(this.measuredFps),
+      pixelRatio:Number(this.renderer.getPixelRatio().toFixed(2)),
+      drawCalls:this.renderer.info.render.calls,
+      triangles:this.renderer.info.render.triangles,
+      models:this.projectorProfessionalLoaded&&this.velvetReady
+    };
+  }
   getWarningStatus(){return {stage:this.warningStage,seen:this.warningSeen};}
   forceWarningForTest(){
     if(!import.meta.env.DEV||this.phase!=="proyector")return false;
@@ -816,7 +826,15 @@ export class TheaterWorld{
   };
   private animate=()=>{
     this.frame=requestAnimationFrame(this.animate);
-    const dt=Math.min(.05,this.clock.getDelta());this.clockTime+=dt;
+    const rawDt=this.clock.getDelta();
+    const dt=Math.min(.05,rawDt);this.clockTime+=dt;
+    if(this.active&&rawDt>0&&rawDt<5){
+      this.fpsDuration+=rawDt;this.fpsSamples++;
+      if(this.fpsDuration>=1.5){
+        this.measuredFps=this.fpsSamples/this.fpsDuration;
+        this.fpsDuration=0;this.fpsSamples=0;
+      }
+    }
     if(this.active){
       // Narrative events use monotonic elapsed wall time. dt is clamped only for
       // animation/physics, so a slow mobile GPU cannot delay a scare by minutes.
