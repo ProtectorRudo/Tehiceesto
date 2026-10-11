@@ -12,6 +12,7 @@ export class TheaterAudio{
   private musicLevel?:GainNode;
   private finalAct=false;
   private noise?:AudioBuffer;
+  private recordings:Partial<Record<"footstep"|"door",AudioBuffer>>={};
   private muted=false;
   private listener:Vec3=[0,1.64,13.1];
   private listenerForward:Vec3=[0,0,-1];
@@ -53,6 +54,7 @@ export class TheaterAudio{
     const vol=ctx.createGain();vol.gain.value=.095;
     bed.connect(low);low.connect(vol);vol.connect(ambientBus);bed.start();
     void this.loadLicensedMusic(ctx,ambientBus);
+    void this.loadRecordedSfx(ctx);
   }
   private async loadLicensedMusic(ctx:AudioContext,master:GainNode){
     try{
@@ -79,6 +81,30 @@ export class TheaterAudio{
     this.finalAct=scene==="final";
     const ctx=this.ctx,level=this.musicLevel;
     if(ctx&&level)level.gain.setTargetAtTime(this.finalAct ? 0.025 : 0.17,ctx.currentTime,.7);
+  }
+  private async loadRecordedSfx(ctx:AudioContext){
+    const base=import.meta.env.BASE_URL||"/";
+    await Promise.all((["footstep","door"] as const).map(async(key)=>{
+      try{
+        const result=await fetch(base+"audio/"+key+".ogg");
+        if(!result.ok)return;
+        const bytes=await result.arrayBuffer();
+        const buffer=await ctx.decodeAudioData(bytes);
+        if(this.ctx===ctx)this.recordings[key]=buffer;
+      }catch{ /* The synthesized fallback works on browsers without Ogg Vorbis. */ }
+    }));
+  }
+  private playRecording(key:"footstep"|"door",position:Vec3,volume=.8,delay=0){
+    const buffer=this.recordings[key],ctx=this.ctx;
+    if(!buffer||!ctx)return false;
+    const at=ctx.currentTime+delay;
+    const out=this.output(position);if(!out)return false;
+    const source=ctx.createBufferSource();source.buffer=buffer;
+    const gain=ctx.createGain();gain.gain.value=volume;
+    source.connect(gain);gain.connect(out);
+    source.start(at);
+    source.onended=()=>{source.disconnect();gain.disconnect();if(out instanceof PannerNode)out.disconnect();};
+    return true;
   }
   updateListener(x:number,y:number,z:number,fx:number,fy:number,fz:number){
     this.listener=[x,y,z];this.listenerForward=[fx,fy,fz];
@@ -126,12 +152,17 @@ export class TheaterAudio{
     const at=ctx.currentTime;
     if(kind==="door"){
       const pos:[number,number,number]=[0,1.7,15.7];
+      if(this.playRecording("door",pos,.95))return;
       this.breath(at,.31,.6,pos,96);
       this.tone(108,45,at,.6,"triangle",.38,pos);
       this.tone(620,135,at+.05,.19,"triangle",.07,pos);
       return;
     }
     if(kind==="steps"){
+      if(this.recordings.footstep){
+        for(let i=0;i<3;i++)this.playRecording("footstep",[-2+i*.22,0,-10.5],.55,i*.31);
+        return;
+      }
       for(let i=0;i<3;i++){
         this.tone(75+i*4,43,at+i*.33,.18,"triangle",.26,[-2,0,-10.5]);
         this.breath(at+i*.33,.09,.13,[-2,0,-10.5],160);
