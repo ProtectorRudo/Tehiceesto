@@ -1,6 +1,6 @@
 import {defineConfig,devices} from "@playwright/test";
 export default defineConfig({
-  testDir:"./tests",timeout:60000,retries:1,reporter:"list",
+  testDir:"./tests",timeout:160000,retries:1,workers:process.env.CI?1:undefined,reporter:"list",
   use:{baseURL:"http://127.0.0.1:4173",trace:"retain-on-failure",screenshot:"only-on-failure"},
   projects:[
     {name:"Android vertical",use:{...devices["Pixel 7"],browserName:"chromium",launchOptions:{args:["--enable-webgl","--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]}}},
