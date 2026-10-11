@@ -169,13 +169,14 @@ export class UsherDirector {
   update(dt:number,observing:boolean){
     const targetWorld=this.camera.position;
     this.root.updateMatrixWorld(true);
+    this.model.updateWorldMatrix(true,false);
     const head=this.head||this.neck;
     if(!head)return;
     head.getWorldPosition(this.headWorld);
     this.localCamera.copy(targetWorld);
-    this.root.worldToLocal(this.localCamera);
+    this.model.worldToLocal(this.localCamera);
     this.relative.copy(this.headWorld);
-    this.root.worldToLocal(this.relative);
+    this.model.worldToLocal(this.relative);
     this.relative.sub(this.localCamera);
     const distance=this.headWorld.distanceTo(targetWorld);
     this.camera.getWorldDirection(this.cameraFacing);
@@ -183,7 +184,7 @@ export class UsherDirector {
     const visibleToPlayer=this.cameraFacing.dot(this.towardHead)>.66;
     const gazeEnabled=observing&&visibleToPlayer&&distance<9.2&&distance>1.1;
     const target=gazeEnabled?THREE.MathUtils.clamp(
-      Math.atan2(-this.relative.x,this.relative.z),-.38,.38
+      Math.atan2(-this.relative.x,-this.relative.z),-.38,.38
     ):Math.sin(performance.now()*.0004)*.055;
     this.yaw=THREE.MathUtils.damp(this.yaw,target,1.55,dt);
     this.eyeContact=gazeEnabled&&Math.abs(this.yaw)>.02;
