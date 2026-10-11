@@ -19,6 +19,8 @@ export class UsherDirector {
   private readonly localCamera=new THREE.Vector3();
   private readonly relative=new THREE.Vector3();
   private readonly headWorld=new THREE.Vector3();
+  private readonly cameraFacing=new THREE.Vector3();
+  private readonly towardHead=new THREE.Vector3();
   private readonly rot=new THREE.Quaternion();
   private readonly inverseDelta=new THREE.Quaternion();
   private readonly previousNeckDelta=new THREE.Quaternion();
@@ -174,7 +176,10 @@ export class UsherDirector {
     this.root.worldToLocal(this.relative);
     this.relative.sub(this.localCamera);
     const distance=this.headWorld.distanceTo(targetWorld);
-    const gazeEnabled=observing&&distance<9.2&&distance>1.1;
+    this.camera.getWorldDirection(this.cameraFacing);
+    this.towardHead.copy(this.headWorld).sub(targetWorld).normalize();
+    const visibleToPlayer=this.cameraFacing.dot(this.towardHead)>.66;
+    const gazeEnabled=observing&&visibleToPlayer&&distance<9.2&&distance>1.1;
     const target=gazeEnabled?THREE.MathUtils.clamp(
       Math.atan2(-this.relative.x,this.relative.z),-.38,.38
     ):Math.sin(performance.now()*.0004)*.055;
