@@ -71,5 +71,24 @@ try{
 }catch(err){
   console.warn("No se pudo preparar al Acomodador riggeado, se conserva la figura alternativa.",String(err));
 }
+// Licensed CC0 suspense music, stored locally (no hotlinking at runtime).
+// congusbongus, Lost in a bad place; OpenGameArt, 2022, CC0.
+// https://opengameart.org/content/lost-in-a-bad-place-horror-ambience-loop
+try{
+  const audioUrl="https://opengameart.org/sites/default/files/lost_2.ogg";
+  const response=await retrieve(audioUrl);
+  const bytes=Buffer.from(await response.arrayBuffer());
+  if(bytes.length<120000||bytes.toString("ascii",0,4)!=="OggS")throw new Error("Audio Ogg inválido");
+  const dir="public/audio";await mkdir(dir,{recursive:true});
+  await writeFile(join(dir,"lost.ogg"),bytes);
+  await writeFile(join(dir,"credits.json"),JSON.stringify({
+    title:"Lost in a bad place (horror ambience loop)",
+    artist:"congusbongus",
+    source:"https://opengameart.org/content/lost-in-a-bad-place-horror-ambience-loop",
+    license:"CC0 1.0 (Public Domain)",
+    file:"lost.ogg"
+  },null,2));
+  console.log("Ambiente sonoro CC0 descargado:",(bytes.length/1048576).toFixed(2)+" MB");
+}catch(err){console.warn("Música CC0 no disponible, se conserva la atmósfera sintetizada.",String(err));}
 await writeFile(join(root,"manifest.json"),JSON.stringify(manifest,null,2));
 console.log("Modelos de producción disponibles:",Object.keys(manifest.assets));
