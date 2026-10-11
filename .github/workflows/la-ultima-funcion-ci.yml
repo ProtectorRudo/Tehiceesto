@@ -63,6 +63,7 @@ jobs:
             games/la-ultima-funcion/test-results/**/03-acomodador.png
             games/la-ultima-funcion/test-results/**/04-filas-senalizadas.png
             games/la-ultima-funcion/test-results/**/05-asiento-3-8.png
+            games/la-ultima-funcion/test-results/**/06-palco-visible.png
       - name: Guardar resultados si hay fallos
         if: failure()
         uses: actions/upload-artifact@v4
