@@ -93,12 +93,24 @@ export class TheaterWorld{
       this.projectorReel?.rotateZ(.2);this.usherGoal.set(-6.6,0,-11.8);
       this.events.onEvent("pasos");
     }
-    if(p==="final"){this.ended=true;this.events.onEvent("aplausos");this.lamps.forEach(l=>l.intensity=2.8);}
+    if(p==="final"){
+      this.ended=true;this.events.onEvent("aplausos");
+      this.scene.background=new THREE.Color(0x25131d);
+      if(this.lamps[1])this.lamps[1].intensity=25;
+    }
   }
   setMove(x:number,y:number){this.move={x,y};}
   activate(){if(this.actionTarget){this.events.onAction(this.actionTarget);return;}const closest=this.closestObject();if(closest)this.events.onAction(closest);}
   markLight(index:number){if(this.emitterLights[index])this.emitterLights[index].emissiveIntensity=1.9;}
   resetLights(){this.emitterLights.forEach(m=>m.emissiveIntensity=.16);}
+  setRevealText(name:string,event:string){
+    const target=this.projectorScreen;if(!target)return;
+    const material=target.material as THREE.MeshBasicMaterial;
+    material.map?.dispose();
+    material.map=labelTexture(["ESTA FUNCIÓN ES PARA",name.toLocaleUpperCase("es-AR").slice(0,35),
+      event.toLocaleUpperCase("es-AR").slice(0,40)],"#fff0d0","#3b2027");
+    material.needsUpdate=true;
+  }
   openCurtain(){this.curtainProgress=.0001;if(this.phase!=="final")this.setPhase("final");}
   private construct(){
     const s=this.scene;
