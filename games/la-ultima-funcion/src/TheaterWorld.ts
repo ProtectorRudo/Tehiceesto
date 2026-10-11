@@ -624,7 +624,7 @@ export class TheaterWorld{
     const u=this.usher;u.position.set(5.8,0,-12.3);u.name="Acomodador";
     // A single unshadowed localized key light restores readable face and
     // uniform at night without lighting the whole auditorium or requiring a flashlight.
-    this.usherKey=new THREE.PointLight(0xffd2aa,23,4.7,2);
+    this.usherKey=new THREE.PointLight(0xffd2aa,19,4.7,2);
     this.usherKey.castShadow=false;
     this.scene.add(this.usherKey);
     const jacket=mat(0x391923,.98),skin=mat(0xb8a6a0,.8),mask=mat(0xd8c9ad,.6),boots=mat(0x161417,.54);
@@ -935,7 +935,7 @@ export class TheaterWorld{
         this.usher.position.y+2.02,
         this.usher.position.z-.73*sx-1.05*cx
       );
-      this.usherKey.intensity=this.ended?10:23;
+      this.usherKey.intensity=this.ended?8:19;
     }
     if(this.warningLight)this.warningLight.intensity=4.7+Math.sin(this.clockTime*9)*.6;
     if(this.warningFlash>0){this.warningFlash=Math.max(0,this.warningFlash-dt);this.renderer.toneMappingExposure=1.32+this.warningFlash*2.4;}
