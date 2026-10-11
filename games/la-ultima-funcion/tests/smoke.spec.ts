@@ -29,6 +29,8 @@ test("La Última Función abre, activa controles y muestra pistas",async({page},
   await reminder.getByRole("button",{name:/VOLVER AL TEATRO/i}).click();
   await expect(reminder).toHaveCount(0);
   await expect(page.locator(".three-canvas")).toBeVisible();
+  await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.seatNumbers?.()),{timeout:10000})
+    .toMatchObject({rows:8,perRow:10,numbered:80,digits:10,target:"FILA 3 · ASIENTO 8"});
   await page.getByRole("button",{name:/UNA PISTA/i}).click();
   await expect(page.getByText(/FILA 3 · ASIENTO 8/)).toBeVisible();
   await page.getByRole("button",{name:/VOLVER A LA FUNCIÓN/i}).click();
