@@ -105,7 +105,42 @@ function App(){
   const handleAction=(name:TheaterAction)=>{
     if(phaseRef.current==="final")return;
     sound.current.play("click");const current=phaseRef.current;
-    if(name==="programa"){show("PROGRAMA · Fila 3, asiento 8. El orden de luces es ÁMBAR — AZUL — ROJO.",6000);return;}
+    if(name==="programa"){show("PROGRAMA DEL TRAMOYISTA · Atardecer, noche, alarma: ÁMBAR — AZUL — ROJO.",6600);return;}
+    if(name==="palco"){
+      show("PALCO 1 · El cortinaje parece moverse. Mirá hacia arriba, a la izquierda del escenario.",5000);return;
+    }
+    if(name==="fusible"){
+      if(fuseHeld.current){show("Ya tenés el fusible. Buscá el portafusible de la consola.");return;}
+      fuseHeld.current=true;world.current?.collectFuse();sound.current.play("found");
+      setStory("Encontraste un fusible antiguo. Tenés que conectarlo al panel eléctrico.");
+      show("FUSIBLE RECUPERADO · Encastralo en la consola izquierda.",5200);return;
+    }
+    if(name==="portafusible"){
+      if(!fuseHeld.current){show("La consola no tiene fusible. Buscá el repuesto de porcelana en un estante cercano.");return;}
+      if(!fuseReady.current){
+        fuseReady.current=true;world.current?.installFuse();sound.current.play("found");
+        show("FUSIBLE COLOCADO · Activá los circuitos en el orden que indica el programa.",6000);
+      }else show("El fusible ya está colocado.");
+      return;
+    }
+    if(name==="bobina"){
+      if(reelHeld.current){show("Ya recuperaste la bobina.");return;}
+      reelHeld.current=true;world.current?.collectReel();sound.current.play("found");
+      show("BOBINA RECUPERADA · Montala en el eje del proyector.",5200);return;
+    }
+    if(name==="montar"){
+      if(current!=="proyector"){show("Sin electricidad no podés montar la cinta.");return;}
+      if(!reelHeld.current){show("Necesitás encontrar la bobina suelta junto al proyector.");return;}
+      if(!reelReady.current){reelReady.current=true;world.current?.mountReel();sound.current.play("found");show("BOBINA MONTADA · Calibrá ahora el enfoque a 2.",5400);}
+      else show("Ya montaste la bobina.");
+      return;
+    }
+    if(name==="enfoque"){
+      if(current!=="proyector"){show("El enfoque no funciona sin electricidad.");return;}
+      focusReady.current=world.current?.rotateFocus()??0;
+      show("ENFOQUE · "+focusReady.current+"/3"+(focusReady.current===2?" · IMAGEN NÍTIDA":" · IMAGEN BORROSA"),3300);
+      return;
+    }
     if(name==="butaca"){
       if(current==="inicio"){
         world.current?.collectKey();
