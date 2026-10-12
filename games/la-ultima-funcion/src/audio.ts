@@ -172,6 +172,20 @@ export class TheaterAudio{
       synth.speak(utterance);return true;
     }catch{return false;}
   }
+  playSpecterFootsteps(position:Vec3|null){
+    const ctx=this.ctx;if(!ctx||!position||this.muted)return;
+    const foot:Vec3=[position[0],Math.max(.09,position[1]+.15),position[2]];
+    if(this.recordings.footstep){
+      for(let i=0;i<3;i++)this.playRecording("footstep",[foot[0]+(i%2?-.18:.18),foot[1],foot[2]],.88,i*.34);
+      return;
+    }
+    const at=ctx.currentTime;
+    for(let i=0;i<3;i++){
+      const loc:Vec3=[foot[0]+(i%2?-.16:.16),foot[1],foot[2]];
+      this.tone(67,35,at+i*.36,.16,"triangle",.29,loc);
+      this.breath(at+i*.36,.12,.25,loc,200);
+    }
+  }
   play(kind:SoundKind="click"){
     const ctx=this.ctx,master=this.master;if(!ctx||!master)return;
     const at=ctx.currentTime;
