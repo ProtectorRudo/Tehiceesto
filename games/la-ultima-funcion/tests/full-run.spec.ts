@@ -101,8 +101,11 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
   // the reel must be found, installed and the lens calibrated.
   await action(page,"proyector");await expectPhase(page,"proyector");
   await action(page,"bobina");
-  await expect(page.getByRole("status",{name:"Pista para el siguiente paso"}))
-    .toContainText("Buscá el proyector");
+  // La notificación es pequeña; la pista completa se abre a voluntad.
+  await expect(page.getByRole("button",{name:"Consultar el próximo paso"})).toBeVisible();
+  await page.getByRole("button",{name:"Consultar el próximo paso"}).click();
+  await expect(page.getByRole("region",{name:"Pista para el siguiente paso"})).toContainText("Buscá el proyector");
+  await page.getByRole("button",{name:/CERRAR ×/}).click();
   // El cuerpo de la máquina cubre el eje pequeño en pantallas móviles.
   // Pulsar el proyector con la bobina recogida debe encastrarla.
   await action(page,"proyector");
@@ -110,6 +113,10 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
   await action(page,"enfoque");await action(page,"enfoque");
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.mechanics?.()?.focus)).toBe(2);
   expect(await page.evaluate(()=>(window as any).__BELLADONNA_QA__?.viewMechanical?.())).toBe(true);
+  await expect(page.getByRole("button",{name:"PROBAR CÓDIGO"})).toBeVisible();
+  await action(page,"probar");
+  await expect(page.locator(".projector-test-hud.invalid")).toBeVisible();
+  await expect(page.locator(".projector-test-hud.invalid")).toHaveCount(0,{timeout:6000});
   await page.screenshot({path:testInfo.outputPath("08-maquina-enfoque-bobina.png")});
   // The cabinet now has three physical 3D number wheels, not a popup.
   // Tap the *actual rendered 3D number wheel* to test the mobile pointer raycast.
