@@ -338,6 +338,22 @@ function App(){
           }else if(e==="portazo"){sound.current.play("door");show("Las puertas se cerraron detrás tuyo. La función ya comenzó.",3500);}
           else if(e==="pasos")sound.current.play("steps");
           else if(e==="pasos_fantasma")sound.current.playSpecterFootsteps(world.current?.getSpecterPosition()??null);
+           else if(e==="fantasma_detecta"){
+             setGhostDanger(true);
+             sound.current.play("scare");
+             setHauntingCaption("TE VIO. ¡ALEJATE!");
+             if(navigator.vibrate)navigator.vibrate([70,60,110]);
+             window.setTimeout(()=>{setGhostDanger(false);setHauntingCaption("");},2100);
+           }else if(e==="fantasma_atrapa"){
+             startAt.current-=12000;
+             setSeconds(v=>Math.min(480,v+12));
+             setGhostDanger(true);setBlackout(true);
+             setHauntingCaption("TE ENCONTRÓ · PERDISTE 12 SEGUNDOS");
+             sound.current.play("scare");sound.current.play("whisper");
+             if(navigator.vibrate)navigator.vibrate([150,80,230,100,160]);
+             window.setTimeout(()=>setBlackout(false),280);
+             window.setTimeout(()=>{setGhostDanger(false);setHauntingCaption("");},2600);
+           }
            else if(e==="risa")sound.current.play("laugh");
           else if(e==="susurro"){
             sound.current.play("whisper");
