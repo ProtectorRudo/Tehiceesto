@@ -13,8 +13,19 @@ permissions:
   contents: read
 jobs:
   prueba-webgl:
+    name: Verificar ${{ matrix.device }}
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 26
+    strategy:
+      fail-fast: false
+      matrix:
+        device: ['Android vertical', 'Desktop']
+        slug: [android, desktop]
+        exclude:
+          - device: 'Android vertical'
+            slug: desktop
+          - device: 'Desktop'
+            slug: android
     defaults:
       run:
         working-directory: games/la-ultima-funcion
@@ -46,14 +57,14 @@ jobs:
       - name: Preparar navegadores
         run: npx playwright install --with-deps chromium
       - name: Probar Android vertical y escritorio
-        run: npm run test:e2e
+        run: npx playwright test --project="${{ matrix.device }}"
         env:
           CI: '1'
       - name: Guardar capturas visuales de Android y escritorio
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: teatro-auditoria-visual
+          name: teatro-auditoria-visual-${{ matrix.slug }}
           if-no-files-found: warn
           retention-days: 7
           path: |
@@ -70,5 +81,5 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: teatro-pruebas
+          name: teatro-pruebas-${{ matrix.slug }}
           path: games/la-ultima-funcion/test-results
