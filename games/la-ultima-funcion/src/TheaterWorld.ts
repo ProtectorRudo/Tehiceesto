@@ -203,6 +203,21 @@ export class TheaterWorld{
     this.yaw=this.camera.rotation.y;this.pitch=this.camera.rotation.x;
     return true;
   }
+  lookToBalcony(){
+    // Player-requested cinematic gaze to the real actor, not a popup.
+    // Keep the camera exactly at its current world position.
+    if(!this.active||this.ended||this.phase!=="proyector"||!this.boxSpecterVisible)return false;
+    const target=new THREE.Vector3(-6.0,6.9,-11.9);
+    if(this.boxSpecter){
+      this.boxSpecter.updateWorldMatrix(true,false);
+      this.boxSpecter.getWorldPosition(target);
+      target.y+=1.45;
+    }
+    this.camera.lookAt(target);
+    this.yaw=this.camera.rotation.y;
+    this.pitch=this.camera.rotation.x;
+    return true;
+  }
   viewBoxFigureForTest(){
     if(!import.meta.env.DEV)return false;
     this.camera.position.set(0,1.64,-6.0);
