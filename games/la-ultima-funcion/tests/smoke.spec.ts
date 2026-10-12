@@ -16,6 +16,7 @@ test("La Última Función abre, activa controles y muestra pistas",async({page},
   await expect(letter).toContainText("Ochenta y tres espectadores desaparecieron");
   await expect(letter).toContainText("FILA 3");
   await expect(letter).toContainText("ASIENTO 8");
+   await expect(letter).toContainText("5 MINUTOS · 1 MINUTO EXTRA");
   await expect(page.locator(".mission-title")).toHaveCount(0);
   await page.waitForTimeout(900);
   await expect(page.locator(".timer")).toHaveCount(0);
@@ -32,7 +33,7 @@ test("La Última Función abre, activa controles y muestra pistas",async({page},
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.seatNumbers?.()),{timeout:10000})
     .toMatchObject({rows:8,perRow:10,numbered:80,digits:10,target:"FILA 3 · ASIENTO 8"});
   await page.getByRole("button",{name:/UNA PISTA/i}).click();
-  await expect(page.getByText(/Las filas están señalizadas junto al pasillo central/)).toBeVisible();
+  await expect(page.getByText(/Alguien dejó una entrada reservada/)).toBeVisible();
   await page.getByRole("button",{name:/VOLVER A LA FUNCIÓN/i}).click();
   await page.screenshot({path:testInfo.outputPath("02-teatro.png")});
   expect(failures).toEqual([]);
