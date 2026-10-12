@@ -8,7 +8,7 @@ import { UsherDirector } from "./UsherDirector";
 
 export type TheaterAction = "butaca" | "fusible" | "portafusible" | "bobina" | "montar" | "enfoque" | "palco" | "ambar" | "azul" | "rojo" | "rueda1" | "rueda2" | "rueda3" | "probar" | "proyector" | "telon" | "programa";
 export type TheaterPhase = "inicio" | "luces" | "proyector" | "telon" | "final";
-type SoundEvent = "risa" | "pasos" | "apagón" | "susurro" | "aplausos" | "portazo" | "advertencia" | "presencia" | "aparicion" | "retirada" | "electricidad" | "fallo_luces" | "palco_aparicion" | "palco_visto" | "palco_desvanecido" | "film_terror" | "final_falso";
+type SoundEvent = "risa" | "pasos_fantasma" | "pasos" | "apagón" | "susurro" | "aplausos" | "portazo" | "advertencia" | "presencia" | "aparicion" | "retirada" | "electricidad" | "fallo_luces" | "palco_aparicion" | "palco_visto" | "palco_desvanecido" | "film_terror" | "final_falso";
 export interface WorldEvents { onFocus:(target:TheaterAction|null)=>void; onAction:(target:TheaterAction)=>void; onEvent:(event:SoundEvent)=>void; onListener:(x:number,y:number,z:number,fx:number,fy:number,fz:number,ux:number,uy:number,uz:number)=>void; }
 
 type Collider={x:number;z:number;rx:number;rz:number};
@@ -68,6 +68,7 @@ export class TheaterWorld{
   private boxSpecterGlow?:THREE.PointLight;
   private boxSpecterRouteIndex=0;
   private boxSpecterLastWhisper=0;
+  private boxSpecterLastStep=-1;
   private readonly boxSpecterRoute:THREE.Vector3[]=[
     new THREE.Vector3(-6.7,0,6),new THREE.Vector3(-.2,0,6),
     new THREE.Vector3(-.2,0,4),new THREE.Vector3(6.6,0,4),
@@ -493,7 +494,7 @@ export class TheaterWorld{
     bulbs.instanceMatrix.needsUpdate=true;this.scenery.add(bulbs);
     // Paintings in gilded frames to break up uniform walls and provide atmosphere.
     for(const side of [-1,1])for(const z of [-7,3,10]){
-      const artwork=this.textPlane(["BELLADONNA","GRAN ESTRENO","17 · X · 1968"],1.28,2.0);
+      const artwork=this.textPlane(["TEATRO BELLADONNA","HORARIO DE FUNCIÓN","03:17"],1.28,2.0);
       artwork.position.set(side*8.93,3.55,z);artwork.rotation.y=side===1?-Math.PI/2:Math.PI/2;
       this.scenery.add(artwork);
     }
@@ -548,7 +549,7 @@ export class TheaterWorld{
     }
     // Lobby sign and player instruction.
     this.buildFrozenClock();
-    const sign=this.textPlane(["TEATRO BELLADONNA","ÚLTIMA FUNCIÓN","EST. 1968"],3.9,2.3);
+    const sign=this.textPlane(["TEATRO BELLADONNA","ÚLTIMA FUNCIÓN","HORARIO · 03:17"],3.9,2.3);
     sign.position.set(0,3.5,15.83);sign.rotation.y=Math.PI;room.add(sign);
     const ticket=this.textPlane(["ENTRADA RESERVADA","FILA 3  •  ASIENTO 8","NO PIERDA SU BOLETO"],2.25,1.55);
     ticket.position.set(-8.95,2.1,12);ticket.rotation.y=Math.PI/2;room.add(ticket);this.bind(ticket,"programa");
@@ -594,6 +595,12 @@ export class TheaterWorld{
     // Permanece vigilando durante toda la función, incluso cuando lo descubren.
     // Solo abandona el palco cuando quedan exactamente dos minutos del reloj.
   }
+  getSpecterPosition():[number,number,number]|null{
+    if(!this.boxSpecterChasing||!this.boxSpecter)return null;
+    this.boxSpecter.updateWorldMatrix(true,false);
+    const p=this.boxSpecter.getWorldPosition(new THREE.Vector3());
+    return [p.x,p.y,p.z];
+  }
   releaseSpecterIntoAudience(){
     if(!this.active||this.ended||!this.boxSpecterCue||this.boxSpecterChasing||!this.boxSpecter)return false;
     this.boxSpecterChasing=true;
@@ -604,6 +611,7 @@ export class TheaterWorld{
     this.boxSpecter.visible=true;
     if(this.boxSpecterGlow)this.boxSpecterGlow.intensity=6;
     this.boxSpecterRouteIndex=1;
+    this.boxSpecterLastStep=this.elapsed;
     this.events.onEvent("palco_desvanecido");
     return true;
   }
@@ -620,6 +628,10 @@ export class TheaterWorld{
     const nz=figure.position.z+dz/distance*stride;
     // Todos los segmentos discurren entre filas o por pasillos libres.
     figure.position.set(nx,Math.sin(this.clockTime*1.25)*.035,nz);
+    if(this.elapsed-this.boxSpecterLastStep>=1.2){
+      this.boxSpecterLastStep=this.elapsed;
+      this.events.onEvent("pasos_fantasma");
+    }
     const angle=Math.atan2(dx,-dz);
     const yawDelta=Math.atan2(Math.sin(angle-figure.rotation.y),Math.cos(angle-figure.rotation.y));
     figure.rotation.y+=yawDelta*(1-Math.exp(-3.2*dt));
@@ -1026,7 +1038,7 @@ export class TheaterWorld{
     this.bind(testAssembly,"probar");
     this.bind(testBody,"probar");
     this.colliders.push({x:7.2,z:-9.9,rx:.72,rz:.68},{x:-7.25,z:-9.7,rx:.72,rz:.68});
-    const pl=this.textPlane(["ARCHIVO BELLADONNA","CONSULTE EL RELOJ"],2.25,1.05);
+    const pl=this.textPlane(["ARCHIVO BELLADONNA","FUNCIÓN · 03:17"],2.25,1.05);
     pl.position.set(0,2.9,.04);pr.add(pl);
   }
   private curtainGeometry(width:number,height:number){
@@ -1092,7 +1104,7 @@ export class TheaterWorld{
     this.lightsDone=true;
     this.cinema?.showFilm();
     if(this.projectorBeam)this.projectorBeam.intensity=26;
-    this.setScreen("CINTA 17-X-1968 · NO MIREN ARRIBA");
+    this.setScreen("HORARIO DE FUNCIÓN · 03:17");
     this.events.onEvent("susurro");
   }
   private setScreen(text:string){
@@ -1540,7 +1552,7 @@ export class TheaterWorld{
     this.cinema?.update(dt);
     if(this.filmSequenceStartedAt>=0&&this.phase!=="final"){
       const age=this.elapsed-this.filmSequenceStartedAt;
-      const frames=["CINTA 17-X-1968 · ARCHIVO 83","FILA 3 · ASIENTO 8 · VACÍO",
+      const frames=["HORARIO DE FUNCIÓN · 03:17","FILA 3 · ASIENTO 8 · VACÍO",
         "EL PALCO 1 ESTÁ OCUPADO","TODAVÍA QUEDA UN ESPECTADOR"];
       const index=Math.min(frames.length-1,Math.floor(age/1.4));
       if(index!==this.filmFrame){this.filmFrame=index;this.setScreen(frames[index]);}
