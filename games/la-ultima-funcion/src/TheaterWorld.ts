@@ -1312,6 +1312,14 @@ export class TheaterWorld{
           if(navigator.vibrate)navigator.vibrate(18);
           return;
         }
+        // Las ruedas son superficies pequeñas dentro del cuerpo interactivo
+        // de la máquina. Detectar el centro proyectado de cada rueda ANTES
+        // del pedestal y del GLB, para que el toque físico no se pierda.
+        if(this.phase==="proyector"&&
+           this.tryProjectorWheelTouch(e.clientX,e.clientY,rect)){
+          if(navigator.vibrate)navigator.vibrate(18);
+          return;
+        }
         for(const hit of this.ray.intersectObjects(this.targets,true)){
           let item:THREE.Object3D|null=hit.object;
           while(item&&!item.userData.action)item=item.parent;
@@ -1331,6 +1339,33 @@ export class TheaterWorld{
     this.cleanupFns.push(()=>{this.canvas.removeEventListener("pointerdown",down);this.canvas.removeEventListener("pointermove",move);
       this.canvas.removeEventListener("pointerup",up);this.canvas.removeEventListener("pointercancel",up);
       window.removeEventListener("keydown",keyDown);window.removeEventListener("keyup",keyUp);});
+  }
+  private tryProjectorWheelTouch(px:number,py:number,rect:DOMRect){
+    this.camera.updateMatrixWorld();
+    const projected=new THREE.Vector3();
+    let nearest:THREE.Object3D|undefined;
+    let best=Number.POSITIVE_INFINITY;
+    // Elegimos exclusivamente las caras planas numeradas, no los cilindros:
+    // son las piezas 3D que el jugador ve realmente en pantalla.
+    const faces=this.targets.filter(o=>
+      /^rueda[123]$/.test(String(o.userData.action))&&
+      o instanceof THREE.Mesh&&o.geometry instanceof THREE.PlaneGeometry);
+    for(const target of faces){
+      target.getWorldPosition(projected);
+      const distanceToCamera=projected.distanceTo(this.camera.position);
+      if(distanceToCamera>3.7||distanceToCamera<.2)continue;
+      projected.project(this.camera);
+      if(projected.z< -1||projected.z>1)continue;
+      const sx=rect.left+(projected.x+1)*rect.width*.5;
+      const sy=rect.top+(1-projected.y)*rect.height*.5;
+      const d=Math.hypot(px-sx,py-sy);
+      if(d<best){best=d;nearest=target;}
+    }
+    // Área táctil grande sin que una rueda dispare otra a distancia.
+    const radius=Math.min(43,Math.max(22,rect.width*.06));
+    if(!nearest||best>radius)return false;
+    this.events.onAction(nearest.userData.action as TheaterAction);
+    return true;
   }
   private tryCircuitFingerTouch(px:number,py:number,rect:DOMRect){
     this.camera.updateMatrixWorld();
