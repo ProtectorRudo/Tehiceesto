@@ -64,6 +64,9 @@ export class TheaterWorld{
   private boxSpecterCue=false;
   private boxSpecterVisible=false;
   private boxGazeSeconds=0;
+  private boxSeenAt=-1;
+  private fuseSocket?:THREE.Group;
+  private circuitButtons:THREE.Mesh[]=[];
   private filmSequenceStartedAt=-1;
   private filmFrame=0;
   private fusePickup?:THREE.Group;
@@ -164,7 +167,14 @@ export class TheaterWorld{
   resetLights(){this.emitterLights.forEach(m=>m.emissiveIntensity=.16);this.cinema?.resetCircuits();}
   collectKey(){if(this.seatKey){this.seatKey.visible=false;this.seatKey=undefined;}}
   collectFuse(){if(this.fusePickup)this.fusePickup.visible=false;}
-  installFuse(){this.fuseInstalled=true;if(this.installedFuse)this.installedFuse.visible=true;this.emitterLights.forEach(m=>m.emissiveIntensity=.43);}
+  installFuse(){
+    this.fuseInstalled=true;
+    if(this.installedFuse)this.installedFuse.visible=true;
+    this.emitterLights.forEach(m=>m.emissiveIntensity=.43);
+    // The inserted socket remains visible, but must NOT intercept taps
+    // meant for any of the three circuit controls beneath it.
+    if(this.fuseSocket)this.targets=this.targets.filter(o=>o!==this.fuseSocket);
+  }
   collectReel(){if(this.reelPickup)this.reelPickup.visible=false;}
   mountReel(){this.reelMounted=true;if(this.mountedReel)this.mountedReel.visible=true;}
   rotateFocus(){
@@ -180,6 +190,7 @@ export class TheaterWorld{
   }
   getMechanicalStatus(){
     return {fuseInstalled:this.fuseInstalled,reelMounted:this.reelMounted,focus:this.focusSetting,
+      consoleButtons:this.circuitButtons.length,consoleSocketBlocking:!!this.fuseSocket&&this.targets.includes(this.fuseSocket),
       boxFigure:!!this.boxSpecter,boxVisible:!!this.boxSpecter?.visible,boxSeen:this.boxSpecterLooked,
       actorGround:this.usherDirector?.getGroundingStatus()};
   }
@@ -496,6 +507,7 @@ export class TheaterWorld{
     this.boxSpecterVisible=true;
     this.boxSpecterLooked=false;
     this.boxGazeSeconds=0;
+    this.boxSeenAt=-1;
     if(this.boxSpecter)this.boxSpecter.visible=true;
     this.events.onEvent("palco_aparicion");
   }
@@ -504,24 +516,32 @@ export class TheaterWorld{
     if(this.boxSpecterLight)this.boxSpecterLight.intensity=this.boxSpecterVisible?
       15.5+Math.sin(this.clockTime*3.7)*3.5:5.5;
     if(this.boxSpecter)this.boxSpecter.visible=this.boxSpecterVisible;
-    const box=new THREE.Vector3(-6.0,6.4,-13.1);
-    const delta=box.sub(this.camera.position);
+    // Aim at the actual animated person, not an arbitrary point below
+    // the balcony. Keep the figure in place until the player discovers it.
+    const worldFace=new THREE.Vector3(-6.0,7.02,-11.96);
+    if(this.boxSpecter){
+      this.boxSpecter.updateWorldMatrix(true,false);
+      this.boxSpecter.getWorldPosition(worldFace);
+      worldFace.y+=1.44;
+    }
+    const delta=worldFace.sub(this.camera.position);
     const length=delta.length();
     this.camera.getWorldDirection(this.forwardScratch);
-    const looking=this.forwardScratch.dot(delta.normalize())>.91&&length<26;
-    this.boxGazeSeconds=looking?this.boxGazeSeconds+dt:Math.max(0,this.boxGazeSeconds-dt*.7);
-    if(this.boxGazeSeconds>.35&&!this.boxSpecterLooked){
-      this.boxSpecterLooked=true;this.events.onEvent("palco_visto");
+    const looking=this.boxSpecterVisible&&!!this.boxSpecter&&
+      this.forwardScratch.dot(delta.normalize())>.89&&length<29;
+    this.boxGazeSeconds=looking?this.boxGazeSeconds+dt:Math.max(0,this.boxGazeSeconds-dt*.6);
+    if(this.boxGazeSeconds>.48&&!this.boxSpecterLooked){
+      this.boxSpecterLooked=true;
+      this.boxSeenAt=this.elapsed;
+      this.events.onEvent("palco_visto");
       this.warningFlash=Math.max(this.warningFlash,.18);
     }
-    if(this.boxSpecterLooked&&this.boxSpecterVisible&&this.boxGazeSeconds>.8){
+    // Give the visitor time to see the face/head movement and hear the
+    // reaction before the disappearance. No 22s invisible auto-timeout.
+    if(this.boxSpecterLooked&&this.boxSpecterVisible&&
+       this.elapsed-this.boxSeenAt>3.5){
       this.boxSpecterVisible=false;
-      if(this.boxSpecter)this.boxSpecter.visible=false;
-      this.events.onEvent("palco_desvanecido");
-    }
-    if(this.elapsed-this.boxSpecterStartedAt>22&&this.boxSpecterVisible){
-      this.boxSpecterVisible=false;
-      if(this.boxSpecter)this.boxSpecter.visible=false;
+      this.boxSpecter.visible=false;
       this.events.onEvent("palco_desvanecido");
     }
   }
@@ -799,15 +819,25 @@ export class TheaterWorld{
       this.scenery.add(g);return g;
     };
     const p=pedestal(-7.25,-9.7);
+    // Wider illuminated front plate: every button is a physical front-facing
+    // control with enough separation for a finger in portrait mobile.
+    const facePanel=addMesh(new RoundedBoxGeometry(2.15,.77,.16,4,.095),
+      mat(0x27252b,.48,.48),[0,1.29,.36],p);
+    facePanel.castShadow=true;
     const plaque=this.textPlane(["CONSOLA ELÉCTRICA","FUSIBLE · TRES CIRCUITOS"],2.4,.92);
     plaque.position.set(0,2.15,-.3);p.add(plaque);
     (["ambar","azul","rojo"] as TheaterAction[]).forEach((name,i)=>{
       const hue=[0xffb65f,0x65a5ff,0xe5595c][i];
-      const x=(i-1)*.46;const m=new THREE.MeshStandardMaterial({color:hue,metalness:.2,roughness:.3,emissive:hue,emissiveIntensity:.16});
+      const x=(i-1)*.64;const m=new THREE.MeshStandardMaterial({
+        color:hue,metalness:.2,roughness:.24,emissive:hue,emissiveIntensity:.45
+      });
       this.emitterLights.push(m);
-      const button=addMesh(new THREE.CylinderGeometry(.18,.21,.22,16),m,[x,1.33,.02],p);
-      this.bind(button,name);
-      addMesh(new THREE.TorusGeometry(.215,.042,8,18),brass,[x,1.24,.02],p).rotation.x=Math.PI/2;
+      const button=addMesh(new THREE.CylinderGeometry(.265,.265,.14,28),m,[x,1.31,.525],p);
+      button.rotation.x=Math.PI/2;button.name="Interruptor accesible "+name;
+      this.bind(button,name);this.circuitButtons.push(button);
+      addMesh(new THREE.TorusGeometry(.292,.037,8,28),brass,[x,1.31,.612],p);
+      const tag=this.textPlane([name.toUpperCase()],.49,.18);
+      tag.position.set(x,.94,.55);p.add(tag);
     });
     // A physical 1968 fuse on the utility shelf. It cannot be used by tapping
     // a fictitious modal — it must be taken and plugged into the 3D console.
@@ -820,7 +850,7 @@ export class TheaterWorld{
       metal.rotation.z=Math.PI/2;
     }
     this.scenery.add(fuse);this.bind(fuse,"fusible");this.fusePickup=fuse;
-    const socket=new THREE.Group();socket.name="Portafusible físico";socket.position.set(-.02,1.62,.46);p.add(socket);
+    const socket=new THREE.Group();socket.name="Portafusible físico";socket.position.set(0,1.94,.61);p.add(socket);this.fuseSocket=socket;
     const socketPlate=addMesh(new RoundedBoxGeometry(.53,.35,.1,3,.05),black,[0,0,0],socket);
     socketPlate.material=mat(0x222126,.38,.45);
     addMesh(new THREE.TorusGeometry(.15,.03,8,22),brass,[0,0,.073],socket);
@@ -1143,7 +1173,7 @@ export class TheaterWorld{
           }
         });
         const figure=new THREE.Group();figure.name="Silueta viva del PALCO 1";
-        figure.position.set(.72,5.24,.84);figure.add(shadow);
+        figure.position.set(.32,5.28,1.08);figure.add(shadow);
         figure.visible=false;this.privateBoxes[0].add(figure);
         this.boxSpecter=figure;
         if(idle){
@@ -1178,6 +1208,13 @@ export class TheaterWorld{
         const x=(e.clientX-rect.left)/rect.width*2-1;
         const y=-((e.clientY-rect.top)/rect.height*2-1);
         this.ray.setFromCamera(new THREE.Vector2(x,y),this.camera);
+        // Large-touch target uses each genuine 3D button's projected position,
+        // only at arm's reach, and never substitutes a detached UI overlay.
+        if(this.phase==="luces"&&this.fuseInstalled&&
+           this.tryCircuitFingerTouch(e.clientX,e.clientY,rect)){
+          if(navigator.vibrate)navigator.vibrate(18);
+          return;
+        }
         for(const hit of this.ray.intersectObjects(this.targets,true)){
           let item:THREE.Object3D|null=hit.object;
           while(item&&!item.userData.action)item=item.parent;
@@ -1197,6 +1234,27 @@ export class TheaterWorld{
     this.cleanupFns.push(()=>{this.canvas.removeEventListener("pointerdown",down);this.canvas.removeEventListener("pointermove",move);
       this.canvas.removeEventListener("pointerup",up);this.canvas.removeEventListener("pointercancel",up);
       window.removeEventListener("keydown",keyDown);window.removeEventListener("keyup",keyUp);});
+  }
+  private tryCircuitFingerTouch(px:number,py:number,rect:DOMRect){
+    this.camera.updateMatrixWorld();
+    let choice:THREE.Mesh|undefined;
+    let distance=Number.POSITIVE_INFINITY;
+    const screen=new THREE.Vector3();
+    for(const button of this.circuitButtons){
+      button.getWorldPosition(screen);
+      const cameraDistance=screen.distanceTo(this.camera.position);
+      if(cameraDistance>3.55)continue;
+      screen.project(this.camera);
+      if(screen.z<0||screen.z>1)continue;
+      const dx=(screen.x+1)*rect.width/2+rect.left-px;
+      const dy=(1-screen.y)*rect.height/2+rect.top-py;
+      const d=Math.hypot(dx,dy);
+      if(d<distance){distance=d;choice=button;}
+    }
+    const radius=Math.min(59,Math.max(29,rect.width*.086));
+    if(!choice||distance>radius)return false;
+    this.events.onAction(choice.userData.action as TheaterAction);
+    return true;
   }
   private closestObject():TheaterAction|null{
     let best=1.8,ret:TheaterAction|null=null;const p=this.camera.position;
