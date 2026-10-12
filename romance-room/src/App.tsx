@@ -3,7 +3,7 @@ import {World} from './scene/World';
 import {AudioEngine} from './game/AudioEngine';
 import {RushClock} from './game/RushClock';
 import {stickVector,stickOffset} from './game/joystick';
-import {applyAction,formatRemaining,initialProgress,safeReplyLink,type Progress,type PuzzleAction} from './game/logic';
+import {applyAction,formatRemaining,createNewProgress,safeReplyLink,type Progress,type PuzzleAction} from './game/logic';
 import './ui/style.css';
 
 type Invitation = {recipient:string;sender:string;question:string;message:string;date:string;place:string;replyPhone:string;voiceUrl:string};
@@ -17,7 +17,6 @@ const copy=[
   {title:'Un instante detenido',hint:'Acercate a la mesa del jardín y tocá la pequeña caja de regalo.',task:'Acercate a la mesa. Alguien dejó algo para vos.'}
 ];
 const fallback:Invitation={recipient:'Alguien muy especial',sender:'Alguien que quiere sorprenderte',question:'¿Me regalás una noche juntos?',message:'No necesitaba una fecha especial. Solo quería vivir una noche inolvidable con vos.',date:'Una fecha por descubrir',place:'Un lugar que todavía es secreto',replyPhone:'',voiceUrl:''};
-const loadProgress=():Progress=>{try{const s=JSON.parse(localStorage.getItem('ultima-campanada-v1')||'null');if(s&&Number.isInteger(s.stage)&&s.stage>=0&&s.stage<=5)return {...initialProgress,...s,stage:s.stage as Progress['stage']}}catch{/* ignore corrupted progress */}return initialProgress};
 export default function App(){
   const canvas=useRef<HTMLCanvasElement>(null);
   const stickRef=useRef<HTMLDivElement>(null);
@@ -25,7 +24,7 @@ export default function App(){
   const stickPointer=useRef<number|null>(null);
   const world=useRef<World|null>(null);
   const audio=useRef<AudioEngine|null>(null);
-  const progressRef=useRef<Progress>(loadProgress());
+  const progressRef=useRef<Progress>(createNewProgress());
   const rushClock=useRef(new RushClock());
   const startedRush=useRef(false);
   const lastTick=useRef(-1);
@@ -97,7 +96,14 @@ export default function App(){
     w.setStage(progressRef.current.stage);w.setKeyFound(progressRef.current.keyFound);w.setLanterns(progressRef.current.lanterns);w.enableMovement(false);
     return()=>{w.dispose();sound.dispose();world.current=null;audio.current=null;if(toastTimer.current)clearTimeout(toastTimer.current)};
   },[]);
-  useEffect(()=>{try{localStorage.setItem('ultima-campanada-v1',JSON.stringify(progress))}catch{/* private browsing */}},[progress]);
+  useEffect(()=>{
+    // Old versions restored puzzles but not the countdown. Remove that obsolete save.
+    try{localStorage.removeItem('ultima-campanada-v1')}catch{/* storage disabled */}
+    // A history-cache restore is a re-entry too, not a continuation.
+    const onPageShow=(event:PageTransitionEvent)=>{if(event.persisted)window.location.reload()};
+    window.addEventListener('pageshow',onPageShow);
+    return()=>window.removeEventListener('pageshow',onPageShow);
+  },[]);
   useEffect(()=>{world.current?.enableMovement(started && !modal && !showHelp);},[started,modal,showHelp]);
   useEffect(()=>{
     const timer=window.setInterval(()=>{
@@ -160,11 +166,10 @@ export default function App(){
   },[started,modal]);
   const begin=()=>{
     setShowHelp(false);setStarted(true);setModal(null);void audio.current?.start();
-    if(progressRef.current.stage<4){explorationClock.current.start(performance.now(),360000);setExplorationRemaining(360000);}
-    if(progressRef.current.stage===4){startedRush.current=true;rushClock.current.start(performance.now());setRemaining(120000);audio.current?.playRush();}
-    toast(progressRef.current.stage===0?'Buscá una pequeña llave. Tal vez el escritorio esconda algo.':'Bienvenido de nuevo a la habitación.');
+    explorationClock.current.start(performance.now(),360000);setExplorationRemaining(360000);
+    toast('Buscá una pequeña llave. Tal vez el escritorio esconda algo.');
   };
-  const resetAll=()=>{localStorage.removeItem('ultima-campanada-v1');window.location.reload()};
+  const resetAll=()=>{window.location.reload()};
   const retry=()=>{setShowHelp(false);const result=update({type:'RESET_RUSH'});if(result.success){rushClock.current.start(performance.now());startedRush.current=true;lastTick.current=-1;lastHint.current=false;setRemaining(120000);setModal(null);audio.current?.playRush();}};
   const confirmClock=()=>{const result=update({type:'CLOCK',hour,minute});if(result.success)setModal(null)};
   const confirmCode=()=>{const result=update({type:'CODE',code});if(result.success)setCode('')};
