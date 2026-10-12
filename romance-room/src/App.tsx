@@ -1,7 +1,8 @@
-import {useCallback,useEffect,useRef,useState,type CSSProperties} from 'react';
+import {useCallback,useEffect,useRef,useState,type CSSProperties,type PointerEvent as ReactPointerEvent} from 'react';
 import {World} from './scene/World';
 import {AudioEngine} from './game/AudioEngine';
 import {RushClock} from './game/RushClock';
+import {stickVector,stickOffset} from './game/joystick';
 import {applyAction,formatRemaining,initialProgress,safeReplyLink,type Progress,type PuzzleAction} from './game/logic';
 import './ui/style.css';
 
@@ -19,6 +20,9 @@ const fallback:Invitation={recipient:'Alguien muy especial',sender:'Alguien que 
 const loadProgress=():Progress=>{try{const s=JSON.parse(localStorage.getItem('ultima-campanada-v1')||'null');if(s&&Number.isInteger(s.stage)&&s.stage>=0&&s.stage<=5)return {...initialProgress,...s,stage:s.stage as Progress['stage']}}catch{/* ignore corrupted progress */}return initialProgress};
 export default function App(){
   const canvas=useRef<HTMLCanvasElement>(null);
+  const stickRef=useRef<HTMLDivElement>(null);
+  const stickKnobRef=useRef<HTMLDivElement>(null);
+  const stickPointer=useRef<number|null>(null);
   const world=useRef<World|null>(null);
   const audio=useRef<AudioEngine|null>(null);
   const progressRef=useRef<Progress>(loadProgress());
@@ -33,6 +37,8 @@ export default function App(){
   const [showHelp,setShowHelp]=useState(false);
   const [muted,setMuted]=useState(false);
   const [remaining,setRemaining]=useState(120000);
+  const explorationClock=useRef(new RushClock());
+  const [explorationRemaining,setExplorationRemaining]=useState(360000);
   const [hour,setHour]=useState(12);
   const [minute,setMinute]=useState(0);
   const [code,setCode]=useState('');
@@ -50,9 +56,10 @@ export default function App(){
     if(success){audio.current?.success();if('vibrate' in navigator)navigator.vibrate?.([20,35,20]);}
     world.current?.setStage(next.stage);world.current?.setLanterns(next.lanterns);
     if(next.stage===4&&progressRef.current.rushing&&!startedRush.current){
+      explorationClock.current.stop();
       startedRush.current=true;rushClock.current.start(performance.now());setRemaining(120000);audio.current?.playRush();toast('¡El jardín está por cerrar! Encontrá las tres luces.');
     }
-    if(next.stage===5){rushClock.current.stop();audio.current?.finale();toast('El tiempo se detuvo. Acercate a la mesa del jardín.');}
+    if(next.stage===5){rushClock.current.stop();explorationClock.current.stop();audio.current?.finale();toast('El tiempo se detuvo. Acercate a la mesa del jardín.');}
     if(action.type==='CODE'&&success)setModal('letter');
     return {next,success};
   },[toast]);
@@ -91,9 +98,13 @@ export default function App(){
     return()=>{w.dispose();sound.dispose();world.current=null;audio.current=null;if(toastTimer.current)clearTimeout(toastTimer.current)};
   },[]);
   useEffect(()=>{try{localStorage.setItem('ultima-campanada-v1',JSON.stringify(progress))}catch{/* private browsing */}},[progress]);
-  useEffect(()=>{world.current?.enableMovement(started && !modal);},[started,modal]);
+  useEffect(()=>{world.current?.enableMovement(started && !modal && !showHelp);},[started,modal,showHelp]);
   useEffect(()=>{
     const timer=window.setInterval(()=>{
+      const now=performance.now();
+      if(explorationClock.current.active && !explorationClock.current.paused){
+        setExplorationRemaining(explorationClock.current.remaining(now));
+      }
       if(!rushClock.current.active || rushClock.current.paused)return;
       const ms=rushClock.current.remaining(performance.now());setRemaining(ms);
       world.current?.setRushIntensity(1-ms/120000);
@@ -107,10 +118,12 @@ export default function App(){
   useEffect(()=>{
     const visibility=()=>{
       if(document.hidden){
+        explorationClock.current.pause(performance.now());
         rushClock.current.pause(performance.now());
         audio.current?.suspend();
       }else{
-        const wasPaused=rushClock.current.paused;
+        const wasPaused=rushClock.current.paused||explorationClock.current.paused;
+        explorationClock.current.resume(performance.now());
         rushClock.current.resume(performance.now());
         if(wasPaused)setBackgroundPaused(true);
         void audio.current?.resume();
@@ -119,16 +132,44 @@ export default function App(){
     document.addEventListener('visibilitychange',visibility);
     return()=>document.removeEventListener('visibilitychange',visibility);
   },[]);
+  const moveStick=(e:ReactPointerEvent<HTMLDivElement>)=>{
+    if(stickPointer.current!==e.pointerId)return;
+    const box=stickRef.current?.getBoundingClientRect();if(!box)return;
+    const dx=e.clientX-(box.left+box.width/2),dy=e.clientY-(box.top+box.height/2);
+    const radius=Math.max(24,(box.width-48)/2);
+    const visual=stickOffset(dx,dy,radius);
+    if(stickKnobRef.current)stickKnobRef.current.style.transform=`translate3d(${visual.x}px,${visual.y}px,0)`;
+    const stick=stickVector(dx,dy,radius);
+    world.current?.setJoystick(stick.x,stick.y);
+  };
+  const startStick=(e:ReactPointerEvent<HTMLDivElement>)=>{
+    if(stickPointer.current!==null)return;
+    e.preventDefault();e.currentTarget.setPointerCapture(e.pointerId);
+    stickPointer.current=e.pointerId;moveStick(e);
+  };
+  const stopStick=(e:ReactPointerEvent<HTMLDivElement>)=>{
+    if(stickPointer.current!==e.pointerId)return;
+    stickPointer.current=null;
+    if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);
+    world.current?.setJoystick(0,0);
+    if(stickKnobRef.current)stickKnobRef.current.style.transform='translate3d(0,0,0)';
+  };
+  useEffect(()=>{
+    if(!started||modal){stickPointer.current=null;world.current?.setJoystick(0,0);
+      if(stickKnobRef.current)stickKnobRef.current.style.transform='translate3d(0,0,0)';}
+  },[started,modal]);
   const begin=()=>{
-    setStarted(true);setModal(null);void audio.current?.start();
+    setShowHelp(false);setStarted(true);setModal(null);void audio.current?.start();
+    if(progressRef.current.stage<4){explorationClock.current.start(performance.now(),360000);setExplorationRemaining(360000);}
     if(progressRef.current.stage===4){startedRush.current=true;rushClock.current.start(performance.now());setRemaining(120000);audio.current?.playRush();}
     toast(progressRef.current.stage===0?'Buscá una pequeña llave. Tal vez el escritorio esconda algo.':'Bienvenido de nuevo a la habitación.');
   };
   const resetAll=()=>{localStorage.removeItem('ultima-campanada-v1');window.location.reload()};
-  const retry=()=>{const result=update({type:'RESET_RUSH'});if(result.success){rushClock.current.start(performance.now());startedRush.current=true;lastTick.current=-1;lastHint.current=false;setRemaining(120000);setModal(null);audio.current?.playRush();}};
+  const retry=()=>{setShowHelp(false);const result=update({type:'RESET_RUSH'});if(result.success){rushClock.current.start(performance.now());startedRush.current=true;lastTick.current=-1;lastHint.current=false;setRemaining(120000);setModal(null);audio.current?.playRush();}};
   const confirmClock=()=>{const result=update({type:'CLOCK',hour,minute});if(result.success)setModal(null)};
   const confirmCode=()=>{const result=update({type:'CODE',code});if(result.success)setCode('')};
-  const remainingMins=formatRemaining(remaining);
+  const countdownIsFinal=progress.stage===4;
+  const remainingMins=formatRemaining(countdownIsFinal?remaining:explorationRemaining);
   const link=safeReplyLink(invitation.replyPhone,invitation.sender,invitation.recipient);
   const inGarden=position.z<-7;
   return <main className="experience">
@@ -138,21 +179,32 @@ export default function App(){
       <header className="topbar">
         <div className="identity"><span className="diamond">✧</span><span><strong>LA ÚLTIMA CAMPANADA</strong><small>una historia que todavía no sucedió</small></span></div>
         <div className="top-controls">
-          {progress.stage===4&&<div className={'clock-count '+(remaining<35000?'urgent':'')} role="timer">⌛ {remainingMins}</div>}
-          <button className="icon-button" aria-label={muted?'Activar sonido':'Silenciar sonido'} onClick={()=>{audio.current?.setEnabled(muted);setMuted(!muted)}}>{muted?'♪̸':'♫'}</button>
-          <button className="icon-button" aria-label="Pistas" onClick={()=>setShowHelp(v=>!v)}>?</button>
+          <button className="icon-button sound-toggle" aria-label={muted?'Activar sonido':'Silenciar sonido'} onClick={()=>{audio.current?.setEnabled(muted);setMuted(!muted)}}>{muted?'♪̸':'♫'}</button>
         </div>
       </header>
+      {started&&<div className="game-hud" aria-label="Tiempo restante y ayudas del juego">
+        <div className={'game-timer '+(countdownIsFinal?'final-timer':'')+(countdownIsFinal&&remaining<=35000?' urgent':'')} role="timer" aria-label={`${countdownIsFinal?'Última campanada':'Tiempo de exploración'}: ${remainingMins} restantes`}>
+          <span className="timer-symbol" aria-hidden="true">◷</span>
+          <span className="timer-copy"><span className="timer-caption">{countdownIsFinal?'ÚLTIMA CAMPANADA':progress.stage===5?'TIEMPO DETENIDO':'EXPLORACIÓN'}</span><strong>{progress.stage===5?'∞':remainingMins}</strong></span>
+        </div>
+        <button type="button" className={'hint-toggle'+(showHelp?' active':'')} onClick={()=>setShowHelp(v=>!v)} aria-expanded={showHelp} aria-controls="hint-panel" aria-label={showHelp?'Cerrar pista':'Ver pista del acertijo actual'}>
+          <span className="hint-icon" aria-hidden="true">✧</span><span>{showHelp?'Cerrar':'Pista'}</span>
+        </button>
+      </div>}
       {started&&<div className="mission" aria-live="polite"><span className="overline">CAPÍTULO {Math.min(progress.stage+1,6)} / 6</span><strong>{copy[progress.stage].title}</strong><span>{copy[progress.stage].task}</span></div>}
       {started&&!modal&&<div className="crosshair" aria-hidden="true"><span>✦</span></div>}
-      {started&&!modal&&<div className="touch-pad" aria-hidden="true"><span className="touch-pad-knob">✦</span><small>MOVER</small></div>}
+      {started&&!modal&&<div ref={stickRef} className="touch-pad" role="group" aria-label="Mover personaje" onPointerDown={startStick} onPointerMove={moveStick} onPointerUp={stopStick} onPointerCancel={stopStick} onLostPointerCapture={stopStick}>
+        <div className="touch-pad-ticks" aria-hidden="true">↑ <span>←</span> <span>→</span> ↓</div>
+        <div ref={stickKnobRef} className="touch-pad-knob" aria-hidden="true">✦</div>
+        <small>MOVER</small>
+      </div>}
       {started&&!modal&&focusedAction&&<button className="focus-action" onClick={()=>world.current?.interactFocused()} aria-label={focusedAction}><span className="focus-sigil">✧</span>{focusedAction}</button>}
-      {started&&!modal&&<div className="navigation-tip">{inGarden?'JARDÍN DE CRISTAL':'BIBLIOTECA'} · <span>deslizá para mirar · tocá para investigar · pellizcá para zoom</span></div>}
+      {started&&!modal&&<div className="navigation-tip">{inGarden?'JARDÍN DE CRISTAL':'INVERNADERO'} · <span>deslizá para mirar · tocá para investigar · pellizcá para zoom</span></div>}
       {notification&&!modal&&<div className="toast" role="status">✧ {notification}</div>}
       {backgroundPaused&&started&&!modal&&<div className="resume-note" role="status">El reloj esperó mientras no estabas. <button onClick={()=>setBackgroundPaused(false)}>Continuar ✧</button></div>}
-      {showHelp&&<div className="help-panel"><button className="mini-close" onClick={()=>setShowHelp(false)}>×</button><span className="overline">UNA AYUDA DEL DESTINO</span><h3>{copy[progress.stage].title}</h3><p>{copy[progress.stage].hint}</p><p className="help-controls">Computadora: W A S D + arrastrar. Celular: deslizar a la izquierda para caminar, a la derecha para mirar. Pellizcá para zoom.</p><button className="quiet-link" onClick={()=>setShowHelp(false)}>Entendido</button></div>}
+      {started&&showHelp&&<div className="help-panel" id="hint-panel" role="region" aria-label="Pista actual"><button className="mini-close" aria-label="Cerrar pista" onClick={()=>setShowHelp(false)}>×</button><span className="overline">UNA AYUDA DEL DESTINO</span><h3>{copy[progress.stage].title}</h3><p>{copy[progress.stage].hint}</p><p className="help-controls">Computadora: W A S D + arrastrar. Celular: usá el joystick de abajo a la izquierda para caminar, deslizá sobre el escenario para mirar y pellizcá para acercar o alejar.</p><button className="quiet-link" onClick={()=>setShowHelp(false)}>Entendido</button></div>}
       {modal&&<div className="modal-scrim" role="presentation"><section className={'card story '+(modal==='final'||modal==='accepted'?'romantic':'')} role="dialog" aria-modal="true">
-        {modal==='intro'&&<><div className="monogram">✦</div><span className="overline">UN MENSAJE SIN REMITENTE</span><h1>Hay una noche que todavía no existe.</h1><p>Alguien dejó algo preparado para vos detrás de la última puerta. Nadie puede contarte qué es. Solo esta habitación guarda la respuesta.</p><blockquote>«No todas las historias comienzan cuando abrimos una puerta. Algunas empiezan cuando decidimos buscarla».</blockquote><p className="footnote">Explorá la habitación y resolvé sus secretos. Usá auriculares para vivir mejor la experiencia.</p><button className="primary" onClick={begin}>Aceptar el misterio <span>→</span></button></>}
+        {modal==='intro'&&<><div className="monogram">✦</div><span className="overline">UN MENSAJE SIN REMITENTE</span><h1>Hay un jardín que guarda un secreto.</h1><p>Alguien dejó algo preparado para vos detrás de la última puerta. Nadie puede contarte qué es. Solo este invernadero guarda la respuesta.</p><blockquote>«No todas las historias comienzan cuando abrimos una puerta. Algunas empiezan cuando decidimos buscarla».</blockquote><p className="footnote">Explorá el invernadero y resolvé sus secretos. Usá auriculares para vivir mejor la experiencia.</p><button className="primary" onClick={begin}>Aceptar el misterio <span>→</span></button></>}
         {modal==='clock'&&<><button className="close" aria-label="Cerrar" onClick={()=>setModal(null)}>×</button><span className="overline">MECANISMO I</span><h2>El reloj detenido</h2><p>La llave encaja, pero las agujas necesitan la hora correcta. ¿Qué decía la nota?</p><div className="dial"><div className="dial-rim"><div className="dial-hands" style={{'--hand-hour':`${hour*30+minute*.5}deg`,'--hand-minute':`${minute*6}deg`} as CSSProperties}><div className="hour-hand"/><div className="minute-hand"/><i/></div><span className="twelve">XII</span><span className="three">III</span><span className="six">VI</span><span className="nine">IX</span></div></div><div className="time-controls"><label>HORA<div className="stepper"><button onClick={()=>setHour(v=>(v+10)%12+1)}>−</button><strong>{String(hour).padStart(2,'0')}</strong><button onClick={()=>setHour(v=>v%12+1)}>+</button></div></label><label>MINUTOS<div className="stepper"><button onClick={()=>setMinute(v=>(v+55)%60)}>−</button><strong>{String(minute).padStart(2,'0')}</strong><button onClick={()=>setMinute(v=>(v+5)%60)}>+</button></div></label></div><button className="primary" onClick={confirmClock}>Dar cuerda al reloj →</button></>}
         {modal==='gramophone'&&<><button className="close" aria-label="Cerrar" onClick={()=>setModal(null)}>×</button><span className="overline">MECANISMO II</span><h2>La canción que faltaba</h2><p>Hay tres discos antiguos. Solo uno conserva la melodía que puede mover el siguiente mecanismo.</p><div className="record-row">{(['rojo','azul','oro'] as const).map(col=><button key={col} className={'record '+col} onClick={()=>{const r=update({type:'RECORD',record:col});if(r.success)setModal(null)}}><span className="vinyl"/><small>{col==='oro'?'DORADO':col.toUpperCase()}</small></button>)}</div><p className="footnote">Una frase del cuaderno habla del color de la lluvia.</p></>}
         {modal==='code'&&<><button className="close" aria-label="Cerrar" onClick={()=>setModal(null)}>×</button><span className="overline">MECANISMO III</span><h2>El cajón sellado</h2><p>Debajo de la cerradura están grabados tres símbolos: <b>☾ ✶ ✿</b></p><div className="code-display" aria-label="Combinación introducida">{[0,1,2].map(i=><span key={i}>{code[i]||'·'}</span>)}</div><div className="keypad">{['1','2','3','4','5','6','7','8','9','←','0','✓'].map(key=><button key={key} onClick={()=>key==='←'?setCode(s=>s.slice(0,-1)):key==='✓'?confirmCode():setCode(s=>s.length<3?s+key:s)}>{key}</button>)}</div><p className="footnote">Los cuadros de la pared guardan las cifras. Tocá ✓ para abrir.</p></>}

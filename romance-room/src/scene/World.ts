@@ -6,10 +6,10 @@ import {resolveMovement} from '../game/navigation';
 
 type Interactive = 'desk'|'clock'|'gramophone'|'painting'|'letter'|'cabinet'|'books'|'gardenGate'|'lantern0'|'lantern1'|'lantern2'|'present';
 type Callbacks = {onInteract:(what:Interactive, sub?:string)=>void; onMove?:(x:number,z:number)=>void; onFocus?:(label:string|null)=>void};
-const gold = 0xb69a66;
-const palette=[0x2d3948,0x6d3a39,0x766146,0x3c514b,0x5c405c];
+const gold = 0xb7a77f;
+const palette=[0x4c6471,0x98746b,0x909a6c,0x586c56,0x9b7e91];
 const mat=(color:number,roughness=.68,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
-const brass=mat(0xb59a65,.23,.79), black=mat(0x17191b,.42,.35), ivory=mat(0xdfcba7,.66,.02);
+const brass=mat(0xae9566,.3,.7), black=mat(0x30413e,.4,.28), ivory=mat(0xf5f0dd,.74,.02);
 const seedRand=(()=>{let s=541; return ()=>((s=(s*1664525+1013904223)>>>0)/4294967296)})();
 
 export class World {
@@ -69,16 +69,16 @@ export class World {
     this.renderer=new THREE.WebGLRenderer({canvas, antialias:!this.mobile, powerPreference:'high-performance', alpha:false, stencil:false});
     this.renderer.outputColorSpace=THREE.SRGBColorSpace;
     this.renderer.toneMapping=THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure=1.28;
+    this.renderer.toneMappingExposure=1.35;
     this.renderer.shadowMap.enabled=true;
     this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
     this.maxDpr=Math.min(window.devicePixelRatio,this.mobile?1.4:1.8);
     this.qualityDpr=this.maxDpr;
     this.renderer.setPixelRatio(this.qualityDpr);
-    this.scene.background=new THREE.Color(0x151216);
-    this.scene.fog=new THREE.FogExp2(0x21191b,.027);
+    this.scene.background=new THREE.Color(0xc8e5ed);
+    this.scene.fog=new THREE.FogExp2(0xcbe0d2,.010);
     this.camera.position.set(0,1.63,5.5);
-    this.setupLight(); this.createStudy(); this.createGarden(); this.placeAssets();
+    this.setupLight(); this.createStudy(); this.createGarden(); this.createExteriorLandscape(); this.placeAssets();
     this.boundPointerDown=this.onPointerDown.bind(this);this.boundPointerMove=this.onPointerMove.bind(this);this.boundPointerUp=this.onPointerUp.bind(this);
     this.boundWheel=(e)=>{e.preventDefault();this.zoom(e.deltaY*.018)};
     this.boundKeyDown=(e)=>{if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','ShiftLeft'].includes(e.code))this.inputs.add(e.code)};
@@ -94,14 +94,23 @@ export class World {
   }
 
   private setupLight(){
-    this.scene.add(new THREE.HemisphereLight(0xc5d8ff,0x27170d,1.25));
-    const moon=new THREE.DirectionalLight(0x95b5d5,.58);moon.position.set(-4,9,-8);moon.castShadow=true;
-    moon.shadow.mapSize.set(this.mobile?512:1024,this.mobile?512:1024);
-    moon.shadow.camera.left=-17;moon.shadow.camera.right=17;moon.shadow.camera.top=17;moon.shadow.camera.bottom=-17;moon.shadow.bias=-.0005; this.scene.add(moon);
-    const lamp=(x:number,y:number,z:number,power:number,color=0xffc477,distance=9)=>{
-      const light=new THREE.PointLight(color,power,distance,2);light.position.set(x,y,z);this.scene.add(light);this.glowLights.push(light);return light;
+    // A genuine daylight key replaces high-intensity sepia fixtures and the dark interior.
+    this.scene.add(new THREE.HemisphereLight(0xe8f7ff,0x8f9e75,2.35));
+    const sun=new THREE.DirectionalLight(0xfff3d9,3.25);
+    sun.position.set(-7,15,5);sun.castShadow=true;
+    sun.shadow.mapSize.set(this.mobile?1024:2048,this.mobile?1024:2048);
+    sun.shadow.camera.left=-20;sun.shadow.camera.right=20;sun.shadow.camera.top=20;sun.shadow.camera.bottom=-20;
+    sun.shadow.camera.near=.1;sun.shadow.camera.far=47;sun.shadow.bias=-.00038;
+    sun.shadow.normalBias=.026;
+    this.scene.add(sun);sun.target.position.set(0,0,-4);this.scene.add(sun.target);
+    const lamp=(x:number,y:number,z:number,power:number,color=0xffebc9,distance=8)=>{
+      const light=new THREE.PointLight(color,power,distance,2);
+      light.position.set(x,y,z);this.scene.add(light);this.glowLights.push(light);return light;
     };
-    lamp(-3.4,3.4,1.0,35); lamp(3.8,3.4,-2.2,27);lamp(0,3.3,-5.2,16);lamp(-2.7,3.2,-3.8,20);lamp(0,3,-11,21,0xffd3a0,11);
+    lamp(-3.4,3.4,1.0,2.1);lamp(3.8,3.4,-2.2,2.0);
+    lamp(0,4.4,-5.2,1.7);lamp(-2.7,3.2,-3.8,1.8);
+    lamp(0,3.5,-12.5,5.5,0xffe3af,13);
+    this.gardenBaseIntensity=5.5;
   }
   private mesh(geo:THREE.BufferGeometry, material:THREE.Material,parent:THREE.Object3D,pos:[number,number,number]=[0,0,0],shadow=true){
     const m=new THREE.Mesh(geo,material);m.position.set(...pos);m.castShadow=shadow;m.receiveShadow=true;parent.add(m);this.materials.push(material);return m;
@@ -123,77 +132,160 @@ export class World {
     obj.position.set(x,y,z);obj.userData.action=part;obj.userData.part=sub;parent.add(obj);this.interactive.push(obj);return obj;
   }
   private woodFloor(x:number,z:number,w:number,d:number){
+    // Large pale limestone pavers with subtly irregular mineral veining.
     const canvas=document.createElement('canvas');canvas.width=768;canvas.height=768;
     const ctx=canvas.getContext('2d')!;
-    ctx.fillStyle='#33221d';ctx.fillRect(0,0,768,768);
-    for(let row=0;row<22;row++){
-      const y=row*35;const shift=(row%2)*105;
-      for(let col=-1;col<7;col++){
-        let xx=col*138-shift;
-        const bright=(seedRand()-.5)*26;let c=Math.round(60+bright);ctx.fillStyle=`rgb(${c},${Math.round(c*.65)},${Math.round(c*.46)})`;ctx.fillRect(xx+2,y+2,134,32);
-        for(let a=0;a<4;a++){ctx.strokeStyle=`rgba(13,8,7,${.08+seedRand()*.15})`;ctx.beginPath();ctx.moveTo(xx+10,y+8+a*6);ctx.bezierCurveTo(xx+55,y+6+a*8,xx+90,y+8+a*4,xx+124,y+9+a*6);ctx.stroke()}
+    ctx.fillStyle='#d4d5c2';ctx.fillRect(0,0,768,768);
+    for(let row=0;row<9;row++){
+      const y=row*86;const shift=row%2?78:0;
+      for(let col=-1;col<6;col++){
+        const x=col*155-shift;
+        const v=Math.floor((seedRand()-.5)*21);
+        const c=[218+v,219+v,204+v].map(t=>Math.max(170,Math.min(242,t)));
+        ctx.fillStyle=`rgb(${c[0]},${c[1]},${c[2]})`;ctx.fillRect(x+3,y+3,149,80);
+        ctx.strokeStyle='rgba(109,128,114,.17)';ctx.lineWidth=1;
+        for(let i=0;i<3;i++){
+          ctx.beginPath();ctx.moveTo(x+10+seedRand()*60,y+7+seedRand()*50);
+          ctx.bezierCurveTo(x+48,y+11,x+98,y+77,x+130,y+10+seedRand()*62);ctx.stroke();
+        }
       }
     }
-    const tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(w/8,d/8);tex.anisotropy=4;
-    const material=new THREE.MeshStandardMaterial({map:tex,roughness:.7,metalness:.03});
-    const floor=this.mesh(new THREE.PlaneGeometry(w,d),material,this.scene,[x,.015,z],false);
+    const tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
+    tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(w/11,d/11);tex.anisotropy=4;
+    const floor=this.mesh(new THREE.PlaneGeometry(w,d),new THREE.MeshStandardMaterial({map:tex,roughness:.94,metalness:0}),this.scene,[x,.018,z],false);
     floor.rotation.x=-Math.PI/2;
   }
   private wallPanel(x:number,z:number,rot:number,width:number){
+    const frame=mat(0xe3e8d7,.46,.18);
+    const mid=mat(0xb1bdb0,.39,.28);
+    const glass=new THREE.MeshPhysicalMaterial({color:0xe2f5ef,roughness:.11,metalness:.04,transparent:true,opacity:.12,depthWrite:false,side:THREE.DoubleSide});
     const group=new THREE.Group();group.position.set(x,0,z);group.rotation.y=rot;this.scene.add(group);
-    this.block(group,width,5.0,.16,0,2.5,0,mat(0x292321,.98),0);
-    this.block(group,width,.22,.16,0,.15,.14,mat(0x4a3426));
-    this.block(group,width,.18,.16,0,4.45,.14,mat(0x514131));
-    this.block(group,width,.08,.12,0,1.2,.15,brass);
-    for(let j=0;j<Math.floor(width/2.2);j++){
-      const cx=-width/2+1.15+j*2.15;
-      this.block(group,1.83,2.7,.07,cx,2.76,.13,mat(0x3c3029,.91));
-      this.block(group,1.91,.035,.10,cx,1.43,.23,brass);
-      this.block(group,1.91,.035,.10,cx,4.08,.23,brass);
-      this.block(group,.033,2.68,.10,cx-.96,2.75,.23,brass);
-      this.block(group,.033,2.68,.10,cx+.96,2.75,.23,brass);
+    const bay=width/Math.ceil(width/2.12);
+    const total=Math.ceil(width/2.12);
+    this.block(group,width,.24,.2,0,.16,0,frame,0);
+    this.block(group,width,.19,.16,0,4.95,0,frame,0);
+    for(let i=0;i<=total;i++)this.block(group,.11,4.88,.16,-width/2+i*bay,2.54,0,frame,0);
+    for(const y of [1.52,3.3])this.block(group,width,.09,.13,0,y,.045,mid,0);
+    for(let i=0;i<total;i++){
+      const bx=-width/2+(i+.5)*bay;
+      // Panes are visually present but do not occlude sky or the greenery beyond.
+      this.block(group,bay-.12,4.62,.018,bx,2.55,0,glass,0);
     }
   }
   private createStudy(){
     this.woodFloor(0,0,18,16);
-    this.wallPanel(-9,0,Math.PI/2,16);this.wallPanel(9,0,-Math.PI/2,16);
-    this.wallPanel(0,8,Math.PI,18);this.wallPanel(-5.4,-7,0,7.2);this.wallPanel(5.4,-7,0,7.2);
-    this.block(this.scene,3.6,.72,.23,0,4.65,-7,mat(0x44332b));
-    this.mesh(new THREE.PlaneGeometry(18,16),mat(0x261d19,.96),this.scene,[0,5.05,.5],false).rotation.x=Math.PI/2;
-    // Wool rug with decorative woven border
-    const rug=new THREE.Group();rug.position.set(0,.045,1);this.scene.add(rug);
-    const rugMesh=this.mesh(new THREE.PlaneGeometry(6.5,7.4),mat(0x533c34,1),rug);rugMesh.rotation.x=-Math.PI/2;
-    const border=this.mesh(new THREE.RingGeometry(2.5,2.65,6),mat(gold,.85),rug);border.rotation.x=-Math.PI/2; border.scale.set(1,1.2,1);
-    for(let i=0;i<12;i++) this.block(this.scene,.035,.11,.14,-8.7+i*1.57,4.6,-6.78,brass);
-    this.createWindow(-6.8,-6.75,2.6,2.7);
-    this.createWindow(6.8,-6.75,2.6,2.7);
+    this.wallPanel(-9,0,Math.PI/2,16);
+    this.wallPanel(9,0,-Math.PI/2,16);
+    this.wallPanel(0,8,Math.PI,18);
+    this.wallPanel(-5.4,-7,0,7.2);
+    this.wallPanel(5.4,-7,0,7.2);
+    this.createGreenhouseRoof();
+    // A pale botanical runner guides the eye towards the glass doors.
+    const runner=this.mesh(new THREE.PlaneGeometry(2.2,9),mat(0x9cb1a3,.98),this.scene,[0,.048,-.3],false);
+    runner.rotation.x=-Math.PI/2;
+    const border=mat(0xe8dac1,.82);
+    for(const x of [-1.12,1.12])this.block(this.scene,.025,.02,9,x,.054,-.3,border,0);
     this.createClock();this.createDesk();this.createGramophone();this.createPaintings();this.createBookshelf();this.createGate();
     this.createArmchair(-5,3);this.createArmchair(5,4);
-    this.createChandelier();
-    for(let i=0;i<10;i++) {
-      const x=-8.5+seedRand()*17,z=-6.5+seedRand()*12;
-      this.cylinder(this.scene,.12,.055,x,4.7,z,brass);
+    this.createChandelier();this.createBotanicalDecor();
+    this.createWindow(-6.8,-6.75,2.8,3.1);
+    this.createWindow(6.8,-6.75,2.8,3.1);
+  }
+  private createGreenhouseRoof(){
+    const frame=mat(0xe0e8d9,.47,.16);
+    const glass=new THREE.MeshPhysicalMaterial({color:0xd8f5f4,transparent:true,opacity:.10,depthWrite:false,side:THREE.DoubleSide,roughness:.17,metalness:0});
+    // The A-frame roof makes a bright skylight rather than the previous solid dark ceiling.
+    for(const side of [-1,1]){
+      const roof=this.mesh(new THREE.PlaneGeometry(9.35,16.3),glass,this.scene,[side*4.45,5.95,.45],false);
+      roof.rotation.x=-Math.PI/2;roof.rotation.y=side*.21;
+      for(let z=-7;z<=8.1;z+=2.55){
+        const beam=this.block(this.scene,8.95,.1,.1,side*4.45,5.96,z,frame,0);
+        beam.rotation.z=-side*.21;
+      }
+    }
+    this.block(this.scene,.16,.20,16.4,0,6.94,.45,frame,0);
+    for(let z=-7;z<=8;z+=3.8){
+      for(const side of [-1,1]){
+        const arch=this.block(this.scene,9,.09,.08,side*4.45,5.95,z,frame,0);
+        arch.rotation.z=-side*.21;
+      }
+    }
+  }
+  private createBotanicalDecor(){
+    const pots: Array<[number,number,number]> = [];
+    for(const z of [-5.4,-2.3,.4,3.2,5.5]){
+      pots.push([-7.7,z,.93],[7.7,z,.88]);
+    }
+    for(const x of [-7.6,-5.9,-2.4,2.4,5.9,7.6])pots.push([x,-6.55,.77]);
+    for(const x of [-7.4,7.4])pots.push([x,6.2,1.0]);
+    const foliage=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.85,side:THREE.DoubleSide,vertexColors:false});
+    // Folded, tapered leaves have a midrib and 3-D silhouette; shared instanced geometry.
+    const verts=new Float32Array([0,0,0,-.12,.28,0,0,.35,.09, 0,0,0,0,.35,.09,.12,.28,0, -.12,.28,0,-.09,.70,-.03,0,.35,.09, 0,.35,.09,-.09,.70,-.03,0,.91,0, 0,.35,.09,0,.91,0,.09,.70,-.03, 0,.35,.09,.09,.70,-.03,.12,.28,0]);
+    const leafGeo=new THREE.BufferGeometry();leafGeo.setAttribute('position',new THREE.BufferAttribute(verts,3));leafGeo.computeVertexNormals();
+    const inst=new THREE.InstancedMesh(leafGeo,foliage,pots.length*18);
+    inst.castShadow=false;inst.receiveShadow=false;const dummy=new THREE.Object3D();
+    let n=0;
+    const potMaterial=mat(0xe2d5bb,.91);
+    const lip=mat(0xf2e5cf,.76);
+    for(const [px,pz,scale] of pots){
+      this.cylinder(this.scene,.40*scale,.65*scale,px,.34*scale,pz,potMaterial,18);
+      this.cylinder(this.scene,.44*scale,.1*scale,px,.67*scale,pz,lip,18);
+      this.cylinder(this.scene,.37*scale,.03,px,.72*scale,pz,mat(0x4d6143),18);
+      for(let j=0;j<18;j++){
+        const angle=(j/18)*Math.PI*2,off=j%3;
+        dummy.position.set(px+Math.sin(angle)*.065*scale,.72*scale,pz+Math.cos(angle)*.065*scale);
+        dummy.rotation.set(.35+off*.20,angle+.55,Math.sin(angle*1.1)*.40);
+        dummy.scale.setScalar(scale*(.6+seedRand()*.35));dummy.updateMatrix();inst.setMatrixAt(n,dummy.matrix);
+        inst.setColorAt(n,new THREE.Color([0x446f50,0x759a71,0x365f4d,0x97b081][n%4]));n++;
+      }
+    }
+    inst.instanceMatrix.needsUpdate=true;this.scene.add(inst);
+    // Hanging clusters add a natural foreground in portrait mode.
+    for(const x of [-6.6,-3.2,3.2,6.6]){
+      for(let j=0;j<4;j++){
+        const y=4.58-j*.3,z=-4.1+seedRand()*8.3;
+        this.sphere(this.scene,.21+seedRand()*.12,x+(seedRand()-.5)*.5,y,z,mat(j%2?0x70976e:0x4c7757,.92));
+        if(j%2===0)this.sphere(this.scene,.09,x+.11,y+.04,z+.07,mat(0xd6aaba,.83));
+      }
+    }
+  }
+  private createExteriorLandscape(){
+    // Beyond the glass: light garden lawns and recognizable leafy silhouettes.
+    const lawn=this.mesh(new THREE.PlaneGeometry(160,150),mat(0x91b68f,.97),this.scene,[0,-.10,-12],false);lawn.rotation.x=-Math.PI/2;
+    const trunk=mat(0x7c765f,.94);
+    const greens=[0x6f9d72,0x8cab83,0x5e936d,0xb2c69a];
+    const treePlaces:Array<[number,number,number]> = [];
+    for(let i=0;i<22;i++){
+      const x=(i%2===0?-1:1)*(11.4+seedRand()*8.0),z=-16+seedRand()*37;
+      treePlaces.push([x,z,.8+seedRand()*.62]);
+    }
+    for(let i=0;i<14;i++)treePlaces.push([-15+seedRand()*30,11+seedRand()*6,.65+seedRand()*.45]);
+    for(const [x,z,scale] of treePlaces){
+      this.cylinder(this.scene,.14*scale,2.3*scale,x,1.16*scale,z,trunk,9);
+      for(let j=0;j<3;j++){
+        const crown=this.sphere(this.scene,(.85+seedRand()*.27)*scale,x+(j-1)*.50*scale,(2.15+(j%2)*.4)*scale,z+(j%2)*.28*scale,mat(greens[(j+Math.floor(x*7+300))%greens.length],.95));
+        crown.scale.set(1.13,.76,.94);
+        crown.castShadow=false;
+      }
     }
   }
   private createWindow(x:number,z:number,w:number,h:number){
-    this.block(this.scene,w+.2,h+.2,.18,x,2.67,z+.1,mat(0x5c4933,.55));
-    this.block(this.scene,w,h,.04,x,2.67,z+.18,new THREE.MeshPhysicalMaterial({color:0x5f7290,roughness:.1,metalness:.25,transparent:true,opacity:.31}));
-    this.block(this.scene,.08,h,.14,x,2.67,z+.26,brass);
-    this.block(this.scene,w,.08,.14,x,2.67,z+.26,brass);
-    for(let i=0;i<7;i++) {
-      const rain=this.mesh(new THREE.BoxGeometry(.006,.25,.004),new THREE.MeshBasicMaterial({color:0xb4c3d4,transparent:true,opacity:.27}),this.scene,[x-w/2+seedRand()*w,1.45+seedRand()*2.5,z+.16],false);
-      rain.rotation.z=.12;this.rainDrops.push(rain);
+    // Large operable French windows, no curtains or rain streaks.
+    const frame=mat(0xe4e9dd,.42,.15);
+    const inside=new THREE.Group();inside.position.set(x,2.55,z+.12);this.scene.add(inside);
+    this.block(inside,w+.22,h+.19,.15,0,0,0,frame,0);
+    const clear=new THREE.MeshPhysicalMaterial({color:0xeafff5,transparent:true,opacity:.13,roughness:.08,metalness:0,depthWrite:false});
+    this.block(inside,w,h,.028,0,0,.12,clear,0);
+    for(const sx of [-1,1]){
+      const pivot=new THREE.Group();pivot.position.set(sx*w*.48,0,.17);pivot.rotation.y=sx*.12;inside.add(pivot);
+      this.block(pivot,.053,h,.06,0,0,0,frame,0);
     }
-    // Curtains are three-dimensional folded geometry, not flat wallpaper.
-    for(const side of [-1,1]){
-      const cloth=new THREE.Group();cloth.position.set(x+side*(w/2+.13),2.85,z+.36);this.scene.add(cloth);
-      for(let n=0;n<4;n++){const fold=this.block(cloth,.15,2.5,.13,-side*n*.06,0,n*.04,mat(0x745444,.97));fold.rotation.z=side*(.015*n)}
-      this.cylinder(cloth,.13,.19,0,-.18,.11,brass);
-    }
+    this.block(inside,.065,h,.08,0,0,.21,frame,0);
+    this.block(inside,w,.063,.08,0,0,.22,frame,0);
   }
   private createClock(){
     const g=new THREE.Group();g.position.set(-4.45,2.45,-6.64);this.scene.add(g);
-    const housing=mat(0x6c4529,.5);this.block(g,1.55,2.3,.35,0,0,-.04,housing,.18);
+    const housing=mat(0xa98c67,.57);this.block(g,1.55,2.3,.35,0,0,-.04,housing,.18);
     this.block(g,1.1,.2,.4,0,1.18,0,housing,.08);
     const face=this.cylinder(g,.59,.095,0,.37,.27,ivory,48);face.rotation.x=Math.PI/2;
     const rim=this.torus(g,.62,.04,0,.37,.32,brass);rim.rotation.z=0;
@@ -210,12 +302,12 @@ export class World {
   }
   private createDesk(){
     const g=new THREE.Group();g.position.set(-3.6,0,2.0);this.scene.add(g);
-    const wood=mat(0x70462d,.56);
+    const wood=mat(0xa68765,.61);
     this.block(g,3.0,.14,1.5,0,1.05,0,wood,.10);
-    this.block(g,2.85,.34,1.36,0,.82,0,mat(0x452d23));
+    this.block(g,2.85,.34,1.36,0,.82,0,mat(0x8b745d));
     for(const x of [-1.35,1.35])for(const z of [-.56,.56])this.block(g,.2,1.01,.22,x,.5,z,wood,.05);
     for(const x of [-.82,0,.82]){
-      this.block(g,.73,.22,.035,x,.78,.715,mat(0x583725));
+      this.block(g,.73,.22,.035,x,.78,.715,mat(0x927758));
       this.cylinder(g,.045,.03,x,.77,.747,brass).rotation.x=Math.PI/2;
     }
     this.block(g,1.02,.05,.7,-.48,1.18,-.22,mat(0x958367)); // page
@@ -230,7 +322,7 @@ export class World {
   }
   private createGramophone(){
     const g=new THREE.Group();g.position.set(3.85,1.35,-1.85);this.scene.add(g);
-    const pedestal=mat(0x6b452d,.51);
+    const pedestal=mat(0x9e876e,.58);
     this.block(this.scene,1.85,1.02,1.55,3.85,.53,-1.85,pedestal,.14);
     this.block(g,1.55,.22,1.25,0,0,0,pedestal,.10);
     this.cylinder(g,.51,.04,-.27,.14,.1,black,50);
@@ -261,9 +353,9 @@ export class World {
   private createBookshelf(){
     const g=new THREE.Group();g.position.set(7.66,0,-3.8);g.rotation.y=-Math.PI/2;this.scene.add(g);
     this.slidingShelf=g;
-    const wood=mat(0x69472d,.58);
+    const wood=mat(0x9d9275,.62);
     this.block(g,4.7,4.45,.62,0,2.23,0,wood,.07);
-    this.block(g,4.36,4.1,.68,0,2.27,.27,mat(0x281c18),.02);
+    this.block(g,4.36,4.1,.68,0,2.27,.27,mat(0x5c6353),.02);
     // One instanced mesh per book leather color; hundreds fewer draw calls on midrange phones.
     const spineShape=new THREE.Shape();
     spineShape.moveTo(-.5,-.5);spineShape.lineTo(.5,-.5);spineShape.lineTo(.5,.5);spineShape.lineTo(-.5,.5);spineShape.closePath();
@@ -310,8 +402,8 @@ export class World {
   private createGate(){
     const g=new THREE.Group();g.position.set(-1.75,0,-6.77);this.scene.add(g);this.gate=g;
     const leaf=new THREE.Group();leaf.position.x=1.75;g.add(leaf);
-    this.block(leaf,3.5,4.52,.21,0,2.26,-.04,mat(0x654a31),.13);
-    this.block(leaf,3.14,4.22,.08,0,2.25,.04,new THREE.MeshPhysicalMaterial({color:0x6e7e84,roughness:.24,metalness:.31,transparent:true,opacity:.44}));
+    this.block(leaf,3.5,4.52,.21,0,2.26,-.04,mat(0xd4dfd0),.13);
+    this.block(leaf,3.14,4.22,.08,0,2.25,.04,new THREE.MeshPhysicalMaterial({color:0xccf3ea,roughness:.13,metalness:.31,transparent:true,opacity:.44}));
     for(const x of [-.86,0,.86])this.block(leaf,.043,4.2,.15,x,2.25,.16,brass);
     this.block(leaf,3.3,.042,.15,0,2.4,.16,brass);
     this.cylinder(leaf,.07,.11,.72,1.35,.19,brass).rotation.x=Math.PI/2;
@@ -320,7 +412,7 @@ export class World {
   }
   private createArmchair(x:number,z:number){
     const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=(x<0?.7:-.8);this.scene.add(g);
-    const cloth=mat(0x5e463b,.94),wood=mat(0x42291f,.63);
+    const cloth=mat(0xd4b8a9,.91),wood=mat(0xa58e6c,.65);
     this.block(g,1.22,.3,1.0,0,.62,0,cloth,.12);
     this.block(g,1.18,1.13,.25,0,1.35,-.47,cloth,.14).rotation.x=-.12;
     for(const s of [-1,1]){
@@ -330,21 +422,18 @@ export class World {
     }
   }
   private createChandelier(){
-    const g=new THREE.Group();g.position.set(0,3.95,-.1);this.scene.add(g);
-    this.cylinder(g,.065,.85,0,.42,0,brass,18);
-    this.cylinder(g,.45,.16,0,0,0,brass);
-    for(let i=0;i<8;i++){
-      const a=i*Math.PI/4;
-      const x=Math.cos(a)*.86,z=Math.sin(a)*.86;
-      const stem=this.block(g,.044,.08,.85,x*.47,0,z*.45,brass);stem.rotation.y=a+Math.PI/2;
-      this.cylinder(g,.16,.075,x,.11,z,brass);
-      this.sphere(g,.09,x,.3,z,mat(0xffdf9e,.32));
-    }
+    // An airy central pendant, not the former low candle chandelier.
+    const fixture=new THREE.Group();fixture.position.set(0,5.75,-.4);this.scene.add(fixture);
+    const rattan=mat(0xc9a77d,.69,.02);
+    this.cylinder(fixture,.025,.66,0,-.3,0,brass,12);
+    const shade=this.mesh(new THREE.LatheGeometry([new THREE.Vector2(.02,0),new THREE.Vector2(.28,-.10),new THREE.Vector2(.5,-.20),new THREE.Vector2(.63,-.39),new THREE.Vector2(.55,-.49)].map(([x,y])=>new THREE.Vector2(x,y)),36),new THREE.MeshStandardMaterial({color:0xd8bd93,side:THREE.DoubleSide,roughness:.71}),fixture,[0,-.72,0]);
+    shade.castShadow=false;
+    this.sphere(fixture,.12,0,-.97,0,mat(0xfff6db,.25));
   }
   private createGarden(){
     this.woodFloor(0,-12.4,16,13);
-    const soil=mat(0x303a2e,.94);const leaf=mat(0x365c47,.85);
-    const walkway=this.mesh(new THREE.PlaneGeometry(3.5,10),mat(0x6b6b66,.91),this.scene,[0,.04,-11.2],false);walkway.rotation.x=-Math.PI/2;
+    const soil=mat(0x74896c,.93);const leaf=mat(0x4d8859,.84);
+    const walkway=this.mesh(new THREE.PlaneGeometry(3.5,10),mat(0xd2d3bc,.93),this.scene,[0,.04,-11.2],false);walkway.rotation.x=-Math.PI/2;
     for(let i=0;i<16;i++){
       const z=-7-i*.6;
       for(let side of [-1,1]){
@@ -382,14 +471,14 @@ export class World {
   }
   private createDinnerTable(){
     const g=new THREE.Group();g.position.set(0,0,-15.2);this.scene.add(g);
-    const cloth=mat(0xf3e4cb,.91);
+    const cloth=mat(0xfff8ec,.9);
     this.cylinder(g,.87,.16,0,1.07,0,cloth,42);
     this.cylinder(g,.10,1.03,0,.55,0,brass,16);
     this.cylinder(g,.57,.09,0,.045,0,brass,30);
     for(const side of [-1,1]) {
       const chair=new THREE.Group();chair.position.set(side*1.7,0,0);chair.rotation.y=side*Math.PI/2;g.add(chair);
-      this.block(chair,.8,.13,.7,0,.65,0,mat(0x6b3e36),.10);
-      this.block(chair,.8,.88,.14,0,1.07,-.3,mat(0x744a40),.08);
+      this.block(chair,.8,.13,.7,0,.65,0,mat(0xb9c5a8),.10);
+      this.block(chair,.8,.88,.14,0,1.07,-.3,mat(0xb9c5a8),.08);
       for(const cx of [-.3,.3])for(const cz of [-.25,.25])this.cylinder(chair,.035,.61,cx,.3,cz,brass,12);
     }
     for(const z of [-.4,.4]){
@@ -446,7 +535,7 @@ export class World {
   setStage(stage:Stage){
     this.stage=stage;
     if(stage>=4){this.openGate();this.rushEnabled=stage===4;}
-    if(stage===5){this.romantic=true;this.rushEnabled=false;this.storm=0;this.renderer.toneMappingExposure=1.38;if(this.petals)(this.petals.material as THREE.PointsMaterial).opacity=.87;
+    if(stage===5){this.romantic=true;this.rushEnabled=false;this.storm=0;this.renderer.toneMappingExposure=1.47;if(this.petals)(this.petals.material as THREE.PointsMaterial).opacity=.87;
       if(this.glowLights[4])(this.glowLights[4] as THREE.PointLight).intensity=this.gardenBaseIntensity*1.5;
       this.gardenBulbs.forEach(bulb=>(bulb.material as THREE.MeshBasicMaterial).color.setHex(0xffdba0));
     }
@@ -473,6 +562,7 @@ export class World {
   }
   private openGate(){if(this.gate)this.gate.rotation.y=-Math.PI*.52;if(this.slidingShelf)this.slidingShelf.position.z=-4.1;}
   enableMovement(value:boolean){this.canWalk=value; if(!value){this.joystick={x:0,y:0};this.setFocus(null);}}
+  setJoystick(x:number,y:number){this.joystick={x:THREE.MathUtils.clamp(x,-1,1),y:THREE.MathUtils.clamp(y,-1,1)};}
   interactFocused(){
     const obj=this.currentFocus;
     if(obj?.userData.action && this.canWalk)this.handlers.onInteract(obj.userData.action as Interactive,obj.userData.part as string|undefined);
@@ -510,17 +600,13 @@ export class World {
     const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
     if(Math.abs(e.clientX-p.downX)+Math.abs(e.clientY-p.downY)>8)p.moved=true;
     if(this.pointers.size>=2){const a=[...this.pointers.values()];const d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);if(this.pinchDistance>0)this.zoom((this.pinchDistance-d)*.055);this.pinchDistance=d;return;}
-    if(this.mobile && p.downX<this.canvas.clientWidth*.43){
-      this.joystick.x=THREE.MathUtils.clamp((p.x-p.downX)/55,-1,1);
-      this.joystick.y=THREE.MathUtils.clamp((p.y-p.downY)/55,-1,1);
-    } else {
-      this.yaw-=dx*.0042;this.pitch=THREE.MathUtils.clamp(this.pitch-dy*.0031,-1.15,1.15);
-    }
+    this.yaw-=dx*(this.mobile?.0036:.0042);
+    this.pitch=THREE.MathUtils.clamp(this.pitch-dy*.0029,-1.05,1.05);
   }
   private onPointerUp(e:PointerEvent){
     const p=this.pointers.get(e.pointerId);this.pointers.delete(e.pointerId);
     if(this.pointers.size<2)this.pinchDistance=0;
-    if(p){if(!p.moved && this.pointers.size===0)this.handleTap(e.clientX,e.clientY);if(p.downX<this.canvas.clientWidth*.43)this.joystick={x:0,y:0}}
+    if(p && !p.moved && this.pointers.size===0)this.handleTap(e.clientX,e.clientY);
   }
   private handleTap(x:number,y:number){
     if(!this.canWalk)return;
@@ -562,7 +648,7 @@ export class World {
     }
     if(this.rushEnabled){
       const wave=Math.sin(this.clockTime*7)*.13*this.storm;
-      this.glowLights.forEach((l,i)=>{if(i<4)(l as THREE.PointLight).intensity=25*(1-this.storm*.5)+wave*14});
+      this.glowLights.forEach((l,i)=>{if(i<4)(l as THREE.PointLight).intensity=2.1*(1-this.storm*.25)+wave*.9});
     }
     this.mixers.forEach(m=>m.update(dt));
     // Poll focus infrequently and only report changes to avoid unnecessary React renders.

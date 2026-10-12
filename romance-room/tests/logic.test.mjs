@@ -70,3 +70,5 @@ test('countdown is deterministic, pauses while tab is hidden, resumes and stops'
  assert.equal(clock.active,false);
  assert.equal(clock.remaining(9999999),0);
 });
+
+// Additional deterministic joystick checks are executed separately by `test:controls`.

@@ -1,7 +1,7 @@
 # Hoja de ruta de producción · LA ÚLTIMA CAMPANADA
 
-**Última actualización:** 12 de octubre de 2026
-**Estado:** Primera implementación técnica, todavía NO aprobada como producto comercial.
+**Última actualización:** 12 de octubre de 2026 · Iteración 2
+**Estado:** Segunda iteración funcional; aún NO aprobada como producto comercial. Despliegue actualizado pendiente de verificación.
 
 Las casillas significan verificaciones técnicas completadas, no percepciones ni intenciones. No declaramos una fase finalizada por una simple implementación de prueba.
 
@@ -17,7 +17,8 @@ Las casillas significan verificaciones técnicas completadas, no percepciones ni
 - [x] Separar máquina de estados, motor gráfico, audio y HUD.
 - [x] Control local de progreso y personalización desacoplada del código.
 - [x] Pruebas automáticas del flujo lógico y segundas oportunidades.
-- [ ] Instalar dependencias y verificar TypeScript + compilación Vite (la red del entorno bloquea npm).
+- [x] Verificar compilación de la primera versión con Vercel (`READY`); esta iteración requiere un despliegue nuevo.
+- [ ] Instalar dependencias localmente para diagnóstico independiente de la plataforma (la red local bloquea npm).
 - [ ] Integración en repositorio remoto nuevo y configuración CI.
 
 ## Puerta C — Arte y escenografía
@@ -35,13 +36,17 @@ Las casillas significan verificaciones técnicas completadas, no percepciones ni
 - [x] Selección raycasting de objetos 3D en escena.
 - [x] Reloj, discos, combinación, libros y tres farolas operativos en la máquina de estados.
 - [x] HUD discreto, introducción, ayuda y reset de partida.
+- [x] Botón contextual de interacción según el objetivo enfocado y anillo de movimiento móvil.
+- [x] Reloj de cuenta regresiva que se pausa en segundo plano y reanuda sin penalizar (prueba automatizada).
 - [ ] Hacer que todos los mecanismos tengan manipulación completamente diegética, sin recurrir a overlays.
 - [ ] Verificar físicamente alcance y accesibilidad de cada objetivo en Android/iOS.
-- [ ] Colisiones por geometría real; actualmente límites de la habitación.
+- [x] Colisiones por proxies de mobiliario, mesa y pared del jardín; movimiento deslizante (pruebas de unidad).
+- [ ] Sustituir los proxies por colisiones generadas desde la geometría final GLB.
 
 ## Puerta E — Últimos dos minutos
 - [x] Activador después de la secuencia de libros; temporizador real de 120 segundos.
-- [x] Campanadas, aceleración sonora, atenuación de lámparas y cierre gradual de puerta.
+- [x] Campanadas, aceleración sonora, atenuación de lámparas interiores y exteriores y cierre gradual de puerta.
+- [x] Animación de lluvia y lámparas que van apagándose secuencialmente.
 - [x] Pista automática a los 35 segundos y repique final de diez segundos.
 - [x] Ganar congela el tiempo, enciende farolas y activa pétalos.
 - [x] Perder repite solo el desafío final.
@@ -56,12 +61,15 @@ Las casillas significan verificaciones técnicas completadas, no percepciones ni
 - [ ] Guardar confirmación de invitación a un backend cuando corresponda.
 
 ## Puerta G — Ingeniería de producto
-- [ ] Ejecutar `npm install`, `npm run build` y pruebas automatizadas de extremo a extremo.
+- [x] Ejecutar `npm run test:logic` (5 pruebas superadas).
+- [ ] Ejecutar `npm install`, `npm run build` locales y pruebas automatizadas de extremo a extremo.
 - [ ] Probar Android gama media, Android de gama alta, iPhone Safari y escritorio.
-- [ ] Medir FPS y memoria y ajustar pixel ratio adaptativo + LOD según resultados.
+- [x] Añadir ajuste automático de pixel ratio por rendimiento observado durante render y libros instanciados.
+- [ ] Medir FPS y memoria reales y diseñar LOD de GLB según resultados.
 - [ ] Inspeccionar errores de consola, recursos 404, fugas WebGL y reconexión de audio.
 - [ ] Probar textos largos, pantalla vertical, pantallas pequeñas y accesibilidad.
-- [ ] Subir a GitHub, enlazar proyecto Vercel e inspeccionar despliegue **READY**.
+- [x] Subir versión inicial a rama aislada de GitHub y desplegar primera versión en Vercel (**READY**).
+- [ ] Compilar y desplegar esta segunda iteración, inspeccionando nuevo estado **READY**.
 - [ ] Terminar una partida entera en la URL publicada y corregir incidencias.
 - [ ] Aprobar la versión como comercial solo si las etapas anteriores están cerradas.
 
