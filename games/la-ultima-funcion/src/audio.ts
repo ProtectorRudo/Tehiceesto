@@ -1,4 +1,4 @@
-type SoundKind="click"|"found"|"wrong"|"scare"|"success"|"steps"|"curtain"|"whisper"|"applause"|"door";
+type SoundKind="click"|"found"|"wrong"|"scare"|"success"|"steps"|"laugh"|"curtain"|"whisper"|"applause"|"door";
 type Vec3=[number,number,number];
 export class TheaterAudio{
   private ctx:AudioContext|null=null;
@@ -15,7 +15,7 @@ export class TheaterAudio{
   private hunting=false;
   private dramaticPulse:number|null=null;
   private noise?:AudioBuffer;
-  private recordings:Partial<Record<"footstep"|"door",AudioBuffer>>={};
+  private recordings:Partial<Record<"footstep"|"door"|"laugh",AudioBuffer>>={};
   private muted=false;
   private listener:Vec3=[0,1.64,13.1];
   private usherPosition:Vec3=[-2,1,-10.5];
@@ -57,17 +57,17 @@ export class TheaterAudio{
     this.dramaticPulse=window.setInterval(()=>{
       if(!this.ctx||this.ctx.state!=="running"||this.muted||this.ctx.currentTime<this.quietUntil)return;
       const at=this.ctx.currentTime;
-      const drive=.4+this.tension*.7+(this.hunting?.32:0);
-      this.tone(65.41,49,at,.72,"sawtooth",.040*drive);
-      this.tone(155.56,123.47,at+.31,.5,"triangle",.032*drive);
-      if(this.tension>.52){
+      const drive=.66+this.tension*.96+(this.hunting?.40:0);
+      this.tone(65.41,49,at,.72,"sawtooth",.052*drive);
+      this.tone(155.56,123.47,at+.31,.5,"triangle",.048*drive);
+      if(this.tension>.3){
         this.tone(92.5,77.78,at+.61,.38,"sawtooth",.021*drive);
       }
       if(this.hunting&&Math.random()>.68){
         const [x,y,z]=this.listener;
         this.breath(at+.18,.72,.13,[x+.6,y,z-1.5],380);
       }
-    },1120);
+    },1020);
     const bed=ctx.createBufferSource();bed.buffer=buffer;bed.loop=true;
     const low=ctx.createBiquadFilter();low.type="lowpass";low.frequency.value=220;
     const vol=ctx.createGain();vol.gain.value=.095;
@@ -89,7 +89,7 @@ export class TheaterAudio{
       const source=ctx.createBufferSource(),level=ctx.createGain();
       source.buffer=buffer;source.loop=true;
       level.gain.setValueAtTime(0,ctx.currentTime);
-      level.gain.setTargetAtTime(this.finalAct ? 0.025 : 0.19,ctx.currentTime,1.6);
+      level.gain.setTargetAtTime(this.finalAct ? 0.025 : 0.27,ctx.currentTime,1.6);
       source.connect(level);level.connect(master);source.start();
       this.musicSource=source;this.musicLevel=level;
     }catch(error){
@@ -99,18 +99,18 @@ export class TheaterAudio{
   setScene(scene:"inicio"|"luces"|"proyector"|"telon"|"final"){
     this.finalAct=scene==="final";
     const ctx=this.ctx,level=this.musicLevel;
-    if(ctx&&level)level.gain.setTargetAtTime(this.finalAct ? 0.025 : .19+this.tension*.095+(this.hunting?.035:0),ctx.currentTime,.7);
+    if(ctx&&level)level.gain.setTargetAtTime(this.finalAct ? 0.025 : .27+this.tension*.12+(this.hunting?.05:0),ctx.currentTime,.7);
   }
   setTension(value:number){
     this.tension=Math.max(0,Math.min(1,value));
     if(this.ctx&&this.musicLevel&&!this.finalAct){
-      this.musicLevel.gain.setTargetAtTime(.19+this.tension*.095+(this.hunting?.035:0),this.ctx.currentTime,1.3);
+      this.musicLevel.gain.setTargetAtTime(.27+this.tension*.12+(this.hunting?.05:0),this.ctx.currentTime,1.3);
     }
   }
   enterHunt(){this.hunting=true;this.setTension(Math.max(this.tension,.83));}
   private async loadRecordedSfx(ctx:AudioContext){
     const base=import.meta.env.BASE_URL||"/";
-    await Promise.all((["footstep","door"] as const).map(async(key)=>{
+    await Promise.all((["footstep","door","laugh"] as const).map(async(key)=>{
       try{
         const result=await fetch(base+"audio/"+key+".ogg");
         if(!result.ok)return;
@@ -120,7 +120,7 @@ export class TheaterAudio{
       }catch{ /* The synthesized fallback works on browsers without Ogg Vorbis. */ }
     }));
   }
-  private playRecording(key:"footstep"|"door",position:Vec3,volume=.8,delay=0){
+  private playRecording(key:"footstep"|"door"|"laugh",position:Vec3,volume=.8,delay=0){
     const buffer=this.recordings[key],ctx=this.ctx;
     if(!buffer||!ctx)return false;
     const at=ctx.currentTime+delay;
@@ -181,6 +181,17 @@ export class TheaterAudio{
       this.breath(at,.31,.6,pos,96);
       this.tone(108,45,at,.6,"triangle",.38,pos);
       this.tone(620,135,at+.05,.19,"triangle",.07,pos);
+      return;
+    }
+    if(kind==="laugh"){
+      const [px,py,pz]=this.listener;
+      const location:Vec3=[px+2.2,py+.2,pz-4];
+      if(this.playRecording("laugh",location,.70))return;
+      const at=this.ctx.currentTime;
+      for(let i=0;i<5;i++){
+        this.breath(at+i*.19,.15,.16,location,310+i*100);
+        this.tone(170+i*11,105+i*6,at+i*.19,.15,"triangle",.09,location);
+      }
       return;
     }
     if(kind==="steps"){
