@@ -1,7 +1,11 @@
 name: La Ultima Funcion - publicar GitHub Pages
-# GitHub Pages must first be enabled by the repository owner in Settings > Pages.
-# Disabled by default until the repository has a Pages site.
+# Publicación alternativa a Vercel cuando se alcance la cuota gratuita.
 on:
+  push:
+    branches: [juego-la-ultima-funcion]
+    paths:
+      - 'games/la-ultima-funcion/**'
+      - '.github/workflows/la-ultima-funcion-pages.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -50,7 +54,7 @@ jobs:
       - name: Habilitar y preparar GitHub Pages
         uses: actions/configure-pages@v5
         with:
-          enablement: false
+          enablement: true
       - name: Subir archivos estáticos
         uses: actions/upload-pages-artifact@v4
         with:
