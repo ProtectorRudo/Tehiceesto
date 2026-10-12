@@ -27,7 +27,7 @@ const labels:Record<TheaterAction,string>={
 };
 const hints:Record<TheaterPhase,string>={
   inicio:"Alguien dejó una entrada reservada. Las pequeñas placas de bronce en los respaldos podrían ayudarte a encontrar lo que buscan de vos.",
-  luces:"El panel no está averiado del todo: le falta una pieza. Leé el viejo programa del tramoyista; el orden de una función importa tanto como el principio y el final.",
+  luces:"A la consola le falta una pieza. Cuando vuelva la corriente, leé el mensaje que aparece junto a ella: ahí está el acertijo para ordenar los tres colores.",
   proyector:"El horario de aquella función quedó detenido en un único reloj del vestíbulo. Observá también la lente antes de tocar las ruedas.",
   telon:"No todo lo importante está en la pantalla. Escuchá la maquinaria y acercate al lugar donde comienza cada función.",
   final:"Las respuestas no siempre están detrás del telón."
@@ -51,7 +51,7 @@ function MissionLetter({name,returning,onProceed}:{name:string;returning:boolean
             <strong>FILA 3 <span>·</span> ASIENTO 8</strong>
             <small>Las filas están señalizadas junto al pasillo central. Cada respaldo tiene un número. Encontrá el 8 en la tercera fila.</small>
           </div>
-          <p className="briefing-directions">En el celular: usá el círculo izquierdo para <strong>caminar</strong>, deslizá sobre la escena para <strong>mirar</strong> y tocá los objetos para <strong>interactuar</strong>. Si te perdés, consultá <strong>¿UNA PISTA?</strong></p>
+          <p className="briefing-directions">En el celular: usá el círculo izquierdo para <strong>caminar</strong>, deslizá sobre la escena para <strong>mirar</strong>, <strong>juntá o separá dos dedos para hacer zoom</strong> y tocá los objetos para interactuar. Si te perdés, consultá <strong>¿UNA PISTA?</strong></p>
         </div>
         <div className="briefing-paper-end">
           <span className="briefing-countdown">7 MINUTOS · 1 MINUTO EXTRA</span>
@@ -111,12 +111,12 @@ function App(){
     if(toastTimer.current!==null)window.clearTimeout(toastTimer.current);
     toastTimer.current=window.setTimeout(()=>setToastState(""),duration);
   };
-  const guideNext=(title:string,next:string)=>{
+  const guideNext=(title:string,next:string,showClueNow=false)=>{
     setMilestone({title,next});
-    setMilestoneExpanded(false);
-    setMilestoneVisible(true);
+    setMilestoneExpanded(showClueNow);
+    setMilestoneVisible(!showClueNow);
     if(milestoneTimer.current!==null)window.clearTimeout(milestoneTimer.current);
-    milestoneTimer.current=window.setTimeout(()=>setMilestoneVisible(false),3600);
+    milestoneTimer.current=window.setTimeout(()=>{setMilestoneVisible(false);if(showClueNow)setMilestoneExpanded(false);},showClueNow?9000:3600);
   };
   const announceProjectorClue=()=>{
     if(focusClueShown.current)return;
@@ -145,8 +145,9 @@ function App(){
       if(!fuseHeld.current){show("La consola no tiene fusible. Buscá el repuesto de porcelana en un estante cercano.");return;}
       if(!fuseReady.current){
         fuseReady.current=true;world.current?.installFuse();sound.current.play("found");
-        show("FUSIBLE COLOCADO · La consola responde.",3400);
-        guideNext("La consola tiene corriente","Encontrá el programa del tramoyista: sus palabras esconden el orden de los tres circuitos.");
+        show("FUSIBLE COLOCADO · Los tres circuitos esperan su orden.",2600);
+        guideNext("La consola tiene corriente",
+          "PISTA DE LOS COLORES · Primero desaparece el último resplandor del día. Después llega el frío de la noche. Al final, la señal que anuncia el peligro. ¿En qué orden pulsarías los interruptores?",true);
       }else show("El fusible ya está colocado.");
       return;
     }
