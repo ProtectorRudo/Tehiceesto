@@ -8,6 +8,10 @@ export type PuzzleAction =
   | {type: 'RESET_RUSH'};
 export type Progress = { stage: Stage; keyFound: boolean; books: string[]; lanterns: number[]; rushing: boolean };
 export const initialProgress: Progress = {stage:0,keyFound:false,books:[],lanterns:[],rushing:false};
+// New browser entry, new puzzle state; no mutable arrays are reused.
+export function createNewProgress(): Progress {
+  return {stage:0,keyFound:false,books:[],lanterns:[],rushing:false};
+}
 export const bookOrder = ['luna','lluvia','flor'];
 export function applyAction(state: Progress, action: PuzzleAction): {next:Progress, success:boolean, feedback:string} {
   if (action.type === 'RESET_RUSH' && state.stage===4) return {next:{...state,lanterns:[],rushing:true},success:true,feedback:'El jardín te concede una segunda oportunidad.'};
