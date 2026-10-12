@@ -191,6 +191,7 @@ export class TheaterWorld{
   getMechanicalStatus(){
     return {fuseInstalled:this.fuseInstalled,reelMounted:this.reelMounted,focus:this.focusSetting,
       consoleButtons:this.circuitButtons.length,consoleSocketBlocking:!!this.fuseSocket&&this.targets.includes(this.fuseSocket),
+      circuitsActive:this.emitterLights.filter(m=>m.emissiveIntensity>=1.5).length,
       boxFigure:!!this.boxSpecter,boxVisible:!!this.boxSpecter?.visible,boxSeen:this.boxSpecterLooked,
       actorGround:this.usherDirector?.getGroundingStatus()};
   }
