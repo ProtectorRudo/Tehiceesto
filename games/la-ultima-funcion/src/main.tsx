@@ -377,7 +377,11 @@ function App(){
         </div>
       </div>
       {phase==="proyector"&&!boxEncountered&&!finished&&<div className="balcony-callout" role="status">
-        <span aria-hidden="true">↑</span> PALCO 1 · ARRIBA A LA IZQUIERDA
+        <span aria-hidden="true">↑</span>
+        <span>PALCO 1 · ARRIBA A LA IZQUIERDA</span>
+        <button className="balcony-look-button" onClick={()=>{
+          if(!world.current?.lookToBalcony())show("La figura está llegando al palco. Mirá arriba a la izquierda.",4200);
+        }}>MIRAR PALCO 1 <span aria-hidden="true">↗</span></button>
       </div>}
       <div className="desktop-tip">W A S D PARA CAMINAR · MOUSE PARA MIRAR · E PARA INTERACTUAR</div>
       {toast&&<div role="status" className="toast">{toast}</div>}
