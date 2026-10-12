@@ -8,7 +8,7 @@ import { UsherDirector } from "./UsherDirector";
 
 export type TheaterAction = "butaca" | "fusible" | "portafusible" | "bobina" | "montar" | "enfoque" | "palco" | "ambar" | "azul" | "rojo" | "rueda1" | "rueda2" | "rueda3" | "proyector" | "telon" | "programa";
 export type TheaterPhase = "inicio" | "luces" | "proyector" | "telon" | "final";
-type SoundEvent = "pasos" | "apagón" | "susurro" | "aplausos" | "portazo" | "advertencia" | "presencia" | "aparicion" | "retirada" | "electricidad" | "fallo_luces" | "palco_aparicion" | "palco_visto" | "palco_desvanecido" | "film_terror" | "final_falso";
+type SoundEvent = "risa" | "pasos" | "apagón" | "susurro" | "aplausos" | "portazo" | "advertencia" | "presencia" | "aparicion" | "retirada" | "electricidad" | "fallo_luces" | "palco_aparicion" | "palco_visto" | "palco_desvanecido" | "film_terror" | "final_falso";
 export interface WorldEvents { onFocus:(target:TheaterAction|null)=>void; onAction:(target:TheaterAction)=>void; onEvent:(event:SoundEvent)=>void; onListener:(x:number,y:number,z:number,fx:number,fy:number,fz:number,ux:number,uy:number,uz:number)=>void; }
 
 type Collider={x:number;z:number;rx:number;rz:number};
@@ -602,7 +602,7 @@ export class TheaterWorld{
     const nx=figure.position.x+dx/distance*stride;
     const nz=figure.position.z+dz/distance*stride;
     // Todos los segmentos discurren entre filas o por pasillos libres.
-    figure.position.set(nx,0,nz);
+    figure.position.set(nx,Math.sin(this.clockTime*1.25)*.035,nz);
     const angle=Math.atan2(dx,-dz);
     const yawDelta=Math.atan2(Math.sin(angle-figure.rotation.y),Math.cos(angle-figure.rotation.y));
     figure.rotation.y+=yawDelta*(1-Math.exp(-3.2*dt));
@@ -610,6 +610,7 @@ export class TheaterWorld{
     if(playerDistance<3.4&&this.elapsed-this.boxSpecterLastWhisper>9){
       this.boxSpecterLastWhisper=this.elapsed;
       this.events.onEvent("presencia");
+      this.events.onEvent("risa");
     }
   }
   private updateSpecterGaze(){
@@ -720,29 +721,30 @@ export class TheaterWorld{
     this.colliders.push({x:0,z:15.82,rx:1.52,rz:.18});
   }
   private buildFrozenClock(){
-    // The clock stopped at 03:17 on the night everyone vanished. Real hands,
-    // engraved number markers and brass details provide the clue visually.
-    const c=new THREE.Group();c.position.set(-7.75,3.92,10.8);
-    c.rotation.y=Math.PI/2;
-    const woodRing=addMesh(new THREE.CylinderGeometry(.84,.84,.23,48),wood,[0,0,-.13],c);woodRing.rotation.x=Math.PI/2;
-    const metalRing=addMesh(new THREE.TorusGeometry(.73,.055,12,48),brass,[0,0,.02],c);
-    const face=addMesh(new THREE.CircleGeometry(.69,48),cream,[0,0,.019],c);
-    const markerMat=mat(0x36271f,.7,.28);
-    for(let i=0;i<12;i++){
-      const a=Math.PI*2*i/12;
-      const tick=addMesh(new THREE.BoxGeometry(.036,i%3===0?.15:.09,.022),markerMat,
-        [Math.sin(a)*.57,Math.cos(a)*.57,.046],c);
-      tick.rotation.z=-a;
+    // Reloj digital de tubos incandescentes, 03:17, legible en móviles.
+    const clock=new THREE.Group();clock.name="Reloj de la desaparición · 03:17";
+    clock.position.set(-7.75,3.93,10.8);clock.rotation.y=Math.PI/2;
+    addMesh(new RoundedBoxGeometry(2.12,.97,.19,4,.12),wood,[0,0,-.08],clock);
+    addMesh(new RoundedBoxGeometry(1.98,.78,.08,4,.09),brass,[0,0,.055],clock);
+    addMesh(new RoundedBoxGeometry(1.83,.63,.09,3,.055),mat(0x08080b,.3,.5),[0,0,.105],clock);
+    const panel=document.createElement("canvas");panel.width=1024;panel.height=360;
+    const ctx=panel.getContext("2d")!;
+    ctx.fillStyle="#09090b";ctx.fillRect(0,0,1024,360);
+    for(let i=0;i<4;i++){
+      ctx.fillStyle="rgba(197,103,41,.09)";ctx.fillRect(53+i*246,22,190,316);
     }
-    const hand=(angle:number,length:number,width:number,z:number)=>{
-      const arm=addMesh(new THREE.BoxGeometry(width,length,.028),markerMat,
-        [Math.sin(angle)*length*.38,Math.cos(angle)*length*.38,z],c);
-      arm.rotation.z=-angle;
-    };
-    hand((3+17/60)*Math.PI/6,.39,.064,.07);
-    hand(17*Math.PI/30,.57,.038,.10);
-    addMesh(new THREE.SphereGeometry(.08,12,9),brass,[0,0,.12],c);
-    this.scenery.add(c);
+    ctx.fillStyle="#d8b78b";ctx.font="bold 22px Georgia";ctx.textAlign="center";
+    ctx.fillText("BELLADONNA · 1968",512,43);
+    ctx.font="bold 218px monospace";ctx.textBaseline="middle";
+    ctx.shadowColor="#ff6034";ctx.shadowBlur=25;ctx.fillStyle="#ffb16b";
+    ctx.fillText("03:17",512,201);
+    ctx.shadowBlur=0;ctx.font="22px Georgia";ctx.fillStyle="#ae8d6d";
+    ctx.fillText("LA HORA EN QUE SE DETUVO LA FUNCIÓN",512,320);
+    const texture=new THREE.CanvasTexture(panel);texture.colorSpace=THREE.SRGBColorSpace;
+    const face=new THREE.Mesh(new THREE.PlaneGeometry(1.77,.6),new THREE.MeshBasicMaterial({map:texture}));
+    face.position.z=.161;clock.add(face);
+    const glow=new THREE.PointLight(0xff9350,2.8,3.2,2);glow.position.set(0,0,.4);glow.castShadow=false;clock.add(glow);
+    this.scenery.add(clock);
     this.colliders.push({x:-7.82,z:10.8,rx:.23,rz:.9});
   }
   private textPlane(lines:string[],w:number,h:number){
@@ -1154,10 +1156,8 @@ export class TheaterWorld{
         ]);
       }
       const furniture=[
-        ["grandfatherClock",[-8.35,1.1,13.25],2.18,Math.PI/2],
         ["sideTable",[-7.8,.41,-13.8],.82,.2],
         ["sideTable",[7.8,.41,-13.8],.82,-.2],
-        ["mantelClock",[-7.8,1.04,-13.8],.43,.1],
         ["marbleBust",[7.8,1.2,-13.8],.48,0],
         ["victorianConsole",[-8.15,.72,7.9],1.4,Math.PI/2],
         ["victorianConsole",[8.15,.72,7.9],1.4,-Math.PI/2],
@@ -1248,7 +1248,7 @@ export class TheaterWorld{
             node.material=spectral;
           }
         });
-        const figure=new THREE.Group();figure.name="Silueta viva del PALCO 1";
+        const figure=new THREE.Group();figure.name="Espectro del PALCO 1";
         figure.position.set(.32,5.28,1.08);figure.add(shadow);
         figure.visible=false;this.privateBoxes[0].add(figure);
         this.boxSpecter=figure;
@@ -1258,10 +1258,8 @@ export class TheaterWorld{
         const glow=new THREE.PointLight(0x8ccaf6,4.8,4.2,2);
         glow.position.set(0,1.55,.35);glow.castShadow=false;figure.add(glow);
         this.boxSpecterGlow=glow;
-        if(idle){
-          const ghostMixer=new THREE.AnimationMixer(shadow);
-          ghostMixer.clipAction(idle).play();this.boxSpecterMixer=ghostMixer;
-        }
+        // Pose de esqueleto estable. Cabeza independiente y desplazamiento flotante.
+        this.boxSpecterMixer=undefined;
         if(this.boxSpecterCue&&!this.boxSpecterChasing)figure.visible=true;
       }
     }catch(err){console.warn("No se pudo incorporar el humano animado, se conserva el Acomodador provisional.",err);}
@@ -1416,6 +1414,7 @@ export class TheaterWorld{
       if(this.elapsed>this.nextScareAt&&!this.ended){
         this.nextScareAt+=39;
         this.events.onEvent("susurro");
+        if((Math.floor(this.elapsed/39)%2)===0)this.events.onEvent("risa");
         this.boxSpecterCue&&this.boxSpecterVisible&&(this.boxGazeSeconds+=.04);
       }
       const actorMoving=this.warningStage!=="apparition" && this.warningStage!=="silence" && this.usher.position.distanceToSquared(this.usherGoal)>.06;
