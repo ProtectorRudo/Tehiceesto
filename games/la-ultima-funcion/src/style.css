@@ -333,3 +333,37 @@
 @media(max-width:750px){.milestone-card{top:35%;width:min(89vw,360px);padding:13px 15px}
  .milestone-card strong{font-size:24px}.milestone-card p{font-size:17px}
  .milestone-recall{top:33%}}
+
+
+/* Controles diegéticos: solo visibles cerca del proyector. */
+.projector-test-hud{left:auto;right:clamp(14px,3vw,34px);bottom:clamp(185px,24vh,262px);
+ transform:none;border-radius:7px;padding:10px 12px;font-size:10px;letter-spacing:.8px;
+ box-shadow:0 6px 24px #0008;max-width:195px}
+.projector-test-hud.invalid{animation:projectorError .32s ease-in-out 3 alternate}
+@keyframes projectorError{to{box-shadow:0 0 19px #f3556588}}
+@media(max-width:750px){.projector-test-hud{right:13px;bottom:203px;padding:9px 11px;font-size:9px}}
+/* La guía es optativa y ocupa la esquina, nunca el centro de la cámara. */
+.guide-widget{position:absolute;z-index:7;right:clamp(10px,3vw,30px);top:clamp(145px,30vh,255px);
+ display:flex;align-items:flex-end;flex-direction:column;gap:7px;pointer-events:none}
+.guide-toggle{width:34px;height:34px;border:1px solid #bda075;background:rgba(26,16,19,.91);
+ border-radius:50%;color:#ead0a6;font:22px Georgia,serif;box-shadow:0 4px 14px #0008;
+ pointer-events:auto;touch-action:manipulation}
+.guide-toggle[aria-expanded="true"]{border-color:#f1d19b;color:#fff0cb}
+.guide-flash{max-width:210px;color:#ecdec4;background:rgba(19,13,17,.88);
+ padding:7px 9px;border:1px solid #94754c;border-radius:5px;font-size:10px;
+ text-align:right;letter-spacing:.1px;pointer-events:none;animation:guidePop .25s ease-out}
+.guide-popover{width:min(250px,62vw);background:linear-gradient(140deg,rgba(43,28,31,.98),rgba(18,11,17,.97));
+ color:#f4e3ca;border:1px solid #c6a171;border-radius:8px;box-shadow:0 12px 35px #000b;
+ padding:14px;text-align:left;pointer-events:auto}
+.guide-popover small{display:block;color:#c9a375;font-size:9px;letter-spacing:1.3px;margin-bottom:6px}
+.guide-popover strong{font:600 23px "Cormorant Garamond",Georgia,serif}
+.guide-popover p{font:16px/1.3 "Cormorant Garamond",Georgia,serif;color:#e7d0b5;margin:8px 0 10px}
+.guide-popover button{background:none;border:0;padding:4px 0;color:#e6b983;font-size:10px;letter-spacing:1px}
+@keyframes guidePop{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+.ghost-danger{position:absolute;inset:0;z-index:8;pointer-events:none;opacity:0;
+ background:radial-gradient(ellipse at 50% 55%,transparent 30%,rgba(170,12,31,.30) 83%,rgba(78,5,15,.65));
+ transition:opacity .13s ease-in}
+.ghost-danger.visible{opacity:1;animation:ghostFear .37s infinite alternate}
+@keyframes ghostFear{from{filter:brightness(.7)}to{filter:brightness(1.3)}}
+@media(max-width:750px){.guide-widget{right:12px;top:clamp(160px,29vh,242px)}}
+@media(prefers-reduced-motion:reduce){.ghost-danger.visible,.projector-test-hud.invalid{animation:none}}
