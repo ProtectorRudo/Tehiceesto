@@ -148,7 +148,7 @@ try{
 const soundAssets=[
   {key:"footstep",url:"https://opengameart.org/sites/default/files/01-footstep_0.ogg",
     source:"https://opengameart.org/content/footsteps-0",artist:"GboxMikeFozzy"},
-  {key:"laugh",url:"https://opengameart.org/sites/default/files/laugh-evil-1.ogg",
+  {key:"laugh",url:"https://opengameart.org/sites/default/files/laugh-evil-1_0.ogg",
     source:"https://opengameart.org/content/evil-laugh",artist:"AntumDeluge"},
   {key:"door",url:"https://opengameart.org/sites/default/files/door_1.ogg",
     source:"https://opengameart.org/content/rpg-sound-effect-pack",artist:"Delta12 Studio"}
