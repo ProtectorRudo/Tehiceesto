@@ -187,7 +187,7 @@ export class TheaterAudio{
       const [px,py,pz]=this.listener;
       const location:Vec3=[px+2.2,py+.2,pz-4];
       if(this.playRecording("laugh",location,.70))return;
-      const at=this.ctx.currentTime;
+      const at=ctx.currentTime;
       for(let i=0;i<5;i++){
         this.breath(at+i*.19,.15,.16,location,310+i*100);
         this.tone(170+i*11,105+i*6,at+i*.19,.15,"triangle",.09,location);
