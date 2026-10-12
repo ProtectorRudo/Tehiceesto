@@ -541,7 +541,7 @@ export class TheaterWorld{
     if(this.boxSpecterLooked&&this.boxSpecterVisible&&
        this.elapsed-this.boxSeenAt>3.5){
       this.boxSpecterVisible=false;
-      this.boxSpecter.visible=false;
+      if(this.boxSpecter)this.boxSpecter.visible=false;
       this.events.onEvent("palco_desvanecido");
     }
   }
@@ -1245,7 +1245,7 @@ export class TheaterWorld{
       const cameraDistance=screen.distanceTo(this.camera.position);
       if(cameraDistance>3.55)continue;
       screen.project(this.camera);
-      if(screen.z<0||screen.z>1)continue;
+      if(screen.z< -1||screen.z>1)continue;
       const dx=(screen.x+1)*rect.width/2+rect.left-px;
       const dy=(1-screen.y)*rect.height/2+rect.top-py;
       const d=Math.hypot(dx,dy);
