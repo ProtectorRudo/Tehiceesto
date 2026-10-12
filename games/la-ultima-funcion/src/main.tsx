@@ -16,7 +16,7 @@ function invitation():Invite{
 }
 const steps=[
   {phase:"inicio",title:"La butaca reservada",objective:"Seguí los carteles de las filas y la numeración de los respaldos hasta encontrar fila 3, asiento 8."},
-  {phase:"luces",title:"La consola de luces",objective:"Recuperá el fusible, insertalo en la consola y activá los tres circuitos en orden."},
+  {phase:"luces",title:"La consola de luces",objective:"Encontrá la pieza que falta en la consola y descubrí cómo restaurar la iluminación."},
   {phase:"proyector",title:"La película perdida",objective:"Investigá el Palco 1, buscá una bobina entre las butacas y recuperá la proyección perdida."},
   {phase:"telon",title:"La última función",objective:"Subí al escenario y accioná la palanca del telón."}
 ];
@@ -54,7 +54,7 @@ function MissionLetter({name,returning,onProceed}:{name:string;returning:boolean
           <p className="briefing-directions">En el celular: usá el círculo izquierdo para <strong>caminar</strong>, deslizá sobre la escena para <strong>mirar</strong> y tocá los objetos para <strong>interactuar</strong>. Si te perdés, consultá <strong>¿UNA PISTA?</strong></p>
         </div>
         <div className="briefing-paper-end">
-          <span className="briefing-countdown">9 MINUTOS · 1 MINUTO EXTRA</span>
+          <span className="briefing-countdown">5 MINUTOS · 1 MINUTO EXTRA</span>
           <button className="briefing-start" onClick={onProceed}>{returning?"VOLVER AL TEATRO":"ENTENDÍ MI MISIÓN · ENTRAR"} <span aria-hidden="true">↗</span></button>
           {!returning&&<small>El tiempo empieza únicamente cuando entrás.</small>}
         </div>
@@ -182,9 +182,16 @@ function App(){
     }
     if(name==="proyector"){
       if(current==="proyector"){
+        if(reelHeld.current&&!world.current?.getMechanicalStatus().reelMounted){
+          world.current?.mountReel();
+          reelReady.current=world.current?.getMechanicalStatus().reelMounted??false;
+          if(reelReady.current){sound.current.play("found");show("BOBINA ENCASTRADA · Ahora ajustá el enfoque y accioná la proyección.",5000);}
+          return;
+        }
         const values=world.current?.getWheelValues();
-        if(!reelReady.current&&!world.current?.getMechanicalStatus().reelMounted){show(reelHeld.current?"Tenés la bobina, pero falta encastrarla en el eje del proyector.":"El proyector necesita su bobina. Buscá entre las butacas de la entrada.",5200);return;}
-        if(focusReady.current!==2){show("La imagen está borrosa. Ajustá el enfoque físico a la marca 2.",5200);return;}
+        if(!world.current?.getMechanicalStatus().reelMounted){show("Falta recuperar la bobina escondida entre las butacas.",5200);return;}
+        reelReady.current=true;
+        if((world.current?.getMechanicalStatus().focus??focusReady.current)!==2){show("La lente todavía está desenfocada. Girá el aro de enfoque.",5200);return;}
         if(values&&values[0]===3&&values[1]===1&&values[2]===7){
           sound.current.play("found");world.current?.playRecoveredFilm();setPhase("telon");
           setStory("Una filmación prohibida recorre las butacas vacías. Algo se mueve arriba, en el Palco 1.");
@@ -267,9 +274,10 @@ function App(){
             window.setTimeout(()=>setHauntingCaption(""),1750);
           }else if(e==="retirada"){
             sound.current.play("steps");
-            setStory("Una voz susurró detrás tuyo. El pasillo volvió a quedar vacío.");
+            setStory("Una voz susurró detrás tuyo. Una risa lejana responde desde el fondo del teatro.");
           }else if(e==="portazo"){sound.current.play("door");show("Las puertas se cerraron detrás tuyo. La función ya comenzó.",3500);}
           else if(e==="pasos")sound.current.play("steps");
+           else if(e==="risa")sound.current.play("laugh");
           else if(e==="susurro"){
             sound.current.play("whisper");
             if(phaseRef.current!=="final")show("«No levantes la vista al PALCO 1… Hay alguien ahí.»",5300);
@@ -298,8 +306,8 @@ function App(){
     show("«Por favor, encuentre su asiento. El director lo está esperando»",6500);
     timerRef.current=window.setInterval(()=>{
       const s=Math.floor((Date.now()-startAt.current)/1000);setSeconds(s);
-      sound.current.setTension(Math.min(1,s/540));
-      if(s>=420&&!ghostHuntStarted.current&&phaseRef.current!=="final"){
+      sound.current.setTension(Math.min(1,s/300));
+      if(s>=180&&!ghostHuntStarted.current&&phaseRef.current!=="final"){
         if(world.current?.releaseSpecterIntoAudience()){
           ghostHuntStarted.current=true;sound.current.enterHunt();sound.current.play("scare");
           setStory("DESAPARECIÓ DEL PALCO 1. AHORA ESTÁ ENTRE LOS ASIENTOS… Y TE BUSCA.");
@@ -308,7 +316,7 @@ function App(){
           window.setTimeout(()=>setHauntingCaption(""),6500);
         }
       }
-      if(s>=600){
+      if(s>=360){
         if(timerRef.current!==null){window.clearInterval(timerRef.current);timerRef.current=null;}
         if(phaseRef.current!=="final"){setTimedOut(true);world.current?.stop();}
       }
@@ -327,26 +335,33 @@ function App(){
     const x=dx/max/n,y=dy/max/n;setJoystick({x,y});world.current?.setMove(x,-y);
   };
   const minutes=(s:number)=>Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
-  const remaining=Math.max(0,540-seconds);
+  const remaining=Math.max(0,300-seconds);
   const progress=phase==="inicio"?0:phase==="luces"?1:phase==="proyector"?2:phase==="telon"?3:4;
   return <main className="app">
     <div className="scene-host" ref={mount}/>
     <div className="film-grain" aria-hidden="true"/>
     {!started&&!reveal&&!briefingOpen&&<section className="intro-screen">
       <div className="intro-corners" aria-hidden="true"/>
+      <div className="intro-theater" aria-hidden="true">
+        <div className="intro-stage-arch"/>
+        <div className="intro-stage-depth"><div className="intro-stage-door"/><div className="intro-stage-beam"/></div>
+        <div className="intro-curtain intro-curtain-left"/>
+        <div className="intro-curtain intro-curtain-right"/>
+        <div className="intro-stage-floor"/>
+      </div>
       <div className="topline"><span>TEATRO BELLADONNA</span><span>EST. 1968</span></div>
       <div className="intro-central">
-        <p className="overline">UNA EXPERIENCIA INTERACTIVA</p>
-        <div className="ornament">✦</div>
+        <p className="overline">BELLADONNA · UNA EXPERIENCIA CINEMATOGRÁFICA</p>
+        <div className="ornament">✦</div><p className="intro-pretitle">EL TEATRO ABRE SUS PUERTAS POR ÚLTIMA VEZ</p>
         <h1>LA ÚLTIMA<br/><em>FUNCIÓN</em></h1>
         <p className="premise">83 espectadores desaparecieron aquella noche.<br/>La función nunca terminó.</p>
         <p className="intro-person">Pero hoy… <strong>{invite.nombre}</strong> tiene una entrada reservada.</p>
         {!supported&&<p className="error">{error||"Se necesita un dispositivo compatible con WebGL2."}</p>}
         <button className="main-cta" disabled={!supported} onClick={()=>{sound.current.unlock();sound.current.play("found");setBriefingOpen(true);}}>ABRIR LAS PUERTAS <span>↗</span></button>
         {!supported&&<button className="text-button accessible-reveal" onClick={()=>{setReveal(true);setStarted(true);}}>VER MI INVITACIÓN SIN 3D</button>}
-        <p className="micro">Usá auriculares para una mejor experiencia · 9 minutos + 1 extra</p>
+        <p className="micro">Usá auriculares para una mejor experiencia · 5 minutos + 1 extra</p>
       </div>
-      <div className="intro-bottom"><span>ÚLTIMO ACTO</span><span>SOLO HAY UNA SALIDA</span><span>DECORADOS CC0: POLY HAVEN</span></div>
+      <div className="intro-bottom"><span>ARCHIVO 1968 · EXPEDIENTE 83</span><span>SOLO HAY UNA SALIDA</span><span>PONETE AURICULARES</span></div>
     </section>}
     {!started&&!reveal&&briefingOpen&&<MissionLetter name={invite.nombre} returning={false} onProceed={begin}/>}
     {started&&!reveal&&<div className="hud">
@@ -360,7 +375,7 @@ function App(){
         <div className="hud-brand"><span className="hud-spark">✦</span><div>LA ÚLTIMA FUNCIÓN<small>TEATRO BELLADONNA</small></div></div>
         <div className="hud-right">
           <button className="icon-button" onClick={()=>{const v=!muted;setMuted(v);sound.current.setMuted(v);}} aria-label={muted?"Activar audio":"Silenciar audio"}>{muted?"♩̸":"♫"}</button>
-          <span className={"timer "+(seconds>=540?"timer-alert":"")}>{seconds<540?minutes(remaining):"+"+minutes(Math.max(0,600-seconds))}<small>{seconds>=540?"TIEMPO EXTRA":"RESTANTE"}</small></span>
+          <span className={"timer "+(seconds>=300?"timer-alert":"")}>{seconds<300?minutes(remaining):"+"+minutes(Math.max(0,360-seconds))}<small>{seconds>=300?"TIEMPO EXTRA":"RESTANTE"}</small></span>
         </div>
       </header>
       {!finished&&<div className="mission">
@@ -373,7 +388,7 @@ function App(){
       <div className="crosshair" aria-hidden="true"><i/><i/></div>
       {hauntingCaption&&<div className="haunting-caption" role="status">{hauntingCaption}</div>}
       {focus&& !hintsOpen&& !timedOut&& !finished&&<div className="interaction">
-        <span className="interaction-label">{labels[focus]}</span>
+        <span className="interaction-label">{focus==="proyector"&&reelHeld.current&&!world.current?.getMechanicalStatus().reelMounted?"Encastrar bobina en el proyector":labels[focus]}</span>
         <button onClick={()=>world.current?.activate()}>INTERACTUAR <span>✦</span></button>
       </div>}
       <div className="game-bottom">
