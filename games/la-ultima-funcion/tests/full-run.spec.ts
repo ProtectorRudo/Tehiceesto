@@ -99,7 +99,10 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
   // The projector cannot start with only the numerical code:
   // the reel must be found, installed and the lens calibrated.
   await action(page,"proyector");await expectPhase(page,"proyector");
-  await action(page,"bobina");await action(page,"montar");
+  await action(page,"bobina");
+  // El cuerpo de la máquina cubre el eje pequeño en pantallas móviles.
+  // Pulsar el proyector con la bobina recogida debe encastrarla.
+  await action(page,"proyector");
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.mechanics?.()?.reelMounted)).toBe(true);
   await action(page,"enfoque");await action(page,"enfoque");
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.mechanics?.()?.focus)).toBe(2);
@@ -111,7 +114,7 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
   expect(aimed).toBe(true);
   await page.waitForTimeout(200);
   const canvas=page.locator(".three-canvas");
-  await canvas.click({position:{x:(await canvas.boundingBox())!.width/2,y:(await canvas.boundingBox())!.height/2}});
+  await canvas.click({position:{x:(await canvas.boundingBox())!.width/2,y:(await canvas.boundingBox())!.height/2},force:true});
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.wheels?.()[0])).toBe(1);
   for(const [index,turns] of [[1,2],[2,1],[3,7]]){
     for(let j=0;j<turns;j++)await action(page,"rueda"+index);
