@@ -28,7 +28,7 @@ const labels:Record<TheaterAction,string>={
 const hints:Record<TheaterPhase,string>={
   inicio:"Alguien dejó una entrada reservada. Las pequeñas placas de bronce en los respaldos podrían ayudarte a encontrar lo que buscan de vos.",
   luces:"El panel no está averiado del todo: le falta una pieza. Leé el viejo programa del tramoyista; el orden de una función importa tanto como el principio y el final.",
-  proyector:"Los espectadores nunca se llevaron sus recuerdos al escenario. Revisá las primeras filas. Después observá la lente y buscá una fecha que se repita en el teatro: a veces el tiempo es la clave.",
+  proyector:"Los espectadores nunca se llevaron sus recuerdos al escenario. Revisá las primeras filas. Después observá la lente y buscá el horario que se repite en los carteles.",
   telon:"No todo lo importante está en la pantalla. Escuchá la maquinaria y acercate al lugar donde comienza cada función.",
   final:"Las respuestas no siempre están detrás del telón."
 };
@@ -54,7 +54,7 @@ function MissionLetter({name,returning,onProceed}:{name:string;returning:boolean
           <p className="briefing-directions">En el celular: usá el círculo izquierdo para <strong>caminar</strong>, deslizá sobre la escena para <strong>mirar</strong> y tocá los objetos para <strong>interactuar</strong>. Si te perdés, consultá <strong>¿UNA PISTA?</strong></p>
         </div>
         <div className="briefing-paper-end">
-          <span className="briefing-countdown">5 MINUTOS · 1 MINUTO EXTRA</span>
+          <span className="briefing-countdown">7 MINUTOS · 1 MINUTO EXTRA</span>
           <button className="briefing-start" onClick={onProceed}>{returning?"VOLVER AL TEATRO":"ENTENDÍ MI MISIÓN · ENTRAR"} <span aria-hidden="true">↗</span></button>
           {!returning&&<small>El tiempo empieza únicamente cuando entrás.</small>}
         </div>
@@ -72,6 +72,9 @@ function App(){
   const actionRef=useRef<(a:TheaterAction)=>void>(()=>{});
   const timerRef=useRef<number|null>(null);
   const toastTimer=useRef<number|null>(null);
+  const milestoneTimer=useRef<number|null>(null);
+  const [milestone,setMilestone]=useState<{title:string;next:string}|null>(null);
+  const [milestoneVisible,setMilestoneVisible]=useState(false);
   const warningCueCount=useRef(0);
   const ghostHuntStarted=useRef(false);
   const startAt=useRef(0);const sequence=useRef(0);
@@ -105,6 +108,12 @@ function App(){
     if(toastTimer.current!==null)window.clearTimeout(toastTimer.current);
     toastTimer.current=window.setTimeout(()=>setToastState(""),duration);
   };
+  const guideNext=(title:string,next:string)=>{
+    setMilestone({title,next});
+    setMilestoneVisible(true);
+    if(milestoneTimer.current!==null)window.clearTimeout(milestoneTimer.current);
+    milestoneTimer.current=window.setTimeout(()=>setMilestoneVisible(false),8600);
+  };
   const announceProjectorClue=()=>{
     if(focusClueShown.current)return;
     const status=world.current?.getMechanicalStatus();
@@ -112,6 +121,7 @@ function App(){
     focusClueShown.current=true;
     sound.current.play("found");
     show("Para que el proyector funcione, el tiempo es la clave",6700);
+    guideNext("Imagen nítida","El tiempo es la clave. Encontrá el horario de la función en el teatro, ajustá las ruedas y tocá PROBAR CÓDIGO.");
   };
   const handleAction=(name:TheaterAction)=>{
     if(phaseRef.current==="final")return;
@@ -124,25 +134,29 @@ function App(){
       if(fuseHeld.current){show("Ya tenés el fusible. Buscá el portafusible de la consola.");return;}
       fuseHeld.current=true;world.current?.collectFuse();sound.current.play("found");
       setStory("Encontraste un fusible antiguo. Tenés que conectarlo al panel eléctrico.");
+      guideNext("Fusible recuperado","Volvé a la consola izquierda y colocá la pieza en el portafusible.");
       show("FUSIBLE RECUPERADO · Encastralo en la consola izquierda.",5200);return;
     }
     if(name==="portafusible"){
       if(!fuseHeld.current){show("La consola no tiene fusible. Buscá el repuesto de porcelana en un estante cercano.");return;}
       if(!fuseReady.current){
         fuseReady.current=true;world.current?.installFuse();sound.current.play("found");
-        show("FUSIBLE COLOCADO · Activá los circuitos en el orden que indica el programa.",6000);
+        show("FUSIBLE COLOCADO · La consola responde.",3400);
+        guideNext("La consola tiene corriente","Encontrá el programa del tramoyista: sus palabras esconden el orden de los tres circuitos.");
       }else show("El fusible ya está colocado.");
       return;
     }
     if(name==="bobina"){
       if(reelHeld.current){show("Ya recuperaste la bobina.");return;}
       reelHeld.current=true;world.current?.collectReel();sound.current.play("found");
-      show("BOBINA RECUPERADA · Montala en el eje del proyector.",5200);return;
+      show("BOBINA RECUPERADA · Montala en el eje del proyector.",3800);
+      guideNext("Bobina recuperada","Buscá el proyector y encastrá la bobina. Después observá cómo se enfoca la lente.");
+      return;
     }
     if(name==="montar"){
       if(current!=="proyector"){show("Sin electricidad no podés montar la cinta.");return;}
       if(!reelHeld.current){show("Necesitás encontrar la bobina. Revisá los asientos cercanos a la entrada.");return;}
-      if(!reelReady.current){world.current?.mountReel();reelReady.current=world.current?.getMechanicalStatus().reelMounted??false;if(reelReady.current){sound.current.play("found");show("BOBINA MONTADA · La pantalla la reconoce. Ajustá la lente.",5400);announceProjectorClue();}else show("No se pudo fijar la bobina. Intentá otra vez.");}
+      if(!reelReady.current){world.current?.mountReel();reelReady.current=world.current?.getMechanicalStatus().reelMounted??false;if(reelReady.current){sound.current.play("found");show("BOBINA MONTADA · La pantalla la reconoce.",2900);guideNext("Bobina montada","Girando el aro de enfoque, conseguí que la imagen quede nítida.");announceProjectorClue();}else show("No se pudo fijar la bobina. Intentá otra vez.");}
       else show("Ya montaste la bobina.");
       return;
     }
@@ -158,6 +172,7 @@ function App(){
         world.current?.collectKey();
         setPhase("luces");sound.current.play("found");
         setStory("Encontraste la llave del tramoyista. La consola izquierda se ha desbloqueado.");
+        guideNext("La butaca reservada","Encontraste la llave. Ahora buscá la consola eléctrica del lateral izquierdo.");
         show("Una llave fría descansa bajo el terciopelo. Algo se movió en el balcón…",6000);
       }else show("La butaca está vacía. Ya tomaste lo que necesitabas.");
       return;
@@ -171,7 +186,12 @@ function App(){
         world.current?.markLight(sequence.current);sequence.current++;
         if(sequence.current===3){
           setPhase("proyector");sound.current.play("found");
-          setStory("Volvió la electricidad… pero hay alguien detrás de la cortina del Palco 1, arriba a la izquierda. Mirá.");
+          setStory(ghostHuntStarted.current
+            ?"Volvió la electricidad. La figura ya dejó el palco: escuchá lo que se mueve entre las butacas."
+            :"Volvió la electricidad… pero hay alguien detrás de la cortina del Palco 1, arriba a la izquierda. Mirá.");
+          guideNext("Luces restauradas",ghostHuntStarted.current
+            ?"Escuchá los pasos entre las butacas. Buscá una bobina cerca de la entrada y recuperá la película."
+            :"Mirá hacia el Palco 1. Luego buscá una bobina abandonada en las primeras filas.");
           show("Las luces vuelven. En el Palco 1 hay alguien mirándote.",6200);
         }else show("Circuito "+sequence.current+"/3 activado. Escuchás un relé detrás del muro.");
       }else{
@@ -197,7 +217,7 @@ function App(){
         if(reelHeld.current&&!world.current?.getMechanicalStatus().reelMounted){
           world.current?.mountReel();
           reelReady.current=world.current?.getMechanicalStatus().reelMounted??false;
-          if(reelReady.current){sound.current.play("found");show("BOBINA ENCASTRADA · Ahora ajustá el enfoque.",5000);announceProjectorClue();}
+          if(reelReady.current){sound.current.play("found");show("BOBINA ENCASTRADA · Ahora ajustá el enfoque.",2800);guideNext("Bobina montada","Girando el aro de enfoque, conseguí que la imagen quede nítida.");announceProjectorClue();}
           return;
         }
         show(world.current?.getMechanicalStatus().reelMounted?"La cinta está preparada. Revisá las ruedas y pulsá PROBAR CÓDIGO.":"Todavía falta recuperar la bobina entre las butacas.",4300);
@@ -220,6 +240,7 @@ function App(){
         show("LUZ ROJA · La cinta se detuvo. El código no coincide con la hora del teatro.",3500);
       }else{
         show("LUZ VERDE · CÓDIGO ACEPTADO. La película comienza…",3200);
+        guideNext("El proyector volvió a funcionar","Los últimos segundos están corriendo. Subí al escenario y accioná la palanca del telón.");
         window.setTimeout(()=>{
           if(phaseRef.current!=="proyector")return;
           world.current?.playRecoveredFilm();setPhase("telon");
@@ -304,6 +325,7 @@ function App(){
             setStory("Una voz susurró detrás tuyo. Una risa lejana responde desde el fondo del teatro.");
           }else if(e==="portazo"){sound.current.play("door");show("Las puertas se cerraron detrás tuyo. La función ya comenzó.",3500);}
           else if(e==="pasos")sound.current.play("steps");
+          else if(e==="pasos_fantasma")sound.current.playSpecterFootsteps(world.current?.getSpecterPosition()??null);
            else if(e==="risa")sound.current.play("laugh");
           else if(e==="susurro"){
             sound.current.play("whisper");
@@ -333,17 +355,18 @@ function App(){
     show("«Por favor, encuentre su asiento. El director lo está esperando»",6500);
     timerRef.current=window.setInterval(()=>{
       const s=Math.floor((Date.now()-startAt.current)/1000);setSeconds(s);
-      sound.current.setTension(Math.min(1,s/300));
-      if(s>=180&&!ghostHuntStarted.current&&phaseRef.current!=="final"){
+      sound.current.setTension(Math.min(1,s/420));
+      if(s>=300&&!ghostHuntStarted.current&&phaseRef.current!=="final"){
         if(world.current?.releaseSpecterIntoAudience()){
           ghostHuntStarted.current=true;sound.current.enterHunt();sound.current.play("scare");
+          sound.current.playSpecterFootsteps(world.current.getSpecterPosition());
           setStory("DESAPARECIÓ DEL PALCO 1. AHORA ESTÁ ENTRE LOS ASIENTOS… Y TE BUSCA.");
           setHauntingCaption("DESAPARECIÓ DEL PALCO. ESTÁ ENTRE LOS ASIENTOS.");
           if(typeof navigator!=="undefined"&&navigator.vibrate)navigator.vibrate([180,90,220]);
           window.setTimeout(()=>setHauntingCaption(""),6500);
         }
       }
-      if(s>=360){
+      if(s>=480){
         if(timerRef.current!==null){window.clearInterval(timerRef.current);timerRef.current=null;}
         if(phaseRef.current!=="final"){setTimedOut(true);world.current?.stop();}
       }
@@ -362,7 +385,7 @@ function App(){
     const x=dx/max/n,y=dy/max/n;setJoystick({x,y});world.current?.setMove(x,-y);
   };
   const minutes=(s:number)=>Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
-  const remaining=Math.max(0,300-seconds);
+  const remaining=Math.max(0,420-seconds);
   const progress=phase==="inicio"?0:phase==="luces"?1:phase==="proyector"?2:phase==="telon"?3:4;
   return <main className="app">
     <div className="scene-host" ref={mount}/>
@@ -376,7 +399,7 @@ function App(){
         <div className="intro-curtain intro-curtain-right"/>
         <div className="intro-stage-floor"/>
       </div>
-      <div className="topline"><span>TEATRO BELLADONNA</span><span>EST. 1968</span></div>
+      <div className="topline"><span>TEATRO BELLADONNA</span><span>HORARIO · 03:17</span></div>
       <div className="intro-central">
         <p className="overline">BELLADONNA · UNA EXPERIENCIA CINEMATOGRÁFICA</p>
         <div className="ornament">✦</div><p className="intro-pretitle">EL TEATRO ABRE SUS PUERTAS POR ÚLTIMA VEZ</p>
@@ -386,7 +409,7 @@ function App(){
         {!supported&&<p className="error">{error||"Se necesita un dispositivo compatible con WebGL2."}</p>}
         <button className="main-cta" disabled={!supported} onClick={()=>{sound.current.unlock();sound.current.play("found");setBriefingOpen(true);}}>ABRIR LAS PUERTAS <span>↗</span></button>
         {!supported&&<button className="text-button accessible-reveal" onClick={()=>{setReveal(true);setStarted(true);}}>VER MI INVITACIÓN SIN 3D</button>}
-        <p className="micro">Usá auriculares para una mejor experiencia · 5 minutos + 1 extra</p>
+        <p className="micro">Usá auriculares para una mejor experiencia · 7 minutos + 1 extra</p>
       </div>
       <div className="intro-bottom"><span>ARCHIVO 1968 · EXPEDIENTE 83</span><span>SOLO HAY UNA SALIDA</span><span>PONETE AURICULARES</span></div>
     </section>}
@@ -402,7 +425,7 @@ function App(){
         <div className="hud-brand"><span className="hud-spark">✦</span><div>LA ÚLTIMA FUNCIÓN<small>TEATRO BELLADONNA</small></div></div>
         <div className="hud-right">
           <button className="icon-button" onClick={()=>{const v=!muted;setMuted(v);sound.current.setMuted(v);}} aria-label={muted?"Activar audio":"Silenciar audio"}>{muted?"♩̸":"♫"}</button>
-          <span className={"timer "+(seconds>=300?"timer-alert":"")}>{seconds<300?minutes(remaining):"+"+minutes(Math.max(0,360-seconds))}<small>{seconds>=300?"TIEMPO EXTRA":"RESTANTE"}</small></span>
+          <span className={"timer "+(seconds>=420?"timer-alert":"")}>{seconds<420?minutes(remaining):"+"+minutes(Math.max(0,480-seconds))}<small>{seconds>=420?"TIEMPO EXTRA":"RESTANTE"}</small></span>
         </div>
       </header>
       {!finished&&<div className="mission">
@@ -412,6 +435,14 @@ function App(){
         <div className="mission-bar"><span style={{width:(progress/4)*100+"%"}}/></div>
       </div>}
       {story&&<div className="story-caption">{story}</div>}
+      {milestone&&milestoneVisible&&!timedOut&&!finished&&<aside className="milestone-card" role="status" aria-label="Pista para el siguiente paso">
+        <span className="milestone-overline">OBJETIVO CUMPLIDO <span aria-hidden="true">✦</span></span>
+        <strong>{milestone.title}</strong>
+        <p><b>PRÓXIMO PASO</b> {milestone.next}</p>
+        <button onClick={()=>setMilestoneVisible(false)} aria-label="Cerrar pista">CONTINUAR ↗</button>
+      </aside>}
+      {milestone&&!milestoneVisible&&!timedOut&&!finished&&<button className="milestone-recall"
+        onClick={()=>setMilestoneVisible(true)}>¿PRÓXIMO PASO? <span aria-hidden="true">↗</span></button>
       <div className="crosshair" aria-hidden="true"><i/><i/></div>
       {hauntingCaption&&<div className="haunting-caption" role="status">{hauntingCaption}</div>}
       {phase==="proyector"&&!timedOut&&projectorTest!=="correct"&&
