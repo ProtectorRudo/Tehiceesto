@@ -28,7 +28,7 @@ const labels:Record<TheaterAction,string>={
 const hints:Record<TheaterPhase,string>={
   inicio:"Alguien dejó una entrada reservada. Las pequeñas placas de bronce en los respaldos podrían ayudarte a encontrar lo que buscan de vos.",
   luces:"El panel no está averiado del todo: le falta una pieza. Leé el viejo programa del tramoyista; el orden de una función importa tanto como el principio y el final.",
-  proyector:"Los espectadores nunca se llevaron sus recuerdos al escenario. Revisá las primeras filas. Después observá la lente y buscá el horario que se repite en los carteles.",
+  proyector:"El horario de aquella función quedó detenido en un único reloj del vestíbulo. Observá también la lente antes de tocar las ruedas.",
   telon:"No todo lo importante está en la pantalla. Escuchá la maquinaria y acercate al lugar donde comienza cada función.",
   final:"Las respuestas no siempre están detrás del telón."
 };
@@ -75,6 +75,8 @@ function App(){
   const milestoneTimer=useRef<number|null>(null);
   const [milestone,setMilestone]=useState<{title:string;next:string}|null>(null);
   const [milestoneVisible,setMilestoneVisible]=useState(false);
+  const [milestoneExpanded,setMilestoneExpanded]=useState(false);
+  const projectorResetTimer=useRef<number|null>(null);
   const warningCueCount=useRef(0);
   const ghostHuntStarted=useRef(false);
   const startAt=useRef(0);const sequence=useRef(0);
@@ -93,6 +95,7 @@ function App(){
   const [boxEncountered,setBoxEncountered]=useState(false);
   const [hintsOpen,setHintsOpen]=useState(false);
   const [blackout,setBlackout]=useState(false);
+  const [ghostDanger,setGhostDanger]=useState(false);
   const [hauntingCaption,setHauntingCaption]=useState("");
   const [reveal,setReveal]=useState(false);
   const [timedOut,setTimedOut]=useState(false);
@@ -110,9 +113,10 @@ function App(){
   };
   const guideNext=(title:string,next:string)=>{
     setMilestone({title,next});
+    setMilestoneExpanded(false);
     setMilestoneVisible(true);
     if(milestoneTimer.current!==null)window.clearTimeout(milestoneTimer.current);
-    milestoneTimer.current=window.setTimeout(()=>setMilestoneVisible(false),8600);
+    milestoneTimer.current=window.setTimeout(()=>setMilestoneVisible(false),3600);
   };
   const announceProjectorClue=()=>{
     if(focusClueShown.current)return;
@@ -231,8 +235,16 @@ function App(){
       const digits=world.current?.getWheelValues();
       const ready=!!mechanics?.reelMounted&&mechanics.focus===2;
       const correct=ready&&!!digits&&digits[0]===3&&digits[1]===1&&digits[2]===7;
+      if(projectorResetTimer.current!==null)window.clearTimeout(projectorResetTimer.current);
       setProjectorTest(correct?"correct":"wrong");
       world.current?.setProjectorTestResult(correct?"correct":"wrong");
+      if(!correct){
+        projectorResetTimer.current=window.setTimeout(()=>{
+          setProjectorTest("idle");
+          world.current?.setProjectorTestResult("idle");
+          projectorResetTimer.current=null;
+        },2300);
+      }
       sound.current.play(correct?"success":"wrong");
       if(!ready){
         show(!mechanics?.reelMounted?"LUZ ROJA · Falta montar la bobina.":"LUZ ROJA · Todavía no se ve nítido.",3400);
@@ -337,7 +349,12 @@ function App(){
     }catch(e){
       setSupported(false);setError(e instanceof Error?e.message:"No se pudo inicializar el escenario 3D.");
     }
-    return ()=>{world.current?.dispose();world.current=null;sound.current.dispose();if(timerRef.current!==null)clearInterval(timerRef.current);};
+    return ()=>{
+      world.current?.dispose();world.current=null;sound.current.dispose();
+      if(timerRef.current!==null)clearInterval(timerRef.current);
+      if(projectorResetTimer.current!==null)clearTimeout(projectorResetTimer.current);
+      if(milestoneTimer.current!==null)clearTimeout(milestoneTimer.current);
+    };
   },[]);
   useEffect(()=>{
     if(!diagnosticsEnabled)return;
@@ -399,7 +416,7 @@ function App(){
         <div className="intro-curtain intro-curtain-right"/>
         <div className="intro-stage-floor"/>
       </div>
-      <div className="topline"><span>TEATRO BELLADONNA</span><span>HORARIO · 03:17</span></div>
+      <div className="topline"><span>TEATRO BELLADONNA</span><span>ESTA NOCHE · BELLADONNA</span></div>
       <div className="intro-central">
         <p className="overline">BELLADONNA · UNA EXPERIENCIA CINEMATOGRÁFICA</p>
         <div className="ornament">✦</div><p className="intro-pretitle">EL TEATRO ABRE SUS PUERTAS POR ÚLTIMA VEZ</p>
@@ -435,20 +452,23 @@ function App(){
         <div className="mission-bar"><span style={{width:(progress/4)*100+"%"}}/></div>
       </div>}
       {story&&<div className="story-caption">{story}</div>}
-      {milestone&&milestoneVisible&&!timedOut&&!finished&&<aside className="milestone-card" role="status" aria-label="Pista para el siguiente paso">
-        <span className="milestone-overline">OBJETIVO CUMPLIDO <span aria-hidden="true">✦</span></span>
-        <strong>{milestone.title}</strong>
-        <p><b>PRÓXIMO PASO</b> {milestone.next}</p>
-        <button onClick={()=>setMilestoneVisible(false)} aria-label="Cerrar pista">CONTINUAR ↗</button>
-      </aside>}
-      {milestone&&!milestoneVisible&&!timedOut&&!finished&&<button className="milestone-recall"
-        onClick={()=>setMilestoneVisible(true)}>¿PRÓXIMO PASO? <span aria-hidden="true">↗</span></button>}
-      <div className="crosshair" aria-hidden="true"><i/><i/></div>
+      {milestone&&!timedOut&&!finished&&!hintsOpen&&<div className="guide-widget">
+         {milestoneVisible&&!milestoneExpanded&&<div role="status" className="guide-flash">✓ {milestone.title} · Nueva pista</div>}
+         <button className="guide-toggle" aria-label="Consultar el próximo paso" aria-expanded={milestoneExpanded}
+           onClick={()=>{setMilestoneExpanded(v=>!v);setMilestoneVisible(false);}}>✦</button>
+         {milestoneExpanded&&<aside className="guide-popover" role="region" aria-label="Pista para el siguiente paso">
+           <small>OBJETIVO CUMPLIDO</small>
+           <strong>{milestone.title}</strong>
+           <p>{milestone.next}</p>
+           <button onClick={()=>setMilestoneExpanded(false)}>CERRAR ×</button>
+         </aside>}
+       </div>}
+       <div className="crosshair" aria-hidden="true"><i/><i/></div>
       {hauntingCaption&&<div className="haunting-caption" role="status">{hauntingCaption}</div>}
-      {phase==="proyector"&&!timedOut&&projectorTest!=="correct"&&
+      {phase==="proyector"&&!timedOut&&!hintsOpen&&world.current?.isNearProjector()&&world.current?.getMechanicalStatus().reelMounted&&projectorTest!=="correct"&&
           <button className={"projector-test-hud "+(projectorTest==="wrong"?"invalid":"")}
             onClick={()=>actionRef.current("probar")} aria-label="PROBAR CÓDIGO">PROBAR CÓDIGO <span aria-hidden="true">●</span></button>}
-       {phase==="proyector"&&!timedOut&&projectorTest==="correct"&&
+       {phase==="proyector"&&!timedOut&&world.current?.isNearProjector()&&projectorTest==="correct"&&
           <div className="projector-test-hud accepted" role="status">CÓDIGO ACEPTADO <span aria-hidden="true">●</span></div>}
        {focus&& !hintsOpen&& !timedOut&& !finished&&<div className="interaction">
         <span className="interaction-label">{focus==="proyector"&&reelHeld.current&&!world.current?.getMechanicalStatus().reelMounted?"Encastrar bobina en el proyector":labels[focus]}</span>
@@ -489,7 +509,8 @@ function App(){
           <button className="text-button" onClick={()=>setReveal(true)}>CONSULTAR LA INVITACIÓN</button>
         </div>
       </div>}
-      <div className={"blackout "+(blackout?"visible":"")} aria-hidden="true"/>
+      <div className={"ghost-danger "+(ghostDanger?"visible":"")} aria-hidden="true"/>
+       <div className={"blackout "+(blackout?"visible":"")} aria-hidden="true"/>
     </div>}
     {reveal&&<section className="finale-screen">
       <div className="finale-glow"/>
