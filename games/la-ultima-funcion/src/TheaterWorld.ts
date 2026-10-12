@@ -629,29 +629,77 @@ export class TheaterWorld{
   }
   private updateSpecterHunt(dt:number){
     const figure=this.boxSpecter;if(!figure)return;
+    if(this.elapsed<this.boxSpecterHiddenUntil){
+      figure.visible=false;return;
+    }
+    figure.visible=true;
     const route=this.boxSpecterRoute;
-    const next=route[this.boxSpecterRouteIndex%route.length];
-    const dx=next.x-figure.position.x,dz=next.z-figure.position.z;
+    const player=this.camera.position;
+    const distanceToPlayer=Math.hypot(player.x-figure.position.x,player.z-figure.position.z);
+    // Se deja tiempo para advertir los pasos antes de empezar a perseguir.
+    // El jugador (3.35 m/s) puede escapar del espectro (2.38 m/s).
+    if(this.elapsed>this.boxSpecterNextDetection&&this.elapsed>this.boxSpecterImmuneUntil&&
+       distanceToPlayer<6.5&&this.elapsed>=this.boxSpecterChaseUntil){
+      this.boxSpecterChaseUntil=this.elapsed+4.7;
+      this.boxSpecterNextDetection=this.elapsed+7;
+      this.events.onEvent("fantasma_detecta");
+    }
+    const hunting=this.elapsed<this.boxSpecterChaseUntil&&this.elapsed>this.boxSpecterImmuneUntil;
+    const hasClearApproach=(x:number,z:number)=>{
+      const length=Math.hypot(player.x-x,player.z-z);
+      const count=Math.max(1,Math.ceil(length/.58));
+      for(let i=1;i<=count;i++){
+        const k=i/count;
+        if(!this.valid(x+(player.x-x)*k,z+(player.z-z)*k))return false;
+      }
+      return true;
+    };
+    const direct=hunting&&distanceToPlayer<9&&hasClearApproach(figure.position.x,figure.position.z);
+    const target=direct?player:route[this.boxSpecterRouteIndex%route.length];
+    const dx=target.x-figure.position.x,dz=target.z-figure.position.z;
     const distance=Math.hypot(dx,dz);
-    if(distance<.27){this.boxSpecterRouteIndex=(this.boxSpecterRouteIndex+1)%route.length;return;}
-    const speed=1.63;
-    const stride=Math.min(distance,dt*speed);
-    const nx=figure.position.x+dx/distance*stride;
-    const nz=figure.position.z+dz/distance*stride;
-    // Todos los segmentos discurren entre filas o por pasillos libres.
-    figure.position.set(nx,Math.sin(this.clockTime*1.25)*.035,nz);
-    if(this.elapsed-this.boxSpecterLastStep>=1.2){
+    if(!direct&&distance<.27){
+      this.boxSpecterRouteIndex=(this.boxSpecterRouteIndex+1)%route.length;
+    }else if(distance>.001){
+      const speed=direct?2.38:1.55;
+      const stride=Math.min(distance,dt*speed);
+      const nx=figure.position.x+dx/distance*stride;
+      const nz=figure.position.z+dz/distance*stride;
+      if(!direct||this.valid(nx,nz)){
+        figure.position.set(nx,Math.sin(this.clockTime*1.25)*.025,nz);
+      }else{
+        this.boxSpecterChaseUntil=0;
+      }
+      const angle=Math.atan2(dx,-dz);
+      const yawDelta=Math.atan2(Math.sin(angle-figure.rotation.y),Math.cos(angle-figure.rotation.y));
+      figure.rotation.y+=yawDelta*(1-Math.exp(-3.2*dt));
+    }
+    if(this.elapsed-this.boxSpecterLastStep>=(direct?.83:1.24)){
       this.boxSpecterLastStep=this.elapsed;
       this.events.onEvent("pasos_fantasma");
     }
-    const angle=Math.atan2(dx,-dz);
-    const yawDelta=Math.atan2(Math.sin(angle-figure.rotation.y),Math.cos(angle-figure.rotation.y));
-    figure.rotation.y+=yawDelta*(1-Math.exp(-3.2*dt));
-    const playerDistance=Math.hypot(this.camera.position.x-nx,this.camera.position.z-nz);
-    if(playerDistance<3.4&&this.elapsed-this.boxSpecterLastWhisper>9){
+    const separation=Math.hypot(player.x-figure.position.x,player.z-figure.position.z);
+    if(separation<3.4&&this.elapsed-this.boxSpecterLastWhisper>8){
       this.boxSpecterLastWhisper=this.elapsed;
       this.events.onEvent("presencia");
       this.events.onEvent("risa");
+    }
+    if(this.elapsed<this.boxSpecterImmuneUntil||!direct){
+      this.boxSpecterContactSeconds=0;return;
+    }
+    this.boxSpecterContactSeconds=separation<1.38?this.boxSpecterContactSeconds+dt:0;
+    if(this.boxSpecterContactSeconds>=.65){
+      this.boxSpecterContactSeconds=0;
+      this.boxSpecterImmuneUntil=this.elapsed+11;
+      this.boxSpecterHiddenUntil=this.elapsed+2.8;
+      this.boxSpecterChaseUntil=0;
+      this.boxSpecterNextDetection=this.elapsed+13;
+      // Reaparece en un pasillo lejano, nunca encima del jugador.
+      const retreat=player.x>0?route[0]:route[4];
+      figure.position.copy(retreat);
+      figure.visible=false;
+      this.boxSpecterRouteIndex=player.x>0?1:5;
+      this.events.onEvent("fantasma_atrapa");
     }
   }
   private updateSpecterGaze(){
