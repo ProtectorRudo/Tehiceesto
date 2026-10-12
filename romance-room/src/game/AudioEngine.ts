@@ -13,7 +13,7 @@ export class AudioEngine {
       this.master=this.context.createGain();this.master.gain.value=.18;
       this.master.connect(this.context.destination);
     }
-    await this.context.resume();this.enabled=true;
+    await this.context.resume();
     if(!this.playing){
       this.playing=true;
       for(const freq of [110,164.81,220]){
@@ -58,5 +58,7 @@ export class AudioEngine {
       await this.voice.play();
     }catch{/* Audio must remain optional when external files fail or autoplay is blocked. */}
   }
+  suspend(){if(this.context?.state==='running')void this.context.suspend();this.voice?.pause();}
+  async resume(){if(this.context?.state==='suspended'&&this.enabled){try{await this.context.resume()}catch{/* wait for user gesture */}}}
   dispose(){if(this.interval!==null)clearInterval(this.interval);this.voice?.pause();this.ambience.forEach(o=>{try{o.stop()}catch{/* stopped */}});void this.context?.close()}
 }

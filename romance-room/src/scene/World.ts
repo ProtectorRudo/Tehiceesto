@@ -2,9 +2,10 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { AnimationMixer } from 'three';
 import type { Stage } from '../game/logic';
+import {resolveMovement} from '../game/navigation';
 
 type Interactive = 'desk'|'clock'|'gramophone'|'painting'|'letter'|'cabinet'|'books'|'gardenGate'|'lantern0'|'lantern1'|'lantern2'|'present';
-type Callbacks = {onInteract:(what:Interactive, sub?:string)=>void; onMove?:(x:number,z:number)=>void};
+type Callbacks = {onInteract:(what:Interactive, sub?:string)=>void; onMove?:(x:number,z:number)=>void; onFocus?:(label:string|null)=>void};
 const gold = 0xb69a66;
 const palette=[0x2d3948,0x6d3a39,0x766146,0x3c514b,0x5c405c];
 const mat=(color:number,roughness=.68,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
@@ -38,12 +39,22 @@ export class World {
   private petals?:THREE.Points;
   private mixers:AnimationMixer[]=[];
   private glowLights:THREE.Light[]=[];
+  private gardenBulbs:THREE.Mesh[]=[];
+  private rainDrops:THREE.Mesh[]=[];
+  private gardenBaseIntensity=21;
   private storm=0;
   private rushEnabled=false;
   private romantic=false;
   private speed=2.6;
   private materials:THREE.Material[]=[];
   private disposed=false;
+  private currentFocus:THREE.Object3D|null=null;
+  private focusTime=0;
+  private frameElapsed=0;
+  private frameCounter=0;
+  private qualityDpr:number;
+  private maxDpr:number;
+  private readonly reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
   private boundPointerDown:(e:PointerEvent)=>void;
   private boundPointerMove:(e:PointerEvent)=>void;
   private boundPointerUp:(e:PointerEvent)=>void;
@@ -61,7 +72,9 @@ export class World {
     this.renderer.toneMappingExposure=1.28;
     this.renderer.shadowMap.enabled=true;
     this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio,this.mobile?1.35:1.65));
+    this.maxDpr=Math.min(window.devicePixelRatio,this.mobile?1.4:1.8);
+    this.qualityDpr=this.maxDpr;
+    this.renderer.setPixelRatio(this.qualityDpr);
     this.scene.background=new THREE.Color(0x151216);
     this.scene.fog=new THREE.FogExp2(0x21191b,.027);
     this.camera.position.set(0,1.63,5.5);
@@ -169,7 +182,7 @@ export class World {
     this.block(this.scene,w,.08,.14,x,2.67,z+.26,brass);
     for(let i=0;i<7;i++) {
       const rain=this.mesh(new THREE.BoxGeometry(.006,.25,.004),new THREE.MeshBasicMaterial({color:0xb4c3d4,transparent:true,opacity:.27}),this.scene,[x-w/2+seedRand()*w,1.45+seedRand()*2.5,z+.16],false);
-      rain.rotation.z=.12;
+      rain.rotation.z=.12;this.rainDrops.push(rain);
     }
     // Curtains are three-dimensional folded geometry, not flat wallpaper.
     for(const side of [-1,1]){
@@ -251,17 +264,39 @@ export class World {
     const wood=mat(0x69472d,.58);
     this.block(g,4.7,4.45,.62,0,2.23,0,wood,.07);
     this.block(g,4.36,4.1,.68,0,2.27,.27,mat(0x281c18),.02);
+    // One instanced mesh per book leather color; hundreds fewer draw calls on midrange phones.
+    const spineShape=new THREE.Shape();
+    spineShape.moveTo(-.5,-.5);spineShape.lineTo(.5,-.5);spineShape.lineTo(.5,.5);spineShape.lineTo(-.5,.5);spineShape.closePath();
+    const bookGeometry=new THREE.ExtrudeGeometry(spineShape,{depth:.33,steps:1,bevelEnabled:true,bevelThickness:.035,bevelSize:.035,bevelSegments:2});
+    bookGeometry.translate(0,0,-.165);
+    const colorGroups:{x:number,y:number,z:number,w:number,h:number,tilt:number,color:number}[][]=palette.map(()=>[]);
+    const brassDetails:{x:number,y:number,z:number,h:number}[]=[];
     for(const row of [0.8,1.78,2.78,3.8]){
       this.block(g,4.5,.14,.75,0,row,.34,wood,.03);
       for(let j=0;j<27;j++){
-        const w=.07+seedRand()*.07;
-        const h=.53+seedRand()*.26;
-        const c=palette[Math.floor(seedRand()*palette.length)];
-        const book=this.block(g,w,h,.33,-2.07+j*.16,row+.085+h/2,.35,mat(c,.77),.004);
-        book.rotation.z=(seedRand()-.5)*.08;
-        if(j%6===0)this.block(g,.017,h*.75,.34,book.position.x,row+.085+h/2,.35,brass,0);
+        const w=.07+seedRand()*.07,h=.53+seedRand()*.26;
+        const color=Math.floor(seedRand()*palette.length);
+        const x=-2.07+j*.16,y=row+.085+h/2;
+        colorGroups[color].push({x,y,z:.35,w,h,tilt:(seedRand()-.5)*.08,color});
+        if(j%6===0)brassDetails.push({x,y,z:.55,h:h*.75});
       }
     }
+    const dummy=new THREE.Object3D();
+    colorGroups.forEach((books,color)=>{
+      const im=new THREE.InstancedMesh(bookGeometry,mat(palette[color],.77),books.length);
+      books.forEach((book,index)=>{
+        dummy.position.set(book.x,book.y,book.z);dummy.rotation.set(0,0,book.tilt);
+        dummy.scale.set(book.w,book.h,1);dummy.updateMatrix();im.setMatrixAt(index,dummy.matrix);
+      });
+      im.castShadow=false;im.receiveShadow=true;g.add(im);
+    });
+    const detailGeo=new THREE.BoxGeometry(.016,1,.02);
+    const details=new THREE.InstancedMesh(detailGeo,brass,brassDetails.length);
+    brassDetails.forEach((stripe,index)=>{
+      dummy.position.set(stripe.x,stripe.y,stripe.z);dummy.rotation.set(0,0,0);
+      dummy.scale.set(1,stripe.h,1);dummy.updateMatrix();details.setMatrixAt(index,dummy.matrix);
+    });
+    details.castShadow=false;g.add(details);
     const tags=[['luna',-1.4,1.81],['lluvia',0,1.81],['flor',1.4,1.81]] as const;
     tags.forEach(([id,x,y],i)=>{
       const group=new THREE.Group();group.position.set(x,y,.83);g.add(group);
@@ -340,7 +375,7 @@ export class World {
     this.createDinnerTable();
     for(let i=0;i<32;i++){
       const x=(seedRand()-.5)*13,z=-7.8-seedRand()*9;
-      const led=this.sphere(this.scene,.065,x,4.55+(seedRand()-.5)*.35,z,mat(0xffd89a,.3,.05));led.material=new THREE.MeshBasicMaterial({color:0xffdba0});
+      const led=this.sphere(this.scene,.065,x,4.55+(seedRand()-.5)*.35,z,new THREE.MeshBasicMaterial({color:0xffdba0}));this.gardenBulbs.push(led);
     }
     for(let i=0;i<3;i++) this.createLantern(i,[-2.3,0,2.3][i],-13.3);
     this.createPetals();
@@ -411,7 +446,10 @@ export class World {
   setStage(stage:Stage){
     this.stage=stage;
     if(stage>=4){this.openGate();this.rushEnabled=stage===4;}
-    if(stage===5){this.romantic=true;this.rushEnabled=false;this.storm=0;this.renderer.toneMappingExposure=1.38;if(this.petals)(this.petals.material as THREE.PointsMaterial).opacity=.87;}
+    if(stage===5){this.romantic=true;this.rushEnabled=false;this.storm=0;this.renderer.toneMappingExposure=1.38;if(this.petals)(this.petals.material as THREE.PointsMaterial).opacity=.87;
+      if(this.glowLights[4])(this.glowLights[4] as THREE.PointLight).intensity=this.gardenBaseIntensity*1.5;
+      this.gardenBulbs.forEach(bulb=>(bulb.material as THREE.MeshBasicMaterial).color.setHex(0xffdba0));
+    }
   }
   setKeyFound(found:boolean){if(this.keyMesh)this.keyMesh.visible=!found;}
   setLanterns(values:number[]){
@@ -421,9 +459,39 @@ export class World {
       (m.material as THREE.MeshStandardMaterial).emissiveIntensity=lit?1.8:0;
     });
   }
-  setRushIntensity(t:number){this.storm=t;if(this.stage===4&&this.gate)this.gate.rotation.y=-Math.PI*.52+Math.PI*.47*t;}
+  setRushIntensity(t:number){
+    this.storm=THREE.MathUtils.clamp(t,0,1);
+    if(this.stage===4&&this.gate)this.gate.rotation.y=-Math.PI*.52+Math.PI*.47*this.storm;
+    // The garden's own lights start shutting down as the second hand races.
+    const dim=1-Math.pow(this.storm,1.5)*.78;
+    if(this.glowLights[4])(this.glowLights[4] as THREE.PointLight).intensity=this.gardenBaseIntensity*dim;
+    this.gardenBulbs.forEach((bulb,i)=>{
+      const emission=bulb.material as THREE.MeshBasicMaterial;
+      const cutoff=Math.floor(this.storm*this.gardenBulbs.length);
+      emission.color.setHex(i<cutoff?0x44392e:0xffdba0);
+    });
+  }
   private openGate(){if(this.gate)this.gate.rotation.y=-Math.PI*.52;if(this.slidingShelf)this.slidingShelf.position.z=-4.1;}
-  enableMovement(value:boolean){this.canWalk=value;}
+  enableMovement(value:boolean){this.canWalk=value; if(!value){this.joystick={x:0,y:0};this.setFocus(null);}}
+  interactFocused(){
+    const obj=this.currentFocus;
+    if(obj?.userData.action && this.canWalk)this.handlers.onInteract(obj.userData.action as Interactive,obj.userData.part as string|undefined);
+  }
+  private setFocus(hit:THREE.Object3D|null){
+    if(this.currentFocus===hit)return;
+    this.currentFocus=hit;
+    const action=hit?.userData.action as Interactive|undefined;
+    const labels:Partial<Record<Interactive,string>>={desk:'Revisar escritorio',clock:'Examinar reloj',gramophone:'Escuchar discos',painting:'Leer cuadro',cabinet:'Abrir cajón',books:'Tocar libro',gardenGate:'Examinar puerta',lantern0:'Encender farola',lantern1:'Encender farola',lantern2:'Encender farola',present:'Abrir regalo'};
+    this.handlers.onFocus?.(action?labels[action]||'Examinar':null);
+  }
+  private findFocused(){
+    this.raycaster.setFromCamera(new THREE.Vector2(0,0),this.camera);
+    const hit=this.raycaster.intersectObjects(this.interactive,true).find(h=>h.distance<3.5);
+    if(!hit)return null;
+    let obj:THREE.Object3D|null=hit.object;
+    while(obj&&!obj.userData.action)obj=obj.parent;
+    return obj;
+  }
   private resize(){
     const {clientWidth:w,clientHeight:h}=this.canvas;
     if(!w||!h)return;
@@ -455,6 +523,7 @@ export class World {
     if(p){if(!p.moved && this.pointers.size===0)this.handleTap(e.clientX,e.clientY);if(p.downX<this.canvas.clientWidth*.43)this.joystick={x:0,y:0}}
   }
   private handleTap(x:number,y:number){
+    if(!this.canWalk)return;
     const r=this.canvas.getBoundingClientRect();this.pointer.set(((x-r.left)/r.width)*2-1,-((y-r.top)/r.height)*2+1);
     this.raycaster.setFromCamera(this.pointer,this.camera);
     const hits=this.raycaster.intersectObjects(this.interactive,true);
@@ -471,29 +540,43 @@ export class World {
       const speed=this.speed*(this.inputs.has('ShiftLeft')?1.5:1)*dt;
       let xx=this.camera.position.x+(-Math.sin(this.yaw)*fw+Math.cos(this.yaw)*side)*speed;
       let zz=this.camera.position.z+(-Math.cos(this.yaw)*fw-Math.sin(this.yaw)*side)*speed;
-      xx=THREE.MathUtils.clamp(xx,-7.6,7.6);
-      zz=THREE.MathUtils.clamp(zz,this.stage>=4?-16.35:-5.65,6.55);
-      // Prevent walking around either side of the locked central gate.
-      if(this.stage<4&&zz<-5.2&&Math.abs(xx)<1.9)zz=-5.2;
+      const next=resolveMovement({x:this.camera.position.x,z:this.camera.position.z},{x:xx,z:zz},this.stage);
+      xx=next.x;zz=next.z;
       this.camera.position.set(xx,1.63,zz);this.handlers.onMove?.(xx,zz);
     }
     this.camera.rotation.order='YXZ';this.camera.rotation.y=this.yaw;this.camera.rotation.x=this.pitch;
-    if(this.clockHands){this.clockTime+=dt;this.clockHands.rotation.z=-Math.sin(this.clockTime*1.5)*.025;}
+    if(this.clockHands){this.clockTime+=dt;this.clockHands.rotation.z=this.stage>=1?-Math.sin(this.clockTime*1.5)*.025:0;}
+    if(!this.reducedMotion){
+      for(const rain of this.rainDrops){rain.position.y-=dt*1.15;
+        if(rain.position.y<1.3)rain.position.y=3.8;
+      }
+    }
     if(this.painting&&this.stage>=2)this.painting.position.y=3.34;
-    if(this.petals){this.petals.rotation.y+=dt*.025;
+    if(this.petals){if(!this.reducedMotion)this.petals.rotation.y+=dt*.025;
       const pts=this.petals.geometry.attributes.position as THREE.BufferAttribute;
       for(let i=0;i<pts.count;i++){
         let y=pts.getY(i)-dt*(this.romantic?.3:this.rushEnabled?.14:0);
         if(y<.1)y=5.4;pts.setY(i,y);
       }
-      pts.needsUpdate=this.romantic;
+      pts.needsUpdate=this.romantic&&!this.reducedMotion;
     }
     if(this.rushEnabled){
       const wave=Math.sin(this.clockTime*7)*.13*this.storm;
       this.glowLights.forEach((l,i)=>{if(i<4)(l as THREE.PointLight).intensity=25*(1-this.storm*.5)+wave*14});
     }
     this.mixers.forEach(m=>m.update(dt));
+    // Poll focus infrequently and only report changes to avoid unnecessary React renders.
+    this.focusTime+=dt;
+    if(this.focusTime>.14 && this.canWalk){this.focusTime=0;this.setFocus(this.findFocused());}
     this.renderer.render(this.scene,this.camera);
+    this.frameElapsed+=dt;this.frameCounter++;
+    if(this.frameElapsed>=3){
+      const fps=this.frameCounter/this.frameElapsed;
+      if(fps<31&&this.qualityDpr>0.85)this.qualityDpr=Math.max(.85,this.qualityDpr-.12);
+      else if(fps>55&&this.qualityDpr<this.maxDpr)this.qualityDpr=Math.min(this.maxDpr,this.qualityDpr+.07);
+      if(Math.abs(this.renderer.getPixelRatio()-this.qualityDpr)>.005)this.renderer.setPixelRatio(this.qualityDpr);
+      this.frameCounter=0;this.frameElapsed=0;
+    }
     this.raf=requestAnimationFrame(this.render);
   };
   getPosition(){return this.camera.position.clone();}
@@ -502,7 +585,20 @@ export class World {
     this.canvas.removeEventListener('pointerdown',this.boundPointerDown);this.canvas.removeEventListener('pointermove',this.boundPointerMove);
     this.canvas.removeEventListener('pointerup',this.boundPointerUp);this.canvas.removeEventListener('pointercancel',this.boundPointerUp);this.canvas.removeEventListener('wheel',this.boundWheel);
     window.removeEventListener('keydown',this.boundKeyDown);window.removeEventListener('keyup',this.boundKeyUp);window.removeEventListener('resize',this.boundResize);
-    this.scene.traverse(obj=>{if(obj instanceof THREE.Mesh || obj instanceof THREE.Points){obj.geometry.dispose();if(Array.isArray(obj.material))obj.material.forEach(m=>m.dispose());else obj.material.dispose()}});
+    const disposedGeometries=new Set<THREE.BufferGeometry>();
+    const disposedMaterials=new Set<THREE.Material>();
+    this.scene.traverse(obj=>{
+      if(obj instanceof THREE.Mesh || obj instanceof THREE.Points){
+        if(!disposedGeometries.has(obj.geometry)){obj.geometry.dispose();disposedGeometries.add(obj.geometry)}
+        const list=Array.isArray(obj.material)?obj.material:[obj.material];
+        list.forEach(m=>{if(disposedMaterials.has(m))return;disposedMaterials.add(m);
+          for(const key of ['map','normalMap','roughnessMap','metalnessMap','aoMap','emissiveMap'] as const){
+            const t=(m as THREE.MeshStandardMaterial)[key];if(t)t.dispose();
+          }
+          m.dispose();
+        });
+      }
+    });
     this.renderer.dispose();
   }
 }

@@ -1,6 +1,7 @@
 import {useCallback,useEffect,useRef,useState,type CSSProperties} from 'react';
 import {World} from './scene/World';
 import {AudioEngine} from './game/AudioEngine';
+import {RushClock} from './game/RushClock';
 import {applyAction,formatRemaining,initialProgress,safeReplyLink,type Progress,type PuzzleAction} from './game/logic';
 import './ui/style.css';
 
@@ -21,7 +22,7 @@ export default function App(){
   const world=useRef<World|null>(null);
   const audio=useRef<AudioEngine|null>(null);
   const progressRef=useRef<Progress>(loadProgress());
-  const deadline=useRef<number|null>(null);
+  const rushClock=useRef(new RushClock());
   const startedRush=useRef(false);
   const lastTick=useRef(-1);
   const lastHint=useRef(false);
@@ -37,6 +38,8 @@ export default function App(){
   const [code,setCode]=useState('');
   const [started,setStarted]=useState(false);
   const [webglError,setWebglError]=useState(false);
+  const [focusedAction,setFocusedAction]=useState<string|null>(null);
+  const [backgroundPaused,setBackgroundPaused]=useState(false);
   const [position,setPosition]=useState({x:0,z:5.5});
   const toastTimer=useRef<number|null>(null);
 
@@ -47,9 +50,9 @@ export default function App(){
     if(success){audio.current?.success();if('vibrate' in navigator)navigator.vibrate?.([20,35,20]);}
     world.current?.setStage(next.stage);world.current?.setLanterns(next.lanterns);
     if(next.stage===4&&progressRef.current.rushing&&!startedRush.current){
-      startedRush.current=true;deadline.current=Date.now()+120000;setRemaining(120000);audio.current?.playRush();toast('¡El jardín está por cerrar! Encontrá las tres luces.');
+      startedRush.current=true;rushClock.current.start(performance.now());setRemaining(120000);audio.current?.playRush();toast('¡El jardín está por cerrar! Encontrá las tres luces.');
     }
-    if(next.stage===5){deadline.current=null;audio.current?.finale();toast('El tiempo se detuvo. Acercate a la mesa del jardín.');}
+    if(next.stage===5){rushClock.current.stop();audio.current?.finale();toast('El tiempo se detuvo. Acercate a la mesa del jardín.');}
     if(action.type==='CODE'&&success)setModal('letter');
     return {next,success};
   },[toast]);
@@ -82,7 +85,7 @@ export default function App(){
     if(!probe.getContext('webgl2')){setWebglError(true);return;}
     if(!canvas.current)return;
     const sound=new AudioEngine();audio.current=sound;
-    const w=new World(canvas.current,{onInteract:(what,sub)=>onInteractRef.current(what,sub),onMove:(x,z)=>setPosition(old=>Math.round(old.x*4)===Math.round(x*4)&&Math.round(old.z*4)===Math.round(z*4)?old:{x,z})});
+    const w=new World(canvas.current,{onInteract:(what,sub)=>onInteractRef.current(what,sub),onFocus:label=>setFocusedAction(label),onMove:(x,z)=>setPosition(old=>Math.round(old.x*4)===Math.round(x*4)&&Math.round(old.z*4)===Math.round(z*4)?old:{x,z})});
     world.current=w;
     w.setStage(progressRef.current.stage);w.setKeyFound(progressRef.current.keyFound);w.setLanterns(progressRef.current.lanterns);w.enableMovement(false);
     return()=>{w.dispose();sound.dispose();world.current=null;audio.current=null;if(toastTimer.current)clearTimeout(toastTimer.current)};
@@ -91,23 +94,38 @@ export default function App(){
   useEffect(()=>{world.current?.enableMovement(started && !modal);},[started,modal]);
   useEffect(()=>{
     const timer=window.setInterval(()=>{
-      if(deadline.current===null)return;
-      const ms=Math.max(0,deadline.current-Date.now());setRemaining(ms);
+      if(!rushClock.current.active || rushClock.current.paused)return;
+      const ms=rushClock.current.remaining(performance.now());setRemaining(ms);
       world.current?.setRushIntensity(1-ms/120000);
       const secs=Math.ceil(ms/1000);
-      if(secs===35&&!lastHint.current){lastHint.current=true;toast('¡Última pista! Encendé las farolas de izquierda a derecha: izquierda, centro y derecha.');}
+      if(secs<=35&&!lastHint.current){lastHint.current=true;toast('¡Última pista! Encendé las farolas de izquierda a derecha: izquierda, centro y derecha.');}
       if(secs<=10 && secs>0 && secs!==lastTick.current){lastTick.current=secs;audio.current?.tick()}
-      if(ms<=0){deadline.current=null;audio.current?.stopRush();setModal('timeout');world.current?.enableMovement(false)}
+      if(ms<=0){rushClock.current.stop();audio.current?.stopRush();setModal('timeout');world.current?.enableMovement(false)}
     },100);
     return()=>clearInterval(timer);
   },[toast]);
+  useEffect(()=>{
+    const visibility=()=>{
+      if(document.hidden){
+        rushClock.current.pause(performance.now());
+        audio.current?.suspend();
+      }else{
+        const wasPaused=rushClock.current.paused;
+        rushClock.current.resume(performance.now());
+        if(wasPaused)setBackgroundPaused(true);
+        void audio.current?.resume();
+      }
+    };
+    document.addEventListener('visibilitychange',visibility);
+    return()=>document.removeEventListener('visibilitychange',visibility);
+  },[]);
   const begin=()=>{
     setStarted(true);setModal(null);void audio.current?.start();
-    if(progressRef.current.stage===4){startedRush.current=true;deadline.current=Date.now()+120000;audio.current?.playRush();}
+    if(progressRef.current.stage===4){startedRush.current=true;rushClock.current.start(performance.now());setRemaining(120000);audio.current?.playRush();}
     toast(progressRef.current.stage===0?'Buscá una pequeña llave. Tal vez el escritorio esconda algo.':'Bienvenido de nuevo a la habitación.');
   };
   const resetAll=()=>{localStorage.removeItem('ultima-campanada-v1');window.location.reload()};
-  const retry=()=>{const result=update({type:'RESET_RUSH'});if(result.success){deadline.current=Date.now()+120000;startedRush.current=true;lastTick.current=-1;lastHint.current=false;setRemaining(120000);setModal(null);audio.current?.playRush();}};
+  const retry=()=>{const result=update({type:'RESET_RUSH'});if(result.success){rushClock.current.start(performance.now());startedRush.current=true;lastTick.current=-1;lastHint.current=false;setRemaining(120000);setModal(null);audio.current?.playRush();}};
   const confirmClock=()=>{const result=update({type:'CLOCK',hour,minute});if(result.success)setModal(null)};
   const confirmCode=()=>{const result=update({type:'CODE',code});if(result.success)setCode('')};
   const remainingMins=formatRemaining(remaining);
@@ -127,8 +145,11 @@ export default function App(){
       </header>
       {started&&<div className="mission" aria-live="polite"><span className="overline">CAPÍTULO {Math.min(progress.stage+1,6)} / 6</span><strong>{copy[progress.stage].title}</strong><span>{copy[progress.stage].task}</span></div>}
       {started&&!modal&&<div className="crosshair" aria-hidden="true"><span>✦</span></div>}
+      {started&&!modal&&<div className="touch-pad" aria-hidden="true"><span className="touch-pad-knob">✦</span><small>MOVER</small></div>}
+      {started&&!modal&&focusedAction&&<button className="focus-action" onClick={()=>world.current?.interactFocused()} aria-label={focusedAction}><span className="focus-sigil">✧</span>{focusedAction}</button>}
       {started&&!modal&&<div className="navigation-tip">{inGarden?'JARDÍN DE CRISTAL':'BIBLIOTECA'} · <span>deslizá para mirar · tocá para investigar · pellizcá para zoom</span></div>}
       {notification&&!modal&&<div className="toast" role="status">✧ {notification}</div>}
+      {backgroundPaused&&started&&!modal&&<div className="resume-note" role="status">El reloj esperó mientras no estabas. <button onClick={()=>setBackgroundPaused(false)}>Continuar ✧</button></div>}
       {showHelp&&<div className="help-panel"><button className="mini-close" onClick={()=>setShowHelp(false)}>×</button><span className="overline">UNA AYUDA DEL DESTINO</span><h3>{copy[progress.stage].title}</h3><p>{copy[progress.stage].hint}</p><p className="help-controls">Computadora: W A S D + arrastrar. Celular: deslizar a la izquierda para caminar, a la derecha para mirar. Pellizcá para zoom.</p><button className="quiet-link" onClick={()=>setShowHelp(false)}>Entendido</button></div>}
       {modal&&<div className="modal-scrim" role="presentation"><section className={'card story '+(modal==='final'||modal==='accepted'?'romantic':'')} role="dialog" aria-modal="true">
         {modal==='intro'&&<><div className="monogram">✦</div><span className="overline">UN MENSAJE SIN REMITENTE</span><h1>Hay una noche que todavía no existe.</h1><p>Alguien dejó algo preparado para vos detrás de la última puerta. Nadie puede contarte qué es. Solo esta habitación guarda la respuesta.</p><blockquote>«No todas las historias comienzan cuando abrimos una puerta. Algunas empiezan cuando decidimos buscarla».</blockquote><p className="footnote">Explorá la habitación y resolvé sus secretos. Usá auriculares para vivir mejor la experiencia.</p><button className="primary" onClick={begin}>Aceptar el misterio <span>→</span></button></>}
