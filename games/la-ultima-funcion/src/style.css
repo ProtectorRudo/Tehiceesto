@@ -224,3 +224,22 @@
   .balcony-callout{top:39%;left:50%;max-width:84vw;width:80vw;letter-spacing:1px;font-size:9px}
 }
 @media(prefers-reduced-motion:reduce){.balcony-callout{animation:none}}
+
+/* A real camera affordance for the physical actor in Palco 1, not a popup. */
+.balcony-callout{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:7px 12px}
+.balcony-look-button{
+  pointer-events:auto;
+  min-height:44px;padding:10px 14px;border-radius:3px;
+  border:1px solid #f1cb9c;
+  background:linear-gradient(145deg,#633943,#291c29);
+  box-shadow:0 4px 15px #10070cc4;
+  color:#f9e6c9;font:700 11px/1.25 "DM Sans",sans-serif;
+  letter-spacing:1px;cursor:pointer;
+}
+.balcony-look-button:active{transform:scale(.97)}
+.balcony-look-button:focus-visible{outline:3px solid #f8d7a9;outline-offset:2px}
+.balcony-look-button span{font-size:17px;line-height:1}
+@media(max-width:750px) and (orientation:portrait){
+  .balcony-callout{width:min(86vw,460px)}
+  .balcony-look-button{width:100%;margin:3px auto 0;font-size:11px}
+}
