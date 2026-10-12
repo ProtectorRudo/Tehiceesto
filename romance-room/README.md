@@ -53,3 +53,7 @@ Modificar `public/config/invitation.json` con nombres, pregunta, texto, fecha, l
 ## Licencias
 
 El código fuente original se entrega con fin de evaluación. Cualquier recurso GLB incorporado posteriormente requiere revisión de licencia y créditos correspondientes. Se identificaron recursos CC0 de Kenney, y modelos Poly Haven CC0 como posibles sustitutos, pero **no se incluyen assets de terceros descargados**. La banda sonora actual se genera con Web Audio API sin archivos de música externos. No publicar fotos, audios o números privados en demo pública sin autorización.
+
+## Sesiones nuevas (V5)
+
+Al volver a abrir el enlace, recargar o regresar con el historial del navegador, se inicia una partida nueva: intro, posición del jugador, acertijos y relojes. Las partidas no se guardan en `localStorage`; se borra el guardado obsoleto. Cambiar de aplicación sin salir del navegador solo pausa el reloj; el reintento de los últimos dos minutos sigue sin borrar los acertijos anteriores.
