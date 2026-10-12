@@ -17,7 +17,7 @@ function invitation():Invite{
 const steps=[
   {phase:"inicio",title:"La butaca reservada",objective:"Seguí los carteles de las filas y la numeración de los respaldos hasta encontrar fila 3, asiento 8."},
   {phase:"luces",title:"La consola de luces",objective:"Recuperá el fusible, insertalo en la consola y activá los tres circuitos en orden."},
-  {phase:"proyector",title:"La película perdida",objective:"Mirá el Palco 1, recuperá y montá la bobina, regulá el enfoque a 2 y descifrá las ruedas."},
+  {phase:"proyector",title:"La película perdida",objective:"Investigá el Palco 1, buscá una bobina entre las butacas y recuperá la proyección perdida."},
   {phase:"telon",title:"La última función",objective:"Subí al escenario y accioná la palanca del telón."}
 ];
 const labels:Record<TheaterAction,string>={
@@ -26,11 +26,11 @@ const labels:Record<TheaterAction,string>={
   rueda3:"Girar rueda derecha",proyector:"Reproducir cinta",telon:"Accionar palanca del telón",programa:"Leer programa"
 };
 const hints:Record<TheaterPhase,string>={
-  inicio:"Las filas están señalizadas junto al pasillo central y cada respaldo tiene su número. Contá desde la entrada: fila 1, fila 2, fila 3. En la tercera, encontrá el asiento 8 del lado derecho y revisá la placa RESERVADO.",
-  luces:"Buscá el fusible de porcelana cerca de la consola izquierda, recogelo e insertalo en el portafusible. El programa del tramoyista revela los tres circuitos: ÁMBAR, AZUL y ROJO. Si te equivocás, hay una descarga.",
-  proyector:"El Palco 1 está arriba a la izquierda. Recuperá la bobina suelta a la derecha del escenario y montala en el proyector. Girá el aro del enfoque hasta la marca 2, poné 3, 1 y 7 en las ruedas (el reloj de 1968) y activá la máquina.",
-  telon:"El mecanismo final está sobre el escenario, justo frente al telón rojo. Hay una palanca con una esfera oscura.",
-  final:"La función comenzó. Ahora descubrí para qué te estaban esperando."
+  inicio:"Alguien dejó una entrada reservada. Las pequeñas placas de bronce en los respaldos podrían ayudarte a encontrar lo que buscan de vos.",
+  luces:"El panel no está averiado del todo: le falta una pieza. Leé el viejo programa del tramoyista; el orden de una función importa tanto como el principio y el final.",
+  proyector:"Los espectadores nunca se llevaron sus recuerdos al escenario. Revisá las primeras filas. Después observá la lente y buscá una fecha que se repita en el teatro: a veces el tiempo es la clave.",
+  telon:"No todo lo importante está en la pantalla. Escuchá la maquinaria y acercate al lugar donde comienza cada función.",
+  final:"Las respuestas no siempre están detrás del telón."
 };
 function MissionLetter({name,returning,onProceed}:{name:string;returning:boolean;onProceed:()=>void}){
   return <section className={"briefing-screen"+(returning?" briefing-recall":"")} role="dialog" aria-modal="true" aria-labelledby="briefing-title" aria-describedby="briefing-summary">
@@ -73,6 +73,7 @@ function App(){
   const timerRef=useRef<number|null>(null);
   const toastTimer=useRef<number|null>(null);
   const warningCueCount=useRef(0);
+  const ghostHuntStarted=useRef(false);
   const startAt=useRef(0);const sequence=useRef(0);
   const [supported,setSupported]=useState(true);
   const [started,setStarted]=useState(false);
@@ -130,8 +131,8 @@ function App(){
     }
     if(name==="montar"){
       if(current!=="proyector"){show("Sin electricidad no podés montar la cinta.");return;}
-      if(!reelHeld.current){show("Necesitás encontrar la bobina suelta junto al proyector.");return;}
-      if(!reelReady.current){reelReady.current=true;world.current?.mountReel();sound.current.play("found");show("BOBINA MONTADA · Calibrá ahora el enfoque a 2.",5400);}
+      if(!reelHeld.current){show("Necesitás encontrar la bobina. Revisá los asientos cercanos a la entrada.");return;}
+      if(!reelReady.current){world.current?.mountReel();reelReady.current=world.current?.getMechanicalStatus().reelMounted??false;if(reelReady.current){sound.current.play("found");show("BOBINA MONTADA · La pantalla la reconoce. Ajustá la lente.",5400);}else show("No se pudo fijar la bobina. Intentá otra vez.");}
       else show("Ya montaste la bobina.");
       return;
     }
@@ -160,7 +161,7 @@ function App(){
         if(sequence.current===3){
           setPhase("proyector");sound.current.play("found");
           setStory("Volvió la electricidad… pero hay alguien detrás de la cortina del Palco 1, arriba a la izquierda. Mirá.");
-          show("Las luces recorren el escenario. El acomodador ya no está donde lo viste.",6200);
+          show("Las luces vuelven. En el Palco 1 hay alguien mirándote.",6200);
         }else show("Circuito "+sequence.current+"/3 activado. Escuchás un relé detrás del muro.");
       }else{
         sequence.current=0;world.current?.resetLights();world.current?.triggerFailedCircuit();sound.current.play("wrong");
@@ -182,7 +183,7 @@ function App(){
     if(name==="proyector"){
       if(current==="proyector"){
         const values=world.current?.getWheelValues();
-        if(!reelReady.current){show("El proyector no arranca sin la bobina montada.",5200);return;}
+        if(!reelReady.current&&!world.current?.getMechanicalStatus().reelMounted){show(reelHeld.current?"Tenés la bobina, pero falta encastrarla en el eje del proyector.":"El proyector necesita su bobina. Buscá entre las butacas de la entrada.",5200);return;}
         if(focusReady.current!==2){show("La imagen está borrosa. Ajustá el enfoque físico a la marca 2.",5200);return;}
         if(values&&values[0]===3&&values[1]===1&&values[2]===7){
           sound.current.play("found");world.current?.playRecoveredFilm();setPhase("telon");
@@ -218,9 +219,9 @@ function App(){
         onEvent:e=>{
           if(e==="electricidad"){
             setBlackout(true);sound.current.play("scare");
-            setStory("Volvió la electricidad, pero la figura del Palco 1 no desapareció. Mirá arriba.");
-            window.setTimeout(()=>{setBlackout(false);setHauntingCaption("↑ PALCO 1 · MIRÁ ARRIBA");},760);
-            window.setTimeout(()=>setHauntingCaption(""),3700);
+            setStory("Hay alguien en el PALCO 1. Está inmóvil… pero su cabeza sigue cada movimiento tuyo.");
+            window.setTimeout(()=>{setBlackout(false);setHauntingCaption("TE ESTÁN MIRANDO DESDE EL PALCO 1");},760);
+            window.setTimeout(()=>setHauntingCaption(""),5100);
           }else if(e==="fallo_luces"){
             sound.current.play("wrong");setBlackout(true);
             window.setTimeout(()=>setBlackout(false),400);
@@ -235,7 +236,7 @@ function App(){
             window.setTimeout(()=>setHauntingCaption(""),2600);
           }else if(e==="palco_desvanecido"){
             sound.current.play("door");
-            setStory("El Palco 1 está vacío otra vez. En la pantalla apareció una advertencia de 1968.");
+            setStory("El Palco 1 quedó vacío. Ahora alguien camina entre los asientos y te está buscando.");
           }else if(e==="film_terror"){
             sound.current.play("whisper");
             show("ARCHIVO BELLADONNA · LA CINTA MUESTRA UNA FILA DE ESPECTADORES DESAPARECIDOS.",6000);
@@ -297,6 +298,16 @@ function App(){
     show("«Por favor, encuentre su asiento. El director lo está esperando»",6500);
     timerRef.current=window.setInterval(()=>{
       const s=Math.floor((Date.now()-startAt.current)/1000);setSeconds(s);
+      sound.current.setTension(Math.min(1,s/540));
+      if(s>=420&&!ghostHuntStarted.current&&phaseRef.current!=="final"){
+        if(world.current?.releaseSpecterIntoAudience()){
+          ghostHuntStarted.current=true;sound.current.enterHunt();sound.current.play("scare");
+          setStory("DESAPARECIÓ DEL PALCO 1. AHORA ESTÁ ENTRE LOS ASIENTOS… Y TE BUSCA.");
+          setHauntingCaption("DESAPARECIÓ DEL PALCO. ESTÁ ENTRE LOS ASIENTOS.");
+          if(typeof navigator!=="undefined"&&navigator.vibrate)navigator.vibrate([180,90,220]);
+          window.setTimeout(()=>setHauntingCaption(""),6500);
+        }
+      }
       if(s>=600){
         if(timerRef.current!==null){window.clearInterval(timerRef.current);timerRef.current=null;}
         if(phaseRef.current!=="final"){setTimedOut(true);world.current?.stop();}
@@ -333,7 +344,7 @@ function App(){
         {!supported&&<p className="error">{error||"Se necesita un dispositivo compatible con WebGL2."}</p>}
         <button className="main-cta" disabled={!supported} onClick={()=>{sound.current.unlock();sound.current.play("found");setBriefingOpen(true);}}>ABRIR LAS PUERTAS <span>↗</span></button>
         {!supported&&<button className="text-button accessible-reveal" onClick={()=>{setReveal(true);setStarted(true);}}>VER MI INVITACIÓN SIN 3D</button>}
-        <p className="micro">Usá auriculares para una mejor experiencia · 7 minutos</p>
+        <p className="micro">Usá auriculares para una mejor experiencia · 9 minutos + 1 extra</p>
       </div>
       <div className="intro-bottom"><span>ÚLTIMO ACTO</span><span>SOLO HAY UNA SALIDA</span><span>DECORADOS CC0: POLY HAVEN</span></div>
     </section>}

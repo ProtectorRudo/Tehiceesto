@@ -11,6 +11,9 @@ export class TheaterAudio{
   private musicSource?:AudioBufferSourceNode;
   private musicLevel?:GainNode;
   private finalAct=false;
+  private tension=0;
+  private hunting=false;
+  private dramaticPulse:number|null=null;
   private noise?:AudioBuffer;
   private recordings:Partial<Record<"footstep"|"door",AudioBuffer>>={};
   private muted=false;
@@ -37,10 +40,10 @@ export class TheaterAudio{
     // Dissonant, low orchestral pedal with almost imperceptible tremolo.
     for(const hz of [82.41,103.83,123.47]){
       const strings=ctx.createOscillator();strings.type="sawtooth";strings.frequency.value=hz;
-      const low=ctx.createBiquadFilter();low.type="lowpass";low.frequency.value=275;
-      const gain=ctx.createGain();gain.gain.value=.005;
+      const low=ctx.createBiquadFilter();low.type="lowpass";low.frequency.value=340;
+      const gain=ctx.createGain();gain.gain.value=.009;
       const lfo=ctx.createOscillator();lfo.frequency.value=.13+hz/1000;
-      const depth=ctx.createGain();depth.gain.value=.003;
+      const depth=ctx.createGain();depth.gain.value=.004;
       lfo.connect(depth);depth.connect(gain.gain);
       strings.connect(low);low.connect(gain);gain.connect(ambientBus);
       strings.start();lfo.start();this.ambience.push(strings,lfo);
@@ -50,6 +53,21 @@ export class TheaterAudio{
       if(!this.ctx||this.ctx.state!=="running"||this.muted||this.ctx.currentTime<this.quietUntil)return;
       this.tone(1240,630,this.ctx.currentTime,.049,"triangle",.038,[-8.35,1.6,13.25]);
     },1130);
+    // Dissonant pulses accelerate toward the final two minutes, not a cheerful loop.
+    this.dramaticPulse=window.setInterval(()=>{
+      if(!this.ctx||this.ctx.state!=="running"||this.muted||this.ctx.currentTime<this.quietUntil)return;
+      const at=this.ctx.currentTime;
+      const drive=.4+this.tension*.7+(this.hunting?.32:0);
+      this.tone(65.41,49,at,.72,"sawtooth",.040*drive);
+      this.tone(155.56,123.47,at+.31,.5,"triangle",.032*drive);
+      if(this.tension>.52){
+        this.tone(92.5,77.78,at+.61,.38,"sawtooth",.021*drive);
+      }
+      if(this.hunting&&Math.random()>.68){
+        const [x,y,z]=this.listener;
+        this.breath(at+.18,.72,.13,[x+.6,y,z-1.5],380);
+      }
+    },1120);
     const bed=ctx.createBufferSource();bed.buffer=buffer;bed.loop=true;
     const low=ctx.createBiquadFilter();low.type="lowpass";low.frequency.value=220;
     const vol=ctx.createGain();vol.gain.value=.095;
@@ -71,7 +89,7 @@ export class TheaterAudio{
       const source=ctx.createBufferSource(),level=ctx.createGain();
       source.buffer=buffer;source.loop=true;
       level.gain.setValueAtTime(0,ctx.currentTime);
-      level.gain.setTargetAtTime(this.finalAct ? 0.025 : 0.17,ctx.currentTime,1.6);
+      level.gain.setTargetAtTime(this.finalAct ? 0.025 : 0.19,ctx.currentTime,1.6);
       source.connect(level);level.connect(master);source.start();
       this.musicSource=source;this.musicLevel=level;
     }catch(error){
@@ -81,8 +99,15 @@ export class TheaterAudio{
   setScene(scene:"inicio"|"luces"|"proyector"|"telon"|"final"){
     this.finalAct=scene==="final";
     const ctx=this.ctx,level=this.musicLevel;
-    if(ctx&&level)level.gain.setTargetAtTime(this.finalAct ? 0.025 : 0.17,ctx.currentTime,.7);
+    if(ctx&&level)level.gain.setTargetAtTime(this.finalAct ? 0.025 : .19+this.tension*.095+(this.hunting?.035:0),ctx.currentTime,.7);
   }
+  setTension(value:number){
+    this.tension=Math.max(0,Math.min(1,value));
+    if(this.ctx&&this.musicLevel&&!this.finalAct){
+      this.musicLevel.gain.setTargetAtTime(.19+this.tension*.095+(this.hunting?.035:0),this.ctx.currentTime,1.3);
+    }
+  }
+  enterHunt(){this.hunting=true;this.setTension(Math.max(this.tension,.83));}
   private async loadRecordedSfx(ctx:AudioContext){
     const base=import.meta.env.BASE_URL||"/";
     await Promise.all((["footstep","door"] as const).map(async(key)=>{
@@ -232,5 +257,5 @@ export class TheaterAudio{
     osc.connect(gain);gain.connect(out);osc.start(at);osc.stop(at+length+.02);
     osc.onended=()=>{osc.disconnect();gain.disconnect();if(out instanceof PannerNode)out.disconnect();};
   }
-  dispose(){if(typeof window!=="undefined"&&this.pendingVoice&&"speechSynthesis" in window)window.speechSynthesis.cancel();this.pendingVoice=undefined;if(this.metronome!==null)window.clearInterval(this.metronome);this.metronome=null;try{this.musicSource?.stop();}catch{}this.musicSource=undefined;this.musicLevel=undefined;this.ambience.forEach(o=>{try{o.stop();}catch{}});void this.ctx?.close();this.ctx=null;}
+  dispose(){if(typeof window!=="undefined"&&this.pendingVoice&&"speechSynthesis" in window)window.speechSynthesis.cancel();this.pendingVoice=undefined;if(this.metronome!==null)window.clearInterval(this.metronome);this.metronome=null;if(this.dramaticPulse!==null)window.clearInterval(this.dramaticPulse);this.dramaticPulse=null;try{this.musicSource?.stop();}catch{}this.musicSource=undefined;this.musicLevel=undefined;this.ambience.forEach(o=>{try{o.stop();}catch{}});void this.ctx?.close();this.ctx=null;}
 }

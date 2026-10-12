@@ -235,14 +235,14 @@ export class UsherDirector {
       footY=this.groundBounds.min.y;
     }
     if(!Number.isFinite(footY))return;
-    const targetY=this.footJoints.length?.085:.025;
-    const error=THREE.MathUtils.clamp(targetY-footY,-1.45,1.45);
+    const targetY=this.footJoints.length?.065:.025;
+    const error=THREE.MathUtils.clamp(targetY-footY,-.55,.55);
     this.footError=error;
-    if(Math.abs(error)<.028)return;
-    const velocity=Math.min(Math.abs(error),Math.max(.045,dt*16));
-    this.anchor.position.y=THREE.MathUtils.clamp(
-      this.anchor.position.y+Math.sign(error)*velocity,-1.15,1.5
-    );
+    if(Math.abs(error)<.035)return;
+    // Root corrections are intentionally small: a full animated stride must not
+    // catapult the torso or bury its legs under the auditorium floor.
+    const goal=THREE.MathUtils.clamp(this.anchor.position.y+THREE.MathUtils.clamp(error,-.07,.07),-.28,.4);
+    this.anchor.position.y=THREE.MathUtils.damp(this.anchor.position.y,goal,4.4,dt*3);
   }
   getGroundingStatus(){
     return {footBones:this.footJoints.length,footError:Number(this.footError.toFixed(3)),

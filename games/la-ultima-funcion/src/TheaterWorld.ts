@@ -63,6 +63,21 @@ export class TheaterWorld{
   private boxSpecterLooked=false;
   private boxSpecterCue=false;
   private boxSpecterVisible=false;
+  private boxSpecterChasing=false;
+  private boxSpecterHead?:THREE.Bone;
+  private boxSpecterGlow?:THREE.PointLight;
+  private boxSpecterRouteIndex=0;
+  private boxSpecterLastWhisper=0;
+  private readonly boxSpecterRoute:THREE.Vector3[]=[
+    new THREE.Vector3(-6.7,0,6),new THREE.Vector3(-.2,0,6),
+    new THREE.Vector3(-.2,0,4),new THREE.Vector3(6.6,0,4),
+    new THREE.Vector3(7.5,0,4),new THREE.Vector3(7.5,0,0),
+    new THREE.Vector3(.2,0,0),new THREE.Vector3(.2,0,-4),
+    new THREE.Vector3(-6.5,0,-4),new THREE.Vector3(-7.5,0,-4),
+    new THREE.Vector3(-7.5,0,6)
+  ];
+  private readonly spectralYawQuaternion=new THREE.Quaternion();
+  private readonly spectralYawAxis=new THREE.Vector3(0,1,0);
   private boxGazeSeconds=0;
   private boxSeenAt=-1;
   private fuseSocket?:THREE.Group;
@@ -176,17 +191,22 @@ export class TheaterWorld{
     if(this.fuseSocket)this.targets=this.targets.filter(o=>o!==this.fuseSocket);
   }
   collectReel(){if(this.reelPickup)this.reelPickup.visible=false;}
-  mountReel(){this.reelMounted=true;if(this.mountedReel)this.mountedReel.visible=true;}
+  mountReel(){
+    this.reelMounted=true;
+    if(this.mountedReel)this.mountedReel.visible=true;
+    this.setScreen(this.focusSetting===2?"BOBINA MONTADA · ENFOQUE NÍTIDO":"BOBINA MONTADA · AJUSTÁ EL ENFOQUE");
+  }
   rotateFocus(){
     this.focusSetting=(this.focusSetting+1)%4;
     if(this.focusKnob)this.focusKnob.rotation.z=this.focusSetting*Math.PI/2;
+    if(this.reelMounted)this.setScreen(this.focusSetting===2?"ENFOQUE NÍTIDO · DESCIFRÁ LAS RUEDAS":"BOBINA MONTADA · ENFOQUE BORROSO");
     return this.focusSetting;
   }
   triggerFailedCircuit(){
     this.events.onEvent("fallo_luces");
     this.usherGoal.set(0,0,-10.83);
-    this.boxSpecterCue=false;
-    this.triggerBoxSpecter();
+    // No anticipar al espectro: solo aparece al anunciar el Palco 1.
+    this.events.onEvent("susurro");
   }
   getMechanicalStatus(){
     return {fuseInstalled:this.fuseInstalled,reelMounted:this.reelMounted,focus:this.focusSetting,
@@ -518,6 +538,7 @@ export class TheaterWorld{
     this.colliders.push({x:-8.95,z:12,rx:.28,rz:.9});
   }
   private triggerBoxSpecter(){
+    if(this.boxSpecterCue)return;
     this.boxSpecterCue=true;
     this.boxSpecterStartedAt=this.elapsed;
     this.boxSpecterVisible=true;
@@ -529,9 +550,10 @@ export class TheaterWorld{
   }
   private updateBoxSpecter(dt:number){
     if(!this.boxSpecterCue||this.ended)return;
-    if(this.boxSpecterLight)this.boxSpecterLight.intensity=this.boxSpecterVisible?
-      15.5+Math.sin(this.clockTime*3.7)*3.5:5.5;
-    if(this.boxSpecter)this.boxSpecter.visible=this.boxSpecterVisible;
+    if(this.boxSpecterLight)this.boxSpecterLight.intensity=this.boxSpecterChasing?4.0:
+      this.boxSpecterVisible?11.5+Math.sin(this.clockTime*2)*2:4.0;
+    if(this.boxSpecter)this.boxSpecter.visible=this.boxSpecterVisible||this.boxSpecterChasing;
+    if(this.boxSpecterChasing){this.updateSpecterHunt(dt);return;}
     // Aim at the actual animated person, not an arbitrary point below
     // the balcony. Keep the figure in place until the player discovers it.
     const worldFace=new THREE.Vector3(-6.0,7.02,-11.96);
@@ -552,14 +574,51 @@ export class TheaterWorld{
       this.events.onEvent("palco_visto");
       this.warningFlash=Math.max(this.warningFlash,.18);
     }
-    // Give the visitor time to see the face/head movement and hear the
-    // reaction before the disappearance. No 22s invisible auto-timeout.
-    if(this.boxSpecterLooked&&this.boxSpecterVisible&&
-       this.elapsed-this.boxSeenAt>3.5){
-      this.boxSpecterVisible=false;
-      if(this.boxSpecter)this.boxSpecter.visible=false;
-      this.events.onEvent("palco_desvanecido");
+    // Permanece vigilando durante toda la función, incluso cuando lo descubren.
+    // Solo abandona el palco cuando quedan exactamente dos minutos del reloj.
+  }
+  releaseSpecterIntoAudience(){
+    if(!this.active||this.ended||!this.boxSpecterCue||this.boxSpecterChasing||!this.boxSpecter)return false;
+    this.boxSpecterChasing=true;
+    this.boxSpecterVisible=false;
+    this.scenery.attach(this.boxSpecter);
+    this.boxSpecter.position.set(-6.7,0,6);
+    this.boxSpecter.rotation.y=0;
+    this.boxSpecter.visible=true;
+    if(this.boxSpecterGlow)this.boxSpecterGlow.intensity=6;
+    this.boxSpecterRouteIndex=1;
+    this.events.onEvent("palco_desvanecido");
+    return true;
+  }
+  private updateSpecterHunt(dt:number){
+    const figure=this.boxSpecter;if(!figure)return;
+    const route=this.boxSpecterRoute;
+    const next=route[this.boxSpecterRouteIndex%route.length];
+    const dx=next.x-figure.position.x,dz=next.z-figure.position.z;
+    const distance=Math.hypot(dx,dz);
+    if(distance<.27){this.boxSpecterRouteIndex=(this.boxSpecterRouteIndex+1)%route.length;return;}
+    const speed=1.63;
+    const stride=Math.min(distance,dt*speed);
+    const nx=figure.position.x+dx/distance*stride;
+    const nz=figure.position.z+dz/distance*stride;
+    // Todos los segmentos discurren entre filas o por pasillos libres.
+    figure.position.set(nx,0,nz);
+    const angle=Math.atan2(dx,-dz);
+    const yawDelta=Math.atan2(Math.sin(angle-figure.rotation.y),Math.cos(angle-figure.rotation.y));
+    figure.rotation.y+=yawDelta*(1-Math.exp(-3.2*dt));
+    const playerDistance=Math.hypot(this.camera.position.x-nx,this.camera.position.z-nz);
+    if(playerDistance<3.4&&this.elapsed-this.boxSpecterLastWhisper>9){
+      this.boxSpecterLastWhisper=this.elapsed;
+      this.events.onEvent("presencia");
     }
+  }
+  private updateSpecterGaze(){
+    const head=this.boxSpecterHead,figure=this.boxSpecter;
+    if(!head||!figure||!figure.visible)return;
+    const playerLocal=figure.worldToLocal(this.camera.position.clone());
+    const headYaw=THREE.MathUtils.clamp(Math.atan2(playerLocal.x,-playerLocal.z),-.48,.48);
+    this.spectralYawQuaternion.setFromAxisAngle(this.spectralYawAxis,headYaw*.73);
+    head.quaternion.multiply(this.spectralYawQuaternion);
   }
   private buildPrivateBoxes(){
     // Before, upper rails and silhouettes suggested a balcony but there was
@@ -910,7 +969,7 @@ export class TheaterWorld{
       spoke.rotation.z=a;
     }
     this.mountedReel=installed;
-    const looseReel=new THREE.Group();looseReel.name="Bobina perdida";looseReel.position.set(7.93,.9,-7.52);
+    const looseReel=new THREE.Group();looseReel.name="Bobina perdida · butaca de la primera fila";looseReel.position.set(-5.4,.87,7.02);
     addMesh(new THREE.CylinderGeometry(.19,.23,.12,22),mat(0x332a29,.59,.48),[0,-.15,0],looseReel);
     addMesh(new THREE.TorusGeometry(.26,.055,10,28),brass,[0,.08,.02],looseReel).rotation.x=Math.PI/2;
     for(let i=0;i<6;i++){const a=i*Math.PI/3;
@@ -1180,10 +1239,11 @@ export class TheaterWorld{
             // Preserve normal and albedo maps: a fully dark replacement made
             // the figure invisible when looking up from a mobile phone.
             const spectral=new THREE.MeshStandardMaterial({
-              color:isFace?0xdcb8ad:0x99727a,
+              color:isFace?0xbdd9e8:0xa7bacc,
               map:source?.map??null,normalMap:source?.normalMap??null,
-              emissive:isFace?0x88555c:0x5c3049,emissiveIntensity:.62,
-              roughness:.86,metalness:0,side:THREE.DoubleSide
+              emissive:isFace?0x4a8fb5:0x315977,emissiveIntensity:.92,
+              transparent:true,opacity:.64,depthWrite:false,
+              roughness:.78,metalness:0,side:THREE.DoubleSide
             });
             node.material=spectral;
           }
@@ -1192,11 +1252,17 @@ export class TheaterWorld{
         figure.position.set(.32,5.28,1.08);figure.add(shadow);
         figure.visible=false;this.privateBoxes[0].add(figure);
         this.boxSpecter=figure;
+        shadow.traverse(node=>{
+          if(node instanceof THREE.Bone&&/head/i.test(node.name)&&!this.boxSpecterHead)this.boxSpecterHead=node;
+        });
+        const glow=new THREE.PointLight(0x8ccaf6,4.8,4.2,2);
+        glow.position.set(0,1.55,.35);glow.castShadow=false;figure.add(glow);
+        this.boxSpecterGlow=glow;
         if(idle){
           const ghostMixer=new THREE.AnimationMixer(shadow);
           ghostMixer.clipAction(idle).play();this.boxSpecterMixer=ghostMixer;
         }
-        if(this.phase==="proyector"||this.boxSpecterCue)this.triggerBoxSpecter();
+        if(this.boxSpecterCue&&!this.boxSpecterChasing)figure.visible=true;
       }
     }catch(err){console.warn("No se pudo incorporar el humano animado, se conserva el Acomodador provisional.",err);}
   }
@@ -1424,6 +1490,7 @@ export class TheaterWorld{
     this.usherDirector?.beforeAnimation();
     this.usherMixer?.update(dt);
     this.boxSpecterMixer?.update(dt);
+    this.updateSpecterGaze();
     this.usherDirector?.update(dt,this.active&&!this.ended);
     this.usherDirector?.correctFootContact(dt);
     this.decorMixers.forEach(m=>m.update(dt));
