@@ -120,7 +120,8 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
     for(let j=0;j<turns;j++)await action(page,"rueda"+index);
   }
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.wheels?.())).toEqual([3,1,7]);
-  await action(page,"proyector");
+  await action(page,"probar");
+  await expect(page.locator(".projector-test-hud.accepted")).toBeVisible();
   await expectPhase(page,"telon");
   await action(page,"telon");
   await expectPhase(page,"final");

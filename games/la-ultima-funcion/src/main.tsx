@@ -23,7 +23,7 @@ const steps=[
 const labels:Record<TheaterAction,string>={
   butaca:"Examinar butaca reservada",fusible:"Recoger fusible de porcelana",portafusible:"Insertar el fusible en la consola",bobina:"Recoger bobina perdida",montar:"Montar la bobina en el proyector",enfoque:"Girar aro de enfoque",palco:"Examinar el palco 1",ambar:"Activar interruptor ámbar",azul:"Activar interruptor azul",
   rojo:"Activar interruptor rojo",rueda1:"Girar rueda izquierda",rueda2:"Girar rueda central",
-  rueda3:"Girar rueda derecha",proyector:"Reproducir cinta",telon:"Accionar palanca del telón",programa:"Leer programa"
+  rueda3:"Girar rueda derecha",proyector:"Examinar el proyector",probar:"Probar combinación",telon:"Accionar palanca del telón",programa:"Leer programa"
 };
 const hints:Record<TheaterPhase,string>={
   inicio:"Alguien dejó una entrada reservada. Las pequeñas placas de bronce en los respaldos podrían ayudarte a encontrar lo que buscan de vos.",
@@ -85,6 +85,8 @@ function App(){
   const [toast,setToastState]=useState("");
   const [seconds,setSeconds]=useState(0);
   const fuseHeld=useRef(false),fuseReady=useRef(false),reelHeld=useRef(false),reelReady=useRef(false),focusReady=useRef(0);
+  const focusClueShown=useRef(false);
+  const [projectorTest,setProjectorTest]=useState<"idle"|"wrong"|"correct">("idle");
   const [boxEncountered,setBoxEncountered]=useState(false);
   const [hintsOpen,setHintsOpen]=useState(false);
   const [blackout,setBlackout]=useState(false);
@@ -103,12 +105,20 @@ function App(){
     if(toastTimer.current!==null)window.clearTimeout(toastTimer.current);
     toastTimer.current=window.setTimeout(()=>setToastState(""),duration);
   };
+  const announceProjectorClue=()=>{
+    if(focusClueShown.current)return;
+    const status=world.current?.getMechanicalStatus();
+    if(!status?.reelMounted||status.focus!==2)return;
+    focusClueShown.current=true;
+    sound.current.play("found");
+    show("Para que el proyector funcione, el tiempo es la clave",6700);
+  };
   const handleAction=(name:TheaterAction)=>{
     if(phaseRef.current==="final")return;
     sound.current.play("click");const current=phaseRef.current;
-    if(name==="programa"){show("PROGRAMA DEL TRAMOYISTA · Atardecer, noche, alarma: ÁMBAR — AZUL — ROJO.",6600);return;}
+    if(name==="programa"){show("DEL DIARIO DEL TRAMOYISTA · Primero muere el último resplandor del día. Después llega el frío de la noche. Y al final, la señal que anuncia el peligro.",7000);return;}
     if(name==="palco"){
-      show("PALCO 1 · El cortinaje parece moverse. Mirá hacia arriba, a la izquierda del escenario.",5000);return;
+      show(ghostHuntStarted.current?"PALCO 1 · Las cortinas están abiertas. Ya no hay nadie: escuchás pasos entre las butacas.":"PALCO 1 · El cortinaje parece moverse. Mirá hacia arriba, a la izquierda del escenario.",5000);return;
     }
     if(name==="fusible"){
       if(fuseHeld.current){show("Ya tenés el fusible. Buscá el portafusible de la consola.");return;}
@@ -132,14 +142,15 @@ function App(){
     if(name==="montar"){
       if(current!=="proyector"){show("Sin electricidad no podés montar la cinta.");return;}
       if(!reelHeld.current){show("Necesitás encontrar la bobina. Revisá los asientos cercanos a la entrada.");return;}
-      if(!reelReady.current){world.current?.mountReel();reelReady.current=world.current?.getMechanicalStatus().reelMounted??false;if(reelReady.current){sound.current.play("found");show("BOBINA MONTADA · La pantalla la reconoce. Ajustá la lente.",5400);}else show("No se pudo fijar la bobina. Intentá otra vez.");}
+      if(!reelReady.current){world.current?.mountReel();reelReady.current=world.current?.getMechanicalStatus().reelMounted??false;if(reelReady.current){sound.current.play("found");show("BOBINA MONTADA · La pantalla la reconoce. Ajustá la lente.",5400);announceProjectorClue();}else show("No se pudo fijar la bobina. Intentá otra vez.");}
       else show("Ya montaste la bobina.");
       return;
     }
     if(name==="enfoque"){
       if(current!=="proyector"){show("El enfoque no funciona sin electricidad.");return;}
       focusReady.current=world.current?.rotateFocus()??0;
-      show("ENFOQUE · "+focusReady.current+"/3"+(focusReady.current===2?" · IMAGEN NÍTIDA":" · IMAGEN BORROSA"),3300);
+      show("ENFOQUE · "+focusReady.current+"/3"+(focusReady.current===2?" · IMAGEN NÍTIDA":" · IMAGEN BORROSA"),2400);
+      if(focusReady.current===2)announceProjectorClue();
       return;
     }
     if(name==="butaca"){
@@ -165,7 +176,7 @@ function App(){
         }else show("Circuito "+sequence.current+"/3 activado. Escuchás un relé detrás del muro.");
       }else{
         sequence.current=0;world.current?.resetLights();world.current?.triggerFailedCircuit();sound.current.play("wrong");
-        show("Una alarma chirría. La secuencia volvió a cero. Recordá: ÁMBAR, AZUL, ROJO.");
+        show("Una alarma chirría. La secuencia volvió a cero. Algo no coincide con el diario del tramoyista.");
       }
       return;
     }
@@ -176,6 +187,7 @@ function App(){
       }
       const index=Number(name.slice(-1))-1;
       world.current?.turnWheel(index);
+      setProjectorTest("idle");world.current?.setProjectorTestResult("idle");
       const values=world.current?.getWheelValues()??[0,0,0];
       show("CÓDIGO DEL PROYECTOR  ·  "+values.join("  •  "),1500);
       return;
@@ -185,23 +197,38 @@ function App(){
         if(reelHeld.current&&!world.current?.getMechanicalStatus().reelMounted){
           world.current?.mountReel();
           reelReady.current=world.current?.getMechanicalStatus().reelMounted??false;
-          if(reelReady.current){sound.current.play("found");show("BOBINA ENCASTRADA · Ahora ajustá el enfoque y accioná la proyección.",5000);}
+          if(reelReady.current){sound.current.play("found");show("BOBINA ENCASTRADA · Ahora ajustá el enfoque.",5000);announceProjectorClue();}
           return;
         }
-        const values=world.current?.getWheelValues();
-        if(!world.current?.getMechanicalStatus().reelMounted){show("Falta recuperar la bobina escondida entre las butacas.",5200);return;}
-        reelReady.current=true;
-        if((world.current?.getMechanicalStatus().focus??focusReady.current)!==2){show("La lente todavía está desenfocada. Girá el aro de enfoque.",5200);return;}
-        if(values&&values[0]===3&&values[1]===1&&values[2]===7){
-          sound.current.play("found");world.current?.playRecoveredFilm();setPhase("telon");
-          setStory("Una filmación prohibida recorre las butacas vacías. Algo se mueve arriba, en el Palco 1.");
-          show("La película vuelve a girar. Escuchás tres golpes detrás del telón.",6200);
-        }else{
-          sound.current.play("wrong");
-          show("La cinta se atasca. Observá el reloj del vestíbulo y corregí las ruedas.",5400);
-        }
+        show(world.current?.getMechanicalStatus().reelMounted?"La cinta está preparada. Revisá las ruedas y pulsá PROBAR CÓDIGO.":"Todavía falta recuperar la bobina entre las butacas.",4300);
       }else if(current==="inicio"||current==="luces")show("El proyector está apagado. Primero restablecé las luces.");
       else show("La película ya se recuperó.");
+      return;
+    }
+    if(name==="probar"){
+      if(current!=="proyector"){show("La prueba solo está disponible cuando el proyector tiene corriente.");return;}
+      const mechanics=world.current?.getMechanicalStatus();
+      const digits=world.current?.getWheelValues();
+      const ready=!!mechanics?.reelMounted&&mechanics.focus===2;
+      const correct=ready&&!!digits&&digits[0]===3&&digits[1]===1&&digits[2]===7;
+      setProjectorTest(correct?"correct":"wrong");
+      world.current?.setProjectorTestResult(correct?"correct":"wrong");
+      sound.current.play(correct?"success":"wrong");
+      if(!ready){
+        show(!mechanics?.reelMounted?"LUZ ROJA · Falta montar la bobina.":"LUZ ROJA · Todavía no se ve nítido.",3400);
+      }else if(!correct){
+        show("LUZ ROJA · La cinta se detuvo. El código no coincide con la hora del teatro.",3500);
+      }else{
+        show("LUZ VERDE · CÓDIGO ACEPTADO. La película comienza…",3200);
+        window.setTimeout(()=>{
+          if(phaseRef.current!=="proyector")return;
+          world.current?.playRecoveredFilm();setPhase("telon");
+          setStory(ghostHuntStarted.current
+            ?"Una filmación prohibida recorre las butacas vacías. Escuchás pasos detrás tuyo: el fantasma sigue buscándote."
+            :"Una filmación prohibida recorre las butacas vacías. Algo se mueve arriba, en el Palco 1.");
+          show("La película vuelve a girar. Escuchás tres golpes detrás del telón.",5000);
+        },1200);
+      }
       return;
     }
     if(name==="telon"){
@@ -280,7 +307,7 @@ function App(){
            else if(e==="risa")sound.current.play("laugh");
           else if(e==="susurro"){
             sound.current.play("whisper");
-            if(phaseRef.current!=="final")show("«No levantes la vista al PALCO 1… Hay alguien ahí.»",5300);
+            if(phaseRef.current!=="final")show(ghostHuntStarted.current?"«Está entre las butacas… no hagas ruido»":"«No levantes la vista al PALCO 1… Hay alguien ahí.»",5300);
           }else if(e==="aplausos")sound.current.play("applause");
         }
       });
@@ -387,7 +414,12 @@ function App(){
       {story&&<div className="story-caption">{story}</div>}
       <div className="crosshair" aria-hidden="true"><i/><i/></div>
       {hauntingCaption&&<div className="haunting-caption" role="status">{hauntingCaption}</div>}
-      {focus&& !hintsOpen&& !timedOut&& !finished&&<div className="interaction">
+      {phase==="proyector"&&!timedOut&&projectorTest!=="correct"&&
+          <button className={"projector-test-hud "+(projectorTest==="wrong"?"invalid":"")}
+            onClick={()=>actionRef.current("probar")} aria-label="PROBAR CÓDIGO">PROBAR CÓDIGO <span aria-hidden="true">●</span></button>}
+       {phase==="proyector"&&!timedOut&&projectorTest==="correct"&&
+          <div className="projector-test-hud accepted" role="status">CÓDIGO ACEPTADO <span aria-hidden="true">●</span></div>}
+       {focus&& !hintsOpen&& !timedOut&& !finished&&<div className="interaction">
         <span className="interaction-label">{focus==="proyector"&&reelHeld.current&&!world.current?.getMechanicalStatus().reelMounted?"Encastrar bobina en el proyector":labels[focus]}</span>
         <button onClick={()=>world.current?.activate()}>INTERACTUAR <span>✦</span></button>
       </div>}
@@ -402,11 +434,11 @@ function App(){
           <button className="hint-button" onClick={()=>setHintsOpen(v=>!v)}>¿UNA PISTA? <span>?</span></button>
         </div>
       </div>
-      {phase==="proyector"&&!boxEncountered&&!finished&&<div className="balcony-callout" role="status">
+      {phase==="proyector"&&!boxEncountered&&!ghostHuntStarted.current&&!finished&&<div className="balcony-callout" role="status">
         <span aria-hidden="true">↑</span>
         <span>PALCO 1 · ARRIBA A LA IZQUIERDA</span>
         <button className="balcony-look-button" onClick={()=>{
-          if(!world.current?.lookToBalcony())show("La figura está llegando al palco. Mirá arriba a la izquierda.",4200);
+          if(!world.current?.lookToBalcony())show(ghostHuntStarted.current?"El Palco 1 está vacío: los pasos vienen del salón.":"La figura está llegando al palco. Mirá arriba a la izquierda.",4200);
         }}>MIRAR PALCO 1 <span aria-hidden="true">↗</span></button>
       </div>}
       <div className="desktop-tip">W A S D PARA CAMINAR · MOUSE PARA MIRAR · E PARA INTERACTUAR</div>

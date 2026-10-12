@@ -298,3 +298,15 @@
  .intro-screen .premise{font-size:clamp(19px,5.2vw,26px)}
 }
 @media(prefers-reduced-motion:reduce){.intro-theater *,.intro-screen .main-cta:after{animation:none!important}}
+
+/* Fase proyector: control explícito de prueba de combinación. */
+.projector-test-hud{position:absolute;z-index:5;left:50%;bottom:clamp(202px,30vh,305px);
+ transform:translateX(-50%);padding:14px 19px;color:#f8e4c1;background:rgba(25,17,18,.95);
+ border:1px solid #d2a762;box-shadow:0 3px 25px #000b;font-size:11px;font-weight:700;
+ letter-spacing:1.25px;white-space:nowrap;pointer-events:auto;cursor:pointer}
+.projector-test-hud span{color:#ddbd73;margin-left:7px;font-size:15px}
+.projector-test-hud.invalid{border-color:#ff646b;color:#fff1ee;background:#442029}
+.projector-test-hud.invalid span{color:#ff5c62;text-shadow:0 0 12px #fc5362}
+.projector-test-hud.accepted{border-color:#3ce1a1;color:#d7ffe5;background:#12402c}
+.projector-test-hud.accepted span{color:#52fbb7;text-shadow:0 0 15px #5fffb6}
+@media(max-width:750px){.projector-test-hud{bottom:225px;padding:12px 14px;font-size:10px}}

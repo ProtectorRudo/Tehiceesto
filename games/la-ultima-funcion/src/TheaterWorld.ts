@@ -6,7 +6,7 @@ import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.j
 import { TheaterCinematics } from "./TheaterCinematics";
 import { UsherDirector } from "./UsherDirector";
 
-export type TheaterAction = "butaca" | "fusible" | "portafusible" | "bobina" | "montar" | "enfoque" | "palco" | "ambar" | "azul" | "rojo" | "rueda1" | "rueda2" | "rueda3" | "proyector" | "telon" | "programa";
+export type TheaterAction = "butaca" | "fusible" | "portafusible" | "bobina" | "montar" | "enfoque" | "palco" | "ambar" | "azul" | "rojo" | "rueda1" | "rueda2" | "rueda3" | "probar" | "proyector" | "telon" | "programa";
 export type TheaterPhase = "inicio" | "luces" | "proyector" | "telon" | "final";
 type SoundEvent = "risa" | "pasos" | "apagón" | "susurro" | "aplausos" | "portazo" | "advertencia" | "presencia" | "aparicion" | "retirada" | "electricidad" | "fallo_luces" | "palco_aparicion" | "palco_visto" | "palco_desvanecido" | "film_terror" | "final_falso";
 export interface WorldEvents { onFocus:(target:TheaterAction|null)=>void; onAction:(target:TheaterAction)=>void; onEvent:(event:SoundEvent)=>void; onListener:(x:number,y:number,z:number,fx:number,fy:number,fz:number,ux:number,uy:number,uz:number)=>void; }
@@ -91,6 +91,8 @@ export class TheaterWorld{
   private mountedReel?:THREE.Group;
   private fuseInstalled=false;
   private reelMounted=false;
+  private projectorTestIndicator?:THREE.Mesh<THREE.SphereGeometry,THREE.MeshStandardMaterial>;
+  private projectorTestState:"idle"|"wrong"|"correct"="idle";
   private focusSetting=0;
   private focusKnob?:THREE.Mesh;
 
@@ -201,6 +203,15 @@ export class TheaterWorld{
     this.reelMounted=true;
     if(this.mountedReel)this.mountedReel.visible=true;
     this.setScreen(this.focusSetting===2?"BOBINA MONTADA · ENFOQUE NÍTIDO":"BOBINA MONTADA · AJUSTÁ EL ENFOQUE");
+  }
+  setProjectorTestResult(state:"idle"|"wrong"|"correct"){
+    this.projectorTestState=state;
+    if(!this.projectorTestIndicator)return;
+    const material=this.projectorTestIndicator.material;
+    const color=state==="correct"?0x36d882:state==="wrong"?0xf0444e:0xf1c477;
+    material.color.setHex(color);material.emissive.setHex(color);
+    material.emissiveIntensity=state==="idle"?.5:2.5;
+    this.projectorTestIndicator.scale.setScalar(state==="idle"?1:1.18);
   }
   rotateFocus(){
     this.focusSetting=(this.focusSetting+1)%4;
@@ -1004,6 +1015,16 @@ export class TheaterWorld{
       this.bind(face,("rueda"+(i+1)) as TheaterAction);
       this.bind(knurl,("rueda"+(i+1)) as TheaterAction);
     }
+    // Dedicated physical TEST button on the projector, with real red/green lamp.
+    const testAssembly=new THREE.Group();testAssembly.name="Botón PROBAR CÓDIGO";
+    testAssembly.position.set(0,.71,1.04);pr.add(testAssembly);
+    const testBody=addMesh(new RoundedBoxGeometry(.92,.32,.11,4,.05),mat(0x393037,.45,.45),[0,0,0],testAssembly);
+    const testLabel=this.textPlane(["PROBAR"],.65,.22);testLabel.position.z=.078;testAssembly.add(testLabel);
+    const lampMaterial=new THREE.MeshStandardMaterial({color:0xf1c477,emissive:0xf1c477,emissiveIntensity:.5,roughness:.3});
+    const lamp=new THREE.Mesh(new THREE.SphereGeometry(.085,16,12),lampMaterial);
+    lamp.position.set(.55,0,.09);testAssembly.add(lamp);this.projectorTestIndicator=lamp;
+    this.bind(testAssembly,"probar");
+    this.bind(testBody,"probar");
     this.colliders.push({x:7.2,z:-9.9,rx:.72,rz:.68},{x:-7.25,z:-9.7,rx:.72,rz:.68});
     const pl=this.textPlane(["ARCHIVO BELLADONNA","CONSULTE EL RELOJ"],2.25,1.05);
     pl.position.set(0,2.9,.04);pr.add(pl);
@@ -1217,14 +1238,19 @@ export class TheaterWorld{
       }});
       const mixer=new THREE.AnimationMixer(model);
       const idle=gltf.animations.find(a=>/idle/i.test(a.name))||gltf.animations[0];
-      // Animación de caminata original provocaba torsión extrema y separación
-      // de zapatos. Conservamos el rig nativo sin traslación de cadera/escala:
-      // caminar se resuelve con huesos de extremidades acotados.
+      // El clip original anima huesos Y también la traslación de elementos del
+      // vestuario. Filtrar sus pistas desincronizaba botas y piernas.
+      // Conservar la postura inicial COMPLETA, congelada en un instante sano.
+      // El desplazamiento será el del grupo 3D, sin doblar extremidades.
       if(idle){
-        const safeIdle=idle.clone();
-        safeIdle.tracks=safeIdle.tracks.filter(track=>!(/\.(position|scale)$/.test(track.name)));
-        this.usherIdle=mixer.clipAction(safeIdle);this.usherIdle.play();
+        this.usherIdle=mixer.clipAction(idle);
+        this.usherIdle.play();
+        mixer.setTime(0);
+        this.usherIdle.paused=true;
         this.usherWalk=this.usherIdle;
+        model.updateMatrixWorld(true);
+        const grounded=new THREE.Box3().setFromObject(model);
+        model.position.y-=grounded.min.y;
       }
       // Stable external anchor: animated root translation cannot drag the
       // feet under the theatre floor or pull the model apart from its path.
@@ -1538,19 +1564,9 @@ export class TheaterWorld{
     for(const {bone,delta} of this.usherGaitApplied)bone.quaternion.multiply(delta.clone().invert());
     this.usherGaitApplied.length=0;
     this.usherMixer?.update(dt);
-    this.usherStride+=dt*(this.usherWalking?7.1:1.1);
-    if(this.usherWalking){
-      for(const [index,bone] of this.usherLegBones.entries()){
-        const angle=Math.sin(this.usherStride+(index%2?Math.PI:0))*.17;
-        const delta=new THREE.Quaternion().setFromAxisAngle(this.usherGaitAxis,angle);
-        bone.quaternion.multiply(delta);this.usherGaitApplied.push({bone,delta});
-      }
-      for(const [index,bone] of this.usherArmBones.entries()){
-        const angle=Math.sin(this.usherStride+(index%2?0:Math.PI))*.075;
-        const delta=new THREE.Quaternion().setFromAxisAngle(this.usherGaitAxis,angle);
-        bone.quaternion.multiply(delta);this.usherGaitApplied.push({bone,delta});
-      }
-    }
+    // Deshabilitar rotaciones procedurales de cadera, muslo y tobillo.
+    // Eran las responsables de piernas dobladas y zapatos separados.
+    this.usherStride+=dt*(this.usherWalking?2:0.55);
     this.boxSpecterMixer?.update(dt);
     this.updateSpecterGaze();
     this.usherDirector?.update(dt,this.active&&!this.ended);
