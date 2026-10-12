@@ -78,7 +78,12 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
   // physical balcony and disappears when the player actually looks at it.
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.mechanics?.()?.boxFigure),{timeout:45000}).toBe(true);
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.mechanics?.()?.boxVisible),{timeout:10000}).toBe(true);
-  expect(await page.evaluate(()=>(window as any).__BELLADONNA_QA__?.viewFigure?.())).toBe(true);
+  // The PLAYER-facing button must focus the *physical* figure. QA camera
+  // injection alone could previously pass although nobody could find her.
+  const lookAtBox=page.getByRole("button",{name:/MIRAR PALCO 1/i});
+  await expect(lookAtBox).toBeVisible();
+  await lookAtBox.click();
+  await page.waitForTimeout(180);
   await page.screenshot({path:testInfo.outputPath("07-figura-palco-1.png")});
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.mechanics?.()?.boxSeen),{timeout:20000}).toBe(true);
   // Genuine cinematic surprise: silence, an appearance physically behind the
