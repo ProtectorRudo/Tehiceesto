@@ -50,6 +50,9 @@ export class TheaterWorld{
   private ray=new THREE.Raycaster();private targets:THREE.Object3D[]=[];
   private actionTarget:TheaterAction|null=null;
   private dragId:number|null=null;private pointerX=0;private pointerY=0;
+  private touchPointers=new Map<number,{x:number;y:number}>();
+  private pinchDistance=0;
+  private pinchInProgress=false;
   private pointerStartX=0;private pointerStartY=0;private pointerStartTime=0;
   private active=false;private ended=false;private elapsed=0;private startWallAt=0;private eventDone=false;
   private cleanupFns:Array<()=>void>=[];
@@ -193,6 +196,7 @@ export class TheaterWorld{
     }
   }
   setMove(x:number,y:number){this.move={x,y};}
+  getViewZoom(){return this.camera.fov;}
   activate(){if(this.actionTarget){this.events.onAction(this.actionTarget);return;}const closest=this.closestObject();if(closest)this.events.onAction(closest);}
   markLight(index:number){if(this.emitterLights[index])this.emitterLights[index].emissiveIntensity=1.9;this.cinema?.activateCircuit(index);}
   resetLights(){this.emitterLights.forEach(m=>m.emissiveIntensity=.16);this.cinema?.resetCircuits();}
@@ -1381,38 +1385,75 @@ export class TheaterWorld{
   }
   private setupControls(){
     const down=(e:PointerEvent)=>{
-      if(!this.active)return;
-      if((e.target as HTMLElement)!==this.canvas || this.dragId!==null)return;
+      if(!this.active||(e.target as HTMLElement)!==this.canvas)return;
+      if(e.pointerType==="touch"){
+        this.touchPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+        if(this.touchPointers.size===2){
+          const [first,second]=[...this.touchPointers.values()];
+          this.pinchDistance=Math.hypot(first.x-second.x,first.y-second.y);
+          this.pinchInProgress=true;
+          this.dragId=null;
+        }
+        this.canvas.setPointerCapture(e.pointerId);
+        if(this.touchPointers.size>1||this.pinchInProgress)return;
+      }
+      if(this.dragId!==null)return;
       this.dragId=e.pointerId;this.pointerX=e.clientX;this.pointerY=e.clientY;
       this.pointerStartX=e.clientX;this.pointerStartY=e.clientY;this.pointerStartTime=performance.now();
-      this.canvas.setPointerCapture(e.pointerId);
+      if(e.pointerType!=="touch")this.canvas.setPointerCapture(e.pointerId);
     };
-    const move=(e:PointerEvent)=>{if(this.dragId!==e.pointerId||!this.active)return;
+    const move=(e:PointerEvent)=>{
+      if(!this.active)return;
+      if(e.pointerType==="touch"&&this.touchPointers.has(e.pointerId)){
+        this.touchPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+        if(this.touchPointers.size>=2){
+          const [a,b]=[...this.touchPointers.values()];
+          const distance=Math.hypot(a.x-b.x,a.y-b.y);
+          if(this.pinchDistance>20&&distance>20){
+            // Separar los dedos reduce el campo visual: acercar.
+            // Juntarlos lo aumenta: alejar. Sin mover la cámara ni el jugador.
+            const nextFov=THREE.MathUtils.clamp(this.camera.fov*this.pinchDistance/distance,40,82);
+            if(Math.abs(nextFov-this.camera.fov)>.01){
+              this.camera.fov=nextFov;
+              this.camera.updateProjectionMatrix();
+            }
+          }
+          this.pinchDistance=distance;
+          return;
+        }
+        if(this.pinchInProgress)return;
+      }
+      if(this.dragId!==e.pointerId)return;
       const scale=matchMedia("(pointer:coarse)").matches?.004:.003;
       this.yaw-=(e.clientX-this.pointerX)*scale;this.pitch-=(e.clientY-this.pointerY)*scale;
       this.pitch=THREE.MathUtils.clamp(this.pitch,-1.08,1.02);
       this.pointerX=e.clientX;this.pointerY=e.clientY;
     };
     const up=(e:PointerEvent)=>{
+      if(e.pointerType==="touch"&&this.touchPointers.has(e.pointerId)){
+        this.touchPointers.delete(e.pointerId);
+        if(this.pinchInProgress){
+          if(this.touchPointers.size===0){
+            this.pinchInProgress=false;this.pinchDistance=0;
+          }
+          this.dragId=null;
+          return; // Soltar los dedos nunca activa objetos del mundo.
+        }
+      }
       if(e.pointerId!==this.dragId)return;
       this.dragId=null;
       const drag=Math.hypot(e.clientX-this.pointerStartX,e.clientY-this.pointerStartY);
       if(e.type==="pointerup"&&this.active&&drag<13&&performance.now()-this.pointerStartTime<550){
-        // Directly touch the actual 3D furniture/machine, not just a floating popup.
+        // Directly touch the actual 3D furniture/machine, not a popup.
         const rect=this.canvas.getBoundingClientRect();
         const x=(e.clientX-rect.left)/rect.width*2-1;
         const y=-((e.clientY-rect.top)/rect.height*2-1);
         this.ray.setFromCamera(new THREE.Vector2(x,y),this.camera);
-        // Large-touch target uses each genuine 3D button's projected position,
-        // only at arm's reach, and never substitutes a detached UI overlay.
         if(this.phase==="luces"&&this.fuseInstalled&&
            this.tryCircuitFingerTouch(e.clientX,e.clientY,rect)){
           if(navigator.vibrate)navigator.vibrate(18);
           return;
         }
-        // Las ruedas son superficies pequeñas dentro del cuerpo interactivo
-        // de la máquina. Detectar el centro proyectado de cada rueda ANTES
-        // del pedestal y del GLB, para que el toque físico no se pierda.
         if(this.phase==="proyector"&&
            this.tryProjectorWheelTouch(e.clientX,e.clientY,rect)){
           if(navigator.vibrate)navigator.vibrate(18);
