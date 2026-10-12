@@ -20,6 +20,7 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
   await page.screenshot({path:testInfo.outputPath("01b-carta-mision.png")});
   await letter.getByRole("button",{name:/ENTENDÍ MI MISIÓN/i}).click();
   await expectPhase(page,"inicio");
+  await expect(page.locator(".timer")).toContainText("7:");
   // No basta con que compile: el humano skinned debe cargar y disponer de ambas animaciones.
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.character?.()),{timeout:45000}).toEqual({
     human:true,idle:true,walk:true
@@ -100,6 +101,8 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
   // the reel must be found, installed and the lens calibrated.
   await action(page,"proyector");await expectPhase(page,"proyector");
   await action(page,"bobina");
+  await expect(page.getByRole("status",{name:"Pista para el siguiente paso"}))
+    .toContainText("Buscá el proyector");
   // El cuerpo de la máquina cubre el eje pequeño en pantallas móviles.
   // Pulsar el proyector con la bobina recogida debe encastrarla.
   await action(page,"proyector");
