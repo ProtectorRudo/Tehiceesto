@@ -36,5 +36,29 @@ test("La Última Función abre, activa controles y muestra pistas",async({page},
   await expect(page.getByText(/Alguien dejó una entrada reservada/)).toBeVisible();
   await page.getByRole("button",{name:/VOLVER A LA FUNCIÓN/i}).click();
   await page.screenshot({path:testInfo.outputPath("02-teatro.png")});
+  // Android real browser touch events: separate fingers to zoom in,
+  // bring them together to zoom back out, never triggering 3D taps.
+  if(testInfo.project.name==="Android vertical"){
+    const canvas=page.locator(".three-canvas");
+    const rect=await canvas.boundingBox();
+    expect(rect).not.toBeNull();
+    const x=rect!.x+rect!.width*.5,y=rect!.y+rect!.height*.57;
+    const initial=await page.evaluate(()=>(window as any).__BELLADONNA_QA__?.zoom?.());
+    expect(initial).toBeGreaterThanOrEqual(70);
+    const cdp=await page.context().newCDPSession(page);
+    await cdp.send("Input.dispatchTouchEvent",{type:"touchStart",touchPoints:[
+      {x:x-34,y,id:101},{x:x+34,y,id:102}
+    ]});
+    await cdp.send("Input.dispatchTouchEvent",{type:"touchMove",touchPoints:[
+      {x:x-77,y,id:101},{x:x+77,y,id:102}
+    ]});
+    await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.zoom?.())).toBeLessThan(initial-5);
+    await cdp.send("Input.dispatchTouchEvent",{type:"touchMove",touchPoints:[
+      {x:x-22,y,id:101},{x:x+22,y,id:102}
+    ]});
+    await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.zoom?.())).toBeGreaterThan(initial-5);
+    await cdp.send("Input.dispatchTouchEvent",{type:"touchEnd",touchPoints:[]});
+    await cdp.detach();
+  }
   expect(failures).toEqual([]);
 });
