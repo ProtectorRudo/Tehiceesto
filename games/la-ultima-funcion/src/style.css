@@ -310,3 +310,26 @@
 .projector-test-hud.accepted{border-color:#3ce1a1;color:#d7ffe5;background:#12402c}
 .projector-test-hud.accepted span{color:#52fbb7;text-shadow:0 0 15px #5fffb6}
 @media(max-width:750px){.projector-test-hud{bottom:225px;padding:12px 14px;font-size:10px}}
+
+
+/* Secuencia de pistas contextuales, sin bloquear la exploración táctil. */
+.milestone-card{position:absolute;z-index:6;left:50%;top:34%;
+ transform:translateX(-50%);width:min(88vw,420px);padding:16px 20px;
+ background:linear-gradient(145deg,rgba(42,27,29,.97),rgba(16,12,18,.96));
+ border:1px solid #d4ab74;border-top:3px solid #e5bd85;
+ box-shadow:0 14px 55px #000d,0 0 25px rgba(184,118,63,.13);
+ text-align:center;pointer-events:auto;animation:milestone-appear .35s ease-out}
+.milestone-overline{display:block;letter-spacing:2.4px;font-size:9px;color:#e4bc85;margin-bottom:7px}
+.milestone-overline span{margin-left:6px}
+.milestone-card strong{font:600 27px/1 "Cormorant Garamond",Georgia,serif;color:#fff1dc}
+.milestone-card p{font:17px/1.3 "Cormorant Garamond",Georgia,serif;color:#efdfc8;margin:10px 0}
+.milestone-card p b{font:700 9px "DM Sans",sans-serif;letter-spacing:1px;color:#ecbd82;margin-right:5px}
+.milestone-card button{font-size:10px;letter-spacing:1.5px;background:transparent;
+ color:#e3bc87;border:1px solid #916e50;padding:8px 16px;margin-top:2px}
+.milestone-recall{position:absolute;top:calc(32% + 3px);left:50%;transform:translateX(-50%);
+ z-index:5;color:#e8c79d;background:rgba(18,11,15,.8);border:1px solid #a47d50;
+ padding:8px 13px;font-size:9px;letter-spacing:.9px;pointer-events:auto}
+@keyframes milestone-appear{from{opacity:0;transform:translate(-50%,-9px)}to{opacity:1;transform:translate(-50%,0)}}
+@media(max-width:750px){.milestone-card{top:35%;width:min(89vw,360px);padding:13px 15px}
+ .milestone-card strong{font-size:24px}.milestone-card p{font-size:17px}
+ .milestone-recall{top:33%}}
