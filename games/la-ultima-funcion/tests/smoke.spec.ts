@@ -16,7 +16,7 @@ test("La Última Función abre, activa controles y muestra pistas",async({page},
   await expect(letter).toContainText("Ochenta y tres espectadores desaparecieron");
   await expect(letter).toContainText("FILA 3");
   await expect(letter).toContainText("ASIENTO 8");
-   await expect(letter).toContainText("5 MINUTOS · 1 MINUTO EXTRA");
+   await expect(letter).toContainText("7 MINUTOS · 1 MINUTO EXTRA");
   await expect(page.locator(".mission-title")).toHaveCount(0);
   await page.waitForTimeout(900);
   await expect(page.locator(".timer")).toHaveCount(0);
