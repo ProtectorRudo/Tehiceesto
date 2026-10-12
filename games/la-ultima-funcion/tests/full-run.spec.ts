@@ -57,6 +57,12 @@ test("recorrido completo: butaca, iluminación, proyector y gran revelación",as
   await action(page,"fusible");await expectPhase(page,"luces");
   await action(page,"portafusible");
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.mechanics?.()?.fuseInstalled)).toBe(true);
+  // The clue must already be present on the current contextual card.
+  // No separate programme or hint button may be required.
+  const lightsGuide=page.getByRole("region",{name:"Pista para el siguiente paso"});
+  await expect(lightsGuide).toBeVisible();
+  await expect(lightsGuide).toContainText("Primero desaparece el último resplandor del día");
+  await expect(lightsGuide).toContainText("Después llega el frío de la noche");
   // La secuencia errónea debe bloquear la progresión.
   await action(page,"azul");await expectPhase(page,"luces");
   await expect.poll(()=>page.evaluate(()=>(window as any).__BELLADONNA_QA__?.mechanics?.()))
