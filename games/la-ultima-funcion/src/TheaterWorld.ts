@@ -122,6 +122,11 @@ export class TheaterWorld{
   private velvetReady=false;
   private seatNumberMeshes:THREE.InstancedMesh[]=[];
   private usherIdle?:THREE.AnimationAction;private usherWalk?:THREE.AnimationAction;private usherWalking=false;
+  private usherStride=0;
+  private usherLegBones:THREE.Bone[]=[];
+  private usherArmBones:THREE.Bone[]=[];
+  private usherGaitApplied:Array<{bone:THREE.Bone,delta:THREE.Quaternion}>=[];
+  private usherGaitAxis=new THREE.Vector3(1,0,0);
   private watchers:THREE.Group[]=[];
   private privateBoxes:THREE.Group[]=[];
   private dust?:THREE.Points;
@@ -1208,13 +1213,14 @@ export class TheaterWorld{
       }});
       const mixer=new THREE.AnimationMixer(model);
       const idle=gltf.animations.find(a=>/idle/i.test(a.name))||gltf.animations[0];
-      const walk=gltf.animations.find(a=>/relaxed.*walk|walk.*relaxed|walk/i.test(a.name))||gltf.animations[1];
-      if(idle){this.usherIdle=mixer.clipAction(idle);this.usherIdle.play();}
-      if(walk&&walk!==idle){
-        this.usherWalk=mixer.clipAction(walk);
-        this.usherWalk.setLoop(THREE.LoopRepeat,Infinity);
-        this.usherWalk.setEffectiveWeight(0);
-        this.usherWalk.play();
+      // Animación de caminata original provocaba torsión extrema y separación
+      // de zapatos. Conservamos el rig nativo sin traslación de cadera/escala:
+      // caminar se resuelve con huesos de extremidades acotados.
+      if(idle){
+        const safeIdle=idle.clone();
+        safeIdle.tracks=safeIdle.tracks.filter(track=>!(/\.(position|scale)$/.test(track.name)));
+        this.usherIdle=mixer.clipAction(safeIdle);this.usherIdle.play();
+        this.usherWalk=this.usherIdle;
       }
       // Stable external anchor: animated root translation cannot drag the
       // feet under the theatre floor or pull the model apart from its path.
@@ -1223,6 +1229,13 @@ export class TheaterWorld{
       this.usher.clear();this.usher.add(rigAnchor);this.usherRigAnchor=rigAnchor;this.usherMixer=mixer;
       this.usherDirector?.dispose();
       this.usherDirector=new UsherDirector(this.usher,model,this.camera);
+      this.usherLegBones=[];this.usherArmBones=[];
+      model.traverse(node=>{
+        if(!(node instanceof THREE.Bone))return;
+        const id=node.name.toLowerCase();
+        if(/(thigh|upper.?leg|upleg)/.test(id))this.usherLegBones.push(node);
+        if(/(upper.?arm|shoulder)/.test(id))this.usherArmBones.push(node);
+      });
       // A genuinely animated second figure inhabits the physical upper box.
       // Reuse loaded GLB buffers; the ghost has a separate skeleton and mixer.
       if(this.privateBoxes[0]){
@@ -1418,12 +1431,7 @@ export class TheaterWorld{
         this.boxSpecterCue&&this.boxSpecterVisible&&(this.boxGazeSeconds+=.04);
       }
       const actorMoving=this.warningStage!=="apparition" && this.warningStage!=="silence" && this.usher.position.distanceToSquared(this.usherGoal)>.06;
-      if(this.usherIdle&&this.usherWalk&&this.usherWalking!==actorMoving){
-        const previous=this.usherWalking?this.usherWalk:this.usherIdle;
-        const next=actorMoving?this.usherWalk:this.usherIdle;
-        next.reset().play();previous.crossFadeTo(next,.34,false);
-        this.usherWalking=actorMoving;
-      }
+      this.usherWalking=actorMoving;
       if(actorMoving){
         const distance=this.usher.position.distanceTo(this.usherGoal);
         // Fixed world-space stride (m/s) instead of an exponential lerp that
@@ -1487,11 +1495,28 @@ export class TheaterWorld{
     if(this.warningFlash>0){this.warningFlash=Math.max(0,this.warningFlash-dt);this.renderer.toneMappingExposure=1.32+this.warningFlash*2.4;}
     else if(this.renderer.toneMappingExposure!==1.32)this.renderer.toneMappingExposure=1.32;
     this.usherDirector?.beforeAnimation();
+    // Quitar offsets del último fotograma antes de mezclar la postura base.
+    for(const {bone,delta} of this.usherGaitApplied)bone.quaternion.multiply(delta.clone().invert());
+    this.usherGaitApplied.length=0;
     this.usherMixer?.update(dt);
+    this.usherStride+=dt*(this.usherWalking?7.1:1.1);
+    if(this.usherWalking){
+      for(const [index,bone] of this.usherLegBones.entries()){
+        const angle=Math.sin(this.usherStride+(index%2?Math.PI:0))*.17;
+        const delta=new THREE.Quaternion().setFromAxisAngle(this.usherGaitAxis,angle);
+        bone.quaternion.multiply(delta);this.usherGaitApplied.push({bone,delta});
+      }
+      for(const [index,bone] of this.usherArmBones.entries()){
+        const angle=Math.sin(this.usherStride+(index%2?0:Math.PI))*.075;
+        const delta=new THREE.Quaternion().setFromAxisAngle(this.usherGaitAxis,angle);
+        bone.quaternion.multiply(delta);this.usherGaitApplied.push({bone,delta});
+      }
+    }
     this.boxSpecterMixer?.update(dt);
     this.updateSpecterGaze();
     this.usherDirector?.update(dt,this.active&&!this.ended);
-    this.usherDirector?.correctFootContact(dt);
+    // Mantener el anclaje vertical inicial: las correcciones basadas en tobillos
+    // animados causaban saltos bruscos y hundimientos de los pies.
     this.decorMixers.forEach(m=>m.update(dt));
     if(this.dust)this.dust.rotation.y=Math.sin(this.clockTime*.1)*.007;
     this.watchers.forEach((w,i)=>{w.rotation.y=Math.sin(this.clockTime*.45+i)*.12;});
