@@ -442,7 +442,7 @@ function App(){
         <button onClick={()=>setMilestoneVisible(false)} aria-label="Cerrar pista">CONTINUAR ↗</button>
       </aside>}
       {milestone&&!milestoneVisible&&!timedOut&&!finished&&<button className="milestone-recall"
-        onClick={()=>setMilestoneVisible(true)}>¿PRÓXIMO PASO? <span aria-hidden="true">↗</span></button>
+        onClick={()=>setMilestoneVisible(true)}>¿PRÓXIMO PASO? <span aria-hidden="true">↗</span></button>}
       <div className="crosshair" aria-hidden="true"><i/><i/></div>
       {hauntingCaption&&<div className="haunting-caption" role="status">{hauntingCaption}</div>}
       {phase==="proyector"&&!timedOut&&projectorTest!=="correct"&&
