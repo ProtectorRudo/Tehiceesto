@@ -77,6 +77,7 @@ export class TheaterWorld{
     new THREE.Vector3(-7.5,0,6)
   ];
   private readonly spectralYawQuaternion=new THREE.Quaternion();
+  private readonly spectralYawLastDelta=new THREE.Quaternion();
   private readonly spectralYawAxis=new THREE.Vector3(0,1,0);
   private boxGazeSeconds=0;
   private boxSeenAt=-1;
@@ -623,8 +624,11 @@ export class TheaterWorld{
     if(!head||!figure||!figure.visible)return;
     const playerLocal=figure.worldToLocal(this.camera.position.clone());
     const headYaw=THREE.MathUtils.clamp(Math.atan2(playerLocal.x,-playerLocal.z),-.48,.48);
+    // Evitar sumar el giro cada fotograma: antes la cabeza terminaba torciéndose.
+    head.quaternion.multiply(this.spectralYawLastDelta.clone().invert());
     this.spectralYawQuaternion.setFromAxisAngle(this.spectralYawAxis,headYaw*.73);
     head.quaternion.multiply(this.spectralYawQuaternion);
+    this.spectralYawLastDelta.copy(this.spectralYawQuaternion);
   }
   private buildPrivateBoxes(){
     // Before, upper rails and silhouettes suggested a balcony but there was
