@@ -9,7 +9,7 @@ import './ui/style.css';
 type Invitation = {recipient:string;sender:string;question:string;message:string;date:string;place:string;replyPhone:string;voiceUrl:string};
 type Modal='intro'|'clock'|'gramophone'|'code'|'letter'|'final'|'timeout'|'accepted'|null;
 const copy=[
-  {title:'El reloj detenido',hints:['En el escritorio hay una llave y un verso. Mirá también los rincones del invernadero.','Buscá el sol de cobre y el estanque. La hora sigue los rayos; los minutos son diez por cada onda.','El sol tiene ocho rayos y el agua cuatro ondas: ajustá el reloj a las 08:40.'],task:'Encontrá la llave y descifrá la hora observando el invernadero.'},
+  {title:'El reloj detenido',hints:['El reloj se detuvo por una razón. Investigá con calma los objetos cercanos y lo que cuenta el invernadero.','El mecanismo necesita una llave. En la zona de trabajo hay algo que podría ayudarte; observá bien las superficies.','Sobre el escritorio hay una llave de bronce. El sol tiene ocho rayos y el agua cuatro ondas: ajustá el reloj a las 08:40.'],task:'Investigá cómo poner en marcha el reloj detenido.'},
   {title:'La melodía escondida',hints:['Volvé al escritorio: el cuaderno guarda un verso sobre la tormenta.','La canción no pertenece al fuego del atardecer ni al brillo del oro. Pensá en el cielo después de llover.','Es el disco azul. Colocalo en la vitrola.'],task:'Interpretá el cuaderno para elegir una de las tres melodías.'},
   {title:'El cajón cerrado',hints:['Mirá los tres cuadros y los símbolos grabados en el candado.','Los símbolos del candado indican el orden. Contá las figuras de cada cuadro: no busques números escritos.','Dos lunas, siete estrellas y cuatro flores. El código es 274.'],task:'Contá las figuras de los cuadros para abrir el candado.'},
   {title:'El orden secreto',hints:['La carta contiene una historia que se relaciona con los tres libros destacados.','Pensá en el ciclo de una flor: primero nace, después llega el agua y finalmente cae la noche.','Tocá FLOR, luego LLUVIA y por último LUNA.'],task:'Descifrá el ciclo que narra la carta y activá los libros.'},
@@ -75,13 +75,13 @@ export default function App(){
       return;
     }
     if(what==='desk'){
-      if(stage===0)toast('La nota dice: «La hora sigue al sol; el agua marca diez por cada onda». La llave está en algún lugar sobre el escritorio.');
+      if(stage===0)toast('La nota dice: «La hora sigue al sol; el agua marca diez por cada onda».');
       else toast('El cuaderno: «Ni el fuego del ocaso ni el brillo del oro. Cuando la lluvia se va, el cielo devuelve la melodía».');
       return;
     }
-    if(what==='sundial'){toast('El sol de cobre tiene OCHO rayos grabados alrededor de su centro.');return;}
-    if(what==='waterBasin'){toast('En la fuente hay CUATRO ondas concéntricas; una inscripción dice: «Cada onda vale diez minutos».');return;}
-    if(what==='clock') {if(stage===0){if(!progressRef.current.keyFound){toast('Al reloj le falta una pequeña llave de bronce. Buscala físicamente sobre el escritorio.');return;}setModal('clock');}else toast('El reloj vuelve a caminar, como si nada hubiera ocurrido.');return;}
+    if(what==='sundial'){toast('El sol de cobre tiene ocho rayos grabados alrededor de su centro.');return;}
+    if(what==='waterBasin'){toast('En la fuente hay cuatro ondas concéntricas; una inscripción dice: «Cada onda vale diez minutos».');return;}
+    if(what==='clock') {if(stage===0){if(!progressRef.current.keyFound){toast('Al mecanismo del reloj le falta una pieza. Investigá la sala.');return;}setModal('clock');}else toast('El reloj vuelve a caminar, como si nada hubiera ocurrido.');return;}
     if(what==='gramophone') {if(stage===1){if(sub&&['azul','rojo','oro'].includes(sub)){const result=update({type:'RECORD',record:sub});if(result.success)setModal(null);}else setModal('gramophone')}else toast('Todavía no es momento de escuchar esa música.');return;}
     if(what==='painting'){toast(`Contás ${sub==='LUNA'?'dos lunas':sub==='ESTRELLAS'?'siete estrellas':'cuatro flores'} en el cuadro. El candado indica el orden.`);return;}
     if(what==='cabinet') {if(stage===2)setModal('code');else if(stage<2)toast('El cajón está trabado. Se oye un mecanismo musical en su interior.');else setModal('letter');return;}
@@ -179,7 +179,8 @@ export default function App(){
     setShowHelp(false);setStarted(true);setModal(null);void audio.current?.start();
     // A fresh page is always a fresh game: progress cannot outlive either clock.
     explorationClock.current.start(performance.now(),540000);setExplorationRemaining(540000);
-    toast('Buscá una llave de bronce sobre el escritorio. Acercate y tocala para recogerla.');
+    // No pista automática: el jugador debe descubrir los objetos por sí mismo.
+    setNotification('');
   };
   const resetAll=()=>{window.location.reload()};
   const retry=()=>{setShowHelp(false);const result=update({type:'RESET_RUSH'});if(result.success){rushClock.current.start(performance.now());startedRush.current=true;lastTick.current=-1;lastHint.current=false;setRemaining(120000);setModal(null);audio.current?.playRush();}};

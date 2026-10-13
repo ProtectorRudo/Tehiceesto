@@ -69,3 +69,10 @@ No se guarda el progreso de la partida en `localStorage`. Se elimina la clave ob
 - Ayudas: tres niveles por acertijo; solo el tercero revela la solución, si se solicita.
 - Temporizador: 9 min de exploración orientativa + 2 min de desafío final con reintento del tramo final.
 - Las 20 pruebas de lógica, controles, estado y pistas pasan localmente; pendiente compilación completa con dependencias, revisión visual móvil y comprobación de una partida real antes de promover esta versión.
+
+## V8: descubrimiento sin spoilers
+
+- El inicio no muestra ninguna notificación que indique dónde buscar la llave; el objetivo inicial tampoco la revela.
+- Examinar el escritorio y el reloj no identifica automáticamente la ubicación de la llave.
+- La ubicación exacta se revela únicamente al solicitar voluntariamente la pista de nivel 3.
+- Los mensajes del sol y la fuente escriben «ocho» y «cuatro» en minúsculas.
