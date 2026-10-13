@@ -81,3 +81,14 @@ No se guarda el progreso de la partida en `localStorage`. Se elimina la clave ob
 El jugador debe **encontrar una pequeña llave de bronce** sin recibir su ubicación. El temporizador de exploración (9 minutos) presenta avisos narrativos cuando restan 6, 3, 1 y 0 minutos, sin bloquear al jugador ni revelar soluciones. En el tramo final (2 minutos) hay un aviso inicial y señales a 1:30, 1:00, 0:30 y 0:10; una banda separada evita interferir con los controles o las pistas. Los pétalos se desprenden, las flores bajan y se desaturan y las hojas de las macetas pierden color de forma gradual. Si consigue resolver el jardín, la floración recupera su aspecto. Al repetir el desafío final, el deterioro vuelve a empezar desde su punto inicial. La música y campanadas acompañan los avisos.
 
 **Nota:** si el tiempo de exploración llega a cero, los acertijos siguen siendo resolubles; los dos minutos finales son el verdadero límite. Las pistas voluntarias siguen separadas de los avisos narrativos.
+
+## V10 · Renovación visual del invernadero
+
+- Nuevo activo **GLB original** `public/models/heritage-rose-planter.glb`, generado por `make-botanical-models.py`, sin dependencia de modelos externos. Rosas con pétalos curvos, hojas con nervadura y maceta cerámica; 9 grupos de mallas/materiales compartidos por 12 ejemplares de la sala. Carga progresiva con plantines de reemplazo mientras no llega el GLB.
+- Techo de vidrio a **dos aguas** calculado geométricamente, con cumbrera, ejes metálicos, juntas y remates ornamentales.
+- Jardín con flores de siete pétalos 3D, en vez de esferas, manteniendo `InstancedMesh` para móvil; la secuencia de marchitamiento sigue funcional.
+- Nuevos detalles de ebanistería en el escritorio, carátula romana en el reloj, surcos del disco en la vitrola, falda de tela de la mesa, ramo floral y arco para la revelación romántica.
+- Sombras de contacto suaves, luz diurna más equilibrada y atenuación progresiva de colores de las jardineras durante la cuenta regresiva.
+- No se modifica la lógica de acertijos, controles, textos de inicio, duración, ayudas ni reinicios.
+
+**Falta antes de certificar calidad comercial:** auditoría de capturas Android/iPhone y escritorio, revisión visual de cada mecanismo, medir FPS en dispositivos de gama media y reemplazar/revisar otros objetos aún procedurales. No confundir una compilación READY con la validación de estas pruebas visuales.

@@ -42,6 +42,8 @@ export class World {
   private flowerStems?:THREE.InstancedMesh;
   private readonly flowerInstances:{x:number,z:number,stemScale:number,headScale:number,flowerColor:number}[]=[];
   private botanicalLeaves?:THREE.InstancedMesh;
+  private botanicalMaterials:THREE.MeshStandardMaterial[]=[];
+  private botanicalBaseColors:THREE.Color[]=[];
   private plantBaseColors:number[]=[];
   private wilt=0;
   private lastWilt=-1;
@@ -78,14 +80,14 @@ export class World {
     this.renderer=new THREE.WebGLRenderer({canvas, antialias:!this.mobile, powerPreference:'high-performance', alpha:false, stencil:false});
     this.renderer.outputColorSpace=THREE.SRGBColorSpace;
     this.renderer.toneMapping=THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure=1.35;
+    this.renderer.toneMappingExposure=1.24;
     this.renderer.shadowMap.enabled=true;
     this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
     this.maxDpr=Math.min(window.devicePixelRatio,this.mobile?1.4:1.8);
     this.qualityDpr=this.maxDpr;
     this.renderer.setPixelRatio(this.qualityDpr);
-    this.scene.background=new THREE.Color(0xc8e5ed);
-    this.scene.fog=new THREE.FogExp2(0xcbe0d2,.010);
+    this.scene.background=new THREE.Color(0xd8eaf0);
+    this.scene.fog=new THREE.FogExp2(0xd1e5dd,.007);
     this.camera.position.set(0,1.63,5.5);
     this.setupLight(); this.createStudy(); this.createGarden(); this.createExteriorLandscape(); this.placeAssets();
     this.boundPointerDown=this.onPointerDown.bind(this);this.boundPointerMove=this.onPointerMove.bind(this);this.boundPointerUp=this.onPointerUp.bind(this);
@@ -104,8 +106,8 @@ export class World {
 
   private setupLight(){
     // A genuine daylight key replaces high-intensity sepia fixtures and the dark interior.
-    this.scene.add(new THREE.HemisphereLight(0xe8f7ff,0x8f9e75,2.35));
-    const sun=new THREE.DirectionalLight(0xfff3d9,3.25);
+    this.scene.add(new THREE.HemisphereLight(0xe3f5ff,0x9da98c,1.70));
+    const sun=new THREE.DirectionalLight(0xfff4df,2.75);
     sun.position.set(-7,15,5);sun.castShadow=true;
     sun.shadow.mapSize.set(this.mobile?1024:2048,this.mobile?1024:2048);
     sun.shadow.camera.left=-20;sun.shadow.camera.right=20;sun.shadow.camera.top=20;sun.shadow.camera.bottom=-20;
@@ -139,6 +141,45 @@ export class World {
   private hotspot(parent:THREE.Object3D,part:Interactive,x:number,y:number,z:number,w:number,h:number,d:number,sub?:string){
     const obj=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));
     obj.position.set(x,y,z);obj.userData.action=part;obj.userData.part=sub;parent.add(obj);this.interactive.push(obj);return obj;
+  }
+  /** Small, shared, sculpted floral geometry instead of spherical placeholders. */
+  private createBloomGeometry(){
+    const vertices:number[]=[],normals:number[]=[],indices:number[]=[];
+    const petals=7, rows=5,cols=5;
+    for(let j=0;j<petals;j++){
+      const angle=j*Math.PI*2/petals, start=vertices.length/3;
+      for(let r=0;r<=rows;r++){
+        const t=r/rows;
+        for(let col=0;col<=cols;col++){
+          const u=col/cols*2-1;
+          const spread=.48*u*(.5+.65*t);
+          const theta=angle+spread;
+          const radius=.036+(.17*t)*(1-.17*u*u);
+          const y=.055+.085*Math.sin(t*Math.PI*.82)-.035*t*t+.015*(1-u*u);
+          vertices.push(Math.cos(theta)*radius,y,Math.sin(theta)*radius);
+          normals.push(Math.cos(theta)*.26,.86,Math.sin(theta)*.26);
+        }
+      }
+      for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+        const a=start+r*(cols+1)+c,b=a+cols+1;
+        indices.push(a,b,a+1,a+1,b,b+1,a+1,b,a,b+1,b,a+1);
+      }
+    }
+    const geo=new THREE.BufferGeometry();
+    geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+    geo.setAttribute('normal',new THREE.Float32BufferAttribute(normals,3));
+    geo.setIndex(indices);geo.computeBoundingSphere();
+    return geo;
+  }
+  private contactShadow(x:number,z:number,rx:number,rz:number,opacity=.24){
+    const canvas=document.createElement('canvas');canvas.width=128;canvas.height=128;
+    const ctx=canvas.getContext('2d')!;
+    const gr=ctx.createRadialGradient(64,64,4,64,64,63);
+    gr.addColorStop(0,'rgba(43,54,46,0.46)');gr.addColorStop(.45,'rgba(58,62,46,0.18)');gr.addColorStop(1,'rgba(55,65,47,0)');
+    ctx.fillStyle=gr;ctx.fillRect(0,0,128,128);
+    const texture=new THREE.CanvasTexture(canvas);
+    const surface=this.mesh(new THREE.PlaneGeometry(rx*2,rz*2),new THREE.MeshBasicMaterial({map:texture,transparent:true,depthWrite:false,opacity,polygonOffset:true,polygonOffsetFactor:-1}),this.scene,[x,.055,z],false);
+    surface.rotation.x=-Math.PI/2;
   }
   private woodFloor(x:number,z:number,w:number,d:number){
     // Large pale limestone pavers with subtly irregular mineral veining.
@@ -201,64 +242,82 @@ export class World {
     this.createWindow(6.8,-6.75,2.8,3.1);
   }
   private createGreenhouseRoof(){
-    const frame=mat(0xe0e8d9,.47,.16);
-    const glass=new THREE.MeshPhysicalMaterial({color:0xd8f5f4,transparent:true,opacity:.10,depthWrite:false,side:THREE.DoubleSide,roughness:.17,metalness:0});
-    // The A-frame roof makes a bright skylight rather than the previous solid dark ceiling.
+    // True pitched glass roof: eaves at 5.05 m, ridge at 7.15 m.
+    // Unlike the earlier horizontal glass sheet, these panes actually tilt.
+    const frame=mat(0xdde4d7,.47,.35),highlight=mat(0xc6c8b5,.39,.45);
+    const glazing=new THREE.MeshPhysicalMaterial({color:0xc4e5ec,roughness:.12,metalness:0,transparent:true,opacity:.10,side:THREE.DoubleSide,depthWrite:false});
+    const yEave=5.06,yPeak=7.15,zA=-7.35,zB=8.35;
     for(const side of [-1,1]){
-      const roof=this.mesh(new THREE.PlaneGeometry(9.35,16.3),glass,this.scene,[side*4.45,5.95,.45],false);
-      roof.rotation.x=-Math.PI/2;roof.rotation.y=side*.21;
-      for(let z=-7;z<=8.1;z+=2.55){
-        const beam=this.block(this.scene,8.95,.1,.1,side*4.45,5.96,z,frame,0);
-        beam.rotation.z=-side*.21;
+      const vertices=[0,yPeak,zA,side*9.05,yEave,zA,0,yPeak,zB,side*9.05,yEave,zB];
+      const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+      geometry.setIndex([0,1,2,1,3,2]);geometry.computeVertexNormals();
+      this.mesh(geometry,glazing,this.scene,[0,0,0],false);
+      for(const z of [zA,-5.2,-2.8,-.4,2,4.4,6.8,zB]){
+        const beam=this.block(this.scene,9.35,.095,.09,side*4.50,6.105,z,frame,0);
+        beam.rotation.z=-side*Math.atan2(yPeak-yEave,9.05);
+      }
+      for(const x of [3.0,6.0,9.0]){
+        const rail=this.block(this.scene,.07,.09,15.7,side*x,yPeak-(yPeak-yEave)*x/9.05,.50,frame,0);
+        rail.rotation.z=-side*.225;
       }
     }
-    this.block(this.scene,.16,.20,16.4,0,6.94,.45,frame,0);
-    for(let z=-7;z<=8;z+=3.8){
-      for(const side of [-1,1]){
-        const arch=this.block(this.scene,9,.09,.08,side*4.45,5.95,z,frame,0);
-        arch.rotation.z=-side*.21;
+    this.block(this.scene,.21,.18,15.9,0,yPeak,.50,highlight,0);
+    for(const side of [-1,1])this.block(this.scene,.18,.13,15.9,side*9.05,yEave,.50,highlight,0);
+    // Curved gable ribs produce the recognisable premium conservatory silhouette.
+    for(const z of [-7.30,8.25]){
+      const arch=new THREE.Mesh(new THREE.TorusGeometry(3.8,.065,7,40,Math.PI),highlight);
+      arch.position.set(0,4.94,z);arch.rotation.z=0;
+      arch.castShadow=false;this.scene.add(arch);
+      const jewel=this.sphere(this.scene,.12,0,7.26,z,mat(0xe7c9a0,.32,.45));jewel.castShadow=false;
+    }
+    // Non-interactive hanging filigree, slim framing and ornamental golden joints.
+    for(const z of [-5.2,-.4,4.4]){
+      for(const x of [-8.85,-5.8,5.8,8.85]){
+        const cap=this.sphere(this.scene,.075,x,5.01,z,mat(0xb8a889,.4,.55));cap.castShadow=false;
       }
     }
   }
   private createBotanicalDecor(){
-    const pots: Array<[number,number,number]> = [];
-    for(const z of [-5.4,-2.3,.4,3.2,5.5]){
-      pots.push([-7.7,z,.93],[7.7,z,.88]);
-    }
-    for(const x of [-7.6,-5.9,-2.4,2.4,5.9,7.6])pots.push([x,-6.55,.77]);
-    for(const x of [-7.4,7.4])pots.push([x,6.2,1.0]);
-    const foliage=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.85,side:THREE.DoubleSide,vertexColors:false});
-    // Folded, tapered leaves have a midrib and 3-D silhouette; shared instanced geometry.
-    const verts=new Float32Array([0,0,0,-.12,.28,0,0,.35,.09, 0,0,0,0,.35,.09,.12,.28,0, -.12,.28,0,-.09,.70,-.03,0,.35,.09, 0,.35,.09,-.09,.70,-.03,0,.91,0, 0,.35,.09,0,.91,0,.09,.70,-.03, 0,.35,.09,.09,.70,-.03,.12,.28,0]);
-    const leafGeo=new THREE.BufferGeometry();leafGeo.setAttribute('position',new THREE.BufferAttribute(verts,3));leafGeo.computeVertexNormals();
-    const inst=new THREE.InstancedMesh(leafGeo,foliage,pots.length*18);
-    this.botanicalLeaves=inst;
-    inst.castShadow=false;inst.receiveShadow=false;const dummy=new THREE.Object3D();
-    let n=0;
-    const potMaterial=mat(0xe2d5bb,.91);
-    const lip=mat(0xf2e5cf,.76);
-    for(const [px,pz,scale] of pots){
-      this.cylinder(this.scene,.40*scale,.65*scale,px,.34*scale,pz,potMaterial,18);
-      this.cylinder(this.scene,.44*scale,.1*scale,px,.67*scale,pz,lip,18);
-      this.cylinder(this.scene,.37*scale,.03,px,.72*scale,pz,mat(0x4d6143),18);
-      for(let j=0;j<18;j++){
-        const angle=(j/18)*Math.PI*2,off=j%3;
-        dummy.position.set(px+Math.sin(angle)*.065*scale,.72*scale,pz+Math.cos(angle)*.065*scale);
-        dummy.rotation.set(.35+off*.20,angle+.55,Math.sin(angle*1.1)*.40);
-        dummy.scale.setScalar(scale*(.6+seedRand()*.35));dummy.updateMatrix();inst.setMatrixAt(n,dummy.matrix);
-        const leafColor=[0x446f50,0x759a71,0x365f4d,0x97b081][n%4];
-        inst.setColorAt(n,new THREE.Color(leafColor));this.plantBaseColors.push(leafColor);n++;
+    // A licensed-original sculpted GLB planter, loaded once and reused with shared meshes.
+    // 12 botanic accents: visible from the first screen without obstructing clues.
+    const coordinates:Array<[number,number,number]>=[];
+    for(const z of [-5.1,-1.6,2.2,5.6])coordinates.push([-7.4,z,.9],[7.4,z,.85]);
+    for(const x of [-6.3,-3.3,3.3,6.3])coordinates.push([x,-6.4,.78]);
+    const provisional:THREE.Group[]=[];
+    for(const [x,z,scale] of coordinates){
+      const group=new THREE.Group();group.position.set(x,0,z);group.scale.setScalar(scale);this.scene.add(group);provisional.push(group);
+      const pottery=mat(0xd6c7ab,.75);
+      this.cylinder(group,.3,.55,0,.28,0,pottery,14);
+      this.cylinder(group,.31,.065,0,.55,0,pottery,14);
+      for(let i=0;i<5;i++){
+        const theta=i*Math.PI*2/5;
+        const leaf=this.mesh(new THREE.ConeGeometry(.13,.68,5),mat(0x558565,.85),group,[Math.sin(theta)*.17,.9,Math.cos(theta)*.17],false);
+        leaf.rotation.z=Math.sin(theta)*.46;leaf.rotation.x=Math.cos(theta)*.46;
       }
+      this.contactShadow(x,z,.60*scale,.58*scale,.35);
     }
-    inst.instanceMatrix.needsUpdate=true;this.scene.add(inst);
-    // Hanging clusters add a natural foreground in portrait mode.
-    for(const x of [-6.6,-3.2,3.2,6.6]){
-      for(let j=0;j<4;j++){
-        const y=4.58-j*.3,z=-4.1+seedRand()*8.3;
-        this.sphere(this.scene,.21+seedRand()*.12,x+(seedRand()-.5)*.5,y,z,mat(j%2?0x70976e:0x4c7757,.92));
-        if(j%2===0)this.sphere(this.scene,.09,x+.11,y+.04,z+.07,mat(0xd6aaba,.83));
-      }
-    }
+    const loader=new GLTFLoader();
+    loader.load('/models/heritage-rose-planter.glb',gltf=>{
+      if(this.disposed)return;
+      // Reuse just nine shared mesh materials across all 12 plants.
+      const seen=new Set<THREE.Material>();
+      gltf.scene.traverse(obj=>{
+        if(obj instanceof THREE.Mesh){
+          const mats=Array.isArray(obj.material)?obj.material:[obj.material];
+          mats.forEach(m=>{if(m instanceof THREE.MeshStandardMaterial&&!seen.has(m)){
+            seen.add(m);this.botanicalMaterials.push(m);this.botanicalBaseColors.push(m.color.clone());
+          }});
+        }
+      });
+      // Geometry+materials are shared via clone, not downloaded or duplicated 12 times.
+      coordinates.forEach(([x,z,scale],i)=>{
+        provisional[i].visible=false;
+        const plant=gltf.scene.clone(true);plant.position.set(x,0,z);
+        plant.rotation.y=i*.68;plant.scale.setScalar(scale*(.91+(i%3)*.075));
+        plant.traverse(obj=>{if(obj instanceof THREE.Mesh){obj.castShadow=false;obj.receiveShadow=true}});
+        this.scene.add(plant);
+      });
+    },undefined,()=>{/* Low-poly planters remain if mobile download is interrupted. */});
   }
   private createExteriorLandscape(){
     // Beyond the glass: light garden lawns and recognizable leafy silhouettes.
@@ -298,11 +357,22 @@ export class World {
     const g=new THREE.Group();g.position.set(-4.45,2.45,-6.64);this.scene.add(g);
     const housing=mat(0xa98c67,.57);this.block(g,1.55,2.3,.35,0,0,-.04,housing,.18);
     this.block(g,1.1,.2,.4,0,1.18,0,housing,.08);
+    this.block(g,1.65,.048,.41,0,1.31,0,brass,.013);
+    for(const x of [-.67,.67])this.cylinder(g,.075,1.65,x,-.13,.25,brass,14);
+    const ornament=new THREE.Mesh(new THREE.TorusGeometry(.18,.035,8,26,Math.PI),brass);
+    ornament.position.set(0,1.27,.26);ornament.rotation.z=0;g.add(ornament);
     const face=this.cylinder(g,.59,.095,0,.37,.27,ivory,48);face.rotation.x=Math.PI/2;
     const rim=this.torus(g,.62,.04,0,.37,.32,brass);rim.rotation.z=0;
     for(let i=0;i<12;i++){
       const a=i*Math.PI/6;this.cylinder(g,.015,.03,Math.sin(a)*.5,.37+Math.cos(a)*.5,.35,black,12).rotation.x=Math.PI/2;
     }
+    const numerals=document.createElement('canvas');numerals.width=numerals.height=512;
+    const ctx=numerals.getContext('2d')!;ctx.clearRect(0,0,512,512);
+    ctx.fillStyle='#293a34';ctx.font='31px Georgia,serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    const roman=['XII','I','II','III','IV','V','VI','VII','VIII','IX','X','XI'];
+    roman.forEach((str,i)=>{const a=i*Math.PI/6;ctx.fillText(str,256+Math.sin(a)*202,256-Math.cos(a)*202)});
+    const romanTexture=new THREE.CanvasTexture(numerals);romanTexture.colorSpace=THREE.SRGBColorSpace;
+    this.mesh(new THREE.PlaneGeometry(1.15,1.15),new THREE.MeshBasicMaterial({map:romanTexture,transparent:true,depthWrite:false}),g,[0,.37,.345],false);
     this.clockHands=new THREE.Group();this.clockHands.position.set(0,.37,.39);g.add(this.clockHands);
     const minute=this.block(this.clockHands,.035,.42,.02,0,.19,0,black);
     minute.rotation.z=.0;
@@ -315,6 +385,15 @@ export class World {
     const g=new THREE.Group();g.position.set(-3.6,0,2.0);this.scene.add(g);
     const wood=mat(0xa68765,.61);
     this.block(g,3.0,.14,1.5,0,1.05,0,wood,.10);
+    const inlay=mat(0xb2a17f,.34,.55);
+    this.block(g,3.03,.025,1.55,0,1.065,0,inlay,.008);
+    this.block(g,2.91,.042,1.43,0,1.09,0,wood,.018);
+    this.block(g,2.92,.07,.05,0,.96,.75,inlay,.005);
+    for(const side of [-1,1])for(const z of [-.53,.53]){
+      this.cylinder(g,.065,.12,side*1.33,.94,z,inlay,12);
+      const foot=this.cylinder(g,.12,.075,side*1.34,.08,z,inlay,12);foot.castShadow=false;
+    }
+    this.contactShadow(-3.6,2,1.8,1.2,.48);
     this.block(g,2.85,.34,1.36,0,.82,0,mat(0x8b745d));
     for(const x of [-1.35,1.35])for(const z of [-.56,.56])this.block(g,.2,1.01,.22,x,.5,z,wood,.05);
     for(const x of [-.82,0,.82]){
@@ -377,6 +456,10 @@ export class World {
     this.block(g,1.55,.22,1.25,0,0,0,pedestal,.10);
     this.cylinder(g,.51,.04,-.27,.14,.1,black,50);
     this.cylinder(g,.075,.055,-.27,.18,.1,brass);
+    for(const r of [.24,.32,.40]){
+      const groove=this.torus(g,r,.003,-.27,.172,.10,mat(0x7c8588,.52,.2));groove.rotation.x=-Math.PI/2;
+    }
+    for(const x of [-.68,.68])for(const z of [-.52,.52])this.cylinder(g,.045,.05,x,.16,z,brass,10);
     this.cylinder(g,.03,.32,.42,.29,-.26,brass);
     this.block(g,.45,.032,.045,.15,.35,-.06,brass).rotation.z=-.35;
     const base=this.cylinder(g,.19,.19,.39,.33,-.4,brass);base.rotation.x=.1;
@@ -493,8 +576,8 @@ export class World {
     }
     // Flower field uses instancing to keep garden viable on mobile.
     const stemGeometry=new THREE.CylinderGeometry(.014,.022,.56,5);
-    const stems=new THREE.InstancedMesh(stemGeometry,leaf,230);const flowerGeo=new THREE.SphereGeometry(.09,7,5);
-    const flowers=new THREE.InstancedMesh(flowerGeo,mat(0xe5a0ad,.92),230);
+    const stems=new THREE.InstancedMesh(stemGeometry,leaf,230);const flowerGeo=this.createBloomGeometry();
+    const flowers=new THREE.InstancedMesh(flowerGeo,new THREE.MeshStandardMaterial({color:0xffffff,roughness:.86,side:THREE.DoubleSide}),230);
     this.flowerHeads=flowers;this.flowerStems=stems;
     const dummy=new THREE.Object3D();
     for(let i=0;i<230;i++){
@@ -518,6 +601,7 @@ export class World {
     const arch=new THREE.Mesh(new THREE.TorusGeometry(3.2,.09,9,45,Math.PI),brass);
     arch.position.set(0,2.0,-14.2);arch.rotation.z=Math.PI;this.scene.add(arch);
     this.createDinnerTable();
+    this.createRomanticCanopy();
     for(let i=0;i<32;i++){
       const x=(seedRand()-.5)*13,z=-7.8-seedRand()*9;
       const led=this.sphere(this.scene,.065,x,4.55+(seedRand()-.5)*.35,z,new THREE.MeshBasicMaterial({color:0xffdba0}));this.gardenBulbs.push(led);
@@ -525,10 +609,44 @@ export class World {
     for(let i=0;i<3;i++) this.createLantern(i,[-2.3,0,2.3][i],-13.3);
     this.createPetals();
   }
+  private createRomanticCanopy(){
+    // The invitation is a distinct reward composition framed by a floral arch.
+    const roseMetal=mat(0xc3ae8e,.42,.55);
+    const arch=new THREE.Mesh(new THREE.TorusGeometry(3.02,.057,8,64,Math.PI),roseMetal);
+    arch.position.set(0,2.15,-15.15);arch.rotation.z=0;this.scene.add(arch);
+    for(const side of [-1,1]){
+      this.cylinder(this.scene,.065,2.2,side*3.02,1.1,-15.15,roseMetal,14);
+      const plinth=this.cylinder(this.scene,.22,.11,side*3.02,.07,-15.15,roseMetal,18);plinth.castShadow=false;
+    }
+    const leafMat=new THREE.MeshStandardMaterial({color:0x648c61,roughness:.91,side:THREE.DoubleSide});
+    const bloomGeometry=this.createBloomGeometry();
+    const bloomMat=new THREE.MeshStandardMaterial({color:0xf0b5c0,roughness:.82,side:THREE.DoubleSide});
+    const leaves=new THREE.InstancedMesh(new THREE.ConeGeometry(.14,.36,5),leafMat,96);
+    const flowers=new THREE.InstancedMesh(bloomGeometry,bloomMat,24);
+    const dummy=new THREE.Object3D();
+    for(let i=0;i<96;i++){
+      const angle=Math.PI*i/95,side=i%3;
+      dummy.position.set(3.05*Math.cos(angle),2.15+3.06*Math.sin(angle),-15.15+((side-1)*.1));
+      dummy.rotation.set(.6*Math.sin(angle),i*.42,Math.PI/2-angle);
+      dummy.scale.setScalar(.76+(i%5)*.11);dummy.updateMatrix();leaves.setMatrixAt(i,dummy.matrix);
+    }
+    for(let i=0;i<24;i++){
+      const angle=Math.PI*(i+.5)/24;
+      dummy.position.set(3.07*Math.cos(angle),2.15+3.07*Math.sin(angle),-15.00);
+      dummy.rotation.set(.12,angle,0);dummy.scale.setScalar(1.2+(i%3)*.2);dummy.updateMatrix();flowers.setMatrixAt(i,dummy.matrix);
+      flowers.setColorAt(i,new THREE.Color([0xeab2c0,0xf3d7c8,0xf5c0aa][i%3]));
+    }
+    leaves.castShadow=false;flowers.castShadow=false;this.scene.add(leaves,flowers);
+    for(const x of [-2.6,-1.8,1.8,2.6])this.contactShadow(x,-15.1,.53,.55,.20);
+  }
   private createDinnerTable(){
     const g=new THREE.Group();g.position.set(0,0,-15.2);this.scene.add(g);
     const cloth=mat(0xfff8ec,.9);
     this.cylinder(g,.87,.16,0,1.07,0,cloth,42);
+    const borderFabric=new THREE.MeshStandardMaterial({color:0xf4e9d9,roughness:.94,side:THREE.DoubleSide});
+    const skirt=new THREE.Mesh(new THREE.CylinderGeometry(.83,.98,.55,48,1,true),borderFabric);
+    skirt.position.y=.76;skirt.castShadow=true;skirt.receiveShadow=true;g.add(skirt);
+    this.cylinder(g,.83,.025,0,1.145,0,mat(0xf9f2e8,.92),48);
     this.cylinder(g,.10,1.03,0,.55,0,brass,16);
     this.cylinder(g,.57,.09,0,.045,0,brass,30);
     for(const side of [-1,1]) {
@@ -542,7 +660,15 @@ export class World {
       this.cylinder(g,.04,.18,.18,1.26,z,brass,16);
     }
     const bouquet=this.cylinder(g,.13,.33,0,1.29,0,mat(0x879898,.23));bouquet.material.transparent=true;(bouquet.material as THREE.MeshStandardMaterial).opacity=.65;
-    for(let i=0;i<7;i++) this.sphere(g,.11,(seedRand()-.5)*.4,1.52+(seedRand()-.5)*.2,(seedRand()-.5)*.4,mat(0xb85c65));
+    const bloom=this.createBloomGeometry();
+    for(let i=0;i<11;i++){
+      const x=(seedRand()-.5)*.48,z=(seedRand()-.5)*.40;
+      const stem=this.cylinder(g,.012,.25,x*.62,1.55,z*.62,mat(0x4d8557,.87),7);
+      stem.rotation.z=x*.25;
+      const rose=this.mesh(bloom,mat([0xe4a7b7,0xffd2c7,0xe6b98f][i%3],.84),g,[x,1.7+seedRand()*.15,z],false);
+      rose.rotation.y=i*.93;rose.scale.setScalar(.55+.18*seedRand());
+    }
+    this.contactShadow(0,-15.2,1.45,1.45,.5);
     const gift=new THREE.Group();gift.position.set(0,1.42,0);g.add(gift);
     this.block(gift,.32,.15,.26,0,0,0,mat(0xe9d8b8),.06);
     this.block(gift,.36,.055,.31,0,.1,0,brass,.02);
@@ -646,6 +772,12 @@ export class World {
       stem.instanceMatrix.needsUpdate=true;heads.instanceMatrix.needsUpdate=true;
       if(heads.instanceColor)heads.instanceColor.needsUpdate=true;
     }
+    // The premium rose GLBs desaturate together with the instanced garden flowers.
+    this.botanicalMaterials.forEach((m,i)=>{
+      const original=this.botanicalBaseColors[i];
+      const botanical=(original.g>original.r*.88 || original.r>.64);
+      if(botanical)m.color.copy(original).lerp(new THREE.Color(0x9b9077),t*.80);
+    });
     if(this.botanicalLeaves){
       const dry=new THREE.Color(0x9a8c6b);
       for(let i=0;i<this.plantBaseColors.length;i++){
