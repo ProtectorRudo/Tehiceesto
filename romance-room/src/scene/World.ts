@@ -4,7 +4,7 @@ import { AnimationMixer } from 'three';
 import type { Stage } from '../game/logic';
 import {resolveMovement} from '../game/navigation';
 
-type Interactive = 'desk'|'clock'|'gramophone'|'painting'|'letter'|'cabinet'|'books'|'gardenGate'|'lantern0'|'lantern1'|'lantern2'|'present';
+type Interactive = 'desk'|'sundial'|'waterBasin'|'clock'|'gramophone'|'painting'|'letter'|'cabinet'|'books'|'gardenGate'|'lantern0'|'lantern1'|'lantern2'|'present';
 type Callbacks = {onInteract:(what:Interactive, sub?:string)=>void; onMove?:(x:number,z:number)=>void; onFocus?:(label:string|null)=>void};
 const gold = 0xb7a77f;
 const palette=[0x4c6471,0x98746b,0x909a6c,0x586c56,0x9b7e91];
@@ -185,7 +185,7 @@ export class World {
     runner.rotation.x=-Math.PI/2;
     const border=mat(0xe8dac1,.82);
     for(const x of [-1.12,1.12])this.block(this.scene,.025,.02,9,x,.054,-.3,border,0);
-    this.createClock();this.createDesk();this.createGramophone();this.createPaintings();this.createBookshelf();this.createGate();
+    this.createClock();this.createDesk();this.createClueStations();this.createGramophone();this.createPaintings();this.createBookshelf();this.createGate();
     this.createArmchair(-5,3);this.createArmchair(5,4);
     this.createChandelier();this.createBotanicalDecor();
     this.createWindow(-6.8,-6.75,2.8,3.1);
@@ -311,7 +311,7 @@ export class World {
       this.cylinder(g,.045,.03,x,.77,.747,brass).rotation.x=Math.PI/2;
     }
     this.block(g,1.02,.05,.7,-.48,1.18,-.22,mat(0x958367)); // page
-    const txt=this.createText('9:15  •  el instante en que todo comienza',512,64,'#69513c','#e7d7b4');
+    const txt=this.createText('HORA: SOL   ·   MINUTOS: AGUA',512,64,'#69513c','#e7d7b4');
     const sign=this.mesh(new THREE.PlaneGeometry(1.12,.17),new THREE.MeshBasicMaterial({map:txt,transparent:true}),g,[-.48,1.216,-.22],false);sign.rotation.x=-Math.PI/2;
     this.block(g,.55,.07,.38,.8,1.18,-.24,mat(0x1e3e50)); // diary
     this.cylinder(g,.05,.15,1.16,1.24,.15,brass);this.cylinder(g,.075,.12,1.16,1.4,.15,ivory);
@@ -319,6 +319,28 @@ export class World {
     this.hotspot(g,'cabinet',0,.78,.86,2.8,.34,.25);
     const key=new THREE.Group();key.position.set(-1.22,1.17,.38);g.add(key);this.keyMesh=key;
     this.torus(key,.08,.023,0,0,0,brass);this.block(key,.024,.2,.02,0,-.11,0,brass);
+  }
+  private createClueStations(){
+    // Two physical discoveries; neither station exposes the final clock time.
+    const solar=new THREE.Group();solar.position.set(-6.2,1.12,-1.7);this.scene.add(solar);
+    this.cylinder(solar,.42,.14,0,0,0,mat(0xcab689,.45));
+    const disk=this.cylinder(solar,.34,.04,0,.11,0,brass,36);
+    disk.rotation.x=Math.PI/2;
+    for(let i=0;i<8;i++){
+      const a=i*Math.PI/4;
+      const ray=this.block(solar,.027,.19,.024,Math.sin(a)*.25,.11+Math.cos(a)*.25,.11,ivory,.005);
+      ray.rotation.z=-a;
+    }
+    this.sphere(solar,.10,0,.11,.15,mat(0xe7c77f,.34));
+    this.hotspot(solar,'sundial',0,.12,.14,.90,.95,.70);
+    const water=new THREE.Group();water.position.set(5.8,.82,3.3);this.scene.add(water);
+    this.cylinder(water,.51,.66,0,-.42,0,mat(0xc0d8d6,.65),28);
+    this.cylinder(water,.60,.14,0,.01,0,mat(0x8baca8,.38),32);
+    for(let i=1;i<=4;i++){
+      const ripple=this.torus(water,i*.105,.015,0,.105+i*.005,0,new THREE.MeshStandardMaterial({color:0x77b6c0,roughness:.23,metalness:.19}));
+      ripple.rotation.x=Math.PI/2;
+    }
+    this.hotspot(water,'waterBasin',0,.11,0,1.1,.45,1.1);
   }
   private createGramophone(){
     const g=new THREE.Group();g.position.set(3.85,1.35,-1.85);this.scene.add(g);
@@ -344,7 +366,8 @@ export class World {
       const g=new THREE.Group();g.position.set(-3.25+i*3.2,3.06,7.82);g.rotation.y=Math.PI;this.scene.add(g);
       this.block(g,1.9,1.13,.11,0,0,0,brass,.06);
       this.block(g,1.72,.96,.05,0,0,.11,mat(0x293641,.84));
-      const tex=this.createText(`${name}     ${digit}`,410,112,'#e2d5b8','#26323d');
+      const glyphs={LUNA:'☾',ESTRELLAS:'✶',FLOR:'✿'} as const;
+      const tex=this.createText(Array(digit).fill(glyphs[name]).join(' '),700,132,'#e2d5b8','#26323d');
       this.mesh(new THREE.PlaneGeometry(1.46,.41),new THREE.MeshBasicMaterial({map:tex,transparent:true}),g,[0,0,.16],false);
       this.hotspot(g,'painting',0,0,.24,1.9,1.3,.25,name);
       if(i===1) this.painting=g;
@@ -501,6 +524,9 @@ export class World {
     this.lanternMeshes.push(glass);
     this.cylinder(group,.21,.07,0,2.91,0,brass);
     this.sphere(group,.1,0,2.67,0,new THREE.MeshBasicMaterial({color:0x665044}));
+    const labels=['LUNA','FLOR','LLUVIA'];
+    const plaque=this.createText(labels[i],350,88,'#2e6556','#f0e8cf');
+    this.mesh(new THREE.PlaneGeometry(.48,.125),new THREE.MeshBasicMaterial({map:plaque}),group,[0,2.12,.21],false);
     this.hotspot(group,`lantern${i}` as Interactive,0,2.66,.15,.7,.86,.68);
   }
   private createPetals(){
@@ -571,7 +597,7 @@ export class World {
     if(this.currentFocus===hit)return;
     this.currentFocus=hit;
     const action=hit?.userData.action as Interactive|undefined;
-    const labels:Partial<Record<Interactive,string>>={desk:'Revisar escritorio',clock:'Examinar reloj',gramophone:'Escuchar discos',painting:'Leer cuadro',cabinet:'Abrir cajón',books:'Tocar libro',gardenGate:'Examinar puerta',lantern0:'Encender farola',lantern1:'Encender farola',lantern2:'Encender farola',present:'Abrir regalo'};
+    const labels:Partial<Record<Interactive,string>>={desk:'Revisar escritorio',sundial:'Examinar sol de cobre',waterBasin:'Examinar fuente',clock:'Examinar reloj',gramophone:'Escuchar discos',painting:'Leer cuadro',cabinet:'Abrir cajón',books:'Tocar libro',gardenGate:'Examinar puerta',lantern0:'Encender farola',lantern1:'Encender farola',lantern2:'Encender farola',present:'Abrir regalo'};
     this.handlers.onFocus?.(action?labels[action]||'Examinar':null);
   }
   private findFocused(){

@@ -9,12 +9,12 @@ import './ui/style.css';
 type Invitation = {recipient:string;sender:string;question:string;message:string;date:string;place:string;replyPhone:string;voiceUrl:string};
 type Modal='intro'|'clock'|'gramophone'|'code'|'letter'|'final'|'timeout'|'accepted'|null;
 const copy=[
-  {title:'El reloj detenido',hint:'Revisá el escritorio: hay una llave y la hora escrita en la nota. Después, ajustá el reloj.',task:'Encontrá la llave y poné el reloj en marcha.'},
-  {title:'La melodía escondida',hint:'El cuaderno habla del color de una noche bajo la lluvia. Probá el disco azul.',task:'Descubrí cuál de los tres discos guarda la melodía correcta.'},
-  {title:'El cajón cerrado',hint:'Detrás tuyo hay tres cuadros con símbolos. Leé los números de LUNA, ESTRELLAS y FLOR, en ese orden.',task:'Encontrá la combinación de tres cifras.'},
-  {title:'El orden secreto',hint:'La carta muestra la secuencia exacta: LUNA, LLUVIA, FLOR. Tocá esos tres libros especiales en orden.',task:'Activá los libros que pueden mover la biblioteca.'},
-  {title:'La última campanada',hint:'Atravesá la puerta de cristal. En el jardín, encendé las tres farolas de izquierda a derecha antes de que termine el tiempo.',task:'¡Encendé las tres luces antes de que cierre el jardín!'},
-  {title:'Un instante detenido',hint:'Acercate a la mesa del jardín y tocá la pequeña caja de regalo.',task:'Acercate a la mesa. Alguien dejó algo para vos.'}
+  {title:'El reloj detenido',hints:['En el escritorio hay una llave y un verso. Mirá también los rincones del invernadero.','Buscá el sol de cobre y el estanque. La hora sigue los rayos; los minutos son diez por cada onda.','El sol tiene ocho rayos y el agua cuatro ondas: ajustá el reloj a las 08:40.'],task:'Encontrá la llave y descifrá la hora observando el invernadero.'},
+  {title:'La melodía escondida',hints:['Volvé al escritorio: el cuaderno guarda un verso sobre la tormenta.','La canción no pertenece al fuego del atardecer ni al brillo del oro. Pensá en el cielo después de llover.','Es el disco azul. Colocalo en la vitrola.'],task:'Interpretá el cuaderno para elegir una de las tres melodías.'},
+  {title:'El cajón cerrado',hints:['Mirá los tres cuadros y los símbolos grabados en el candado.','Los símbolos del candado indican el orden. Contá las figuras de cada cuadro: no busques números escritos.','Dos lunas, siete estrellas y cuatro flores. El código es 274.'],task:'Contá las figuras de los cuadros para abrir el candado.'},
+  {title:'El orden secreto',hints:['La carta contiene una historia que se relaciona con los tres libros destacados.','Pensá en el ciclo de una flor: primero nace, después llega el agua y finalmente cae la noche.','Tocá FLOR, luego LLUVIA y por último LUNA.'],task:'Descifrá el ciclo que narra la carta y activá los libros.'},
+  {title:'La última campanada',hints:['Las farolas tienen pequeñas placas con símbolos. No las enciendas simplemente por posición.','Releé el final de la carta: la lluvia moja la noche y bajo la luna florece el jardín.','Encendé LLUVIA (derecha), LUNA (izquierda) y FLOR (centro).'],task:'Seguí los símbolos de la carta antes de que se cierre el jardín.'},
+  {title:'Un instante detenido',hints:['Explorá el lugar donde alguien preparó una mesa para dos.','Sobre la mesa hay una caja diminuta.','Tocá la caja que está sobre la mesa para descubrir el mensaje.'],task:'Acercate a la mesa. Alguien dejó algo para vos.'}
 ];
 const fallback:Invitation={recipient:'Alguien muy especial',sender:'Alguien que quiere sorprenderte',question:'¿Me regalás una noche juntos?',message:'No necesitaba una fecha especial. Solo quería vivir una noche inolvidable con vos.',date:'Una fecha por descubrir',place:'Un lugar que todavía es secreto',replyPhone:'',voiceUrl:''};
 export default function App(){
@@ -34,10 +34,12 @@ export default function App(){
   const [modal,setModal]=useState<Modal>('intro');
   const [notification,setNotification]=useState('');
   const [showHelp,setShowHelp]=useState(false);
+  const [hintLevels,setHintLevels]=useState<Record<number,number>>({});
+  const activeHintLevel=hintLevels[progress.stage]??0;
   const [muted,setMuted]=useState(false);
   const [remaining,setRemaining]=useState(120000);
   const explorationClock=useRef(new RushClock());
-  const [explorationRemaining,setExplorationRemaining]=useState(360000);
+  const [explorationRemaining,setExplorationRemaining]=useState(540000);
   const [hour,setHour]=useState(12);
   const [minute,setMinute]=useState(0);
   const [code,setCode]=useState('');
@@ -67,15 +69,17 @@ export default function App(){
     if(what==='desk'){
       if(stage===0&&!progressRef.current.keyFound){
         const next={...progressRef.current,keyFound:true};progressRef.current=next;setProgress(next);world.current?.setKeyFound(true);
-        audio.current?.success();toast('Encontraste una pequeña llave de bronce. La nota dice: «9:15».');
-      } else if(stage===0)toast('La nota del escritorio dice: «Todo comenzó a las 9:15».');
-      else toast('Un cuaderno dice: «El azul trae de vuelta aquella canción».');
+        audio.current?.success();toast('Encontraste una llave. La nota dice: «La hora sigue al sol; el agua marca diez por cada onda».');
+      } else if(stage===0)toast('«La hora sigue los rayos del sol de cobre. El agua marca diez por cada onda».');
+      else toast('El cuaderno: «Ni el fuego del ocaso ni el brillo del oro. Cuando la lluvia se va, el cielo devuelve la melodía».');
       return;
     }
+    if(what==='sundial'){toast('El sol de cobre tiene OCHO rayos grabados alrededor de su centro.');return;}
+    if(what==='waterBasin'){toast('En la fuente hay CUATRO ondas concéntricas; una inscripción dice: «Cada onda vale diez minutos».');return;}
     if(what==='clock') {if(stage===0)setModal('clock');else toast('El reloj vuelve a caminar, como si nada hubiera ocurrido.');return;}
     if(what==='gramophone') {if(stage===1){if(sub&&['azul','rojo','oro'].includes(sub)){const result=update({type:'RECORD',record:sub});if(result.success)setModal(null);}else setModal('gramophone')}else toast('Todavía no es momento de escuchar esa música.');return;}
-    if(what==='painting'){toast(`El cuadro dice: ${sub==='LUNA'?'2':sub==='ESTRELLAS'?'7':'4'}. Un símbolo más para recordar.`);return;}
-    if(what==='cabinet') {if(stage===2)setModal('code');else if(stage<2)toast('El cajón está trabado. Se oye un mecanismo musical en su interior.');else toast('El sobre ya está abierto. Recordá las tres palabras de la carta.');return;}
+    if(what==='painting'){toast(`Contás ${sub==='LUNA'?'dos lunas':sub==='ESTRELLAS'?'siete estrellas':'cuatro flores'} en el cuadro. El candado indica el orden.`);return;}
+    if(what==='cabinet') {if(stage===2)setModal('code');else if(stage<2)toast('El cajón está trabado. Se oye un mecanismo musical en su interior.');else setModal('letter');return;}
     if(what==='books'){if(stage===3&&sub)update({type:'BOOK',book:sub});else toast('La biblioteca guarda un mecanismo. Tal vez necesites una carta para entenderlo.');return;}
     if(what==='gardenGate'){toast(stage<4?'Esa puerta no tiene cerradura visible. Algo tendrá que moverla.':'La puerta está abierta. ¡Buscá las tres farolas en el jardín!');return;}
     if(what.startsWith('lantern')) {if(stage===4)update({type:'LANTERN',index:Number(what.slice(-1))});else toast('Una farola de cristal espera su momento.');return;}
@@ -97,9 +101,11 @@ export default function App(){
     return()=>{w.dispose();sound.dispose();world.current=null;audio.current=null;if(toastTimer.current)clearTimeout(toastTimer.current)};
   },[]);
   useEffect(()=>{
-    // Old versions restored puzzles but not the countdown. Remove that obsolete save.
-    try{localStorage.removeItem('ultima-campanada-v1')}catch{/* storage disabled */}
-    // A history-cache restore is a re-entry too, not a continuation.
+    // Previous versions persisted puzzles but not their clocks. That could restore a
+    // half-finished room with a brand-new timer. Remove the obsolete save once.
+    try{localStorage.removeItem('ultima-campanada-v1')}catch{/* storage may be disabled */}
+    // Safari and mobile browsers can restore the *entire page* from the back/forward
+    // cache. Treat returning to this game by browser navigation as a new visit.
     const onPageShow=(event:PageTransitionEvent)=>{if(event.persisted)window.location.reload()};
     window.addEventListener('pageshow',onPageShow);
     return()=>window.removeEventListener('pageshow',onPageShow);
@@ -115,7 +121,7 @@ export default function App(){
       const ms=rushClock.current.remaining(performance.now());setRemaining(ms);
       world.current?.setRushIntensity(1-ms/120000);
       const secs=Math.ceil(ms/1000);
-      if(secs<=35&&!lastHint.current){lastHint.current=true;toast('¡Última pista! Encendé las farolas de izquierda a derecha: izquierda, centro y derecha.');}
+      if(secs<=35&&!lastHint.current){lastHint.current=true;toast('¡Quedan pocos segundos! Mirá los símbolos de las farolas y recordá la última frase de la carta.');}
       if(secs<=10 && secs>0 && secs!==lastTick.current){lastTick.current=secs;audio.current?.tick()}
       if(ms<=0){rushClock.current.stop();audio.current?.stopRush();setModal('timeout');world.current?.enableMovement(false)}
     },100);
@@ -166,7 +172,8 @@ export default function App(){
   },[started,modal]);
   const begin=()=>{
     setShowHelp(false);setStarted(true);setModal(null);void audio.current?.start();
-    explorationClock.current.start(performance.now(),360000);setExplorationRemaining(360000);
+    // A fresh page is always a fresh game: progress cannot outlive either clock.
+    explorationClock.current.start(performance.now(),540000);setExplorationRemaining(540000);
     toast('Buscá una pequeña llave. Tal vez el escritorio esconda algo.');
   };
   const resetAll=()=>{window.location.reload()};
@@ -192,6 +199,7 @@ export default function App(){
           <span className="timer-symbol" aria-hidden="true">◷</span>
           <span className="timer-copy"><span className="timer-caption">{countdownIsFinal?'ÚLTIMA CAMPANADA':progress.stage===5?'TIEMPO DETENIDO':'EXPLORACIÓN'}</span><strong>{progress.stage===5?'∞':remainingMins}</strong></span>
         </div>
+        {progress.stage>=3&&progress.stage<5&&<button type="button" className="letter-toggle" onClick={()=>setModal('letter')} aria-label="Volver a leer la carta">✉ Carta</button>}
         <button type="button" className={'hint-toggle'+(showHelp?' active':'')} onClick={()=>setShowHelp(v=>!v)} aria-expanded={showHelp} aria-controls="hint-panel" aria-label={showHelp?'Cerrar pista':'Ver pista del acertijo actual'}>
           <span className="hint-icon" aria-hidden="true">✧</span><span>{showHelp?'Cerrar':'Pista'}</span>
         </button>
@@ -207,13 +215,13 @@ export default function App(){
       {started&&!modal&&<div className="navigation-tip">{inGarden?'JARDÍN DE CRISTAL':'INVERNADERO'} · <span>deslizá para mirar · tocá para investigar · pellizcá para zoom</span></div>}
       {notification&&!modal&&<div className="toast" role="status">✧ {notification}</div>}
       {backgroundPaused&&started&&!modal&&<div className="resume-note" role="status">El reloj esperó mientras no estabas. <button onClick={()=>setBackgroundPaused(false)}>Continuar ✧</button></div>}
-      {started&&showHelp&&<div className="help-panel" id="hint-panel" role="region" aria-label="Pista actual"><button className="mini-close" aria-label="Cerrar pista" onClick={()=>setShowHelp(false)}>×</button><span className="overline">UNA AYUDA DEL DESTINO</span><h3>{copy[progress.stage].title}</h3><p>{copy[progress.stage].hint}</p><p className="help-controls">Computadora: W A S D + arrastrar. Celular: usá el joystick de abajo a la izquierda para caminar, deslizá sobre el escenario para mirar y pellizcá para acercar o alejar.</p><button className="quiet-link" onClick={()=>setShowHelp(false)}>Entendido</button></div>}
+      {started&&showHelp&&<div className="help-panel" id="hint-panel" role="region" aria-label="Pista actual"><button className="mini-close" aria-label="Cerrar pista" onClick={()=>setShowHelp(false)}>×</button><span className="overline">PISTA {activeHintLevel+1} DE 3 · A TU RITMO</span><h3>{copy[progress.stage].title}</h3><p>{copy[progress.stage].hints[activeHintLevel]}</p><div className="hint-steps">{activeHintLevel<2&&<button className="hint-reveal" onClick={()=>setHintLevels(x=>({...x,[progress.stage]:Math.min(2,activeHintLevel+1)}))}>Necesito otra pista →</button>}<button className="quiet-link" onClick={()=>setShowHelp(false)}>Seguir investigando</button></div><p className="help-controls">Pista 3 revela la respuesta solo si la pedís. En celular, tocá para investigar y usá el joystick para caminar.</p></div>}
       {modal&&<div className="modal-scrim" role="presentation"><section className={'card story '+(modal==='final'||modal==='accepted'?'romantic':'')} role="dialog" aria-modal="true">
         {modal==='intro'&&<><div className="monogram">✦</div><span className="overline">UN MENSAJE SIN REMITENTE</span><h1>Hay un jardín que guarda un secreto.</h1><p>Alguien dejó algo preparado para vos detrás de la última puerta. Nadie puede contarte qué es. Solo este invernadero guarda la respuesta.</p><blockquote>«No todas las historias comienzan cuando abrimos una puerta. Algunas empiezan cuando decidimos buscarla».</blockquote><p className="footnote">Explorá el invernadero y resolvé sus secretos. Usá auriculares para vivir mejor la experiencia.</p><button className="primary" onClick={begin}>Aceptar el misterio <span>→</span></button></>}
-        {modal==='clock'&&<><button className="close" aria-label="Cerrar" onClick={()=>setModal(null)}>×</button><span className="overline">MECANISMO I</span><h2>El reloj detenido</h2><p>La llave encaja, pero las agujas necesitan la hora correcta. ¿Qué decía la nota?</p><div className="dial"><div className="dial-rim"><div className="dial-hands" style={{'--hand-hour':`${hour*30+minute*.5}deg`,'--hand-minute':`${minute*6}deg`} as CSSProperties}><div className="hour-hand"/><div className="minute-hand"/><i/></div><span className="twelve">XII</span><span className="three">III</span><span className="six">VI</span><span className="nine">IX</span></div></div><div className="time-controls"><label>HORA<div className="stepper"><button onClick={()=>setHour(v=>(v+10)%12+1)}>−</button><strong>{String(hour).padStart(2,'0')}</strong><button onClick={()=>setHour(v=>v%12+1)}>+</button></div></label><label>MINUTOS<div className="stepper"><button onClick={()=>setMinute(v=>(v+55)%60)}>−</button><strong>{String(minute).padStart(2,'0')}</strong><button onClick={()=>setMinute(v=>(v+5)%60)}>+</button></div></label></div><button className="primary" onClick={confirmClock}>Dar cuerda al reloj →</button></>}
-        {modal==='gramophone'&&<><button className="close" aria-label="Cerrar" onClick={()=>setModal(null)}>×</button><span className="overline">MECANISMO II</span><h2>La canción que faltaba</h2><p>Hay tres discos antiguos. Solo uno conserva la melodía que puede mover el siguiente mecanismo.</p><div className="record-row">{(['rojo','azul','oro'] as const).map(col=><button key={col} className={'record '+col} onClick={()=>{const r=update({type:'RECORD',record:col});if(r.success)setModal(null)}}><span className="vinyl"/><small>{col==='oro'?'DORADO':col.toUpperCase()}</small></button>)}</div><p className="footnote">Una frase del cuaderno habla del color de la lluvia.</p></>}
-        {modal==='code'&&<><button className="close" aria-label="Cerrar" onClick={()=>setModal(null)}>×</button><span className="overline">MECANISMO III</span><h2>El cajón sellado</h2><p>Debajo de la cerradura están grabados tres símbolos: <b>☾ ✶ ✿</b></p><div className="code-display" aria-label="Combinación introducida">{[0,1,2].map(i=><span key={i}>{code[i]||'·'}</span>)}</div><div className="keypad">{['1','2','3','4','5','6','7','8','9','←','0','✓'].map(key=><button key={key} onClick={()=>key==='←'?setCode(s=>s.slice(0,-1)):key==='✓'?confirmCode():setCode(s=>s.length<3?s+key:s)}>{key}</button>)}</div><p className="footnote">Los cuadros de la pared guardan las cifras. Tocá ✓ para abrir.</p></>}
-        {modal==='letter'&&<><div className="monogram">✉</div><span className="overline">UNA CARTA ENCONTRADA</span><h2>Para quien llegó hasta aquí...</h2><p className="letter">Hay momentos que todavía no vivimos, pero que ya tengo ganas de recordar con vos.</p><p className="letter">Si algo en esta habitación cambia, seguí estas palabras en orden:</p><div className="sequence">☾ LUNA <span>→</span> ☂ LLUVIA <span>→</span> ✿ FLOR</div><p>Algo se oculta entre los libros de la biblioteca.</p><button className="primary" onClick={()=>setModal(null)}>Continuar la búsqueda →</button></>}
+        {modal==='clock'&&<><button className="close" aria-label="Cerrar" onClick={()=>setModal(null)}>×</button><span className="overline">MECANISMO I</span><h2>El reloj detenido</h2><p>La llave encaja. La hora está repartida entre dos detalles del invernadero: los rayos del sol de cobre y las ondas del estanque.</p><div className="dial"><div className="dial-rim"><div className="dial-hands" style={{'--hand-hour':`${hour*30+minute*.5}deg`,'--hand-minute':`${minute*6}deg`} as CSSProperties}><div className="hour-hand"/><div className="minute-hand"/><i/></div><span className="twelve">XII</span><span className="three">III</span><span className="six">VI</span><span className="nine">IX</span></div></div><div className="time-controls"><label>HORA<div className="stepper"><button onClick={()=>setHour(v=>(v+10)%12+1)}>−</button><strong>{String(hour).padStart(2,'0')}</strong><button onClick={()=>setHour(v=>v%12+1)}>+</button></div></label><label>MINUTOS<div className="stepper"><button onClick={()=>setMinute(v=>(v+55)%60)}>−</button><strong>{String(minute).padStart(2,'0')}</strong><button onClick={()=>setMinute(v=>(v+5)%60)}>+</button></div></label></div><button className="primary" onClick={confirmClock}>Dar cuerda al reloj →</button></>}
+        {modal==='gramophone'&&<><button className="close" aria-label="Cerrar" onClick={()=>setModal(null)}>×</button><span className="overline">MECANISMO II</span><h2>La canción que faltaba</h2><p>Hay tres discos antiguos. Solo uno conserva la melodía que puede mover el siguiente mecanismo.</p><div className="record-row">{(['rojo','azul','oro'] as const).map(col=><button key={col} className={'record '+col} onClick={()=>{const r=update({type:'RECORD',record:col});if(r.success)setModal(null)}}><span className="vinyl"/><small>{col==='oro'?'DORADO':col.toUpperCase()}</small></button>)}</div><p className="footnote">Recordá el verso del cuaderno. Cada disco representa un color diferente.</p></>}
+        {modal==='code'&&<><button className="close" aria-label="Cerrar" onClick={()=>setModal(null)}>×</button><span className="overline">MECANISMO III</span><h2>El cajón sellado</h2><p>Debajo de la cerradura están grabados tres símbolos: <b>☾ ✶ ✿</b></p><div className="code-display" aria-label="Combinación introducida">{[0,1,2].map(i=><span key={i}>{code[i]||'·'}</span>)}</div><div className="keypad">{['1','2','3','4','5','6','7','8','9','←','0','✓'].map(key=><button key={key} onClick={()=>key==='←'?setCode(s=>s.slice(0,-1)):key==='✓'?confirmCode():setCode(s=>s.length<3?s+key:s)}>{key}</button>)}</div><p className="footnote">Contá los símbolos pintados. El orden está grabado en la cerradura.</p></>}
+        {modal==='letter'&&<><div className="monogram">✉</div><span className="overline">UNA CARTA ENCONTRADA</span><h2>Para quien llegó hasta aquí...</h2><p className="letter">Hay momentos que todavía no vivimos, pero que ya tengo ganas de recordar con vos.</p><p className="letter">Primero nació una flor. La lluvia le dio vida. Cuando llegó la luna, el jardín aprendió a guardar secretos.</p><div className="sequence">✿ &nbsp; ☂ &nbsp; ☾</div><p className="letter">Y cuando el tiempo quiera cerrarlo todo: la lluvia mojará la noche; bajo la luna florecerá lo que falta.</p><p>Algo se oculta entre los libros. Guardá también el último verso para el jardín.</p><button className="primary" onClick={()=>setModal(null)}>Continuar la búsqueda →</button></>}
         {modal==='timeout'&&<><div className="monogram">⌛</div><span className="overline">ÚLTIMA CAMPANADA</span><h2>El jardín cerró sus puertas.</h2><p>Algunas oportunidades merecen un segundo intento. Conservás todo lo que resolviste: solo vas a repetir el desafío final.</p><button className="primary" onClick={retry}>Volver a intentar · 2 minutos →</button></>}
         {modal==='final'&&<><div className="monogram heart">♥</div><span className="overline">TODO ESTE MISTERIO ERA PARA VOS</span><h1>{invitation.recipient},<br/>{invitation.question}</h1><p className="love-line">{invitation.message}</p><div className="invitation-details"><div><span>CUÁNDO</span><strong>{invitation.date}</strong></div><div><span>DÓNDE</span><strong>{invitation.place}</strong></div></div><p className="signature">Con cariño, <b>{invitation.sender}</b></p><button className="primary" onClick={()=>{audio.current?.finale();setModal('accepted')}}>Sí, acepto esta invitación ♥</button></>}
         {modal==='accepted'&&<><div className="celebrate" aria-hidden="true">✦ ✧ ♡ ✦ ✧ ♡ ✦</div><div className="monogram heart">♥</div><span className="overline">EL TIEMPO SE DETUVO PARA ESTE MOMENTO</span><h1>Nuestra próxima noche acaba de empezar.</h1><p>Lo más hermoso de esta historia es que todavía falta vivirla.</p>{link?<a className="primary" href={link} target="_blank" rel="noopener noreferrer">Confirmar por WhatsApp ♥</a>:<p className="footnote">Ahora podés responder personalmente a quien preparó esta sorpresa.</p>}<button className="quiet-link" onClick={()=>setModal(null)}>Volver al jardín</button></>}

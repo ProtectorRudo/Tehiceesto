@@ -6,7 +6,7 @@ const css=readFileSync(new URL('../src/ui/style.css',import.meta.url),'utf8');
 test('timer stays visible from game start, not only in the final stage',()=>{
  assert.match(app,/started&&<div className="game-hud"/);
  assert.match(app,/formatRemaining\(countdownIsFinal\?remaining:explorationRemaining\)/);
- assert.match(app,/explorationClock\.current\.start\(performance\.now\(\),360000\)/);
+ assert.match(app,/explorationClock\.current\.start\(performance\.now\(\),540000\)/);
  assert.match(app,/ÚLTIMA CAMPANADA/);
  assert.match(css,/\.game-hud\{position:absolute;z-index:9/);
 });

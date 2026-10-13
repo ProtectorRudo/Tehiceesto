@@ -14,20 +14,20 @@ execFileSync('tsc',['--target','ES2022','--module','ES2022','--skipLibCheck','--
 const {applyAction,initialProgress,formatRemaining,safeReplyLink}=await import(pathToFileURL(join(tmp,'logic.js')));
 test('complete romance path plus early failures',()=>{
  let s=initialProgress;
- assert.equal(applyAction(s,{type:'CLOCK',hour:9,minute:15}).success,false);
+ assert.equal(applyAction(s,{type:'CLOCK',hour:8,minute:40}).success,false);
  s={...s,keyFound:true};
- s=applyAction(s,{type:'CLOCK',hour:9,minute:15}).next;
+ s=applyAction(s,{type:'CLOCK',hour:8,minute:40}).next;
  s=applyAction(s,{type:'RECORD',record:'azul'}).next;
  assert.equal(applyAction(s,{type:'CODE',code:'321'}).success,false);
  s=applyAction(s,{type:'CODE',code:'274'}).next;
- for(const book of ['luna','lluvia','flor'])s=applyAction(s,{type:'BOOK',book}).next;
+ for(const book of ['flor','lluvia','luna'])s=applyAction(s,{type:'BOOK',book}).next;
  assert.equal(s.stage,4);
- for(const index of [0,1,2])s=applyAction(s,{type:'LANTERN',index}).next;
+ for(const index of [2,0,1])s=applyAction(s,{type:'LANTERN',index}).next;
  assert.equal(s.stage,5);
 });
 test('failed order resets books and final sprint resets lanterns',()=>{
- let s={...initialProgress,stage:3,books:['luna']};
- s=applyAction(s,{type:'BOOK',book:'flor'}).next;
+ let s={...initialProgress,stage:3,books:['flor']};
+ s=applyAction(s,{type:'BOOK',book:'luna'}).next;
  assert.deepEqual(s.books,[]);
  s={...s,stage:4,lanterns:[0]};
  s=applyAction(s,{type:'RESET_RUSH'}).next;

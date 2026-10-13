@@ -131,3 +131,11 @@
  .help-panel{top:calc(95px + env(safe-area-inset-top));max-height:calc(100dvh - 105px - env(safe-area-inset-top))}
  .mission{top:calc(95px + env(safe-area-inset-top))}
 }
+
+/* Progressive, opt-in clues: the solution only appears at tier three. */
+.hint-steps{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:13px}
+.hint-reveal{border:1px solid #a3b9a3;border-radius:9px;background:#e6efe1;color:#345b48;padding:10px 13px;font-weight:700;font-size:12px;touch-action:manipulation}
+.hint-steps .quiet-link{padding:10px 6px;margin:0;text-decoration:none;font-weight:600}
+
+.letter-toggle{pointer-events:auto;border:1px solid #acc8aa;background:#f6fcf1ef;color:#315844;border-radius:13px;padding:7px 11px;min-height:51px;font-weight:700;touch-action:manipulation}
+@media(max-width:390px){.game-hud{gap:4px}.letter-toggle{font-size:11px;padding:5px 7px}.hint-toggle{min-width:87px;padding:5px 9px}.game-timer{min-width:112px;padding:5px 7px}.timer-copy strong{font-size:19px}}

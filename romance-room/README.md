@@ -32,6 +32,7 @@ npm run build
 7. Al lograrlo, se detiene el tiempo; caminar a la mesa y tocar la caja.
 8. Ver invitación y aceptar.
 9. Si se agota el tiempo, reiniciar únicamente el desafío de las farolas.
+10. Al cerrar y volver a abrir el enlace, al recargar o volver desde el historial, se reinicia **toda** la experiencia desde la introducción, el reloj y los acertijos. Cambiar de aplicación momentáneamente solamente pausa el reloj.
 
 ## Personalización
 
@@ -54,6 +55,17 @@ Modificar `public/config/invitation.json` con nombres, pregunta, texto, fecha, l
 
 El código fuente original se entrega con fin de evaluación. Cualquier recurso GLB incorporado posteriormente requiere revisión de licencia y créditos correspondientes. Se identificaron recursos CC0 de Kenney, y modelos Poly Haven CC0 como posibles sustitutos, pero **no se incluyen assets de terceros descargados**. La banda sonora actual se genera con Web Audio API sin archivos de música externos. No publicar fotos, audios o números privados en demo pública sin autorización.
 
-## Sesiones nuevas (V5)
+## Corrección de sesión V5
 
-Al volver a abrir el enlace, recargar o regresar con el historial del navegador, se inicia una partida nueva: intro, posición del jugador, acertijos y relojes. Las partidas no se guardan en `localStorage`; se borra el guardado obsoleto. Cambiar de aplicación sin salir del navegador solo pausa el reloj; el reintento de los últimos dos minutos sigue sin borrar los acertijos anteriores.
+No se guarda el progreso de la partida en `localStorage`. Se elimina la clave obsoleta de versiones anteriores al iniciar. Recarga, reentrada al enlace y retorno desde historial `bfcache` reinician la experiencia y ambos temporizadores; la segunda oportunidad **dentro de una partida activa** conserva únicamente la fase final.
+
+## V6 — Acertijos de dificultad intermedia (versión candidata)
+
+- Reloj: deducir la hora del sol de cobre (ocho rayos) y la fuente (cuatro ondas que valen diez minutos).
+- Melodía: interpretar el verso del cuaderno para escoger el disco que corresponde.
+- Candado: contar 2 lunas, 7 estrellas y 4 flores en cuadros que ya no imprimen los números.
+- Biblioteca: interpretar el ciclo narrado en la carta; no repetir el orden visible de los libros.
+- Jardín: leer placas de las farolas y asociarlas al verso, en un orden no espacial.
+- Ayudas: tres niveles por acertijo; solo el tercero revela la solución, si se solicita.
+- Temporizador: 9 min de exploración orientativa + 2 min de desafío final con reintento del tramo final.
+- Las 20 pruebas de lógica, controles, estado y pistas pasan localmente; pendiente compilación completa con dependencias, revisión visual móvil y comprobación de una partida real antes de promover esta versión.
