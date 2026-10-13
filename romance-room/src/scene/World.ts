@@ -58,6 +58,7 @@ export class World {
   private romantic=false;
   private speed=2.6;
   private materials:THREE.Material[]=[];
+  private woodPbr?:THREE.MeshStandardMaterial;
   private disposed=false;
   private currentFocus:THREE.Object3D|null=null;
   private focusTime=0;
@@ -125,6 +126,24 @@ export class World {
   }
   private mesh(geo:THREE.BufferGeometry, material:THREE.Material,parent:THREE.Object3D,pos:[number,number,number]=[0,0,0],shadow=true){
     const m=new THREE.Mesh(geo,material);m.position.set(...pos);m.castShadow=shadow;m.receiveShadow=true;parent.add(m);this.materials.push(material);return m;
+  }
+  /** A shared, mobile-friendly PBR wood texture for the major furnishings. */
+  private walnut(){
+    if(this.woodPbr)return this.woodPbr;
+    const canvas=document.createElement('canvas');canvas.width=512;canvas.height=256;
+    const ctx=canvas.getContext('2d')!;
+    ctx.fillStyle='#ae8660';ctx.fillRect(0,0,512,256);
+    for(let j=0;j<190;j++){
+      const y=j*1.37,wobble=3+6*Math.sin(j*.36),alpha=j%7===0?'.12':'.065';
+      ctx.beginPath();ctx.moveTo(0,y);
+      for(let x=0;x<=512;x+=14)ctx.lineTo(x,y+Math.sin(x*.019+j*.26)*wobble+Math.sin(x*.048+j*.08)*1.6);
+      ctx.strokeStyle=j%4===0?'rgba(54,31,21,'+alpha+')':'rgba(241,213,166,.09)';
+      ctx.lineWidth=j%13===0?2.1:.65;ctx.stroke();
+    }
+    const map=new THREE.CanvasTexture(canvas);map.colorSpace=THREE.SRGBColorSpace;
+    map.wrapS=map.wrapT=THREE.RepeatWrapping;map.repeat.set(1.4,1.1);map.anisotropy=4;
+    this.woodPbr=new THREE.MeshStandardMaterial({map,color:0xe5d4bd,metalness:.01,roughness:.66});
+    return this.woodPbr;
   }
   private block(parent:THREE.Object3D,w:number,h:number,d:number,x:number,y:number,z:number,material:THREE.Material,bevel=.025){
     if(bevel<=0) return this.mesh(new THREE.BoxGeometry(w,h,d),material,parent,[x,y,z]);
@@ -383,7 +402,7 @@ export class World {
   }
   private createDesk(){
     const g=new THREE.Group();g.position.set(-3.6,0,2.0);this.scene.add(g);
-    const wood=mat(0xa68765,.61);
+    const wood=this.walnut();
     this.block(g,3.0,.14,1.5,0,1.05,0,wood,.10);
     const inlay=mat(0xb2a17f,.34,.55);
     this.block(g,3.03,.025,1.55,0,1.065,0,inlay,.008);
@@ -451,7 +470,7 @@ export class World {
   }
   private createGramophone(){
     const g=new THREE.Group();g.position.set(3.85,1.35,-1.85);this.scene.add(g);
-    const pedestal=mat(0x9e876e,.58);
+    const pedestal=this.walnut();
     this.block(this.scene,1.85,1.02,1.55,3.85,.53,-1.85,pedestal,.14);
     this.block(g,1.55,.22,1.25,0,0,0,pedestal,.10);
     this.cylinder(g,.51,.04,-.27,.14,.1,black,50);
@@ -463,13 +482,26 @@ export class World {
     this.cylinder(g,.03,.32,.42,.29,-.26,brass);
     this.block(g,.45,.032,.045,.15,.35,-.06,brass).rotation.z=-.35;
     const base=this.cylinder(g,.19,.19,.39,.33,-.4,brass);base.rotation.x=.1;
-    const hornPoints:[[number,number],...Array<[number,number]>]=[[.06,0],[.08,.22],[.13,.42],[.24,.57],[.44,.78],[.6,1.02]];
-    const horn=this.mesh(new THREE.LatheGeometry(hornPoints.map(p=>new THREE.Vector2(...p)),48),new THREE.MeshStandardMaterial({color:0xad783f,metalness:.72,roughness:.28,side:THREE.DoubleSide}),g,[.43,.45,-.4]);horn.rotation.z=.23;
-    this.hotspot(g,'gramophone',0,.5,.1,2,1.9,1.8,'choose');
-    const positions=[-.67,.05,.69];for(let i=0;i<3;i++){
-      const disc=this.cylinder(g,.25,.034,positions[i],-.01,.66,mat(palette[i]));disc.rotation.x=Math.PI/2;
-      this.hotspot(g,'gramophone',positions[i],.02,.76,.46,.4,.19,['rojo','azul','oro'][i]);
+    // Restrained antique brass horn, replacing the oversized floating funnel.
+    const hornProfile:[number,number][]=[[.058,0],[.075,.14],[.088,.25],[.13,.36],[.19,.46],[.27,.54],[.37,.61],[.43,.64]];
+    const bell=this.mesh(new THREE.LatheGeometry(hornProfile.map(([r,y])=>new THREE.Vector2(r,y)),56),
+      new THREE.MeshStandardMaterial({color:0xb68b51,metalness:.64,roughness:.34,side:THREE.DoubleSide}),g,[.43,.46,-.36]);
+    bell.rotation.z=.07;
+    this.torus(g,.43,.017,.40,1.10,-.36,brass).rotation.x=-Math.PI/2;
+    this.cylinder(g,.055,.28,.43,.41,-.36,brass,18);
+    // Records are horizontal on a small display tray, with original puzzle IDs.
+    this.block(g,1.28,.065,.52,0,-.03,.64,pedestal,.022);
+    for(let i=0;i<3;i++){
+      const x=[-.42,0,.42][i],z=.66;
+      const disc=this.cylinder(g,.205,.022,x,.015,z,mat(0x252c2c,.48,.12),32);disc.castShadow=false;
+      for(const radius of [.12,.155]){
+        const groove=this.torus(g,radius,.002,x,.03,z,mat(0x505758,.48,.2));
+        groove.rotation.x=-Math.PI/2;groove.castShadow=false;
+      }
+      this.cylinder(g,.073,.028,x,.036,z,mat([0xb66859,0x577c8f,0xceb76d][i],.55),24);
+      this.hotspot(g,'gramophone',x,.06,z,.39,.22,.39,['rojo','azul','oro'][i]);
     }
+    this.hotspot(g,'gramophone',.32,.56,-.33,.92,.98,.90,'choose');
   }
   private createPaintings(){
     const entries=[['LUNA',2],['ESTRELLAS',7],['FLOR',4]] as const;
@@ -487,9 +519,14 @@ export class World {
   private createBookshelf(){
     const g=new THREE.Group();g.position.set(7.66,0,-3.8);g.rotation.y=-Math.PI/2;this.scene.add(g);
     this.slidingShelf=g;
-    const wood=mat(0x9d9275,.62);
+    const wood=this.walnut();
     this.block(g,4.7,4.45,.62,0,2.23,0,wood,.07);
-    this.block(g,4.36,4.1,.68,0,2.27,.27,mat(0x5c6353),.02);
+    // Dark recessed cabinet back; book spines sit in front rather than inside it.
+    this.block(g,4.30,4.03,.04,0,2.26,.31,mat(0x302f29,.86),.01);
+    for(const x of [-2.25,2.25])this.block(g,.19,4.25,.88,x,2.21,.35,wood,.018);
+    this.block(g,4.55,.13,.91,0,4.35,.34,wood,.022);
+    this.block(g,4.54,.14,.91,0,.14,.34,wood,.025);
+    for(const x of [-1.58,1.58])this.block(g,.046,4.06,.06,x,2.25,.39,brass,.009);
     // One instanced mesh per book leather color; hundreds fewer draw calls on midrange phones.
     const spineShape=new THREE.Shape();
     spineShape.moveTo(-.5,-.5);spineShape.lineTo(.5,-.5);spineShape.lineTo(.5,.5);spineShape.lineTo(-.5,.5);spineShape.closePath();
@@ -498,13 +535,14 @@ export class World {
     const colorGroups:{x:number,y:number,z:number,w:number,h:number,tilt:number,color:number}[][]=palette.map(()=>[]);
     const brassDetails:{x:number,y:number,z:number,h:number}[]=[];
     for(const row of [0.8,1.78,2.78,3.8]){
-      this.block(g,4.5,.14,.75,0,row,.34,wood,.03);
+      this.block(g,4.44,.14,.91,0,row,.37,wood,.03);
+      this.block(g,4.40,.019,.065,0,row+.084,.79,brass,.002);
       for(let j=0;j<27;j++){
         const w=.07+seedRand()*.07,h=.53+seedRand()*.26;
         const color=Math.floor(seedRand()*palette.length);
         const x=-2.07+j*.16,y=row+.085+h/2;
-        colorGroups[color].push({x,y,z:.35,w,h,tilt:(seedRand()-.5)*.08,color});
-        if(j%6===0)brassDetails.push({x,y,z:.55,h:h*.75});
+        colorGroups[color].push({x,y,z:.74,w,h,tilt:(seedRand()-.5)*.045,color});
+        if(j%6===0)brassDetails.push({x,y,z:.94,h:h*.72});
       }
     }
     const dummy=new THREE.Object3D();
@@ -525,7 +563,7 @@ export class World {
     details.castShadow=false;g.add(details);
     const tags=[['luna',-1.4,1.81],['lluvia',0,1.81],['flor',1.4,1.81]] as const;
     tags.forEach(([id,x,y],i)=>{
-      const group=new THREE.Group();group.position.set(x,y,.83);g.add(group);
+      const group=new THREE.Group();group.position.set(x,y,1.00);g.add(group);
       const book=this.block(group,.28,.62,.35,0,0,0,mat([0x5f516b,0x315e7a,0x63764c][i],.45),.02);
       book.rotation.y=.03;
       const txt=this.createText(id.toUpperCase(),320,88,'#e7dbb7','#241d1a');

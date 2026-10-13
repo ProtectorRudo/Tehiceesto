@@ -92,3 +92,6 @@ El jugador debe **encontrar una pequeña llave de bronce** sin recibir su ubicac
 - No se modifica la lógica de acertijos, controles, textos de inicio, duración, ayudas ni reinicios.
 
 **Falta antes de certificar calidad comercial:** auditoría de capturas Android/iPhone y escritorio, revisión visual de cada mecanismo, medir FPS en dispositivos de gama media y reemplazar/revisar otros objetos aún procedurales. No confundir una compilación READY con la validación de estas pruebas visuales.
+
+## V11 · Inspección visual 13/10
+Se corrigieron libros ocultos por el tablero trasero, vitrola desproporcionada, discos de vinilo verticales y superficies planas de madera. Incluye nueva regresión automatizada. La calidad cinematográfica final aún requiere importar y probar modelos profesionales GLB.
