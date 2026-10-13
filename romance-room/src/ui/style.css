@@ -163,3 +163,36 @@
 @media(max-height:500px){
   .toast{bottom:calc(126px + env(safe-area-inset-bottom));}
 }
+
+/* V9: Story-driven time pressure. Dedicated lane keeps messages off puzzle controls. */
+.urgency-banner{
+  position:absolute;z-index:4;pointer-events:none;
+  top:calc(210px + env(safe-area-inset-top));right:18px;
+  width:min(310px,calc(100vw - 34px));display:flex;align-items:flex-start;gap:12px;
+  padding:13px 15px 14px;border-radius:14px;
+  background:#fbf8e9f5;border:1px solid #c5b78d;color:#435044;
+  box-shadow:0 12px 34px #273e2c57;
+  backdrop-filter:blur(12px);
+  animation:urgency-enter .26s cubic-bezier(.2,.7,.3,1) both;
+}
+.urgency-banner .urgency-mark{flex:none;display:grid;place-items:center;width:29px;height:29px;
+  border-radius:50%;background:#e3e9d8;color:#54765c;font-size:21px;font-weight:700;}
+.urgency-banner strong{font:700 14px/1.28 'DM Sans',sans-serif;display:block;margin:2px 0 5px;}
+.urgency-banner p{font:500 12px/1.48 'DM Sans',sans-serif;margin:0;}
+.urgency-banner.warning{border-color:#cdab71;background:#fff3ddf6;color:#6a4932;}
+.urgency-banner.warning .urgency-mark{background:#efdeb8;color:#945a33;}
+.urgency-banner.critical{border-color:#c77c70;background:#ffefebf8;color:#803b3a;box-shadow:0 10px 35px #953d4163;}
+.urgency-banner.critical .urgency-mark{background:#f3c3b8;color:#9e3135;}
+@keyframes urgency-enter{from{opacity:0;transform:translateY(-9px) scale(.975)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:640px){
+ .urgency-banner{top:calc(255px + env(safe-area-inset-top));left:50%;right:auto;
+   transform:translateX(-50%);width:min(350px,calc(100vw - 28px));
+   animation:urgency-mobile .24s ease-out both;}
+ @keyframes urgency-mobile{from{opacity:0;transform:translate(-50%,-9px)}to{opacity:1;transform:translate(-50%,0)}}
+}
+@media(max-height:590px){
+ .urgency-banner{top:auto;bottom:calc(157px + env(safe-area-inset-bottom));right:14px;left:auto;
+   transform:none;max-width:min(280px,48vw);padding:8px 10px;}
+ .urgency-banner strong{font-size:12px}.urgency-banner p{font-size:11px}
+}
+@media(prefers-reduced-motion:reduce){.urgency-banner{animation:none!important}}

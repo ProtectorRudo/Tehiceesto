@@ -2,6 +2,7 @@ import {useCallback,useEffect,useRef,useState,type CSSProperties,type PointerEve
 import {World} from './scene/World';
 import {AudioEngine} from './game/AudioEngine';
 import {RushClock} from './game/RushClock';
+import {crossedCue,rushCues,bloomDeterioration,type NarrativeCue} from './game/urgency';
 import {stickVector,stickOffset} from './game/joystick';
 import {applyAction,formatRemaining,createNewProgress,safeReplyLink,type Progress,type PuzzleAction} from './game/logic';
 import './ui/style.css';
@@ -9,7 +10,7 @@ import './ui/style.css';
 type Invitation = {recipient:string;sender:string;question:string;message:string;date:string;place:string;replyPhone:string;voiceUrl:string};
 type Modal='intro'|'clock'|'gramophone'|'code'|'letter'|'final'|'timeout'|'accepted'|null;
 const copy=[
-  {title:'El reloj detenido',hints:['El reloj se detuvo por una razón. Investigá con calma los objetos cercanos y lo que cuenta el invernadero.','El mecanismo necesita una llave. En la zona de trabajo hay algo que podría ayudarte; observá bien las superficies.','Sobre el escritorio hay una llave de bronce. El sol tiene ocho rayos y el agua cuatro ondas: ajustá el reloj a las 08:40.'],task:'Investigá cómo poner en marcha el reloj detenido.'},
+  {title:'El reloj detenido',hints:['El reloj se detuvo por una razón. Investigá con calma los objetos cercanos y lo que cuenta el invernadero.','El mecanismo necesita una llave. En la zona de trabajo hay algo que podría ayudarte; observá bien las superficies.','Sobre el escritorio hay una llave de bronce. El sol tiene ocho rayos y el agua cuatro ondas: ajustá el reloj a las 08:40.'],task:'Encontrá una pequeña llave de bronce y descubrí cómo poner en marcha el reloj.'},
   {title:'La melodía escondida',hints:['Volvé al escritorio: el cuaderno guarda un verso sobre la tormenta.','La canción no pertenece al fuego del atardecer ni al brillo del oro. Pensá en el cielo después de llover.','Es el disco azul. Colocalo en la vitrola.'],task:'Interpretá el cuaderno para elegir una de las tres melodías.'},
   {title:'El cajón cerrado',hints:['Mirá los tres cuadros y los símbolos grabados en el candado.','Los símbolos del candado indican el orden. Contá las figuras de cada cuadro: no busques números escritos.','Dos lunas, siete estrellas y cuatro flores. El código es 274.'],task:'Contá las figuras de los cuadros para abrir el candado.'},
   {title:'El orden secreto',hints:['La carta contiene una historia que se relaciona con los tres libros destacados.','Pensá en el ciclo de una flor: primero nace, después llega el agua y finalmente cae la noche.','Tocá FLOR, luego LLUVIA y por último LUNA.'],task:'Descifrá el ciclo que narra la carta y activá los libros.'},
@@ -29,6 +30,10 @@ export default function App(){
   const startedRush=useRef(false);
   const lastTick=useRef(-1);
   const lastHint=useRef(false);
+  const previousExplorationSecond=useRef(540);
+  const previousRushSecond=useRef(120);
+  const alertTimer=useRef<number|null>(null);
+  const [urgency,setUrgency]=useState<NarrativeCue|null>(null);
   const [progress,setProgress]=useState<Progress>(progressRef.current);
   const [invitation,setInvitation]=useState<Invitation>(fallback);
   const [modal,setModal]=useState<Modal>('intro');
@@ -50,6 +55,13 @@ export default function App(){
   const [position,setPosition]=useState({x:0,z:5.5});
   const toastTimer=useRef<number|null>(null);
 
+  const announce=useCallback((cue:NarrativeCue)=>{
+    if(alertTimer.current!==null)clearTimeout(alertTimer.current);
+    setUrgency(cue);
+    alertTimer.current=window.setTimeout(()=>{setUrgency(null);alertTimer.current=null},cue.duration);
+    if(cue.severity!=='soft')audio.current?.bell(cue.severity==='critical'?.75:.48);
+    if(cue.severity==='critical'&&'vibrate' in navigator)navigator.vibrate?.([30,55,30]);
+  },[]);
   const toast=useCallback((message:string)=>{setNotification(message);if(toastTimer.current)clearTimeout(toastTimer.current);toastTimer.current=window.setTimeout(()=>setNotification(''),4700)},[]);
   const update=useCallback((action:PuzzleAction)=>{
     const {next,success,feedback}=applyAction(progressRef.current,action);
@@ -58,12 +70,14 @@ export default function App(){
     world.current?.setStage(next.stage);world.current?.setLanterns(next.lanterns);
     if(next.stage===4&&progressRef.current.rushing&&!startedRush.current){
       explorationClock.current.stop();
-      startedRush.current=true;rushClock.current.start(performance.now());setRemaining(120000);audio.current?.playRush();toast('¡El jardín está por cerrar! Encontrá las tres luces.');
+      previousRushSecond.current=120;
+      startedRush.current=true;rushClock.current.start(performance.now());setRemaining(120000);audio.current?.playRush();
+      world.current?.setRushIntensity(0);announce(rushCues[0]);
     }
     if(next.stage===5){rushClock.current.stop();explorationClock.current.stop();audio.current?.finale();toast('El tiempo se detuvo. Acercate a la mesa del jardín.');}
     if(action.type==='CODE'&&success)setModal('letter');
     return {next,success};
-  },[toast]);
+  },[toast,announce]);
   const onInteract=useCallback((what:string,sub?:string)=>{
     const stage=progressRef.current.stage;
     if(what==='key'){
@@ -103,7 +117,7 @@ export default function App(){
     const w=new World(canvas.current,{onInteract:(what,sub)=>onInteractRef.current(what,sub),onFocus:label=>setFocusedAction(label),onMove:(x,z)=>setPosition(old=>Math.round(old.x*4)===Math.round(x*4)&&Math.round(old.z*4)===Math.round(z*4)?old:{x,z})});
     world.current=w;
     w.setStage(progressRef.current.stage);w.setKeyFound(progressRef.current.keyFound);w.setLanterns(progressRef.current.lanterns);w.enableMovement(false);
-    return()=>{w.dispose();sound.dispose();world.current=null;audio.current=null;if(toastTimer.current)clearTimeout(toastTimer.current)};
+    return()=>{w.dispose();sound.dispose();world.current=null;audio.current=null;if(toastTimer.current)clearTimeout(toastTimer.current);if(alertTimer.current)clearTimeout(alertTimer.current)};
   },[]);
   useEffect(()=>{
     // Previous versions persisted puzzles but not their clocks. That could restore a
@@ -120,18 +134,26 @@ export default function App(){
     const timer=window.setInterval(()=>{
       const now=performance.now();
       if(explorationClock.current.active && !explorationClock.current.paused){
-        setExplorationRemaining(explorationClock.current.remaining(now));
+        const explorationMs=explorationClock.current.remaining(now);
+        setExplorationRemaining(explorationMs);
+        world.current?.setExplorationIntensity(bloomDeterioration('exploration',explorationMs,540000));
+        const secs=Math.ceil(explorationMs/1000);
+        const cue=crossedCue('exploration',previousExplorationSecond.current,secs);
+        if(cue)announce(cue);
+        previousExplorationSecond.current=secs;
       }
       if(!rushClock.current.active || rushClock.current.paused)return;
-      const ms=rushClock.current.remaining(performance.now());setRemaining(ms);
+      const ms=rushClock.current.remaining(now);setRemaining(ms);
       world.current?.setRushIntensity(1-ms/120000);
       const secs=Math.ceil(ms/1000);
-      if(secs<=35&&!lastHint.current){lastHint.current=true;toast('¡Quedan pocos segundos! Mirá los símbolos de las farolas y recordá la última frase de la carta.');}
+      const cue=crossedCue('rush',previousRushSecond.current,secs);
+      if(cue)announce(cue);
+      previousRushSecond.current=secs;
       if(secs<=10 && secs>0 && secs!==lastTick.current){lastTick.current=secs;audio.current?.tick()}
       if(ms<=0){rushClock.current.stop();audio.current?.stopRush();setModal('timeout');world.current?.enableMovement(false)}
     },100);
     return()=>clearInterval(timer);
-  },[toast]);
+  },[announce]);
   useEffect(()=>{
     const visibility=()=>{
       if(document.hidden){
@@ -178,12 +200,13 @@ export default function App(){
   const begin=()=>{
     setShowHelp(false);setStarted(true);setModal(null);void audio.current?.start();
     // A fresh page is always a fresh game: progress cannot outlive either clock.
+    previousExplorationSecond.current=540;
     explorationClock.current.start(performance.now(),540000);setExplorationRemaining(540000);
     // No pista automática: el jugador debe descubrir los objetos por sí mismo.
     setNotification('');
   };
   const resetAll=()=>{window.location.reload()};
-  const retry=()=>{setShowHelp(false);const result=update({type:'RESET_RUSH'});if(result.success){rushClock.current.start(performance.now());startedRush.current=true;lastTick.current=-1;lastHint.current=false;setRemaining(120000);setModal(null);audio.current?.playRush();}};
+  const retry=()=>{setShowHelp(false);const result=update({type:'RESET_RUSH'});if(result.success){rushClock.current.start(performance.now());startedRush.current=true;previousRushSecond.current=120;lastTick.current=-1;lastHint.current=false;setRemaining(120000);setModal(null);world.current?.setRushIntensity(0);audio.current?.playRush();announce(rushCues[0]);}};
   const confirmClock=()=>{const result=update({type:'CLOCK',hour,minute});if(result.success)setModal(null)};
   const confirmCode=()=>{const result=update({type:'CODE',code});if(result.success)setCode('')};
   const countdownIsFinal=progress.stage===4;
@@ -219,7 +242,8 @@ export default function App(){
       </div>}
       {started&&!modal&&focusedAction&&<button className="focus-action" onClick={()=>world.current?.interactFocused()} aria-label={focusedAction}><span className="focus-sigil">✧</span>{focusedAction}</button>}
       {started&&!modal&&<div className="navigation-tip">{inGarden?'JARDÍN DE CRISTAL':'INVERNADERO'} · <span>deslizá para mirar · tocá para investigar · pellizcá para zoom</span></div>}
-      {notification&&!modal&&<div className="toast" role="status">✧ {notification}</div>}
+      {notification&&!modal&&!urgency&&<div className="toast" role="status">✧ {notification}</div>}
+      {urgency&&started&&!modal&&!showHelp&&<div key={urgency.id} className={'urgency-banner '+urgency.severity} role="status" aria-live={urgency.severity==='critical'?'assertive':'polite'}><span className="urgency-mark" aria-hidden="true">{urgency.severity==='critical'?'!':'✦'}</span><div><strong>{urgency.title}</strong><p>{urgency.description}</p></div></div>}
       {backgroundPaused&&started&&!modal&&<div className="resume-note" role="status">El reloj esperó mientras no estabas. <button onClick={()=>setBackgroundPaused(false)}>Continuar ✧</button></div>}
       {started&&showHelp&&<div className="help-panel" id="hint-panel" role="region" aria-label="Pista actual"><button className="mini-close" aria-label="Cerrar pista" onClick={()=>setShowHelp(false)}>×</button><span className="overline">PISTA {activeHintLevel+1} DE 3 · A TU RITMO</span><h3>{copy[progress.stage].title}</h3><p>{copy[progress.stage].hints[activeHintLevel]}</p><div className="hint-steps">{activeHintLevel<2&&<button className="hint-reveal" onClick={()=>setHintLevels(x=>({...x,[progress.stage]:Math.min(2,activeHintLevel+1)}))}>Necesito otra pista →</button>}<button className="quiet-link" onClick={()=>setShowHelp(false)}>Seguir investigando</button></div><p className="help-controls">Pista 3 revela la respuesta solo si la pedís. En celular, tocá para investigar y usá el joystick para caminar.</p></div>}
       {modal&&<div className="modal-scrim" role="presentation"><section className={'card story '+(modal==='final'||modal==='accepted'?'romantic':'')} role="dialog" aria-modal="true">

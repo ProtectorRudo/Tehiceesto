@@ -38,6 +38,14 @@ export class World {
   private clockTime=0;
   private lanternMeshes:THREE.Mesh[]=[];
   private petals?:THREE.Points;
+  private flowerHeads?:THREE.InstancedMesh;
+  private flowerStems?:THREE.InstancedMesh;
+  private readonly flowerInstances:{x:number,z:number,stemScale:number,headScale:number,flowerColor:number}[]=[];
+  private botanicalLeaves?:THREE.InstancedMesh;
+  private plantBaseColors:number[]=[];
+  private wilt=0;
+  private lastWilt=-1;
+
   private mixers:AnimationMixer[]=[];
   private glowLights:THREE.Light[]=[];
   private gardenBulbs:THREE.Mesh[]=[];
@@ -224,6 +232,7 @@ export class World {
     const verts=new Float32Array([0,0,0,-.12,.28,0,0,.35,.09, 0,0,0,0,.35,.09,.12,.28,0, -.12,.28,0,-.09,.70,-.03,0,.35,.09, 0,.35,.09,-.09,.70,-.03,0,.91,0, 0,.35,.09,0,.91,0,.09,.70,-.03, 0,.35,.09,.09,.70,-.03,.12,.28,0]);
     const leafGeo=new THREE.BufferGeometry();leafGeo.setAttribute('position',new THREE.BufferAttribute(verts,3));leafGeo.computeVertexNormals();
     const inst=new THREE.InstancedMesh(leafGeo,foliage,pots.length*18);
+    this.botanicalLeaves=inst;
     inst.castShadow=false;inst.receiveShadow=false;const dummy=new THREE.Object3D();
     let n=0;
     const potMaterial=mat(0xe2d5bb,.91);
@@ -237,7 +246,8 @@ export class World {
         dummy.position.set(px+Math.sin(angle)*.065*scale,.72*scale,pz+Math.cos(angle)*.065*scale);
         dummy.rotation.set(.35+off*.20,angle+.55,Math.sin(angle*1.1)*.40);
         dummy.scale.setScalar(scale*(.6+seedRand()*.35));dummy.updateMatrix();inst.setMatrixAt(n,dummy.matrix);
-        inst.setColorAt(n,new THREE.Color([0x446f50,0x759a71,0x365f4d,0x97b081][n%4]));n++;
+        const leafColor=[0x446f50,0x759a71,0x365f4d,0x97b081][n%4];
+        inst.setColorAt(n,new THREE.Color(leafColor));this.plantBaseColors.push(leafColor);n++;
       }
     }
     inst.instanceMatrix.needsUpdate=true;this.scene.add(inst);
@@ -485,14 +495,19 @@ export class World {
     const stemGeometry=new THREE.CylinderGeometry(.014,.022,.56,5);
     const stems=new THREE.InstancedMesh(stemGeometry,leaf,230);const flowerGeo=new THREE.SphereGeometry(.09,7,5);
     const flowers=new THREE.InstancedMesh(flowerGeo,mat(0xe5a0ad,.92),230);
+    this.flowerHeads=flowers;this.flowerStems=stems;
     const dummy=new THREE.Object3D();
     for(let i=0;i<230;i++){
       const x=(seedRand()-.5)*13.5,z=-7.4-seedRand()*9.4;
-      dummy.position.set(x,.32,z);dummy.scale.setScalar(.7+seedRand()*.5);dummy.updateMatrix();stems.setMatrixAt(i,dummy.matrix);
-      dummy.position.y=.67;dummy.scale.setScalar(.65+seedRand()*.8);dummy.updateMatrix();flowers.setMatrixAt(i,dummy.matrix);
-      flowers.setColorAt(i,new THREE.Color([0xe8acc8,0xffd4d2,0xe6bf8a,0xd5c4ff][i%4]));
+      const stemScale=.7+seedRand()*.5,headScale=.65+seedRand()*.8;
+      const flowerColor=[0xe8acc8,0xffd4d2,0xe6bf8a,0xd5c4ff][i%4];
+      this.flowerInstances.push({x,z,stemScale,headScale,flowerColor});
+      dummy.position.set(x,.32,z);dummy.rotation.set(0,0,0);dummy.scale.setScalar(stemScale);dummy.updateMatrix();stems.setMatrixAt(i,dummy.matrix);
+      dummy.position.y=.67;dummy.scale.setScalar(headScale);dummy.updateMatrix();flowers.setMatrixAt(i,dummy.matrix);
+      flowers.setColorAt(i,new THREE.Color(flowerColor));
     }
     stems.castShadow=false;flowers.castShadow=false;this.scene.add(stems,flowers);
+    this.updateBloomState(0);
     // Glass greenhouse frame, decorative arch and warm string lights.
     for(const x of [-7.3,7.3])for(const z of [-8,-11,-14,-17]){
       this.cylinder(this.scene,.05,5.1,x,2.55,z,brass);
@@ -579,7 +594,7 @@ export class World {
   setStage(stage:Stage){
     this.stage=stage;
     if(stage>=4){this.openGate();this.rushEnabled=stage===4;}
-    if(stage===5){this.romantic=true;this.rushEnabled=false;this.storm=0;this.renderer.toneMappingExposure=1.47;if(this.petals)(this.petals.material as THREE.PointsMaterial).opacity=.87;
+    if(stage===5){this.romantic=true;this.rushEnabled=false;this.storm=0;this.updateBloomState(0);this.renderer.toneMappingExposure=1.47;if(this.petals)(this.petals.material as THREE.PointsMaterial).opacity=.87;
       if(this.glowLights[4])(this.glowLights[4] as THREE.PointLight).intensity=this.gardenBaseIntensity*1.5;
       this.gardenBulbs.forEach(bulb=>(bulb.material as THREE.MeshBasicMaterial).color.setHex(0xffdba0));
     }
@@ -601,8 +616,48 @@ export class World {
       (m.material as THREE.MeshStandardMaterial).emissiveIntensity=lit?1.8:0;
     });
   }
+  /** The passing minutes visibly sap the garden. 3D geometry remains readable at all times. */
+  setExplorationIntensity(value:number){
+    if(this.stage>=4)return;
+    this.updateBloomState(THREE.MathUtils.clamp(value,0,.28));
+  }
+  private updateBloomState(amount:number){
+    const t=THREE.MathUtils.clamp(amount,0,1);
+    // Updating 230 instances only when the change is noticeable avoids per-frame matrices.
+    if(Math.abs(t-this.lastWilt)<.018)return;
+    this.lastWilt=t;this.wilt=t;
+    const stem=this.flowerStems,heads=this.flowerHeads;
+    if(stem&&heads){
+      const dummy=new THREE.Object3D();
+      const dry=new THREE.Color(0x897e66);
+      this.flowerInstances.forEach((flower,index)=>{
+        const lean=t*(.2+(.32*(index%7)/6));
+        dummy.rotation.set(lean*.3,0,lean*(index%2?1:-1));
+        dummy.position.set(flower.x,.32-t*.13,flower.z);
+        dummy.scale.set(flower.stemScale*(1-t*.22),flower.stemScale*(1-t*.34),flower.stemScale*(1-t*.22));
+        dummy.updateMatrix();stem.setMatrixAt(index,dummy.matrix);
+        dummy.rotation.set(t*.35,0,t*(index%2?1:-1)*.5);
+        dummy.position.y=.67-t*.38;
+        dummy.position.x=flower.x+(index%2?1:-1)*t*.15;
+        dummy.scale.setScalar(flower.headScale*(1-t*.70));
+        dummy.updateMatrix();heads.setMatrixAt(index,dummy.matrix);
+        heads.setColorAt(index,new THREE.Color(flower.flowerColor).lerp(dry,t*.92));
+      });
+      stem.instanceMatrix.needsUpdate=true;heads.instanceMatrix.needsUpdate=true;
+      if(heads.instanceColor)heads.instanceColor.needsUpdate=true;
+    }
+    if(this.botanicalLeaves){
+      const dry=new THREE.Color(0x9a8c6b);
+      for(let i=0;i<this.plantBaseColors.length;i++){
+        this.botanicalLeaves.setColorAt(i,new THREE.Color(this.plantBaseColors[i]).lerp(dry,t*.72));
+      }
+      if(this.botanicalLeaves.instanceColor)this.botanicalLeaves.instanceColor.needsUpdate=true;
+    }
+  }
   setRushIntensity(t:number){
     this.storm=THREE.MathUtils.clamp(t,0,1);
+    this.updateBloomState(.28+this.storm*.72);
+    if(this.petals)(this.petals.material as THREE.PointsMaterial).opacity=this.reducedMotion?0:this.storm*.74;
     if(this.stage===4&&this.gate)this.gate.rotation.y=-Math.PI*.52+Math.PI*.47*this.storm;
     // The garden's own lights start shutting down as the second hand races.
     const dim=1-Math.pow(this.storm,1.5)*.78;
@@ -697,7 +752,7 @@ export class World {
         let y=pts.getY(i)-dt*(this.romantic?.3:this.rushEnabled?.14:0);
         if(y<.1)y=5.4;pts.setY(i,y);
       }
-      pts.needsUpdate=this.romantic&&!this.reducedMotion;
+      pts.needsUpdate=(this.romantic||this.rushEnabled)&&!this.reducedMotion;
     }
     if(this.rushEnabled){
       const wave=Math.sin(this.clockTime*7)*.13*this.storm;

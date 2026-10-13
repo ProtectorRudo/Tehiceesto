@@ -70,9 +70,14 @@ No se guarda el progreso de la partida en `localStorage`. Se elimina la clave ob
 - Temporizador: 9 min de exploración orientativa + 2 min de desafío final con reintento del tramo final.
 - Las 20 pruebas de lógica, controles, estado y pistas pasan localmente; pendiente compilación completa con dependencias, revisión visual móvil y comprobación de una partida real antes de promover esta versión.
 
-## V8: descubrimiento sin spoilers
+## V7: retroalimentación de prueba en escritorio
+- La llave ahora es una malla 3D dorada visible sobre un tapete oscuro y con hotspot `key`, no un premio automático de `desk`.
+- Examinar la nota no cambia el inventario; solo la interacción **Tomar llave de bronce** habilita el reloj.
+- Avisos temporales separados de la acción contextual en móvil y escritorio.
+- Prueba de regresión `tests/physical-key.test.mjs`.
 
-- El inicio no muestra ninguna notificación que indique dónde buscar la llave; el objetivo inicial tampoco la revela.
-- Examinar el escritorio y el reloj no identifica automáticamente la ubicación de la llave.
-- La ubicación exacta se revela únicamente al solicitar voluntariamente la pista de nivel 3.
-- Los mensajes del sol y la fuente escriben «ocho» y «cuatro» en minúsculas.
+## V9 — El jardín se apaga
+
+El jugador debe **encontrar una pequeña llave de bronce** sin recibir su ubicación. El temporizador de exploración (9 minutos) presenta avisos narrativos cuando restan 6, 3, 1 y 0 minutos, sin bloquear al jugador ni revelar soluciones. En el tramo final (2 minutos) hay un aviso inicial y señales a 1:30, 1:00, 0:30 y 0:10; una banda separada evita interferir con los controles o las pistas. Los pétalos se desprenden, las flores bajan y se desaturan y las hojas de las macetas pierden color de forma gradual. Si consigue resolver el jardín, la floración recupera su aspecto. Al repetir el desafío final, el deterioro vuelve a empezar desde su punto inicial. La música y campanadas acompañan los avisos.
+
+**Nota:** si el tiempo de exploración llega a cero, los acertijos siguen siendo resolubles; los dos minutos finales son el verdadero límite. Las pistas voluntarias siguen separadas de los avisos narrativos.
