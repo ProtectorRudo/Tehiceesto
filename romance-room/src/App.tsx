@@ -66,17 +66,22 @@ export default function App(){
   },[toast]);
   const onInteract=useCallback((what:string,sub?:string)=>{
     const stage=progressRef.current.stage;
+    if(what==='key'){
+      if(stage!==0||progressRef.current.keyFound){toast('La llave ya está guardada.');return;}
+      const next={...progressRef.current,keyFound:true};
+      progressRef.current=next;setProgress(next);world.current?.setKeyFound(true);
+      audio.current?.success();if('vibrate' in navigator)navigator.vibrate?.([20,35,18]);
+      toast('Tomaste una llave de bronce. Ahora podés darle cuerda al reloj.');
+      return;
+    }
     if(what==='desk'){
-      if(stage===0&&!progressRef.current.keyFound){
-        const next={...progressRef.current,keyFound:true};progressRef.current=next;setProgress(next);world.current?.setKeyFound(true);
-        audio.current?.success();toast('Encontraste una llave. La nota dice: «La hora sigue al sol; el agua marca diez por cada onda».');
-      } else if(stage===0)toast('«La hora sigue los rayos del sol de cobre. El agua marca diez por cada onda».');
+      if(stage===0)toast('La nota dice: «La hora sigue al sol; el agua marca diez por cada onda». La llave está en algún lugar sobre el escritorio.');
       else toast('El cuaderno: «Ni el fuego del ocaso ni el brillo del oro. Cuando la lluvia se va, el cielo devuelve la melodía».');
       return;
     }
     if(what==='sundial'){toast('El sol de cobre tiene OCHO rayos grabados alrededor de su centro.');return;}
     if(what==='waterBasin'){toast('En la fuente hay CUATRO ondas concéntricas; una inscripción dice: «Cada onda vale diez minutos».');return;}
-    if(what==='clock') {if(stage===0)setModal('clock');else toast('El reloj vuelve a caminar, como si nada hubiera ocurrido.');return;}
+    if(what==='clock') {if(stage===0){if(!progressRef.current.keyFound){toast('Al reloj le falta una pequeña llave de bronce. Buscala físicamente sobre el escritorio.');return;}setModal('clock');}else toast('El reloj vuelve a caminar, como si nada hubiera ocurrido.');return;}
     if(what==='gramophone') {if(stage===1){if(sub&&['azul','rojo','oro'].includes(sub)){const result=update({type:'RECORD',record:sub});if(result.success)setModal(null);}else setModal('gramophone')}else toast('Todavía no es momento de escuchar esa música.');return;}
     if(what==='painting'){toast(`Contás ${sub==='LUNA'?'dos lunas':sub==='ESTRELLAS'?'siete estrellas':'cuatro flores'} en el cuadro. El candado indica el orden.`);return;}
     if(what==='cabinet') {if(stage===2)setModal('code');else if(stage<2)toast('El cajón está trabado. Se oye un mecanismo musical en su interior.');else setModal('letter');return;}
@@ -174,7 +179,7 @@ export default function App(){
     setShowHelp(false);setStarted(true);setModal(null);void audio.current?.start();
     // A fresh page is always a fresh game: progress cannot outlive either clock.
     explorationClock.current.start(performance.now(),540000);setExplorationRemaining(540000);
-    toast('Buscá una pequeña llave. Tal vez el escritorio esconda algo.');
+    toast('Buscá una llave de bronce sobre el escritorio. Acercate y tocala para recogerla.');
   };
   const resetAll=()=>{window.location.reload()};
   const retry=()=>{setShowHelp(false);const result=update({type:'RESET_RUSH'});if(result.success){rushClock.current.start(performance.now());startedRush.current=true;lastTick.current=-1;lastHint.current=false;setRemaining(120000);setModal(null);audio.current?.playRush();}};

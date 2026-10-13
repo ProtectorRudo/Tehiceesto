@@ -4,7 +4,7 @@ import { AnimationMixer } from 'three';
 import type { Stage } from '../game/logic';
 import {resolveMovement} from '../game/navigation';
 
-type Interactive = 'desk'|'sundial'|'waterBasin'|'clock'|'gramophone'|'painting'|'letter'|'cabinet'|'books'|'gardenGate'|'lantern0'|'lantern1'|'lantern2'|'present';
+type Interactive = 'key'|'desk'|'sundial'|'waterBasin'|'clock'|'gramophone'|'painting'|'letter'|'cabinet'|'books'|'gardenGate'|'lantern0'|'lantern1'|'lantern2'|'present';
 type Callbacks = {onInteract:(what:Interactive, sub?:string)=>void; onMove?:(x:number,z:number)=>void; onFocus?:(label:string|null)=>void};
 const gold = 0xb7a77f;
 const palette=[0x4c6471,0x98746b,0x909a6c,0x586c56,0x9b7e91];
@@ -30,6 +30,7 @@ export class World {
   private canWalk=true;
   private stage:Stage=0;
   private keyMesh?:THREE.Group;
+  private keyHotspot?:THREE.Object3D;
   private gate?:THREE.Group;
   private slidingShelf?:THREE.Group;
   private clockHands?:THREE.Group;
@@ -315,10 +316,27 @@ export class World {
     const sign=this.mesh(new THREE.PlaneGeometry(1.12,.17),new THREE.MeshBasicMaterial({map:txt,transparent:true}),g,[-.48,1.216,-.22],false);sign.rotation.x=-Math.PI/2;
     this.block(g,.55,.07,.38,.8,1.18,-.24,mat(0x1e3e50)); // diary
     this.cylinder(g,.05,.15,1.16,1.24,.15,brass);this.cylinder(g,.075,.12,1.16,1.4,.15,ivory);
-    this.hotspot(g,'desk',-.25,1.2,.0,2.9,.7,1.5);
+    // The desk can be examined, but it MUST NOT award the key.
+    this.hotspot(g,'desk',-.25,1.24,-.18,2.9,.38,1.08);
     this.hotspot(g,'cabinet',0,.78,.86,2.8,.34,.25);
-    const key=new THREE.Group();key.position.set(-1.22,1.17,.38);g.add(key);this.keyMesh=key;
-    this.torus(key,.08,.023,0,0,0,brass);this.block(key,.024,.2,.02,0,-.11,0,brass);
+
+    // Actual collectible: a recognizable brass key lying on a dark velvet inset.
+    // It is foregrounded in the player's view and has its OWN interaction hotspot.
+    const display=new THREE.Group();display.position.set(.65,1.16,.42);g.add(display);
+    const velvet=mat(0x244e4d,.86);
+    this.block(display,.89,.035,.60,0,-.025,0,velvet,.055);
+    const key=new THREE.Group();key.position.set(.10,.045,.03);display.add(key);this.keyMesh=key;
+    const keyGold=new THREE.MeshStandardMaterial({color:0xf4c778,metalness:.82,roughness:.23,emissive:0x7b471c,emissiveIntensity:.13});
+    const keyBright=new THREE.MeshStandardMaterial({color:0xffe3a0,metalness:.62,roughness:.29});
+    // Ring rests flat on the writing desk, with a stem and two cut teeth.
+    const bow=this.torus(key,.142,.037,.15,0,0,keyGold);bow.rotation.x=-Math.PI/2;
+    this.sphere(key,.034,.15,.017,0,keyBright);
+    this.block(key,.43,.045,.066,-.13,0,0,keyGold,.014);
+    this.block(key,.052,.046,.17,-.30,0,.07,keyGold,.008);
+    this.block(key,.054,.046,.14,-.22,0,.065,keyGold,.008);
+    const glint=this.sphere(key,.040,-.05,.044,-.01,keyBright);
+    glint.castShadow=false;
+    this.keyHotspot=this.hotspot(display,'key',.08,.055,.25,.86,.43,.80);
   }
   private createClueStations(){
     // Two physical discoveries; neither station exposes the final clock time.
@@ -566,7 +584,16 @@ export class World {
       this.gardenBulbs.forEach(bulb=>(bulb.material as THREE.MeshBasicMaterial).color.setHex(0xffdba0));
     }
   }
-  setKeyFound(found:boolean){if(this.keyMesh)this.keyMesh.visible=!found;}
+  setKeyFound(found:boolean){
+    if(this.keyMesh)this.keyMesh.visible=!found;
+    if(this.keyHotspot){
+      this.keyHotspot.visible=!found;
+      if(found){
+        this.interactive=this.interactive.filter(object=>object!==this.keyHotspot);
+        this.setFocus(null);
+      }
+    }
+  }
   setLanterns(values:number[]){
     this.lanternMeshes.forEach((m,i)=>{
       const lit=values.includes(i);
@@ -597,7 +624,7 @@ export class World {
     if(this.currentFocus===hit)return;
     this.currentFocus=hit;
     const action=hit?.userData.action as Interactive|undefined;
-    const labels:Partial<Record<Interactive,string>>={desk:'Revisar escritorio',sundial:'Examinar sol de cobre',waterBasin:'Examinar fuente',clock:'Examinar reloj',gramophone:'Escuchar discos',painting:'Leer cuadro',cabinet:'Abrir cajón',books:'Tocar libro',gardenGate:'Examinar puerta',lantern0:'Encender farola',lantern1:'Encender farola',lantern2:'Encender farola',present:'Abrir regalo'};
+    const labels:Partial<Record<Interactive,string>>={key:'Tomar llave de bronce',desk:'Leer nota del escritorio',sundial:'Examinar sol de cobre',waterBasin:'Examinar fuente',clock:'Examinar reloj',gramophone:'Escuchar discos',painting:'Leer cuadro',cabinet:'Abrir cajón',books:'Tocar libro',gardenGate:'Examinar puerta',lantern0:'Encender farola',lantern1:'Encender farola',lantern2:'Encender farola',present:'Abrir regalo'};
     this.handlers.onFocus?.(action?labels[action]||'Examinar':null);
   }
   private findFocused(){

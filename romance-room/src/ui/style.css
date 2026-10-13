@@ -139,3 +139,27 @@
 
 .letter-toggle{pointer-events:auto;border:1px solid #acc8aa;background:#f6fcf1ef;color:#315844;border-radius:13px;padding:7px 11px;min-height:51px;font-weight:700;touch-action:manipulation}
 @media(max-width:390px){.game-hud{gap:4px}.letter-toggle{font-size:11px;padding:5px 7px}.hint-toggle{min-width:87px;padding:5px 9px}.game-timer{min-width:112px;padding:5px 7px}.timer-copy strong{font-size:19px}}
+
+/* V7: one clearly reserved vertical lane per HUD layer; never overlap the focus action.
+   Timer/mission live at the top, interaction sits above the bottom legend,
+   feedback floats clearly above the interaction and never blocks pointer input. */
+.toast{
+  z-index:5;pointer-events:none;
+  bottom:calc(192px + env(safe-area-inset-bottom));
+  left:50%;right:auto;transform:translateX(-50%);
+  width:max-content;max-width:min(420px,calc(100vw - 32px));
+  padding:11px 15px;line-height:1.5;text-align:center;
+}
+.focus-action{z-index:5;bottom:calc(105px + env(safe-area-inset-bottom));}
+.navigation-tip{z-index:3;}
+@media(pointer:coarse){
+  .toast{bottom:calc(232px + env(safe-area-inset-bottom));max-width:min(390px,calc(100vw - 28px));}
+  .focus-action{bottom:calc(105px + env(safe-area-inset-bottom));}
+}
+@media(max-height:610px){
+  .toast{bottom:calc(166px + env(safe-area-inset-bottom));max-width:min(360px,calc(100vw - 36px));font-size:11px;padding:7px 10px;}
+  .focus-action{bottom:calc(64px + env(safe-area-inset-bottom));}
+}
+@media(max-height:500px){
+  .toast{bottom:calc(126px + env(safe-area-inset-bottom));}
+}
