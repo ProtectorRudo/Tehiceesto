@@ -3,7 +3,6 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { AnimationMixer } from 'three';
 import type { Stage } from '../game/logic';
 import {resolveMovement} from '../game/navigation';
-import {createDetailedBloomGeometry,addExteriorGrove,addFlowerLeaves} from './botany';
 
 type Interactive = 'key'|'desk'|'sundial'|'waterBasin'|'clock'|'gramophone'|'painting'|'letter'|'cabinet'|'books'|'gardenGate'|'lantern0'|'lantern1'|'lantern2'|'present';
 type Callbacks = {onInteract:(what:Interactive, sub?:string)=>void; onMove?:(x:number,z:number)=>void; onFocus?:(label:string|null)=>void};
@@ -32,6 +31,8 @@ export class World {
   private stage:Stage=0;
   private keyMesh?:THREE.Group;
   private keyHotspot?:THREE.Object3D;
+  private letterDrawer?:THREE.Group;
+  private letterDrawerTarget=0;
   private gate?:THREE.Group;
   private slidingShelf?:THREE.Group;
   private clockHands?:THREE.Group;
@@ -128,21 +129,28 @@ export class World {
   private mesh(geo:THREE.BufferGeometry, material:THREE.Material,parent:THREE.Object3D,pos:[number,number,number]=[0,0,0],shadow=true){
     const m=new THREE.Mesh(geo,material);m.position.set(...pos);m.castShadow=shadow;m.receiveShadow=true;parent.add(m);this.materials.push(material);return m;
   }
-  /** A shared, mobile-friendly PBR wood texture for the major furnishings. */
+  /** Lightweight PBR wood grain texture for all principal furniture: one shared map. */
   private walnut(){
     if(this.woodPbr)return this.woodPbr;
-    const canvas=document.createElement('canvas');canvas.width=512;canvas.height=256;
-    const ctx=canvas.getContext('2d')!;
+    const cvs=document.createElement('canvas');cvs.width=512;cvs.height=256;
+    const ctx=cvs.getContext('2d')!;
     ctx.fillStyle='#ae8660';ctx.fillRect(0,0,512,256);
     for(let j=0;j<190;j++){
-      const y=j*1.37,wobble=3+6*Math.sin(j*.36),alpha=j%7===0?'.12':'.065';
+      const y=j*1.37;
+      const wobble=3+6*Math.sin(j*.36);
+      const warm=j%7===0?'.12':'.065';
       ctx.beginPath();ctx.moveTo(0,y);
       for(let x=0;x<=512;x+=14)ctx.lineTo(x,y+Math.sin(x*.019+j*.26)*wobble+Math.sin(x*.048+j*.08)*1.6);
-      ctx.strokeStyle=j%4===0?'rgba(54,31,21,'+alpha+')':'rgba(241,213,166,.09)';
-      ctx.lineWidth=j%13===0?2.1:.65;ctx.stroke();
+      ctx.strokeStyle=j%4===0?`rgba(54,31,21,${warm})`:'rgba(241,213,166,.09)';ctx.lineWidth=j%13===0?2.1:.65;ctx.stroke();
     }
-    const map=new THREE.CanvasTexture(canvas);map.colorSpace=THREE.SRGBColorSpace;
-    map.wrapS=map.wrapT=THREE.RepeatWrapping;map.repeat.set(1.4,1.1);map.anisotropy=4;
+    for(let k=0;k<3;k++){
+      const x=70+k*171,y=44+(k%2)*111;
+      ctx.strokeStyle='rgba(62,38,26,.12)';ctx.lineWidth=1.5;
+      for(let r=4;r<19;r+=5){ctx.beginPath();ctx.ellipse(x,y,r*1.8,r,.12,0,Math.PI*2);ctx.stroke();}
+    }
+    const map=new THREE.CanvasTexture(cvs);map.colorSpace=THREE.SRGBColorSpace;
+    map.wrapS=map.wrapT=THREE.RepeatWrapping;map.repeat.set(1.4,1.1);
+    map.anisotropy=4;
     this.woodPbr=new THREE.MeshStandardMaterial({map,color:0xe5d4bd,metalness:.01,roughness:.66});
     return this.woodPbr;
   }
@@ -162,7 +170,64 @@ export class World {
     const obj=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));
     obj.position.set(x,y,z);obj.userData.action=part;obj.userData.part=sub;parent.add(obj);this.interactive.push(obj);return obj;
   }
-  private createBloomGeometry(){return createDetailedBloomGeometry();}
+  /** Layered 3D rose with overlapping cupped petals. One GPU geometry, instanced across the garden. */
+  private createBloomGeometry(){
+    const vertices:number[]=[],uvs:number[]=[],indices:number[]=[];
+    const layers=[{count:5,radius:.070,height:.095,spread:.66},
+      {count:7,radius:.142,height:.065,spread:.85},
+      {count:9,radius:.222,height:.035,spread:1.00}];
+    for(let layer=0;layer<layers.length;layer++){
+      const group=layers[layer],rows=6,cols=6;
+      for(let j=0;j<group.count;j++){
+        const start=vertices.length/3;
+        const a=(j+(layer%2)*.43)*Math.PI*2/group.count;
+        for(let row=0;row<=rows;row++){
+          const t=row/rows;
+          for(let column=0;column<=cols;column++){
+            const u=column/cols*2-1;
+            const width=Math.sin(Math.PI*(.10+t*.86))*(.42+.17*t);
+            const twist=u*group.spread*width;
+            const theta=a+twist;
+            const radial=(.012+group.radius*t)*(1-.15*u*u);
+            // Outer edges lift; folded centre petals form the rosebud.
+            const curl=.040*(u*u)*t + .054*t*t*(layer===0?1:-.40);
+            const yy=group.height+.044*Math.sin(t*Math.PI)+curl+(.018*layer)*t;
+            vertices.push(Math.cos(theta)*radial,yy,Math.sin(theta)*radial);
+            uvs.push((u+1)*.5,t);
+          }
+        }
+        for(let row=0;row<rows;row++)for(let column=0;column<cols;column++){
+          const a0=start+row*(cols+1)+column,b=a0+cols+1;
+          indices.push(a0,b,a0+1,a0+1,b,b+1);
+        }
+      }
+    }
+    const geo=new THREE.BufferGeometry();
+    geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+    geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
+    geo.setIndex(indices);geo.computeVertexNormals();geo.computeBoundingSphere();
+    return geo;
+  }
+  /** Double-sided bent lanceolate leaf, shared by all foliage instances. */
+  private createLeafGeometry(){
+    const positions:number[]=[],uvs:number[]=[],indices:number[]=[];
+    const sections=7;
+    for(let i=0;i<=sections;i++){
+      const t=i/sections;
+      const width=Math.pow(Math.sin(Math.PI*t),.8)*(.10+.035*t);
+      const y=t*.44,z=.050*Math.sin(t*Math.PI)-.03*t*t;
+      positions.push(-width,y,z,0,y,z+.026,width,y,z);
+      uvs.push(0,t,.5,t,1,t);
+    }
+    for(let i=0;i<sections;i++)for(let j=0;j<2;j++){
+      const a=i*3+j,b=a+3;
+      indices.push(a,b,a+1,a+1,b,b+1);
+    }
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+    g.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
+    g.setIndex(indices);g.computeVertexNormals();return g;
+  }
   private contactShadow(x:number,z:number,rx:number,rz:number,opacity=.24){
     const canvas=document.createElement('canvas');canvas.width=128;canvas.height=128;
     const ctx=canvas.getContext('2d')!;
@@ -312,9 +377,51 @@ export class World {
     },undefined,()=>{/* Low-poly planters remain if mobile download is interrupted. */});
   }
   private createExteriorLandscape(){
-    const lawn=this.mesh(new THREE.PlaneGeometry(160,150),mat(0x91ac83,.97),this.scene,[0,-.10,-12],false);
-    lawn.rotation.x=-Math.PI/2;
-    addExteriorGrove(this.scene,seedRand);
+    // CC0-compatible authored botanical silhouettes: no primitive-ball tree canopies.
+    // Shared leaf geometry + per-instance tint keeps outdoor foliage at two draw calls.
+    const lawn=this.mesh(new THREE.PlaneGeometry(160,150),mat(0x91ac83,.97),this.scene,[0,-.10,-12],false);lawn.rotation.x=-Math.PI/2;
+    const bark=new THREE.MeshStandardMaterial({color:0x756c57,roughness:.94,flatShading:false});
+    const leaves=new THREE.InstancedMesh(this.createLeafGeometry(),new THREE.MeshStandardMaterial({color:0xf8fff4,roughness:.89,side:THREE.DoubleSide,vertexColors:false}),2700);
+    leaves.castShadow=false;leaves.receiveShadow=false;
+    const leafColors=[new THREE.Color(0x658b61),new THREE.Color(0x779e72),new THREE.Color(0x92b184),new THREE.Color(0xa0af7c),new THREE.Color(0x557c64)];
+    const placements:Array<[number,number,number]>=[];
+    for(let i=0;i<30;i++){
+      const x=(i%2===0?-1:1)*(11.6+seedRand()*11),z=-19+seedRand()*42;
+      placements.push([x,z,.80+seedRand()*.68]);
+    }
+    for(let i=0;i<15;i++)placements.push([-23+seedRand()*46,12+seedRand()*14,.75+seedRand()*.6]);
+    const dummy=new THREE.Object3D();let leafIndex=0,branchIndex=0,trunkIndex=0;
+    const trunks=new THREE.InstancedMesh(new THREE.CylinderGeometry(.105, .15,2.7,8),bark,placements.length);
+    const twigs=new THREE.InstancedMesh(new THREE.CylinderGeometry(.036,.048,.92,6),bark,placements.length*4);
+    trunks.castShadow=false;twigs.castShadow=false;
+    for(const [x,z,scale] of placements){
+      dummy.position.set(x,1.35*scale,z);dummy.rotation.set(0,0,0);
+      dummy.scale.setScalar(scale);dummy.updateMatrix();trunks.setMatrixAt(trunkIndex++,dummy.matrix);
+      // Uneven branching produces depth and avoids regular broccoli shapes.
+      for(let branch=0;branch<4;branch++){
+        const angle=(branch*2.4+seedRand()*.45),height=(1.5+branch*.26)*scale;
+        dummy.position.set(x+Math.cos(angle)*.28*scale,height+.25*scale,z+Math.sin(angle)*.28*scale);
+        dummy.rotation.set(Math.sin(angle)*.54,0,-Math.cos(angle)*.65);
+        dummy.scale.setScalar(scale);dummy.updateMatrix();twigs.setMatrixAt(branchIndex++,dummy.matrix);
+      }
+      for(let i=0;i<60;i++){
+        const a=i*2.399963+seedRand()*.26;
+        const h=(1.85+seedRand()*1.45)*scale;
+        const rr=(.35+seedRand()*1.10)*scale;
+        const xoff=Math.cos(a)*rr,zoff=Math.sin(a)*rr;
+        dummy.position.set(x+xoff,h,z+zoff);
+        dummy.rotation.set(.25+seedRand()*.45,a+.4,(seedRand()-.5)*1.4);
+        dummy.scale.setScalar((.95+seedRand()*.8)*scale);
+        dummy.updateMatrix();leaves.setMatrixAt(leafIndex,dummy.matrix);
+        leaves.setColorAt(leafIndex,leafColors[(i+branchSeed(x))%leafColors.length]);
+        leafIndex++;
+      }
+    }
+    leaves.count=leafIndex;leaves.instanceMatrix.needsUpdate=true;
+    if(leaves.instanceColor)leaves.instanceColor.needsUpdate=true;
+    trunks.instanceMatrix.needsUpdate=true;twigs.instanceMatrix.needsUpdate=true;
+    this.scene.add(trunks,twigs,leaves);
+    function branchSeed(x:number){return Math.abs(Math.floor(x*10));}
   }
   private createWindow(x:number,z:number,w:number,h:number){
     // Large operable French windows, no curtains or rain streaks.
@@ -373,10 +480,24 @@ export class World {
     this.contactShadow(-3.6,2,1.8,1.2,.48);
     this.block(g,2.85,.34,1.36,0,.82,0,mat(0x8b745d));
     for(const x of [-1.35,1.35])for(const z of [-.56,.56])this.block(g,.2,1.01,.22,x,.5,z,wood,.05);
-    for(const x of [-.82,0,.82]){
+    for(const x of [-.82,.82]){
       this.block(g,.73,.22,.035,x,.78,.715,mat(0x927758));
       this.cylinder(g,.045,.03,x,.77,.747,brass).rotation.x=Math.PI/2;
     }
+    // Central drawer physically slides out when the three-digit lock is solved.
+    // The sealed envelope remains visible in the room after the close-up sequence.
+    const drawer=new THREE.Group();drawer.position.set(0,.78,.715);g.add(drawer);this.letterDrawer=drawer;
+    const drawerWood=mat(0x967858,.66);
+    this.block(drawer,.73,.22,.045,0,0,0,drawerWood,.012);
+    this.cylinder(drawer,.048,.033,0,-.01,.048,brass).rotation.x=Math.PI/2;
+    this.block(drawer,.63,.028,.69,0,-.064,-.28,mat(0x684a3b,.82),.01);
+    for(const side of [-1,1])this.block(drawer,.026,.09,.69,side*.305,-.01,-.28,drawerWood,.008);
+    const envelope=new THREE.Group();envelope.position.set(0,.011,-.28);drawer.add(envelope);
+    this.block(envelope,.45,.012,.30,0,0,0,mat(0xf0dfbb,.86),.008);
+    const flapShape=new THREE.Shape();flapShape.moveTo(-.218,-.13);flapShape.lineTo(.218,-.13);flapShape.lineTo(0,.04);flapShape.closePath();
+    const flap=this.mesh(new THREE.ShapeGeometry(flapShape),new THREE.MeshStandardMaterial({color:0xe3cba5,roughness:.9,side:THREE.DoubleSide}),envelope,[0,.012,0],false);
+    flap.rotation.x=-Math.PI/2;
+    this.cylinder(envelope,.032,.013,0,.017,-.02,mat(0x943f48,.4),12);
     this.block(g,1.02,.05,.7,-.48,1.18,-.22,mat(0x958367)); // page
     const txt=this.createText('HORA: SOL   ·   MINUTOS: AGUA',512,64,'#69513c','#e7d7b4');
     const sign=this.mesh(new THREE.PlaneGeometry(1.12,.17),new THREE.MeshBasicMaterial({map:txt,transparent:true}),g,[-.48,1.216,-.22],false);sign.rotation.x=-Math.PI/2;
@@ -440,23 +561,28 @@ export class World {
     this.cylinder(g,.03,.32,.42,.29,-.26,brass);
     this.block(g,.45,.032,.045,.15,.35,-.06,brass).rotation.z=-.35;
     const base=this.cylinder(g,.19,.19,.39,.33,-.4,brass);base.rotation.x=.1;
-    // Restrained antique brass horn, replacing the oversized floating funnel.
-    const hornProfile:[number,number][]=[[.058,0],[.075,.14],[.088,.25],[.13,.36],[.19,.46],[.27,.54],[.37,.61],[.43,.64]];
-    const bell=this.mesh(new THREE.LatheGeometry(hornProfile.map(([r,y])=>new THREE.Vector2(r,y)),56),
-      new THREE.MeshStandardMaterial({color:0xb68b51,metalness:.64,roughness:.34,side:THREE.DoubleSide}),g,[.43,.46,-.36]);
-    bell.rotation.z=.07;
-    this.torus(g,.43,.017,.40,1.10,-.36,brass).rotation.x=-Math.PI/2;
+    // An accurately proportioned upward-opening brass horn. Former 1.02m funnel
+    // overwhelmed the gramophone and filled the player's screen.
+    const hornProfile:[number,number][]=[
+      [.058,0],[.075,.14],[.088,.25],[.13,.36],[.19,.46],[.27,.54],[.37,.61],[.43,.64]
+    ];
+    const hornBody=new THREE.MeshStandardMaterial({color:0xb68b51,metalness:.64,roughness:.34,side:THREE.DoubleSide});
+    const horn=this.mesh(new THREE.LatheGeometry(hornProfile.map(([r,y])=>new THREE.Vector2(r,y)),56),hornBody,g,[.43,.46,-.36]);
+    horn.rotation.z=.07;
+    const bellRim=this.torus(g,.43,.017,.40,1.10,-.36,brass);
+    bellRim.rotation.x=-Math.PI/2;
     this.cylinder(g,.055,.28,.43,.41,-.36,brass,18);
-    // Records are horizontal on a small display tray, with original puzzle IDs.
+    // Flat vinyl records arranged in a shallow wooden tray, not upright colored discs.
     this.block(g,1.28,.065,.52,0,-.03,.64,pedestal,.022);
-    for(let i=0;i<3;i++){
-      const x=[-.42,0,.42][i],z=.66;
-      const disc=this.cylinder(g,.205,.022,x,.015,z,mat(0x252c2c,.48,.12),32);disc.castShadow=false;
+    const positions=[-.42,0,.42];for(let i=0;i<3;i++){
+      const x=positions[i],z=.66;
+      const disc=this.cylinder(g,.205,.022,x,.015,z,mat(0x252c2c,.48,.12),32);
+      disc.castShadow=false;
       for(const radius of [.12,.155]){
-        const groove=this.torus(g,radius,.002,x,.03,z,mat(0x505758,.48,.2));
+        const groove=this.torus(g,radius,.002,x,.03,z,mat(0x505758,.48,.20));
         groove.rotation.x=-Math.PI/2;groove.castShadow=false;
       }
-      this.cylinder(g,.073,.028,x,.036,z,mat([0xb66859,0x577c8f,0xceb76d][i],.55),24);
+      this.cylinder(g,.045,.028,x,.036,z,mat([0xb66859,0x577c8f,0xceb76d][i],.55),24);
       this.hotspot(g,'gramophone',x,.06,z,.39,.22,.39,['rojo','azul','oro'][i]);
     }
     this.hotspot(g,'gramophone',.32,.56,-.33,.92,.98,.90,'choose');
@@ -477,10 +603,12 @@ export class World {
   private createBookshelf(){
     const g=new THREE.Group();g.position.set(7.66,0,-3.8);g.rotation.y=-Math.PI/2;this.scene.add(g);
     this.slidingShelf=g;
+    // A deep walnut cabinet with genuinely visible books. Previously the books
+    // were embedded behind the front of the opaque green backboard.
     const wood=this.walnut();
+    const recess=mat(0x302f29,.86);
     this.block(g,4.7,4.45,.62,0,2.23,0,wood,.07);
-    // Dark recessed cabinet back; book spines sit in front rather than inside it.
-    this.block(g,4.30,4.03,.04,0,2.26,.31,mat(0x302f29,.86),.01);
+    this.block(g,4.30,4.03,.04,0,2.26,.31,recess,.01);
     for(const x of [-2.25,2.25])this.block(g,.19,4.25,.88,x,2.21,.35,wood,.018);
     this.block(g,4.55,.13,.91,0,4.35,.34,wood,.022);
     this.block(g,4.54,.14,.91,0,.14,.34,wood,.025);
@@ -586,7 +714,18 @@ export class World {
       flowers.setColorAt(i,new THREE.Color(flowerColor));
     }
     stems.castShadow=false;flowers.castShadow=false;this.scene.add(stems,flowers);
-    addFlowerLeaves(this.scene,this.flowerInstances);
+    const foliage=new THREE.InstancedMesh(this.createLeafGeometry(),new THREE.MeshStandardMaterial({color:0x87ab81,roughness:.90,side:THREE.DoubleSide}),460);
+    for(let i=0;i<230;i++){
+      const f=this.flowerInstances[i];
+      for(let side=0;side<2;side++){
+        const a=side*Math.PI+((i%9)-4)*.067;
+        dummy.position.set(f.x,.12+(side*.13),f.z);
+        dummy.rotation.set(Math.sin(a)*.9,a,Math.cos(a)*.9);
+        dummy.scale.setScalar(.72+.25*(i%5)/4);
+        dummy.updateMatrix();foliage.setMatrixAt(i*2+side,dummy.matrix);
+      }
+    }
+    foliage.castShadow=false;foliage.receiveShadow=false;this.scene.add(foliage);
     this.updateBloomState(0);
     // Glass greenhouse frame, decorative arch and warm string lights.
     for(const x of [-7.3,7.3])for(const z of [-8,-11,-14,-17]){
@@ -716,6 +855,7 @@ export class World {
   }
   setStage(stage:Stage){
     this.stage=stage;
+    this.letterDrawerTarget=stage>=3?.61:0;
     if(stage>=4){this.openGate();this.rushEnabled=stage===4;}
     if(stage===5){this.romantic=true;this.rushEnabled=false;this.storm=0;this.updateBloomState(0);this.renderer.toneMappingExposure=1.29;if(this.petals)(this.petals.material as THREE.PointsMaterial).opacity=.87;
       if(this.glowLights[4])(this.glowLights[4] as THREE.PointLight).intensity=this.gardenBaseIntensity*1.5;
@@ -808,7 +948,7 @@ export class World {
     if(this.currentFocus===hit)return;
     this.currentFocus=hit;
     const action=hit?.userData.action as Interactive|undefined;
-    const labels:Partial<Record<Interactive,string>>={key:'Tomar llave de bronce',desk:'Leer nota del escritorio',sundial:'Examinar sol de cobre',waterBasin:'Examinar fuente',clock:'Examinar reloj',gramophone:'Escuchar discos',painting:'Leer cuadro',cabinet:'Abrir cajón',books:'Tocar libro',gardenGate:'Examinar puerta',lantern0:'Encender farola',lantern1:'Encender farola',lantern2:'Encender farola',present:'Abrir regalo'};
+    const labels:Partial<Record<Interactive,string>>={key:'Tomar llave de bronce',desk:'Leer nota del escritorio',sundial:'Examinar sol de cobre',waterBasin:'Examinar fuente',clock:'Examinar reloj',gramophone:'Escuchar discos',painting:'Leer cuadro',cabinet:this.stage>=3?'Releer carta del cajón':'Abrir cajón',books:'Tocar libro',gardenGate:'Examinar puerta',lantern0:'Encender farola',lantern1:'Encender farola',lantern2:'Encender farola',present:'Abrir regalo'};
     this.handlers.onFocus?.(action?labels[action]||'Examinar':null);
   }
   private findFocused(){
@@ -868,6 +1008,10 @@ export class World {
       this.camera.position.set(xx,1.63,zz);this.handlers.onMove?.(xx,zz);
     }
     this.camera.rotation.order='YXZ';this.camera.rotation.y=this.yaw;this.camera.rotation.x=this.pitch;
+    if(this.letterDrawer){
+      const target=.715+this.letterDrawerTarget;
+      this.letterDrawer.position.z=THREE.MathUtils.damp(this.letterDrawer.position.z,target,this.reducedMotion?35:5.0,dt);
+    }
     if(this.clockHands){this.clockTime+=dt;this.clockHands.rotation.z=this.stage>=1?-Math.sin(this.clockTime*1.5)*.025:0;}
     if(!this.reducedMotion){
       for(const rain of this.rainDrops){rain.position.y-=dt*1.15;

@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useRef,useState,type CSSProperties,type PointerEvent as ReactPointerEvent} from 'react';
 import {World} from './scene/World';
+import {LetterReveal,type LetterPhase} from './ui/LetterReveal';
 import {AudioEngine} from './game/AudioEngine';
 import {RushClock} from './game/RushClock';
 import {crossedCue,rushCues,bloomDeterioration,type NarrativeCue} from './game/urgency';
@@ -48,6 +49,8 @@ export default function App(){
   const [hour,setHour]=useState(12);
   const [minute,setMinute]=useState(0);
   const [code,setCode]=useState('');
+  const [letterPhase,setLetterPhase]=useState<LetterPhase>('sealed');
+  const letterWasRead=useRef(false);
   const [started,setStarted]=useState(false);
   const [webglError,setWebglError]=useState(false);
   const [focusedAction,setFocusedAction]=useState<string|null>(null);
@@ -75,7 +78,7 @@ export default function App(){
       world.current?.setRushIntensity(0);announce(rushCues[0]);
     }
     if(next.stage===5){rushClock.current.stop();explorationClock.current.stop();audio.current?.finale();toast('El tiempo se detuvo. Acercate a la mesa del jardín.');}
-    if(action.type==='CODE'&&success)setModal('letter');
+    if(action.type==='CODE'&&success){setLetterPhase('sealed');setModal('letter');audio.current?.paper();}
     return {next,success};
   },[toast,announce]);
   const onInteract=useCallback((what:string,sub?:string)=>{
@@ -98,7 +101,7 @@ export default function App(){
     if(what==='clock') {if(stage===0){if(!progressRef.current.keyFound){toast('Al mecanismo del reloj le falta una pieza. Investigá la sala.');return;}setModal('clock');}else toast('El reloj vuelve a caminar, como si nada hubiera ocurrido.');return;}
     if(what==='gramophone') {if(stage===1){if(sub&&['azul','rojo','oro'].includes(sub)){const result=update({type:'RECORD',record:sub});if(result.success)setModal(null);}else setModal('gramophone')}else toast('Todavía no es momento de escuchar esa música.');return;}
     if(what==='painting'){toast(`Contás ${sub==='LUNA'?'dos lunas':sub==='ESTRELLAS'?'siete estrellas':'cuatro flores'} en el cuadro. El candado indica el orden.`);return;}
-    if(what==='cabinet') {if(stage===2)setModal('code');else if(stage<2)toast('El cajón está trabado. Se oye un mecanismo musical en su interior.');else setModal('letter');return;}
+    if(what==='cabinet') {if(stage===2)setModal('code');else if(stage<2)toast('El cajón está trabado. Se oye un mecanismo musical en su interior.');else {setLetterPhase(letterWasRead.current?'read':'sealed');setModal('letter');}return;}
     if(what==='books'){if(stage===3&&sub)update({type:'BOOK',book:sub});else toast('La biblioteca guarda un mecanismo. Tal vez necesites una carta para entenderlo.');return;}
     if(what==='gardenGate'){toast(stage<4?'Esa puerta no tiene cerradura visible. Algo tendrá que moverla.':'La puerta está abierta. ¡Buscá las tres farolas en el jardín!');return;}
     if(what.startsWith('lantern')) {if(stage===4)update({type:'LANTERN',index:Number(what.slice(-1))});else toast('Una farola de cristal espera su momento.');return;}
@@ -209,6 +212,8 @@ export default function App(){
   const retry=()=>{setShowHelp(false);const result=update({type:'RESET_RUSH'});if(result.success){rushClock.current.start(performance.now());startedRush.current=true;previousRushSecond.current=120;lastTick.current=-1;lastHint.current=false;setRemaining(120000);setModal(null);world.current?.setRushIntensity(0);audio.current?.playRush();announce(rushCues[0]);}};
   const confirmClock=()=>{const result=update({type:'CLOCK',hour,minute});if(result.success)setModal(null)};
   const confirmCode=()=>{const result=update({type:'CODE',code});if(result.success)setCode('')};
+  const breakLetterSeal=()=>{setLetterPhase('opened');audio.current?.sealBreak();navigator.vibrate?.(24);};
+  const unfoldLetter=()=>{setLetterPhase('read');letterWasRead.current=true;audio.current?.paper();navigator.vibrate?.([13,55,13]);};
   const countdownIsFinal=progress.stage===4;
   const remainingMins=formatRemaining(countdownIsFinal?remaining:explorationRemaining);
   const link=safeReplyLink(invitation.replyPhone,invitation.sender,invitation.recipient);
@@ -228,7 +233,7 @@ export default function App(){
           <span className="timer-symbol" aria-hidden="true">◷</span>
           <span className="timer-copy"><span className="timer-caption">{countdownIsFinal?'ÚLTIMA CAMPANADA':progress.stage===5?'TIEMPO DETENIDO':'EXPLORACIÓN'}</span><strong>{progress.stage===5?'∞':remainingMins}</strong></span>
         </div>
-        {progress.stage>=3&&progress.stage<5&&<button type="button" className="letter-toggle" onClick={()=>setModal('letter')} aria-label="Volver a leer la carta">✉ Carta</button>}
+        {progress.stage>=3&&progress.stage<5&&<button type="button" className="letter-toggle" onClick={()=>{setLetterPhase(letterWasRead.current?'read':'sealed');setModal('letter')}} aria-label="Volver a leer la carta">✉ Carta</button>}
         <button type="button" className={'hint-toggle'+(showHelp?' active':'')} onClick={()=>setShowHelp(v=>!v)} aria-expanded={showHelp} aria-controls="hint-panel" aria-label={showHelp?'Cerrar pista':'Ver pista del acertijo actual'}>
           <span className="hint-icon" aria-hidden="true">✧</span><span>{showHelp?'Cerrar':'Pista'}</span>
         </button>
@@ -246,12 +251,12 @@ export default function App(){
       {urgency&&started&&!modal&&!showHelp&&<div key={urgency.id} className={'urgency-banner '+urgency.severity} role="status" aria-live={urgency.severity==='critical'?'assertive':'polite'}><span className="urgency-mark" aria-hidden="true">{urgency.severity==='critical'?'!':'✦'}</span><div><strong>{urgency.title}</strong><p>{urgency.description}</p></div></div>}
       {backgroundPaused&&started&&!modal&&<div className="resume-note" role="status">El reloj esperó mientras no estabas. <button onClick={()=>setBackgroundPaused(false)}>Continuar ✧</button></div>}
       {started&&showHelp&&<div className="help-panel" id="hint-panel" role="region" aria-label="Pista actual"><button className="mini-close" aria-label="Cerrar pista" onClick={()=>setShowHelp(false)}>×</button><span className="overline">PISTA {activeHintLevel+1} DE 3 · A TU RITMO</span><h3>{copy[progress.stage].title}</h3><p>{copy[progress.stage].hints[activeHintLevel]}</p><div className="hint-steps">{activeHintLevel<2&&<button className="hint-reveal" onClick={()=>setHintLevels(x=>({...x,[progress.stage]:Math.min(2,activeHintLevel+1)}))}>Necesito otra pista →</button>}<button className="quiet-link" onClick={()=>setShowHelp(false)}>Seguir investigando</button></div><p className="help-controls">Pista 3 revela la respuesta solo si la pedís. En celular, tocá para investigar y usá el joystick para caminar.</p></div>}
-      {modal&&<div className="modal-scrim" role="presentation"><section className={'card story '+(modal==='final'||modal==='accepted'?'romantic':'')} role="dialog" aria-modal="true">
+      {modal&&<div className="modal-scrim" role="presentation"><section className={'card story '+(modal==='final'||modal==='accepted'?'romantic':'')+(modal==='letter'?' letter-story':'')} role="dialog" aria-modal="true">
         {modal==='intro'&&<><div className="monogram">✦</div><span className="overline">UN MENSAJE SIN REMITENTE</span><h1>Hay un jardín que guarda un secreto.</h1><p>Alguien dejó algo preparado para vos detrás de la última puerta. Nadie puede contarte qué es. Solo este invernadero guarda la respuesta.</p><blockquote>«No todas las historias comienzan cuando abrimos una puerta. Algunas empiezan cuando decidimos buscarla».</blockquote><p className="footnote">Explorá el invernadero y resolvé sus secretos. Usá auriculares para vivir mejor la experiencia.</p><button className="primary" onClick={begin}>Aceptar el misterio <span>→</span></button></>}
         {modal==='clock'&&<><button className="close" aria-label="Cerrar" onClick={()=>setModal(null)}>×</button><span className="overline">MECANISMO I</span><h2>El reloj detenido</h2><p>La llave encaja. La hora está repartida entre dos detalles del invernadero: los rayos del sol de cobre y las ondas del estanque.</p><div className="dial"><div className="dial-rim"><div className="dial-hands" style={{'--hand-hour':`${hour*30+minute*.5}deg`,'--hand-minute':`${minute*6}deg`} as CSSProperties}><div className="hour-hand"/><div className="minute-hand"/><i/></div><span className="twelve">XII</span><span className="three">III</span><span className="six">VI</span><span className="nine">IX</span></div></div><div className="time-controls"><label>HORA<div className="stepper"><button onClick={()=>setHour(v=>(v+10)%12+1)}>−</button><strong>{String(hour).padStart(2,'0')}</strong><button onClick={()=>setHour(v=>v%12+1)}>+</button></div></label><label>MINUTOS<div className="stepper"><button onClick={()=>setMinute(v=>(v+55)%60)}>−</button><strong>{String(minute).padStart(2,'0')}</strong><button onClick={()=>setMinute(v=>(v+5)%60)}>+</button></div></label></div><button className="primary" onClick={confirmClock}>Dar cuerda al reloj →</button></>}
         {modal==='gramophone'&&<><button className="close" aria-label="Cerrar" onClick={()=>setModal(null)}>×</button><span className="overline">MECANISMO II</span><h2>La canción que faltaba</h2><p>Hay tres discos antiguos. Solo uno conserva la melodía que puede mover el siguiente mecanismo.</p><div className="record-row">{(['rojo','azul','oro'] as const).map(col=><button key={col} className={'record '+col} onClick={()=>{const r=update({type:'RECORD',record:col});if(r.success)setModal(null)}}><span className="vinyl"/><small>{col==='oro'?'DORADO':col.toUpperCase()}</small></button>)}</div><p className="footnote">Recordá el verso del cuaderno. Cada disco representa un color diferente.</p></>}
         {modal==='code'&&<><button className="close" aria-label="Cerrar" onClick={()=>setModal(null)}>×</button><span className="overline">MECANISMO III</span><h2>El cajón sellado</h2><p>Debajo de la cerradura están grabados tres símbolos: <b>☾ ✶ ✿</b></p><div className="code-display" aria-label="Combinación introducida">{[0,1,2].map(i=><span key={i}>{code[i]||'·'}</span>)}</div><div className="keypad">{['1','2','3','4','5','6','7','8','9','←','0','✓'].map(key=><button key={key} onClick={()=>key==='←'?setCode(s=>s.slice(0,-1)):key==='✓'?confirmCode():setCode(s=>s.length<3?s+key:s)}>{key}</button>)}</div><p className="footnote">Contá los símbolos pintados. El orden está grabado en la cerradura.</p></>}
-        {modal==='letter'&&<><div className="monogram">✉</div><span className="overline">UNA CARTA ENCONTRADA</span><h2>Para quien llegó hasta aquí...</h2><p className="letter">Hay momentos que todavía no vivimos, pero que ya tengo ganas de recordar con vos.</p><p className="letter">Primero nació una flor. La lluvia le dio vida. Cuando llegó la luna, el jardín aprendió a guardar secretos.</p><div className="sequence">✿ &nbsp; ☂ &nbsp; ☾</div><p className="letter">Y cuando el tiempo quiera cerrarlo todo: la lluvia mojará la noche; bajo la luna florecerá lo que falta.</p><p>Algo se oculta entre los libros. Guardá también el último verso para el jardín.</p><button className="primary" onClick={()=>setModal(null)}>Continuar la búsqueda →</button></>}
+        {modal==='letter'&&<LetterReveal phase={letterPhase} onBreakSeal={breakLetterSeal} onRead={unfoldLetter} onClose={()=>setModal(null)}/>}
         {modal==='timeout'&&<><div className="monogram">⌛</div><span className="overline">ÚLTIMA CAMPANADA</span><h2>El jardín cerró sus puertas.</h2><p>Algunas oportunidades merecen un segundo intento. Conservás todo lo que resolviste: solo vas a repetir el desafío final.</p><button className="primary" onClick={retry}>Volver a intentar · 2 minutos →</button></>}
         {modal==='final'&&<><div className="monogram heart">♥</div><span className="overline">TODO ESTE MISTERIO ERA PARA VOS</span><h1>{invitation.recipient},<br/>{invitation.question}</h1><p className="love-line">{invitation.message}</p><div className="invitation-details"><div><span>CUÁNDO</span><strong>{invitation.date}</strong></div><div><span>DÓNDE</span><strong>{invitation.place}</strong></div></div><p className="signature">Con cariño, <b>{invitation.sender}</b></p><button className="primary" onClick={()=>{audio.current?.finale();setModal('accepted')}}>Sí, acepto esta invitación ♥</button></>}
         {modal==='accepted'&&<><div className="celebrate" aria-hidden="true">✦ ✧ ♡ ✦ ✧ ♡ ✦</div><div className="monogram heart">♥</div><span className="overline">EL TIEMPO SE DETUVO PARA ESTE MOMENTO</span><h1>Nuestra próxima noche acaba de empezar.</h1><p>Lo más hermoso de esta historia es que todavía falta vivirla.</p>{link?<a className="primary" href={link} target="_blank" rel="noopener noreferrer">Confirmar por WhatsApp ♥</a>:<p className="footnote">Ahora podés responder personalmente a quien preparó esta sorpresa.</p>}<button className="quiet-link" onClick={()=>setModal(null)}>Volver al jardín</button></>}

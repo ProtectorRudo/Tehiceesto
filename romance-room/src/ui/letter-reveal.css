@@ -1,0 +1,68 @@
+/* The discovery plays over the live 3D room, replacing the former instant text popup. */
+.modal-scrim:has(.letter-story){
+  background:radial-gradient(ellipse at 50% 45%,#3858469c,#15241ce8 76%);
+  backdrop-filter:blur(9px);
+  padding:calc(10px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
+}
+.modal-scrim .story.letter-story{
+  width:min(620px,calc(100vw - 24px));max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  overflow-y:auto;overscroll-behavior:contain;
+  padding:18px clamp(16px,4vw,38px) 22px;
+  background:radial-gradient(ellipse at top,#fdfaf0,#f3f0e4 79%);
+  border:1px solid #d8c9a5;border-radius:18px;
+  box-shadow:0 26px 95px #132c22b8,inset 0 0 0 4px #fff9e999;
+}
+.modal-scrim .story.letter-story::before,.modal-scrim .story.letter-story::after{display:none}
+.letter-reveal{position:relative;color:#42594a;touch-action:pan-y}
+.letter-exit{position:absolute;right:-11px;top:-12px;width:42px;height:42px;border:0;border-radius:50%;background:#e9eadb;color:#506654;font-size:27px;line-height:1;z-index:5;touch-action:manipulation}
+.letter-eyebrow,.letter-paper-label{display:block;font:700 10px/1.4 'DM Sans',sans-serif;letter-spacing:.24em;color:#866a50}
+.letter-intro{max-width:440px;margin:8px auto 14px}
+.letter-intro h2,.story.letter-story .letter-intro h2{margin:7px 0 4px;color:#314d3c;font:600 clamp(27px,4.2vw,37px)/1.03 'Cormorant Garamond',Georgia,serif}
+.letter-intro p,.story.letter-story .letter-intro p{font-size:13px;line-height:1.65;color:#677568;margin:4px auto 0}
+.envelope-control{display:flex;flex-direction:column;align-items:center;gap:13px;width:100%;border:0;background:transparent;padding:12px 0;cursor:pointer;touch-action:manipulation}
+.envelope-3d{position:relative;display:block;width:min(345px,77vw);height:min(208px,46vw);max-height:208px;perspective:1000px;filter:drop-shadow(0 18px 19px #453d2b56);transform:rotate(-2deg);transition:transform .35s ease,filter .35s ease}
+.envelope-control:hover .envelope-3d{transform:rotate(0deg) translateY(-4px);filter:drop-shadow(0 23px 20px #453d2b61)}
+.envelope-back{position:absolute;inset:0;background:linear-gradient(125deg,#ded0ae,#f3e5c6 55%,#cbb793);border-radius:6px;border:1px solid #baa67c;box-shadow:inset 0 0 22px #9e764544}
+.envelope-paper{position:absolute;left:11%;top:11%;width:78%;height:80%;background:linear-gradient(130deg,#fffff5,#f4ead7);border:1px solid #d7c3a1;box-shadow:0 4px 11px #5c452342;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:12px;padding-top:24px;color:#816c50;font:italic 17px 'Cormorant Garamond',Georgia,serif;transform:translateY(3px);transition:transform .85s cubic-bezier(.22,1,.36,1)}
+.paper-decoration{font-size:23px;color:#be9676}
+.envelope-front{position:absolute;inset:0;clip-path:polygon(0 0,50% 49%,100% 0,100% 100%,0 100%);background:linear-gradient(152deg,#e2ccaa 7%,#f7e6c7 51%,#d0b48d);border-radius:6px}
+.envelope-front::after{content:'';position:absolute;inset:0;background:linear-gradient(18deg,#b79d7733,transparent 58%)}
+.envelope-flap{position:absolute;left:0;top:0;width:100%;height:59%;background:linear-gradient(165deg,#f7eacc,#d8c2a0);clip-path:polygon(0 0,100% 0,50% 94%);transform-origin:50% 0;transform:rotateX(0deg);transition:transform .85s cubic-bezier(.27,.68,.28,1);backface-visibility:visible;filter:drop-shadow(0 5px 3px #73562b45)}
+.envelope-seal{position:absolute;left:50%;top:51%;transform:translate(-50%,-50%);display:grid;place-items:center;width:61px;height:61px;border-radius:50%;border:4px double #e9b89b;color:#f2d1b9;font-size:29px;background:radial-gradient(circle at 25% 20%,#b54d55,#81343c 65%,#582331);box-shadow:0 6px 11px #47252066,inset 0 0 7px #4c2228;transition:transform .4s,opacity .4s}
+.letter-phase-opened .envelope-flap{transform:rotateX(178deg);z-index:1}
+.letter-phase-opened .envelope-paper{transform:translateY(-40px)}
+.letter-phase-opened .envelope-seal{opacity:0;transform:translate(-50%,-50%) scale(.5);pointer-events:none}
+.envelope-action{border:1px solid #b3c7ae;border-radius:100px;background:#ecf3e6;padding:10px 18px;color:#3b6651;font-weight:700;font-size:12px;box-shadow:0 4px 13px #345b401c}
+.letter-small-print,.story.letter-story .letter-small-print{font-size:11px;color:#758478;margin:4px 0 9px}
+.letter-paper{position:relative;text-align:center;margin:12px auto 10px;padding:23px clamp(18px,5vw,40px) 32px;max-width:510px;background:linear-gradient(115deg,#f3ead7,#fffcf0 16%,#fffcf3 87%,#f0e4cc);box-shadow:0 14px 34px #77604437,0 0 0 1px #d6c6a5,inset 0 0 19px #ddcba966;transform-origin:top center;animation:unfold-letter .85s cubic-bezier(.2,.8,.2,1) both}
+@keyframes unfold-letter{from{opacity:.25;transform:rotateX(-36deg) scaleY(.76) translateY(-14px)}to{opacity:1;transform:rotateX(0deg) scaleY(1) translateY(0)}}
+.letter-paper-flourish{font:16px Georgia,serif;color:#c19e78;letter-spacing:.2em;margin-bottom:9px}
+.letter-paper h2,.story.letter-story .letter-paper h2{font:600 clamp(29px,5vw,41px)/1.12 'Cormorant Garamond',Georgia,serif;color:#493f35;margin:13px 0 13px}
+.letter-ink p,.story.letter-story .letter-ink p{color:#4d5746;font:italic clamp(19px,3vw,24px)/1.34 'Cormorant Garamond',Georgia,serif;margin:13px 0}
+.letter-illustration{display:flex;align-items:center;justify-content:center;gap:14px;color:#8c956d;margin:14px 0;font-size:24px}
+.letter-illustration i{height:1px;width:38px;background:linear-gradient(90deg,transparent,#bca88a,transparent)}
+.letter-signature{font:italic 17px 'Cormorant Garamond',Georgia,serif;color:#91755b;margin:21px auto 1px}
+.letter-signature span{font-size:23px;margin-left:4px;color:#b87979}
+.letter-fold-line{height:1px;border-top:1px dashed #bfac8944;margin-top:20px}
+.letter-afterword,.story.letter-story .letter-afterword{font-size:12px;color:#556d58;margin:9px auto;max-width:420px;line-height:1.5}
+.letter-continue{max-width:410px;margin:11px auto 4px;min-height:45px}
+.letter-reassurance,.story.letter-story .letter-reassurance{font-size:10px;color:#819184;margin:7px 0 0}
+@media(max-width:640px){
+  .modal-scrim .story.letter-story{max-height:calc(100dvh - 22px - env(safe-area-inset-top) - env(safe-area-inset-bottom));padding:16px 15px}
+  .letter-paper{padding:16px 18px 20px;margin-top:2px}
+  .letter-ink p,.story.letter-story .letter-ink p{font-size:19px;line-height:1.25;margin:9px 0}
+  .letter-paper h2,.story.letter-story .letter-paper h2{font-size:32px;margin:8px 0}
+  .letter-illustration{font-size:20px;margin:8px 0}.letter-signature{margin-top:11px}
+  .envelope-3d{max-height:180px}
+}
+@media(max-height:650px){
+  .letter-paper{padding-top:11px;padding-bottom:14px}
+  .letter-paper-flourish{margin-bottom:4px}
+  .letter-paper h2,.story.letter-story .letter-paper h2{margin:7px 0}
+  .letter-ink p,.story.letter-story .letter-ink p{margin:7px 0}
+  .letter-intro{margin:0 auto 6px}.envelope-control{padding:2px 0}
+  .envelope-3d{height:min(175px,32dvh)}
+}
+@media(prefers-reduced-motion:reduce){
+  .envelope-3d,.envelope-flap,.envelope-paper,.envelope-seal,.letter-paper{animation:none!important;transition:none!important}
+}

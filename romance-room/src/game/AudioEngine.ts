@@ -45,6 +45,9 @@ export class AudioEngine {
   }
   success(){this.tone(523.25,.4,.08);setTimeout(()=>this.tone(659.25,.48,.07),120);setTimeout(()=>this.tone(783.99,.72,.09),260)}
   tick(){this.tone(1160,.045,.065,'triangle')}
+  /** Soft, synthesized paper movement — no external audio download or autoplay. */
+  paper(){this.tone(380,.10,.028,'triangle');this.tone(570,.15,.016,'sine');}
+  sealBreak(){this.tone(220,.13,.055,'triangle');this.tone(490,.28,.034,'sine');}
   playRush(){this.rushing=true;this.bell();if(this.interval!==null){clearInterval(this.interval);this.interval=null;}this.playing=false;this.ambience.forEach(o=>{try{o.stop()}catch{/* disposed */}});this.ambience=[];void this.start()}
   stopRush(){this.rushing=false;if(this.interval!==null){clearInterval(this.interval);this.interval=null;}this.playing=false;this.ambience.forEach(o=>{try{o.stop()}catch{/* disposed */}});this.ambience=[];void this.start()}
   finale(){this.stopRush();this.bell(2);this.success();}
