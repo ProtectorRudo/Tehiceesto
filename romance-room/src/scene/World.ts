@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { AnimationMixer } from 'three';
 import type { Stage } from '../game/logic';
 import {resolveMovement} from '../game/navigation';
+import {createDetailedBloomGeometry,addExteriorGrove,addFlowerLeaves} from './botany';
 
 type Interactive = 'key'|'desk'|'sundial'|'waterBasin'|'clock'|'gramophone'|'painting'|'letter'|'cabinet'|'books'|'gardenGate'|'lantern0'|'lantern1'|'lantern2'|'present';
 type Callbacks = {onInteract:(what:Interactive, sub?:string)=>void; onMove?:(x:number,z:number)=>void; onFocus?:(label:string|null)=>void};
@@ -81,7 +82,7 @@ export class World {
     this.renderer=new THREE.WebGLRenderer({canvas, antialias:!this.mobile, powerPreference:'high-performance', alpha:false, stencil:false});
     this.renderer.outputColorSpace=THREE.SRGBColorSpace;
     this.renderer.toneMapping=THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure=1.24;
+    this.renderer.toneMappingExposure=1.10;
     this.renderer.shadowMap.enabled=true;
     this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
     this.maxDpr=Math.min(window.devicePixelRatio,this.mobile?1.4:1.8);
@@ -107,8 +108,8 @@ export class World {
 
   private setupLight(){
     // A genuine daylight key replaces high-intensity sepia fixtures and the dark interior.
-    this.scene.add(new THREE.HemisphereLight(0xe3f5ff,0x9da98c,1.70));
-    const sun=new THREE.DirectionalLight(0xfff4df,2.75);
+    this.scene.add(new THREE.HemisphereLight(0xe3f5ff,0x9da98c,1.37));
+    const sun=new THREE.DirectionalLight(0xfff4df,2.30);
     sun.position.set(-7,15,5);sun.castShadow=true;
     sun.shadow.mapSize.set(this.mobile?1024:2048,this.mobile?1024:2048);
     sun.shadow.camera.left=-20;sun.shadow.camera.right=20;sun.shadow.camera.top=20;sun.shadow.camera.bottom=-20;
@@ -161,35 +162,7 @@ export class World {
     const obj=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));
     obj.position.set(x,y,z);obj.userData.action=part;obj.userData.part=sub;parent.add(obj);this.interactive.push(obj);return obj;
   }
-  /** Small, shared, sculpted floral geometry instead of spherical placeholders. */
-  private createBloomGeometry(){
-    const vertices:number[]=[],normals:number[]=[],indices:number[]=[];
-    const petals=7, rows=5,cols=5;
-    for(let j=0;j<petals;j++){
-      const angle=j*Math.PI*2/petals, start=vertices.length/3;
-      for(let r=0;r<=rows;r++){
-        const t=r/rows;
-        for(let col=0;col<=cols;col++){
-          const u=col/cols*2-1;
-          const spread=.48*u*(.5+.65*t);
-          const theta=angle+spread;
-          const radius=.036+(.17*t)*(1-.17*u*u);
-          const y=.055+.085*Math.sin(t*Math.PI*.82)-.035*t*t+.015*(1-u*u);
-          vertices.push(Math.cos(theta)*radius,y,Math.sin(theta)*radius);
-          normals.push(Math.cos(theta)*.26,.86,Math.sin(theta)*.26);
-        }
-      }
-      for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
-        const a=start+r*(cols+1)+c,b=a+cols+1;
-        indices.push(a,b,a+1,a+1,b,b+1,a+1,b,a,b+1,b,a+1);
-      }
-    }
-    const geo=new THREE.BufferGeometry();
-    geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
-    geo.setAttribute('normal',new THREE.Float32BufferAttribute(normals,3));
-    geo.setIndex(indices);geo.computeBoundingSphere();
-    return geo;
-  }
+  private createBloomGeometry(){return createDetailedBloomGeometry();}
   private contactShadow(x:number,z:number,rx:number,rz:number,opacity=.24){
     const canvas=document.createElement('canvas');canvas.width=128;canvas.height=128;
     const ctx=canvas.getContext('2d')!;
@@ -339,24 +312,9 @@ export class World {
     },undefined,()=>{/* Low-poly planters remain if mobile download is interrupted. */});
   }
   private createExteriorLandscape(){
-    // Beyond the glass: light garden lawns and recognizable leafy silhouettes.
-    const lawn=this.mesh(new THREE.PlaneGeometry(160,150),mat(0x91b68f,.97),this.scene,[0,-.10,-12],false);lawn.rotation.x=-Math.PI/2;
-    const trunk=mat(0x7c765f,.94);
-    const greens=[0x6f9d72,0x8cab83,0x5e936d,0xb2c69a];
-    const treePlaces:Array<[number,number,number]> = [];
-    for(let i=0;i<22;i++){
-      const x=(i%2===0?-1:1)*(11.4+seedRand()*8.0),z=-16+seedRand()*37;
-      treePlaces.push([x,z,.8+seedRand()*.62]);
-    }
-    for(let i=0;i<14;i++)treePlaces.push([-15+seedRand()*30,11+seedRand()*6,.65+seedRand()*.45]);
-    for(const [x,z,scale] of treePlaces){
-      this.cylinder(this.scene,.14*scale,2.3*scale,x,1.16*scale,z,trunk,9);
-      for(let j=0;j<3;j++){
-        const crown=this.sphere(this.scene,(.85+seedRand()*.27)*scale,x+(j-1)*.50*scale,(2.15+(j%2)*.4)*scale,z+(j%2)*.28*scale,mat(greens[(j+Math.floor(x*7+300))%greens.length],.95));
-        crown.scale.set(1.13,.76,.94);
-        crown.castShadow=false;
-      }
-    }
+    const lawn=this.mesh(new THREE.PlaneGeometry(160,150),mat(0x91ac83,.97),this.scene,[0,-.10,-12],false);
+    lawn.rotation.x=-Math.PI/2;
+    addExteriorGrove(this.scene,seedRand);
   }
   private createWindow(x:number,z:number,w:number,h:number){
     // Large operable French windows, no curtains or rain streaks.
@@ -628,6 +586,7 @@ export class World {
       flowers.setColorAt(i,new THREE.Color(flowerColor));
     }
     stems.castShadow=false;flowers.castShadow=false;this.scene.add(stems,flowers);
+    addFlowerLeaves(this.scene,this.flowerInstances);
     this.updateBloomState(0);
     // Glass greenhouse frame, decorative arch and warm string lights.
     for(const x of [-7.3,7.3])for(const z of [-8,-11,-14,-17]){
@@ -758,7 +717,7 @@ export class World {
   setStage(stage:Stage){
     this.stage=stage;
     if(stage>=4){this.openGate();this.rushEnabled=stage===4;}
-    if(stage===5){this.romantic=true;this.rushEnabled=false;this.storm=0;this.updateBloomState(0);this.renderer.toneMappingExposure=1.47;if(this.petals)(this.petals.material as THREE.PointsMaterial).opacity=.87;
+    if(stage===5){this.romantic=true;this.rushEnabled=false;this.storm=0;this.updateBloomState(0);this.renderer.toneMappingExposure=1.29;if(this.petals)(this.petals.material as THREE.PointsMaterial).opacity=.87;
       if(this.glowLights[4])(this.glowLights[4] as THREE.PointLight).intensity=this.gardenBaseIntensity*1.5;
       this.gardenBulbs.forEach(bulb=>(bulb.material as THREE.MeshBasicMaterial).color.setHex(0xffdba0));
     }

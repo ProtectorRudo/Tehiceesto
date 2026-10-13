@@ -95,3 +95,10 @@ El jugador debe **encontrar una pequeña llave de bronce** sin recibir su ubicac
 
 ## V11 · Inspección visual 13/10
 Se corrigieron libros ocultos por el tablero trasero, vitrola desproporcionada, discos de vinilo verticales y superficies planas de madera. Incluye nueva regresión automatizada. La calidad cinematográfica final aún requiere importar y probar modelos profesionales GLB.
+
+
+### V12 · Jardín más orgánico
+- Árboles exteriores ya no usan copas de esferas: ramas y hojas curvas instanciadas.
+- Rosas con pétalos tridimensionales superpuestos, canteros con hojas y luz más equilibrada.
+- `src/scene/botany.ts` centraliza geometría botánica; escena, acertijos, pistas y temporizador permanecen separados.
+- Renovación visual parcial: faltan assets PBR externos de muebles y un recorrido visual certificado en teléfonos.
