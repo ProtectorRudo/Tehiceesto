@@ -7,10 +7,13 @@ type Props = {
   onBreakSeal: () => void;
   onRead: () => void;
   onClose: () => void;
+  recipient: string;
+  sender: string;
+  personalLetter: string;
 };
 
 /** Three tangible steps, no autoplay or timer, so touch and keyboard players control the reveal. */
-export function LetterReveal({phase,onBreakSeal,onRead,onClose}: Props){
+export function LetterReveal({phase,onBreakSeal,onRead,onClose,recipient,sender,personalLetter}: Props){
   const reading=phase==='read';
   return <div className={'letter-reveal letter-phase-'+phase}>
     <button type="button" className="letter-exit" onClick={onClose} aria-label="Guardar la carta y volver al invernadero">×</button>
@@ -36,14 +39,15 @@ export function LetterReveal({phase,onBreakSeal,onRead,onClose}: Props){
       <article className="letter-paper" aria-label="Carta hallada dentro del cajón">
         <div className="letter-paper-flourish" aria-hidden="true">✦ ── ✿ ── ✦</div>
         <span className="letter-paper-label">CARTA Nº III · UN SECRETO GUARDADO</span>
-        <h2>Para quien llegó hasta aquí...</h2>
+        <h2>{recipient?`Para ${recipient}...`:"Para quien llegó hasta aquí..."}</h2>
         <div className="letter-ink">
+          {personalLetter.trim()&&<p className="letter-personal-message">{personalLetter}</p>}
           <p>Hay momentos que todavía no vivimos, pero que ya tengo ganas de recordar con vos.</p>
           <p>Primero nació una flor. La lluvia le dio vida. Cuando llegó la luna, el jardín aprendió a guardar secretos.</p>
           <div className="letter-illustration" aria-hidden="true"><span>✿</span><i/><span>☂</span><i/><span>☾</span></div>
           <p>Y cuando el tiempo quiera cerrarlo todo: la lluvia mojará la noche; bajo la luna florecerá lo que falta.</p>
         </div>
-        <div className="letter-signature">Alguien que todavía espera del otro lado... <span>♡</span></div>
+        <div className="letter-signature">{personalLetter.trim()?`Con cariño, ${sender}`:"Alguien que todavía espera del otro lado..."} <span>♡</span></div>
         <div className="letter-fold-line" aria-hidden="true"/>
       </article>
       <p className="letter-afterword">Algo se oculta entre los libros. Guardá también el último verso para el jardín.</p>
