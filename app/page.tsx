@@ -8,7 +8,7 @@ export default function Home() {
         <div className="home-hero-grid" aria-hidden="true" />
         <div className="home-hero-meta">
           <span>TE HICE ESTO · ESTUDIO DIGITAL</span>
-          <span>01—10 EXPERIENCIAS</span>
+          <span>13 EXPERIENCIAS</span>
         </div>
 
         <div className="home-hero-copy">
@@ -108,6 +108,30 @@ export default function Home() {
               <i className="catalog-row-line" />
             </Link>
           ))}
+        </div>
+      </section>
+
+      <section className="catalog-section catalog-editorial" id="escape-rooms">
+        <header className="catalog-editorial-head">
+          <div>
+            <span className="eyebrow">Colección 11—13 · Nuevos mundos</span>
+            <h2>El regalo más inesperado.<br/><em>Está del otro lado del misterio.</em></h2>
+          </div>
+          <p>Salas de escape 3D con una carta o invitación al final. Personalizamos los detalles sin modificar la aventura original.</p>
+        </header>
+        <div className="catalog-list">
+          <Link href="/escapes/caso-m" className="catalog-row" style={{"--row-accent":"#dcaa7b"} as React.CSSProperties}>
+            <span className="catalog-row-number">11</span><div className="catalog-row-title"><small>Rescate · Suspenso</small><h3>CASO M</h3></div>
+            <p>Una misión contrarreloj, tres pistas y un candado cuya combinación también es personalizable.</p><div className="catalog-row-action"><span>VIVIR DEMO</span><b>↗</b></div><i className="catalog-row-line"/>
+          </Link>
+          <Link href="/escapes/ultima-funcion" className="catalog-row" style={{"--row-accent":"#aa7ab9"} as React.CSSProperties}>
+            <span className="catalog-row-number">12</span><div className="catalog-row-title"><small>Cine · Terror</small><h3>La Última Función</h3></div>
+            <p>Encontrá las pistas ocultas del cine y descubrí una invitación detrás del último telón.</p><div className="catalog-row-action"><span>VIVIR DEMO</span><b>↗</b></div><i className="catalog-row-line"/>
+          </Link>
+          <Link href="/escapes/ultima-campanada" className="catalog-row" style={{"--row-accent":"#df9a9c"} as React.CSSProperties}>
+            <span className="catalog-row-number">13</span><div className="catalog-row-title"><small>Jardín · Romance</small><h3>La Última Campanada</h3></div>
+            <p>Un jardín que se apaga, una carta sellada y una sorpresa reservada para una sola persona.</p><div className="catalog-row-action"><span>VIVIR DEMO</span><b>↗</b></div><i className="catalog-row-line"/>
+          </Link>
         </div>
       </section>
 

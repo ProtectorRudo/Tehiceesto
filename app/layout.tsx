@@ -43,6 +43,7 @@ export default function RootLayout({
           </Link>
           <nav>
             <Link href="/#experiencias">Experiencias</Link>
+            <Link href="/escapes">Escape rooms</Link>
             <Link href="/#como-funciona">Cómo funciona</Link>
             <Link className="header-create" href="/crear">Crear una →</Link>
           </nav>
