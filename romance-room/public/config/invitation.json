@@ -6,5 +6,7 @@
   "date": "Una fecha por descubrir",
   "place": "Un lugar que todavía es secreto",
   "replyPhone": "",
-  "voiceUrl": ""
+  "voiceUrl": "",
+  "letter": "",
+  "time": ""
 }
