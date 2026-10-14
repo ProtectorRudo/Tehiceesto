@@ -66,3 +66,6 @@
 @media(prefers-reduced-motion:reduce){
   .envelope-3d,.envelope-flap,.envelope-paper,.envelope-seal,.letter-paper{animation:none!important;transition:none!important}
 }
+
+/* Personalized note inside the original puzzle letter; preserves all game clues. */
+.letter-ink .letter-personal-message{white-space:pre-line;border-left:2px solid #be877a;padding:10px 0 10px 17px;margin:18px 0 24px;font-style:italic;line-height:1.7;color:#62413c;overflow-wrap:anywhere}
