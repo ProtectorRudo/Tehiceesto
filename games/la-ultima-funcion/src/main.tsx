@@ -4,14 +4,15 @@ import {TheaterWorld,type TheaterAction,type TheaterPhase} from "./TheaterWorld"
 import {TheaterAudio} from "./audio";
 import "./style.css";
 
-type Invite={nombre:string;evento:string;fecha:string;hora:string;lugar:string;mensaje:string;rsvp:string};
+type Invite={nombre:string;evento:string;fecha:string;hora:string;lugar:string;mensaje:string;firma:string;rsvp:string};
 function invitation():Invite{
   const q=new URLSearchParams(location.search);
-  const get=(k:string,fallback:string)=>{const v=q.get(k)?.trim();return v?v.slice(0,160):fallback;};
+  const get=(k:string,fallback:string,max=160)=>{const v=q.get(k)?.trim();return v?v.slice(0,max):fallback;};
   return {nombre:get("nombre","INVITADO ESPECIAL"),evento:get("evento","Una celebración inolvidable"),
     fecha:get("fecha","Próximamente"),hora:get("hora","Horario por confirmar"),
     lugar:get("lugar","El lugar de nuestra celebración"),
-    mensaje:get("mensaje","Tu presencia hace que esta función sea única."),
+    mensaje:get("mensaje","Tu presencia hace que esta función sea única.",650),
+    firma:get("firma","Alguien que quiere sorprenderte",90),
     rsvp:get("rsvp","").replace(/\D/g,"")};
 }
 const steps=[
@@ -544,6 +545,7 @@ function App(){
           <div className="invite-data"><div><small>FECHA</small><strong>{invite.fecha}</strong></div><div><small>HORA</small><strong>{invite.hora}</strong></div></div>
           <div className="invite-place"><small>LUGAR</small><strong>{invite.lugar}</strong></div>
           <p className="message">{invite.mensaje}</p>
+          <p className="exclusive">CON CARIÑO, {invite.firma}</p>
           <small className="exclusive">ENTRADA PERSONAL E INTRANSFERIBLE · {invite.nombre}</small>
         </div>
       </article>
