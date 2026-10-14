@@ -110,9 +110,24 @@ export default function App(){
   const onInteractRef=useRef(onInteract);onInteractRef.current=onInteract;
 
   useEffect(()=>{
+    const search=new URLSearchParams(window.location.search);
+    const overrides:Partial<Invitation>={};
+    const fields:Record<keyof Invitation,string[]>={
+      recipient:['recipient','nombre'],sender:['sender','firma'],question:['question','pregunta'],
+      message:['message','mensaje','carta'],date:['date','fecha'],place:['place','lugar'],
+      replyPhone:['replyPhone','rsvp'],voiceUrl:['voiceUrl','voz']
+    };
+    (Object.keys(fields) as (keyof Invitation)[]).forEach(field=>{
+      const value=fields[field].map(key=>search.get(key)).find(value=>value?.trim())?.trim();
+      if(!value)return;
+      if(field==='replyPhone')overrides[field]=value.replace(/\D/g,'').slice(0,18);
+      else if(field==='voiceUrl'){if(/^https:\/\//.test(value))overrides[field]=value.slice(0,950);}
+      else overrides[field]=value.slice(0,field==='message'?650:190);
+    });
     fetch('/config/invitation.json',{cache:'no-store'}).then(r=>r.ok?r.json():fallback).then(v=>{
-      if(v&&typeof v.recipient==='string')setInvitation({...fallback,...v});
-    }).catch(()=>{});
+      const base=v&&typeof v.recipient==='string'?v:fallback;
+      setInvitation({...fallback,...base,...overrides});
+    }).catch(()=>setInvitation({...fallback,...overrides}));
     const probe=document.createElement('canvas');
     if(!probe.getContext('webgl2')){setWebglError(true);return;}
     if(!canvas.current)return;
