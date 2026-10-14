@@ -8,7 +8,7 @@ import {stickVector,stickOffset} from './game/joystick';
 import {applyAction,formatRemaining,createNewProgress,safeReplyLink,type Progress,type PuzzleAction} from './game/logic';
 import './ui/style.css';
 
-type Invitation = {recipient:string;sender:string;question:string;message:string;date:string;place:string;replyPhone:string;voiceUrl:string};
+type Invitation = {recipient:string;sender:string;question:string;message:string;letter:string;date:string;time:string;place:string;replyPhone:string;voiceUrl:string};
 type Modal='intro'|'clock'|'gramophone'|'code'|'letter'|'final'|'timeout'|'accepted'|null;
 const copy=[
   {title:'El reloj detenido',hints:['El reloj se detuvo por una razón. Investigá con calma los objetos cercanos y lo que cuenta el invernadero.','El mecanismo necesita una llave. En la zona de trabajo hay algo que podría ayudarte; observá bien las superficies.','Sobre el escritorio hay una llave de bronce. El sol tiene ocho rayos y el agua cuatro ondas: ajustá el reloj a las 08:40.'],task:'Encontrá una pequeña llave de bronce y descubrí cómo poner en marcha el reloj.'},
@@ -18,7 +18,7 @@ const copy=[
   {title:'La última campanada',hints:['Las farolas tienen pequeñas placas con símbolos. No las enciendas simplemente por posición.','Releé el final de la carta: la lluvia moja la noche y bajo la luna florece el jardín.','Encendé LLUVIA (derecha), LUNA (izquierda) y FLOR (centro).'],task:'Seguí los símbolos de la carta antes de que se cierre el jardín.'},
   {title:'Un instante detenido',hints:['Explorá el lugar donde alguien preparó una mesa para dos.','Sobre la mesa hay una caja diminuta.','Tocá la caja que está sobre la mesa para descubrir el mensaje.'],task:'Acercate a la mesa. Alguien dejó algo para vos.'}
 ];
-const fallback:Invitation={recipient:'Alguien muy especial',sender:'Alguien que quiere sorprenderte',question:'¿Me regalás una noche juntos?',message:'No necesitaba una fecha especial. Solo quería vivir una noche inolvidable con vos.',date:'Una fecha por descubrir',place:'Un lugar que todavía es secreto',replyPhone:'',voiceUrl:''};
+const fallback:Invitation={recipient:'Alguien muy especial',sender:'Alguien que quiere sorprenderte',question:'¿Me regalás una noche juntos?',message:'No necesitaba una fecha especial. Solo quería vivir una noche inolvidable con vos.',letter:'',date:'Una fecha por descubrir',time:'',place:'Un lugar que todavía es secreto',replyPhone:'',voiceUrl:''};
 export default function App(){
   const canvas=useRef<HTMLCanvasElement>(null);
   const stickRef=useRef<HTMLDivElement>(null);
@@ -114,7 +114,7 @@ export default function App(){
     const overrides:Partial<Invitation>={};
     const fields:Record<keyof Invitation,string[]>={
       recipient:['recipient','nombre'],sender:['sender','firma'],question:['question','pregunta'],
-      message:['message','mensaje','carta'],date:['date','fecha'],place:['place','lugar'],
+      message:['message','mensaje'],letter:['letter','carta'],date:['date','fecha'],time:['time','hora'],place:['place','lugar'],
       replyPhone:['replyPhone','rsvp'],voiceUrl:['voiceUrl','voz']
     };
     (Object.keys(fields) as (keyof Invitation)[]).forEach(field=>{
@@ -122,7 +122,7 @@ export default function App(){
       if(!value)return;
       if(field==='replyPhone')overrides[field]=value.replace(/\D/g,'').slice(0,18);
       else if(field==='voiceUrl'){if(/^https:\/\//.test(value))overrides[field]=value.slice(0,950);}
-      else overrides[field]=value.slice(0,field==='message'?650:190);
+      else overrides[field]=value.slice(0,field==='letter'?1200:field==='message'?650:190);
     });
     fetch('/config/invitation.json',{cache:'no-store'}).then(r=>r.ok?r.json():fallback).then(v=>{
       const base=v&&typeof v.recipient==='string'?v:fallback;
@@ -271,9 +271,9 @@ export default function App(){
         {modal==='clock'&&<><button className="close" aria-label="Cerrar" onClick={()=>setModal(null)}>×</button><span className="overline">MECANISMO I</span><h2>El reloj detenido</h2><p>La llave encaja. La hora está repartida entre dos detalles del invernadero: los rayos del sol de cobre y las ondas del estanque.</p><div className="dial"><div className="dial-rim"><div className="dial-hands" style={{'--hand-hour':`${hour*30+minute*.5}deg`,'--hand-minute':`${minute*6}deg`} as CSSProperties}><div className="hour-hand"/><div className="minute-hand"/><i/></div><span className="twelve">XII</span><span className="three">III</span><span className="six">VI</span><span className="nine">IX</span></div></div><div className="time-controls"><label>HORA<div className="stepper"><button onClick={()=>setHour(v=>(v+10)%12+1)}>−</button><strong>{String(hour).padStart(2,'0')}</strong><button onClick={()=>setHour(v=>v%12+1)}>+</button></div></label><label>MINUTOS<div className="stepper"><button onClick={()=>setMinute(v=>(v+55)%60)}>−</button><strong>{String(minute).padStart(2,'0')}</strong><button onClick={()=>setMinute(v=>(v+5)%60)}>+</button></div></label></div><button className="primary" onClick={confirmClock}>Dar cuerda al reloj →</button></>}
         {modal==='gramophone'&&<><button className="close" aria-label="Cerrar" onClick={()=>setModal(null)}>×</button><span className="overline">MECANISMO II</span><h2>La canción que faltaba</h2><p>Hay tres discos antiguos. Solo uno conserva la melodía que puede mover el siguiente mecanismo.</p><div className="record-row">{(['rojo','azul','oro'] as const).map(col=><button key={col} className={'record '+col} onClick={()=>{const r=update({type:'RECORD',record:col});if(r.success)setModal(null)}}><span className="vinyl"/><small>{col==='oro'?'DORADO':col.toUpperCase()}</small></button>)}</div><p className="footnote">Recordá el verso del cuaderno. Cada disco representa un color diferente.</p></>}
         {modal==='code'&&<><button className="close" aria-label="Cerrar" onClick={()=>setModal(null)}>×</button><span className="overline">MECANISMO III</span><h2>El cajón sellado</h2><p>Debajo de la cerradura están grabados tres símbolos: <b>☾ ✶ ✿</b></p><div className="code-display" aria-label="Combinación introducida">{[0,1,2].map(i=><span key={i}>{code[i]||'·'}</span>)}</div><div className="keypad">{['1','2','3','4','5','6','7','8','9','←','0','✓'].map(key=><button key={key} onClick={()=>key==='←'?setCode(s=>s.slice(0,-1)):key==='✓'?confirmCode():setCode(s=>s.length<3?s+key:s)}>{key}</button>)}</div><p className="footnote">Contá los símbolos pintados. El orden está grabado en la cerradura.</p></>}
-        {modal==='letter'&&<LetterReveal phase={letterPhase} onBreakSeal={breakLetterSeal} onRead={unfoldLetter} onClose={()=>setModal(null)}/>}
+        {modal==='letter'&&<LetterReveal phase={letterPhase} onBreakSeal={breakLetterSeal} onRead={unfoldLetter} onClose={()=>setModal(null)} recipient={invitation.recipient} sender={invitation.sender} personalLetter={invitation.letter}/>}
         {modal==='timeout'&&<><div className="monogram">⌛</div><span className="overline">ÚLTIMA CAMPANADA</span><h2>El jardín cerró sus puertas.</h2><p>Algunas oportunidades merecen un segundo intento. Conservás todo lo que resolviste: solo vas a repetir el desafío final.</p><button className="primary" onClick={retry}>Volver a intentar · 2 minutos →</button></>}
-        {modal==='final'&&<><div className="monogram heart">♥</div><span className="overline">TODO ESTE MISTERIO ERA PARA VOS</span><h1>{invitation.recipient},<br/>{invitation.question}</h1><p className="love-line">{invitation.message}</p><div className="invitation-details"><div><span>CUÁNDO</span><strong>{invitation.date}</strong></div><div><span>DÓNDE</span><strong>{invitation.place}</strong></div></div><p className="signature">Con cariño, <b>{invitation.sender}</b></p><button className="primary" onClick={()=>{audio.current?.finale();setModal('accepted')}}>Sí, acepto esta invitación ♥</button></>}
+        {modal==='final'&&<><div className="monogram heart">♥</div><span className="overline">TODO ESTE MISTERIO ERA PARA VOS</span><h1>{invitation.recipient},<br/>{invitation.question}</h1><p className="love-line">{invitation.message}</p><div className="invitation-details"><div><span>CUÁNDO</span><strong>{invitation.date}{invitation.time?" · "+invitation.time:""}</strong></div><div><span>DÓNDE</span><strong>{invitation.place}</strong></div></div><p className="signature">Con cariño, <b>{invitation.sender}</b></p><button className="primary" onClick={()=>{audio.current?.finale();setModal('accepted')}}>Sí, acepto esta invitación ♥</button></>}
         {modal==='accepted'&&<><div className="celebrate" aria-hidden="true">✦ ✧ ♡ ✦ ✧ ♡ ✦</div><div className="monogram heart">♥</div><span className="overline">EL TIEMPO SE DETUVO PARA ESTE MOMENTO</span><h1>Nuestra próxima noche acaba de empezar.</h1><p>Lo más hermoso de esta historia es que todavía falta vivirla.</p>{link?<a className="primary" href={link} target="_blank" rel="noopener noreferrer">Confirmar por WhatsApp ♥</a>:<p className="footnote">Ahora podés responder personalmente a quien preparó esta sorpresa.</p>}<button className="quiet-link" onClick={()=>setModal(null)}>Volver al jardín</button></>}
       </section></div>}
       {started&&<button className="restart" onClick={resetAll} title="Reiniciar toda la experiencia">↻ Reiniciar</button>}
