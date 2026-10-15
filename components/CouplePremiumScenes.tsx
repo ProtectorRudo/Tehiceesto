@@ -274,10 +274,10 @@ export default function CouplePremiumScenes({ scene, photos, memory, date, recip
           <button className="couple-real-door-button" onClick={beginDoor} aria-label="Abrir la puerta">
             <span className="couple-door-frame">
               <span className="couple-door-interior" />
-              <span className="couple-door-slab">
-                <span className="couple-door-wood" />
-                <span className="couple-door-panel panel-top" />
-                <span className="couple-door-panel panel-bottom" />
+              <span className="couple-door-slab couple-door-left">
+                <span className="couple-door-handle" />
+              </span>
+              <span className="couple-door-slab couple-door-right">
                 <span className="couple-door-handle" />
               </span>
               <span className="couple-door-beam" />
