@@ -1,0 +1,51 @@
+name: Verify live Pareja and Viralio
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/verify-live-pareja.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.55.0
+      - run: npx playwright install --with-deps chromium
+      - name: Verify TeHiceEsto production and Viralio unaffected
+        run: |
+          node --input-type=module <<'NODE'
+          import { chromium } from "playwright";
+          import fs from "node:fs/promises";
+          const browser = await chromium.launch({headless:true});
+          try {
+            const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+            const response=await page.goto("https://tehiceesto.com/experiencias/pareja",{waitUntil:"domcontentloaded",timeout:30000});
+            if(response?.status()!==200) throw new Error("TeHiceEsto Pareja returned "+response?.status());
+            await page.locator(".scene-intro .primary-action").click();
+            await page.locator(".couple-real-door-button").waitFor({timeout:15000});
+            await fs.mkdir("live-check",{recursive:true});
+            await page.screenshot({path:"live-check/pareja-mobile.png"});
+            const state=await page.locator(".experience-shell").getAttribute("data-current-scene");
+            if(state!=="door") throw new Error("Pareja premium scene did not load: "+state);
+            console.log("PASS: https://tehiceesto.com/experiencias/pareja — mobile premium door visible");
+            const viralio=await page.goto("https://viralio.net/",{waitUntil:"domcontentloaded",timeout:30000});
+            if(viralio?.status()!==200) throw new Error("Viralio returned "+viralio?.status());
+            console.log("PASS: https://viralio.net/ — still responds 200");
+          } finally { await browser.close(); }
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pareja-production-screenshot
+          path: live-check/
+          retention-days: 7
