@@ -271,3 +271,8 @@
 .couple-soundscape-toggle.is-playing .couple-soundscape-dot{background:#e1b989;box-shadow:0 0 10px #e1b989}
 .experience-shell--pareja:has(.scene-finale) .couple-soundscape-toggle{opacity:.4}
 @media(max-width:600px){.couple-soundscape-toggle{bottom:72px;left:14px;padding:8px 9px;font-size:9px;max-width:48vw}}
+
+/* Keep the commercial CTA at the beginning/end, but not over tactile objects. */
+body:has(.experience-shell--pareja .couple-premium-host) .floating-whatsapp {
+  opacity:0!important;pointer-events:none!important;visibility:hidden!important;
+}
