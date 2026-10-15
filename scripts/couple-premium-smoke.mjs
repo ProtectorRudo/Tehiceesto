@@ -1,7 +1,9 @@
+import fs from "node:fs/promises";
 import { chromium } from "playwright";
 
 const browser = await chromium.launch({ headless: true });
 const report = [];
+await fs.mkdir("visual-smoke/pareja-premium", { recursive: true });
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 
 try {
@@ -16,22 +18,26 @@ try {
     await at("intro");
     await page.locator(".scene-intro .primary-action").click();
     await at("door");
+    await page.screenshot({ path: "visual-smoke/pareja-premium/" + name + "-door.png" });
     await page.locator(".couple-real-door-button").click();
     await page.waitForTimeout(300);
     assert(await page.locator(".couple-door-scene.door-opened").count() > 0, "Door did not animate before changing scene");
     await at("memories");
+    await page.screenshot({ path: "visual-smoke/pareja-premium/" + name + "-memories.png" });
 
     assert(await page.locator(".couple-print").count() === 1, "Album photograph missing");
     await page.locator(".couple-photo-arrow.next").click();
     assert((await page.locator(".couple-print-foot small").innerText()).includes("02"), "Album navigation failed");
     await page.locator(".couple-continue").click();
     await at("stars");
+    await page.screenshot({ path: "visual-smoke/pareja-premium/" + name + "-stars.png" });
 
     assert(await page.locator(".couple-continue").isDisabled(), "Stars should require discovery");
     for (let i = 0; i < 3; i++) await page.locator(".couple-real-star").nth(i).click();
     assert(await page.locator(".couple-real-star.lit").count() === 3, "Stars did not light up");
     await page.locator(".couple-continue").click();
     await at("scratch");
+    await page.screenshot({ path: "visual-smoke/pareja-premium/" + name + "-scratch.png" });
 
     const foil = page.locator(".couple-scratch-canvas");
     await foil.click({ position: { x: 20, y: 25 } });
@@ -50,8 +56,11 @@ try {
     assert(!(await page.locator(".couple-continue").isDisabled()), "Scratch did not unlock after real erasure");
     await page.locator(".couple-continue").click();
     await at("letter");
+    await page.screenshot({ path: "visual-smoke/pareja-premium/" + name + "-letter.png" });
     assert(await page.locator(".couple-letter-sheet").getAttribute("aria-hidden") === "true", "Letter exposed before opening");
     await page.locator(".couple-wax-seal").click();
+    await page.waitForTimeout(900);
+    await page.screenshot({ path: "visual-smoke/pareja-premium/" + name + "-letter-open.png" });
     assert(await page.locator(".couple-letter-sheet").getAttribute("aria-hidden") === "false", "Letter did not open");
     await page.locator(".couple-continue").click();
     await at("finale");
