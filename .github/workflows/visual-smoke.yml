@@ -41,6 +41,8 @@ jobs:
           exit 1
       - name: Capture
         run: node scripts/visual-smoke.mjs
+      - name: Verify Pareja premium interactions
+        run: node scripts/couple-premium-smoke.mjs
       - name: Upload
         if: always()
         uses: actions/upload-artifact@v4
