@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Experience, SceneType } from "@/data/experiences";
 import type { SceneTextOverrides } from "@/data/scene-text";
 import FriendshipScenes from "./FriendshipScenes";
+import CouplePremiumScenes from "./CouplePremiumScenes";
 import SecretExperience from "./SecretExperience";
 
 export type ExperiencePhoto = {
@@ -432,6 +433,21 @@ function StandardExperienceEngine({
           letterText={letterText}
           anecdote={storyContext?.anecdote}
           date={storyDateLabel}
+          next={next}
+        />
+      );
+    }
+    if (experience.slug === "pareja" && ["door", "memories", "stars", "scratch", "letter"].includes(scene)) {
+      return (
+        <CouplePremiumScenes
+          key={sceneIndex}
+          scene={scene}
+          photos={displayPhotos}
+          memory={memory}
+          date={storyDateLabel}
+          recipient={experience.demoRecipient}
+          giver={experience.demoGiver}
+          letterText={letterText}
           next={next}
         />
       );
