@@ -18,11 +18,13 @@ try {
     await at("intro");
     await page.locator(".scene-intro .primary-action").click();
     await at("door");
+    await page.waitForTimeout(950);
     await page.screenshot({ path: "visual-smoke/pareja-premium/" + name + "-door.png" });
     await page.locator(".couple-real-door-button").click();
     await page.waitForTimeout(300);
     assert(await page.locator(".couple-door-scene.door-opened").count() > 0, "Door did not animate before changing scene");
     await at("memories");
+    await page.waitForTimeout(950);
     await page.screenshot({ path: "visual-smoke/pareja-premium/" + name + "-memories.png" });
 
     assert(await page.locator(".couple-print").count() === 1, "Album photograph missing");
@@ -30,6 +32,7 @@ try {
     assert((await page.locator(".couple-print-foot small").innerText()).includes("02"), "Album navigation failed");
     await page.locator(".couple-continue").click();
     await at("stars");
+    await page.waitForTimeout(950);
     await page.screenshot({ path: "visual-smoke/pareja-premium/" + name + "-stars.png" });
 
     assert(await page.locator(".couple-continue").isDisabled(), "Stars should require discovery");
@@ -37,6 +40,7 @@ try {
     assert(await page.locator(".couple-real-star.lit").count() === 3, "Stars did not light up");
     await page.locator(".couple-continue").click();
     await at("scratch");
+    await page.waitForTimeout(950);
     await page.screenshot({ path: "visual-smoke/pareja-premium/" + name + "-scratch.png" });
 
     const foil = page.locator(".couple-scratch-canvas");
@@ -56,6 +60,7 @@ try {
     assert(!(await page.locator(".couple-continue").isDisabled()), "Scratch did not unlock after real erasure");
     await page.locator(".couple-continue").click();
     await at("letter");
+    await page.waitForTimeout(950);
     await page.screenshot({ path: "visual-smoke/pareja-premium/" + name + "-letter.png" });
     assert(await page.locator(".couple-letter-sheet").getAttribute("aria-hidden") === "true", "Letter exposed before opening");
     await page.locator(".couple-wax-seal").click();
