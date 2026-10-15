@@ -13,6 +13,7 @@ on:
       - "package-lock.json"
       - ".github/workflows/visual-smoke.yml"
       - "scripts/visual-smoke.mjs"
+      - "scripts/couple-premium-smoke.mjs"
 
 jobs:
   smoke:
