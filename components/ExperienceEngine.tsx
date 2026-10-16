@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Experience, SceneType } from "@/data/experiences";
 import type { SceneTextOverrides } from "@/data/scene-text";
 import FriendshipScenes from "./FriendshipScenes";
+import CoupleGiftIntro from "./CoupleGiftIntro";
 import SecretExperience from "./SecretExperience";
 
 export type ExperiencePhoto = {
@@ -433,6 +434,16 @@ function StandardExperienceEngine({
           anecdote={storyContext?.anecdote}
           date={storyDateLabel}
           next={next}
+        />
+      );
+    }
+    if (experience.slug === "pareja" && scene === "intro") {
+      return (
+        <CoupleGiftIntro
+          recipient={experience.demoRecipient}
+          giver={experience.demoGiver}
+          opening={experience.opening}
+          onContinue={next}
         />
       );
     }
