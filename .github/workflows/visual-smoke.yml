@@ -14,6 +14,7 @@ on:
       - ".github/workflows/visual-smoke.yml"
       - "scripts/visual-smoke.mjs"
       - "scripts/couple-gift-smoke.mjs"
+      - "scripts/birthday-smoke.mjs"
 
 jobs:
   smoke:
@@ -44,6 +45,8 @@ jobs:
         run: node scripts/visual-smoke.mjs
       - name: Validate Pareja gift opening
         run: node scripts/couple-gift-smoke.mjs
+      - name: Validate Cumpleaños full journey on mobile and desktop
+        run: node scripts/birthday-smoke.mjs
       - name: Upload
         if: always()
         uses: actions/upload-artifact@v4
