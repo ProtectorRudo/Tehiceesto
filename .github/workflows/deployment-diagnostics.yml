@@ -1,4 +1,5 @@
 name: Deployment diagnostics
+# Verify safe deploy wiring for the birthday model update.
 
 on:
   push:
