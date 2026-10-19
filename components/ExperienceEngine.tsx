@@ -5,6 +5,7 @@ import type { Experience, SceneType } from "@/data/experiences";
 import type { SceneTextOverrides } from "@/data/scene-text";
 import FriendshipScenes from "./FriendshipScenes";
 import CoupleGiftIntro from "./CoupleGiftIntro";
+import { BirthdayCakeScene, BirthdayBalloonsScene, BirthdayPromiseScene, BirthdayHugsScene } from "./BirthdayScenes";
 import SecretExperience from "./SecretExperience";
 
 export type ExperiencePhoto = {
@@ -194,6 +195,7 @@ function StandardExperienceEngine({
   const isMother = experience.slug === "mama" || experience.slug === "mama-papa";
   const isFather = experience.slug === "papa";
   const isFriendship = experience.slug === "amistad";
+  const isBirthday = experience.slug === "cumpleanos";
   const introKicker = isProposal
     ? `Una experiencia privada de ${experience.demoGiver}`
     : isFriendship
@@ -437,15 +439,22 @@ function StandardExperienceEngine({
         />
       );
     }
-    if (experience.slug === "pareja" && scene === "intro") {
+    if ((experience.slug === "pareja" || isBirthday) && scene === "intro") {
       return (
         <CoupleGiftIntro
           recipient={experience.demoRecipient}
           giver={experience.demoGiver}
           opening={experience.opening}
+          mode={isBirthday ? "cumpleanos" : "pareja"}
           onContinue={next}
         />
       );
+    }
+    if (isBirthday) {
+      if (scene === "candles") return <BirthdayCakeScene onContinue={next} />;
+      if (scene === "balloons") return <BirthdayBalloonsScene onContinue={next} />;
+      if (scene === "hold") return <BirthdayPromiseScene onContinue={next} />;
+      if (scene === "finale") return <BirthdayHugsScene recipient={experience.demoRecipient} giver={experience.demoGiver} closing={experience.closing} onRestart={() => setSceneIndex(0)} />;
     }
     switch (scene) {
       case "intro":
@@ -558,18 +567,18 @@ function StandardExperienceEngine({
 
       case "letter":
         return (
-          <section className={`scene scene-letter ${isGrandparents ? "scene-letter-archive" : ""} ${isAnniversary ? "scene-letter-anniversary" : ""} ${isProposal ? "scene-letter-proposal" : ""} ${isMother ? "scene-letter-mother" : ""} ${isFather ? "scene-letter-father" : ""} ${isFriendship ? "scene-letter-friendship" : ""}`}>
+          <section className={`scene scene-letter ${isGrandparents ? "scene-letter-archive" : ""} ${isAnniversary ? "scene-letter-anniversary" : ""} ${isProposal ? "scene-letter-proposal" : ""} ${isMother ? "scene-letter-mother" : ""} ${isFather ? "scene-letter-father" : ""} ${isFriendship ? "scene-letter-friendship" : ""} ${isBirthday ? "scene-letter-mother scene-letter-birthday" : ""}`}>
             <p className="scene-kicker">{isGrandparents ? "Una carta que debía existir" : isAnniversary ? "Después de todo este tiempo" : isProposal ? "Antes de hacerte la pregunta" : isMother ? "La parte que no podía entrar en una foto" : isFather ? "Hay cosas que de chico no sabía decir" : isFriendship ? "Bueno. Ahora sí me voy a poner sentimental." : "La parte que no podía entrar en una foto"}</p>
             <h2>{isGrandparents ? "Hay gracias que no deberían quedarse para después." : isAnniversary ? "Hay cosas que sigo eligiendo decirte." : isProposal ? "Primero quiero que sepas por qué llegué hasta acá." : isMother ? "Hay palabras que merecen abrirse despacio." : isFather ? "Quiero decirte lo que aprendí incluso cuando vos no estabas intentando enseñarme." : isFriendship ? "Porque entre tanto chiste hay algo que sí quiero que sepas en serio." : "Hay palabras que merecen abrirse despacio."}</h2>
             <button
               className={`envelope ${letterOpen ? "open" : ""}`}
               onClick={openLetter}
               onPointerDown={(event) => {
-                if (!isMother || letterOpen) return;
+                if (!(isMother || isBirthday) || letterOpen) return;
                 letterGestureStartRef.current = { x: event.clientX, y: event.clientY };
               }}
               onPointerMove={(event) => {
-                if (!isMother || letterOpen || !letterGestureStartRef.current) return;
+                if (!(isMother || isBirthday) || letterOpen || !letterGestureStartRef.current) return;
                 const deltaX = event.clientX - letterGestureStartRef.current.x;
                 const deltaY = event.clientY - letterGestureStartRef.current.y;
                 if (Math.abs(deltaX) > 52 && Math.abs(deltaX) > Math.abs(deltaY) * 1.12) {
@@ -583,7 +592,7 @@ function StandardExperienceEngine({
               onPointerCancel={() => {
                 letterGestureStartRef.current = null;
               }}
-              aria-label={isMother ? "Deslizá para abrir la carta" : "Abrir la carta"}
+              aria-label={isMother || isBirthday ? "Deslizá para abrir la carta" : "Abrir la carta"}
             >
               <span className="envelope-back" />
               <span className="paper">
@@ -594,8 +603,8 @@ function StandardExperienceEngine({
               <span className="envelope-front" />
               <span className="wax">{isProposal ? "◇" : "♥"}</span>
             </button>
-            {!letterOpen && <p className="scene-hint">{isMother ? "Deslizá para abrir" : "Rompé el sello"}</p>}
-            {letterOpen && <button className="primary-action" onClick={next}>{isMother || isFather || isFriendship ? "Hay algo más" : "Última parte"}</button>}
+            {!letterOpen && <p className="scene-hint">{isMother || isBirthday ? "Deslizá para abrir" : "Rompé el sello"}</p>}
+            {letterOpen && <button className="primary-action" onClick={next}>{isMother || isFather || isFriendship || isBirthday ? "Hay algo más" : "Última parte"}</button>}
           </section>
         );
 
