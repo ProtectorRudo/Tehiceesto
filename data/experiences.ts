@@ -96,7 +96,7 @@ export const experiences: Experience[] = [
     opening: "Hoy no queríamos mandarte solamente un mensaje. Queríamos hacerte un lugar.",
     closing: "Que este año te encuentre rodeada de todo lo que te hace bien.",
     tags: ["Cumpleaños", "Amigos", "Familia"],
-    recipe: ["intro", "candles", "balloons", "memories", "voices", "letter", "finale"],
+    recipe: ["intro", "candles", "balloons", "memories", "voices", "hold", "letter", "finale"],
   },
   {
     slug: "hijos",
