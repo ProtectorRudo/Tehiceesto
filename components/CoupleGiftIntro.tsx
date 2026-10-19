@@ -84,7 +84,7 @@ export default function CoupleGiftIntro({ recipient, giver, opening, onContinue,
         <p className={"couple-gift-prelude" + (activated ? " folded-away" : "")}>{mode === "cumpleanos" ? "HOY ALGUIEN TE PREPARÓ UNA SORPRESA" : "ALGUIEN PREPARÓ ALGO QUE ES SÓLO PARA VOS"}</p>
         <div className="couple-gift-theatre">
           <div className="couple-gift-reveal" aria-hidden={!revealed}>
-            <p className="couple-gift-dedication">{mode === "cumpleanos" ? giver + " quiso regalarte algo distinto" : giver + " armó esto pensando en vos"}</p>
+            <p className="couple-gift-dedication">{mode === "cumpleanos" ? "Una sorpresa preparada por " + giver : giver + " armó esto pensando en vos"}</p>
             <h1>{recipient}</h1>
             <div className="couple-gift-subtitle">
               <i aria-hidden="true" />
