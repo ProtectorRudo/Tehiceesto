@@ -10,6 +10,7 @@ type Props = {
   giver: string;
   opening: string;
   onContinue: () => void;
+  mode?: "pareja" | "cumpleanos";
 };
 
 function makeUnwrapSound() {
@@ -41,7 +42,7 @@ function makeUnwrapSound() {
   }
 }
 
-export default function CoupleGiftIntro({ recipient, giver, opening, onContinue }: Props) {
+export default function CoupleGiftIntro({ recipient, giver, opening, onContinue, mode = "pareja" }: Props) {
   const [phase, setPhase] = useState<Phase>("closed");
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const started = useRef(false);
@@ -70,7 +71,7 @@ export default function CoupleGiftIntro({ recipient, giver, opening, onContinue 
   const revealed = phase === "revealed";
   const activated = phase !== "closed";
   return (
-    <section className={"scene couple-gift-intro gift-phase-" + phase} aria-label="Un regalo pensado para vos">
+    <section className={"scene couple-gift-intro gift-phase-" + phase + (mode === "cumpleanos" ? " birthday-gift-intro" : "")} aria-label="Un regalo pensado para vos">
       <div className="couple-gift-backdrop" aria-hidden="true">
         <span className="couple-gift-halo" />
         <span className="couple-gift-ambient ambient-one" />
@@ -80,14 +81,14 @@ export default function CoupleGiftIntro({ recipient, giver, opening, onContinue 
       </div>
 
       <div className="couple-gift-content">
-        <p className={"couple-gift-prelude" + (activated ? " folded-away" : "")}>ALGUIEN PREPARÓ ALGO QUE ES SÓLO PARA VOS</p>
+        <p className={"couple-gift-prelude" + (activated ? " folded-away" : "")}>{mode === "cumpleanos" ? "HOY ALGUIEN TE PREPARÓ UNA SORPRESA" : "ALGUIEN PREPARÓ ALGO QUE ES SÓLO PARA VOS"}</p>
         <div className="couple-gift-theatre">
           <div className="couple-gift-reveal" aria-hidden={!revealed}>
-            <p className="couple-gift-dedication">{giver} armó esto pensando en vos</p>
+            <p className="couple-gift-dedication">{mode === "cumpleanos" ? giver + " quiso regalarte algo distinto" : giver + " armó esto pensando en vos"}</p>
             <h1>{recipient}</h1>
             <div className="couple-gift-subtitle">
               <i aria-hidden="true" />
-              <p>Lo nuestro merece estar en un lugar así.</p>
+              <p>{mode === "cumpleanos" ? "Hoy celebramos todo lo lindo de tenerte cerca." : "Lo nuestro merece estar en un lugar así."}</p>
               <i aria-hidden="true" />
             </div>
             <p className="couple-gift-opening">{opening}</p>
@@ -143,9 +144,9 @@ export default function CoupleGiftIntro({ recipient, giver, opening, onContinue 
         </div>
         <div className={"couple-gift-footer" + (revealed ? " is-visible" : "")}>
           <button className="couple-gift-continue primary-action" onClick={onContinue} disabled={!revealed}>
-            Entrá despacio <span aria-hidden="true">→</span>
+            {mode === "cumpleanos" ? "Descubrí tu sorpresa" : "Entrá despacio"} <span aria-hidden="true">→</span>
           </button>
-          <small>Un recorrido hecho para una sola persona.</small>
+          <small>{mode === "cumpleanos" ? "Sólo hay un cumpleaños como el tuyo." : "Un recorrido hecho para una sola persona."}</small>
         </div>
       </div>
     </section>
