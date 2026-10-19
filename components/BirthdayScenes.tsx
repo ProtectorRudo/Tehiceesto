@@ -68,7 +68,7 @@ export function BirthdayCakeScene({ onContinue }: { onContinue: () => void }) {
         <div className="birthday-cake-lightparticles" aria-hidden="true">{Array.from({ length: 15 }, (_, i) => <i key={i} style={{ "--particle": i } as React.CSSProperties} />)}</div>
       </div>
       <div className="birthday-wish-reveal" role="status" aria-live="polite">
-        {phase === "out" ? <><small>DESEO GUARDADO EN SECRETO</small><strong>Ojalá la vida te sorprenda mucho más de lo que imaginás.</strong></> : <small>Cuando estés lista, apagá las cinco llamitas.</small>}
+        {phase === "out" ? <><small>DESEO GUARDADO EN SECRETO</small><strong>Ojalá la vida te sorprenda mucho más de lo que imaginás.</strong></> : <small>Cuando quieras, apagá las cinco llamitas.</small>}
       </div>
       {phase !== "out" ? <button className="birthday-button" onClick={blow} disabled={phase === "blowing"}>{phase === "blowing" ? "Tu deseo está volando..." : "Soplar las velitas"} <span aria-hidden="true">✧</span></button>
        : <button className="birthday-button" onClick={onContinue}>Seguir celebrando <span aria-hidden="true">→</span></button>}
@@ -183,7 +183,7 @@ export function BirthdayHugsScene({ recipient, giver, closing, onRestart }: { re
       </div>
       {!started && <button className="birthday-button birthday-hug-start" onClick={begin}>Recibir mis abrazos <span aria-hidden="true">♥</span></button>}
       {started && !completed && <p className="birthday-hug-counter">Te están llegando {received} de 6 abrazos...</p>}
-      {completed && <div className="birthday-hug-finish"><p>De {giver}, con todo el amor del mundo.</p><div className="birthday-hug-actions"><button className="birthday-button" onClick={again}>Volver a sentirlos <span aria-hidden="true">♡</span></button><button className="birthday-hug-restart" onClick={onRestart}>Volver al comienzo ↺</button></div><small>creado con ♥ en Te Hice Esto</small></div>}
+      {completed && <div className="birthday-hug-finish"><p>De parte de {giver}, con todo el amor del mundo.</p><div className="birthday-hug-actions"><button className="birthday-button" onClick={again}>Volver a sentirlos <span aria-hidden="true">♡</span></button><button className="birthday-hug-restart" onClick={onRestart}>Volver al comienzo ↺</button></div><small>creado con ♥ en Te Hice Esto</small></div>}
     </section>
   );
 }
