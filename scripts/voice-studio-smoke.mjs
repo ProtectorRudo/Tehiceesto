@@ -30,6 +30,18 @@ await page.route("**/functions/v1/creator-api", route => {
   if(body.action==="registerStudioMedia")return fakeJson(route,{ok:true});
   return fakeJson(route,{ok:true});
 });
+await page.route("**/functions/v1/guest-voice",route=>{
+ const body=JSON.parse(route.request().postData()||"{}");
+ ops.push("guest:"+body.action);
+ if(body.action==="list")return fakeJson(route,{invites:[]});
+ if(body.action==="create")return fakeJson(route,{
+   ok:true,id:"00000000-0000-4000-8000-000000000002",
+   expiresAt:new Date(Date.now()+14*86400000).toISOString(),maxSubmissions:12,
+   url:"https://protectorrudo.github.io/tehiceesto/voz/#t="+"e".repeat(64),
+ });
+ if(body.action==="revoke")return fakeJson(route,{ok:true});
+ return fakeJson(route,{error:"unauthorized"},403);
+});
 await page.route("**/storage/v1/**", route => {
   ops.push("storage:"+route.request().method());
   return fakeJson(route,{Key:"gift-media/a1a2a3a4a5a6a7a8a9/studio-mocked-voice.webm",key:"gift-media/a1a2a3a4a5a6a7a8a9/studio-mocked-voice.webm"});
@@ -43,6 +55,15 @@ try{
   await page.locator("#gifts .gift").waitFor({timeout:15000});
   await page.getByRole("button",{name:"Editar textos"}).click();
   await page.locator("#voice-start:visible").waitFor({timeout:15000});
+  await page.locator("#voice-invite-create").click();
+  await page.locator("#voice-invite-result:visible").waitFor({timeout:10000});
+  const inviteHref=await page.locator("#voice-invite-url").inputValue();
+  if(!inviteHref.startsWith("https://protectorrudo.github.io/tehiceesto/voz/#t="))throw Error("Voice invitation link incorrect");
+  const whatsapp=await page.locator("#voice-invite-whatsapp").getAttribute("href");
+  if(!whatsapp?.startsWith("https://wa.me/?text="))throw Error("WhatsApp sharing missing");
+  if(!ops.includes("guest:create"))throw Error("Owner could not generate voice invite");
+  console.log("PASS owner generates guest-only link with WhatsApp share");
+
 
   await page.locator("#voice-start").click();
   await page.locator("#voice-active:visible").waitFor({timeout:15000});
