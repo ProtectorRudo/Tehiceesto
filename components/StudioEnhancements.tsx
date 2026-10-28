@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type FormEvent, type MouseEvent } from "react";
 import ExperienceEngine from "@/components/ExperienceEngine";
+import VoiceRecorder from "@/components/VoiceRecorder";
 import { getExperience, type SceneType } from "@/data/experiences";
 import { normalizeSceneTextOverrides } from "@/data/scene-text";
 import styles from "@/app/mis-regalos/account.module.css";
@@ -160,11 +161,23 @@ export default function StudioEnhancements({ access, gift, initialMedia, onError
     finally { setBusy(false); }
   }
 
-  async function uploadFile(file: File, scene: string) {
-    if (file.size <= 0 || file.size > 50*1024*1024) { onError("Máximo 50 MB por archivo."); return; }
-    if (!/^(image\/(jpeg|png|webp|heic|heif)|audio\/(mpeg|mp4|webm|wav|x-m4a|m4a|ogg|opus)|video\/(mp4|webm|quicktime))$/.test(file.type)) {
-      onError("Archivo no compatible. Usá JPG, PNG, WEBP, MP3, M4A, WAV o MP4."); return;
+  async function uploadFile(source: File, scene: string): Promise<boolean> {
+    if (source.size <= 0 || source.size > 50*1024*1024) { onError("Máximo 50 MB por archivo."); return false; }
+    // WhatsApp often exports .opus/.ogg with a missing or generic MIME type.
+    const ext = source.name.toLowerCase().split(".").pop() || "";
+    const inferredMime: Record<string, string> = {
+      opus: "audio/opus", oga: "audio/ogg", ogg: "audio/ogg",
+      m4a: "audio/mp4", mp3: "audio/mpeg", wav: "audio/wav",
+      webm: "audio/webm", aac: "audio/mp4",
+    };
+    const rawMime = (source.type || "").toLowerCase().split(";")[0];
+    const mimeType = (rawMime && rawMime !== "application/octet-stream" && rawMime !== "application/ogg")
+      ? (rawMime === "audio/x-wav" ? "audio/wav" : rawMime)
+      : (inferredMime[ext] || rawMime);
+    if (!/^(image\/(jpeg|png|webp|heic|heif)|audio\/(mpeg|mp4|webm|wav|x-m4a|m4a|ogg|opus)|video\/(mp4|webm|quicktime))$/.test(mimeType)) {
+      onError("Archivo no compatible. Podés usar también audios de WhatsApp (.opus y .ogg)."); return false;
     }
+    const file = source.type === mimeType ? source : new File([source], source.name, { type: mimeType, lastModified: source.lastModified });
     setUploading(file.name); setProgress(0);
     try {
       const prepared = await action(access, "prepareStudioUpload", {
@@ -192,7 +205,8 @@ export default function StudioEnhancements({ access, gift, initialMedia, onError
       });
       await refreshMedia();
       onNotice("Archivo incorporado a tu regalo.");
-    } catch (error) { onError(displayError(error)); }
+      return true;
+    } catch (error) { onError(displayError(error)); return false; }
     finally { setUploading(""); setProgress(0); }
   }
 
@@ -260,11 +274,16 @@ export default function StudioEnhancements({ access, gift, initialMedia, onError
           <h2>Fotos, voces y momentos</h2>
           <p>Subí las imágenes, los audios y los videos de tu historia. Cada archivo queda guardado de forma privada.</p>
         </div>
+
+        <VoiceRecorder
+          disabled={Boolean(uploading) || busy || orderedMedia.length >= 30}
+          onSave={(file) => uploadFile(file, scenes.includes("voices" as SceneType) ? "voices" : scenes.includes("recording" as SceneType) ? "recording" : scenes[0] || "intro")}
+        />
         <div className={styles.uploadRow}>
           <label className={styles.uploadButton}>
             + Incorporar archivos
             <input aria-label="Seleccionar archivos" type="file" multiple
-              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,audio/mpeg,audio/mp4,audio/webm,audio/wav,audio/ogg,video/mp4,video/webm,video/quicktime"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,audio/mpeg,audio/mp4,audio/webm,audio/wav,audio/ogg,audio/opus,.opus,.ogg,.oga,.m4a,video/mp4,video/webm,video/quicktime"
               disabled={Boolean(uploading)} onChange={async event => {
                 const list=Array.from(event.target.files || []).slice(0,30);
                 for (const file of list) await uploadFile(file,scenes.includes("memories" as SceneType)?"memories":scenes[0]||"intro");
@@ -273,6 +292,12 @@ export default function StudioEnhancements({ access, gift, initialMedia, onError
           </label>
           <span>{orderedMedia.length} / 30 archivos · Máximo 50 MB cada uno</span>
         </div>
+        <details className={styles.whatsAppAudioHelp}>
+          <summary>¿Ya te mandaron un audio por WhatsApp? Mirá cómo incorporarlo sin enviártelo por correo.</summary>
+          <p><strong>En iPhone:</strong> mantené apretado el audio, elegí «Reenviar», tocá el ícono «Compartir» y «Guardar en Archivos». Después elegilo desde «Incorporar archivos».</p>
+          <p><strong>En Android:</strong> mantené presionado el audio, seleccioná «Compartir» (puede estar en los tres puntos) y guardalo en Archivos o Drive. Después seleccionalo acá.</p>
+          <p>También podés descargarlo desde WhatsApp Web en una computadora. Aceptamos los formatos habituales de WhatsApp: OPUS y OGG.</p>
+        </details>
         {uploading && <div className={styles.progress} role="status">
           <span>Subiendo {uploading} · {progress}%</span>
           <div><i style={{width:progress+"%"}} /></div>
