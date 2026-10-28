@@ -6,7 +6,6 @@ import styles from "./guest-voice.module.css";
 
 const apiBase=process.env.NEXT_PUBLIC_SUPABASE_URL||"";
 const apiKey=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY||"";
-const client=createClient(apiBase,apiKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
 type View="loading"|"invalid"|"idle"|"recording"|"ready"|"sending"|"done";
 type ApiResult={error?:string;ok?:boolean;path?:string;token?:string;uploadId?:string};
 
@@ -149,6 +148,7 @@ export default function GuestVoicePage(){
       const recording=file.current;
       const signed=await request("prepare",{mimeType:recording.type,size:recording.size});
       if(!signed.path||!signed.token||!signed.uploadId)throw new Error("upload_prepare_failed");
+      const client=createClient(apiBase,apiKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
       const {error:uploadError}=await client.storage.from("gift-media")
         .uploadToSignedUrl(signed.path,signed.token,recording,{contentType:recording.type,upsert:false});
       if(uploadError)throw uploadError;
