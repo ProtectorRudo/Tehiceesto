@@ -281,7 +281,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
           disabled={Boolean(uploading) || busy || orderedMedia.length >= 30}
           onSave={(file) => uploadFile(file, scenes.includes("voices" as SceneType) ? "voices" : scenes.includes("recording" as SceneType) ? "recording" : scenes[0] || "intro")}
         />
-        <GuestVoiceInvites code={access.code} bearer={ownerToken} onError={onError} />
+        <GuestVoiceInvites code={access.code} bearer={ownerToken} onError={onError} onRefresh={refreshMedia} />
         <div className={styles.uploadRow}>
           <label className={styles.uploadButton}>
             + Incorporar archivos
