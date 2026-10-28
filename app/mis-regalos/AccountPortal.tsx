@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
 import styles from "./account.module.css";
+import StudioEnhancements, { type StudioMedia, type StudioGift } from "@/components/StudioEnhancements";
 
 type Mode = "signin" | "signup" | "email" | "recover";
 type Gift = {
@@ -27,7 +28,7 @@ type EditableGift = {
   music_url?: string | null;
   story_data?: Story | null;
 };
-type Studio = { code: string; editorToken: string; gift: EditableGift };
+type Studio = { code: string; editorToken: string; gift: EditableGift; media: StudioMedia[] };
 
 const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const publicKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -242,7 +243,7 @@ export default function AccountPortal() {
     try {
       const { editorToken } = await callApi("gift-account", { action: "open", code: gift.code }, session.access_token);
       const detail = await callApi("creator-api", { action: "openStudio", code: gift.code, editorToken });
-      setStudio({ code: gift.code, editorToken, gift: detail.gift });
+      setStudio({ code: gift.code, editorToken, gift: detail.gift, media: Array.isArray(detail.media) ? detail.media : [] });
       setStudioData(detail.gift);
     } catch (cause) {
       setError(errorText(cause instanceof Error ? cause.message : ""));
@@ -382,11 +383,38 @@ export default function AccountPortal() {
                       <label key={key} className={styles.wide}>{label}<textarea rows={key === "letter_text" ? 7 : 4} value={String(studioData[key] || "")} onChange={(event) => changeGiftField(key, event.target.value)} maxLength={key === "letter_text" ? 14000 : 5000} /></label>
                     )}
                   </div>
+                  <div className={styles.personalDetails}>
+                    <label>Fecha especial
+                      <input type="date" value={String(studioData.story_data?.keyDate || "")}
+                        onChange={(event) => setStudioData(old => old ? {...old,story_data:{...(old.story_data || {}),keyDate:event.target.value}} : old)} />
+                    </label>
+                    <label>Contexto / vínculo
+                      <textarea rows={3} maxLength={5000} value={String(studioData.story_data?.relationship || "")}
+                        onChange={(event) => setStudioData(old => old ? {...old,story_data:{...(old.story_data || {}),relationship:event.target.value}} : old)} />
+                    </label>
+                    <label>Un recuerdo o anécdota especial
+                      <textarea rows={3} maxLength={4000} value={String(studioData.story_data?.anecdote || "")}
+                        onChange={(event) => setStudioData(old => old ? {...old,story_data:{...(old.story_data || {}),anecdote:event.target.value}} : old)} />
+                    </label>
+                    <label>Enlace de música (opcional)
+                      <input type="url" value={String(studioData.music_url || "")} maxLength={700} placeholder="https://..."
+                        onChange={(event) => changeGiftField("music_url",event.target.value)} />
+                    </label>
+                  </div>
                   <div className={styles.saveBar}>
                     <span>Los cambios no alteran la estructura de la experiencia.</span>
                     <button className={styles.primary} type="submit" disabled={saving}>{saving ? "Guardando…" : "Guardar cambios →"}</button>
                   </div>
                 </form>
+                <StudioEnhancements
+                  key={studio.code}
+                  access={{ code: studio.code, editorToken: studio.editorToken }}
+                  gift={studioData as StudioGift}
+                  initialMedia={studio.media}
+                  onError={(value) => { setError(value); setMessage(""); }}
+                  onNotice={(value) => { setMessage(value); setError(""); }}
+                  onPublished={() => { if (session) void reload(session); }}
+                />
               </div>
             ) : (
               <>
