@@ -29,3 +29,17 @@ jobs:
           body="$(curl -fsSL --max-time 30 https://tehiceesto.com || true)"
           if printf '%s' "$body" | grep -q "No le mandes"; then echo "CURRENT_EDITORIAL_HOME=true"; else echo "CURRENT_EDITORIAL_HOME=false"; fi
           if printf '%s' "$body" | grep -q "Convertimos tus recuerdos"; then echo "LEGACY_HOME=true"; else echo "LEGACY_HOME=false"; fi
+
+
+      - name: Inspect private account and current domain routing
+        run: |
+          echo "--- production version ---"
+          curl -sSIL --max-time 25 https://tehiceesto.com/mis-regalos | grep -Ei '^(HTTP/|location:|server:|x-vercel-|cache-control:)' || true
+          echo "--- production route markers ---"
+          account="$(curl -fsSL --max-time 25 https://tehiceesto.com/mis-regalos || true)"
+          if printf '%s' "$account" | grep -q "Tus historias merecen"; then echo "ACCOUNT_PORTAL_ON_DOMAIN=true"; else echo "ACCOUNT_PORTAL_ON_DOMAIN=false"; fi
+          echo "--- independent fallback ---"
+          code="$(curl -LsS -o /tmp/tehiceesto-account.html -w '%{http_code}' --max-time 25 https://efvvadfxuyieswdqnsjg.supabase.co/functions/v1/mi-cuenta || true)"
+          echo "ACCOUNT_EDGE_HTTP=$code"
+          if grep -q 'id="auth-form"' /tmp/tehiceesto-account.html; then echo "ACCOUNT_EDGE_LOGIN_RENDERED=true"; else echo "ACCOUNT_EDGE_LOGIN_RENDERED=false"; fi
+          if grep -q 'id="media-file"' /tmp/tehiceesto-account.html; then echo "ACCOUNT_EDGE_MEDIA_EDITOR_RENDERED=true"; else echo "ACCOUNT_EDGE_MEDIA_EDITOR_RENDERED=false"; fi
