@@ -2,7 +2,7 @@ import { chromium } from "playwright";
 import fs from "node:fs/promises";
 
 const base = process.env.TEST_BASE_URL || "http://127.0.0.1:3000";
-const external = "https://efvvadfxuyieswdqnsjg.supabase.co/functions/v1/mi-cuenta";
+const external = "https://protectorrudo.github.io/tehiceesto/mi-cuenta/";
 const project = "https://efvvadfxuyieswdqnsjg.supabase.co";
 const publicKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
 const images = "visual-smoke/account";
@@ -36,17 +36,19 @@ for(const viewport of [{width:390,height:844,name:"mobile"},{width:1360,height:9
   });
   await page.close();
 }
-await run("Supabase independent portal public rendering",async()=>{
+await run("GitHub Pages independent portal rendering and JavaScript interaction",async()=>{
   const page=await browser.newPage({viewport:{width:390,height:844}});
   const response=await page.goto(external,{waitUntil:"domcontentloaded",timeout:35000});
   if(response?.status()!==200)throw new Error("HTTP "+response?.status());
   const contentType = response.headers()["content-type"] || "";
   const bodySample = (await page.content()).slice(0,650);
   console.log("EDGE_CONTENT_TYPE="+contentType+" EDGE_URL="+page.url()+" DOM_SAMPLE="+bodySample.replace(/\s+/g," ").slice(0,420));
-  await page.screenshot({path:images+"/edge-debug.png",fullPage:true});
+  await page.screenshot({path:images+"/pages-debug.png",fullPage:true});
   await page.locator("#auth-form").waitFor({timeout:15000});
+  await page.getByRole("button",{name:"Crear cuenta"}).click();
+  await page.getByRole("heading",{name:"Creá tu cuenta"}).waitFor({timeout:15000});
   if(!(await page.locator("#media-file").count()))throw new Error("media editor missing");
-  await page.screenshot({path:images+"/edge-mobile.png",fullPage:true});
+  await page.screenshot({path:images+"/pages-mobile.png",fullPage:true});
   await page.close();
 });
 await run("Account list requires signed-in user",async()=>{
