@@ -192,8 +192,16 @@ export default function AccountPortal() {
     const cleanEmail = email.trim().toLowerCase();
     try {
       if (mode === "email") {
+        const throttleKey = "thi-last-magiclink-" + cleanEmail;
+        const lastRequested = Number(window.sessionStorage.getItem(throttleKey) || 0);
+        const remaining = Math.ceil((45000 - (Date.now() - lastRequested)) / 1000);
+        if (remaining > 0 && remaining <= 45) {
+          setMessage("Ya solicitaste un enlace. Revisá el correo más reciente. Podrás pedir otro en " + remaining + " segundos.");
+          return;
+        }
         await callApi("gift-account", { action: "requestLink", email: cleanEmail });
-        setMessage("Si tu correo tiene regalos asociados, vas a recibir un enlace privado. Revisá también Spam.");
+        window.sessionStorage.setItem(throttleKey, String(Date.now()));
+        setMessage("Te enviamos un enlace privado. Usá solamente el correo más reciente, también revisá Spam.");
       } else if (mode === "recover") {
         const { error: recoveryError } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
           redirectTo: window.location.origin + "/mis-regalos",
