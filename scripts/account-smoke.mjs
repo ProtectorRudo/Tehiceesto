@@ -63,6 +63,37 @@ await run("GitHub Pages independent portal rendering and JavaScript interaction"
   await page.screenshot({path:images+"/pages-mobile.png",fullPage:true});
   await page.close();
 });
+
+await run("Legacy link type mismatch retries recovery and displays resend form",async()=>{
+ const page=await browser.newPage({viewport:{width:390,height:844}});
+ const types=[];
+ await page.route("**/auth/v1/verify",async route=>{
+   const body=JSON.parse(route.request().postData()||"{}");
+   types.push(String(body.type||""));
+   await route.fulfill({status:403,contentType:"application/json",body:JSON.stringify({code:"otp_expired",msg:"One-time token not found"})});
+ });
+ await page.goto(external+"#token_hash="+"f".repeat(64)+"&type=magiclink",{waitUntil:"domcontentloaded",timeout:35000});
+ await page.getByText("No pudimos validar ese enlace.",{exact:false}).waitFor({timeout:18000});
+ if(types.join(",")!=="magiclink,recovery")throw Error("Expected verification fallback, observed "+types.join(","));
+ if(!await page.getByRole("heading",{name:"Entrá desde tu correo"}).isVisible())throw Error("Resend mode was not activated");
+ if(await page.locator("input[type=password]:visible").count())throw Error("Password prompt incorrectly visible");
+ if(page.url().includes("token_hash"))throw Error("Sensitive fragment not removed");
+ await page.close();
+});
+await run("New recovery link uses correct token type",async()=>{
+ const page=await browser.newPage({viewport:{width:390,height:844}});
+ const types=[];
+ await page.route("**/auth/v1/verify",async route=>{
+   const body=JSON.parse(route.request().postData()||"{}");
+   types.push(String(body.type||""));
+   await route.fulfill({status:403,contentType:"application/json",body:JSON.stringify({code:"otp_expired",msg:"One-time token not found"})});
+ });
+ await page.goto(external+"#token_hash="+"a".repeat(64)+"&type=recovery",{waitUntil:"domcontentloaded",timeout:35000});
+ await page.getByText("No pudimos validar ese enlace.",{exact:false}).waitFor({timeout:18000});
+ if(types.join(",")!=="recovery")throw Error("Expected only recovery verification, observed "+types.join(","));
+ await page.close();
+});
+
 await run("Account list requires signed-in user",async()=>{
   if(!publicKey)throw Error("missing public test key");
   const response=await fetch(project+"/functions/v1/gift-account",{method:"POST",headers:{"apikey":publicKey,"content-type":"application/json"},body:JSON.stringify({action:"list"})});
