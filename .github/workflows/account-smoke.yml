@@ -1,0 +1,49 @@
+name: Private account mobile and security audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/mis-regalos/**"
+      - "components/StudioEnhancements.tsx"
+      - "scripts/account-smoke.mjs"
+      - ".github/workflows/account-smoke.yml"
+  workflow_dispatch:
+
+jobs:
+  account-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://efvvadfxuyieswdqnsjg.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_nzbFJECAwVxyMfQUuLXRXQ_gqYvGeYN
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install and browser
+        run: |
+          npm ci
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Compile Next.js
+        run: npm run build
+      - name: Start local preview
+        run: |
+          npm start -- -H 127.0.0.1 -p 3000 > /tmp/account-next.log 2>&1 &
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:3000 >/dev/null && exit 0
+            sleep 2
+          done
+          cat /tmp/account-next.log
+          exit 1
+      - name: Test user interface and account authorization
+        run: node scripts/account-smoke.mjs
+      - name: Capture audit screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: private-account-audit
+          path: visual-smoke/account/
+          retention-days: 7
