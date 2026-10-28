@@ -45,6 +45,7 @@ export default function RootLayout({
             <Link href="/#experiencias">Experiencias</Link>
             <Link href="/escapes">Escape rooms</Link>
             <Link href="/#como-funciona">Cómo funciona</Link>
+            <Link href="/mis-regalos">Mis regalos</Link>
             <Link className="header-create" href="/crear">Crear una →</Link>
           </nav>
         </header>
