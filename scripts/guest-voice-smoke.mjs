@@ -40,8 +40,10 @@ await test("Invited person sees voice-only recorder, can listen then send with n
   if(response?.status()!==200)throw Error("HTTP "+response?.status());
   await page.getByRole("button",{name:"Empezar a grabar"}).waitFor({timeout:18000});
   if(page.url().includes("t="+inviteToken))throw Error("guest token still visible in URL");
-  const forbidden=await page.getByText(/editar regalo|publicar regalo|mis regalos|cambiar textos|fotos/i).count();
-  if(forbidden)throw Error("Editing/account controls exposed to guest");
+  // RootLayout still renders a hidden site header. Verify visible controls only.
+  const forbidden=await page.getByText(/editar regalo|publicar regalo|mis regalos|cambiar textos|fotos/i).all();
+  if((await Promise.all(forbidden.map(item=>item.isVisible()))).some(Boolean))
+    throw Error("Editing/account controls exposed to guest");
   await page.getByRole("button",{name:"Empezar a grabar"}).click();
   await page.getByRole("button",{name:"Detener grabación"}).waitFor({timeout:10000});
   await page.waitForTimeout(1300);
