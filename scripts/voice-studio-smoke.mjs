@@ -39,7 +39,7 @@ await page.route("**/functions/v1/guest-voice",route=>{
  if(body.action==="create")return fakeJson(route,{
    ok:true,id:"00000000-0000-4000-8000-000000000002",
    expiresAt:new Date(Date.now()+14*86400000).toISOString(),maxSubmissions:12,
-   url:"https://protectorrudo.github.io/tehiceesto/voz/#t="+"e".repeat(64),
+   url:"https://tehiceesto.com/voz#t="+"e".repeat(64),
  });
  if(body.action==="revoke")return fakeJson(route,{ok:true});
  return fakeJson(route,{error:"unauthorized"},403);
@@ -60,7 +60,7 @@ try{
   await page.locator("#voice-invite-create").click();
   await page.locator("#voice-invite-result:visible").waitFor({timeout:10000});
   const inviteHref=await page.locator("#voice-invite-url").inputValue();
-  if(!inviteHref.startsWith("https://protectorrudo.github.io/tehiceesto/voz/#t="))throw Error("Voice invitation link incorrect");
+  if(!inviteHref.startsWith("https://tehiceesto.com/voz#t="))throw Error("Voice invitation link incorrect");
   const whatsapp=await page.locator("#voice-invite-whatsapp").getAttribute("href");
   if(!whatsapp?.startsWith("https://wa.me/?text="))throw Error("WhatsApp sharing missing");
   if(!ops.includes("guest:create"))throw Error("Owner could not generate voice invite");
