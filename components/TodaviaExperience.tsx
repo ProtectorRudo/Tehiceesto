@@ -2,6 +2,7 @@
 
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import TodaviaAtmosphere from "./TodaviaAtmosphere";
 
 type Memory = { title: string; date: string; words: string; image: string };
 type Story = { to: string; from: string; promise: string; memories: Memory[] };
@@ -49,6 +50,7 @@ export default function TodaviaExperience() {
   const [photoOverrides, setPhotoOverrides] = useState<string[]>([]);
   const audioRef = useRef<AudioContext | null>(null);
   const holdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ambientRef = useRef<{ gain: GainNode; voices: OscillatorNode[] } | null>(null);
   const overrideRef = useRef<string[]>([]);
 
   useEffect(() => () => { overrideRef.current.forEach((url) => URL.revokeObjectURL(url)); audioRef.current?.close().catch(() => {}); }, []);
@@ -72,6 +74,47 @@ export default function TodaviaExperience() {
     } catch { /* Visual experience remains fully usable without audio. */ }
   }, [sound]);
 
+
+  // Original low-volume soundscape: no copyrighted tracks and never autoplays.
+  useEffect(() => {
+    if (!sound || typeof window === "undefined") return;
+    try {
+      const ctx = audioRef.current && audioRef.current.state !== "closed" ? audioRef.current : new window.AudioContext();
+      audioRef.current = ctx;
+      void ctx.resume().catch(() => {});
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.012, ctx.currentTime + 1.2);
+      gain.connect(ctx.destination);
+      const fundamental = [110, 98, 130.81, 82.41, 146.83][step] || 110;
+      const voices = [1, 1.5, 2.004].map((ratio, index) => {
+        const oscillator = ctx.createOscillator();
+        oscillator.type = index === 2 ? "sine" : "triangle";
+        oscillator.frequency.setValueAtTime(fundamental * ratio, ctx.currentTime);
+        oscillator.connect(gain);
+        oscillator.start();
+        return oscillator;
+      });
+      ambientRef.current = { gain, voices };
+      return () => {
+        gain.gain.cancelScheduledValues(ctx.currentTime);
+        gain.gain.setTargetAtTime(0.00001, ctx.currentTime, 0.08);
+        voices.forEach(voice => { try { voice.stop(ctx.currentTime + 0.6); } catch {} });
+        ambientRef.current = null;
+      };
+    } catch { /* Audio is optional; do not interrupt the experience. */ }
+  }, [sound, step]);
+  const toggleSound = () => {
+    if (!sound && typeof window !== "undefined") {
+      try {
+        const ctx = audioRef.current && audioRef.current.state !== "closed" ? audioRef.current : new window.AudioContext();
+        audioRef.current = ctx;
+        void ctx.resume().catch(() => {});
+      } catch {}
+    }
+    setSound(value => !value);
+  };
+
   const enter = () => { tone([293.66, 440, 587.33]); setStep(1); };
   const viewMemory = (index: number) => { setActive(index); tone(); setStep(2); setSeen((old) => old.includes(index) ? old : [...old, index]); };
   const proceed = () => { if (seen.length < 3) return; tone([392, 493.88, 783.99]); setStep(3); };
@@ -86,32 +129,37 @@ export default function TodaviaExperience() {
   const uploadPhoto = (index: number, event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !file.type.startsWith("image/") || file.size > 6 * 1024 * 1024) { event.target.value = ""; return; }
-    const url = URL.createObjectURL(file); overrideRef.current.push(url);
+    const oldURL = overrideRef.current[index];
+    if (oldURL) URL.revokeObjectURL(oldURL);
+    const url = URL.createObjectURL(file); overrideRef.current[index] = url;
     setPhotoOverrides((prev) => { const next = [...prev]; next[index] = url; return next; });
   };
   const download = () => {
     if (typeof document === "undefined") return;
     const to = xml(clean(story.to, 40) || "Vos"); const from = xml(clean(story.from, 40) || "Alguien que te ama");
     const promise = xml(clean(story.promise, 100) || "Todo lo que todavía nos espera");
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1520" viewBox="0 0 1080 1520"><defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0a1515"/><stop offset="1" stop-color="#1d2924"/></linearGradient></defs><rect width="1080" height="1520" fill="url(#b)"/><rect x="65" y="65" width="950" height="1390" rx="24" fill="none" stroke="#c9ab72" stroke-width="3"/><rect x="83" y="83" width="914" height="1354" rx="18" fill="none" stroke="#c9ab72" stroke-opacity=".4"/><text x="540" y="230" font-size="32" letter-spacing="12" text-anchor="middle" fill="#cbb989" font-family="Georgia">TE HICE ESTO</text><text x="540" y="630" font-size="128" text-anchor="middle" fill="#f9f0db" font-family="Georgia">TODAVÍA</text><text x="540" y="710" font-size="24" letter-spacing="4" text-anchor="middle" fill="#b9a988" font-family="Arial">EL MUSEO DE LO QUE NOS ESPERA</text><path d="M310 785h460" stroke="#bba475"/><text x="540" y="910" font-size="52" text-anchor="middle" fill="#f5e9d0" font-family="Georgia">${to} + ${from}</text><text x="540" y="1020" font-size="27" text-anchor="middle" fill="#d1c4ac" font-family="Georgia">UN PASE PARA TODOS NUESTROS MAÑANAS</text><text x="540" y="1110" font-size="25" text-anchor="middle" fill="#c9b78d" font-family="Georgia">${promise.length>46 ? promise.slice(0,46)+"…" : promise}</text><text x="540" y="1340" font-size="23" letter-spacing="5" text-anchor="middle" fill="#a89b7f" font-family="Arial">NUESTRO PRÓXIMO CAPÍTULO • SIN FECHA DE VENCIMIENTO</text></svg>`;
+    const pair = `${to} + ${from}`;
+    const pairSize = Math.max(24, Math.min(52, Math.floor(850 / Math.max(pair.length, 1) * 1.7)));
+    const wishSize = Math.max(16, Math.min(25, Math.floor(940 / Math.max(promise.length, 1) * 1.7)));
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1520" viewBox="0 0 1080 1520"><defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0a1515"/><stop offset="1" stop-color="#1d2924"/></linearGradient></defs><rect width="1080" height="1520" fill="url(#b)"/><rect x="65" y="65" width="950" height="1390" rx="24" fill="none" stroke="#c9ab72" stroke-width="3"/><rect x="83" y="83" width="914" height="1354" rx="18" fill="none" stroke="#c9ab72" stroke-opacity=".4"/><text x="540" y="230" font-size="32" letter-spacing="12" text-anchor="middle" fill="#cbb989" font-family="Georgia">TE HICE ESTO</text><text x="540" y="630" font-size="128" text-anchor="middle" fill="#f9f0db" font-family="Georgia">TODAVÍA</text><text x="540" y="710" font-size="24" letter-spacing="4" text-anchor="middle" fill="#b9a988" font-family="Arial">EL MUSEO DE LO QUE NOS ESPERA</text><path d="M310 785h460" stroke="#bba475"/><text x="540" y="910" font-size="${pairSize}" text-anchor="middle" fill="#f5e9d0" font-family="Georgia">${to} + ${from}</text><text x="540" y="1020" font-size="27" text-anchor="middle" fill="#d1c4ac" font-family="Georgia">UN PASE PARA TODOS NUESTROS MAÑANAS</text><text x="540" y="1110" font-size="${wishSize}" text-anchor="middle" fill="#c9b78d" font-family="Georgia">${promise}</text><text x="540" y="1340" font-size="23" letter-spacing="5" text-anchor="middle" fill="#a89b7f" font-family="Arial">NUESTRO PRÓXIMO CAPÍTULO • SIN FECHA DE VENCIMIENTO</text></svg>`;
     const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
     const a = document.createElement("a"); a.href = url; a.download = "Todavia-nuestro-futuro.svg"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
   };
 
   const memory = story.memories[active];
   return <main className={`td-root td-step-${step}`}>
-    <div className="td-grain" aria-hidden="true"/>
+    <div className="td-grain" aria-hidden="true"/><TodaviaAtmosphere stage={step}/>
     <div className="td-particles" aria-hidden="true">{stars.map((s,i)=><span key={i} style={{left:s.left,top:s.top,width:s.size,height:s.size,animationDelay:s.delay}}/>)}</div>
-    <header className="td-nav"><Link href="/" className="td-brand" aria-label="Te Hice Esto - inicio">TE HICE ESTO <span>✦</span></Link><span className="td-nav-middle">UNA EXPERIENCIA PARA SENTIR</span><div className="td-nav-actions"><button type="button" onClick={()=>{setSound(v=>!v);}} aria-label={sound?"Silenciar sonido":"Activar sonido"} title="Sonido">{sound?"♫ SONIDO ON":"♫ SONIDO OFF"}</button><button type="button" onClick={()=>setEditing(true)} className="td-edit-btn" aria-label="Personalizar esta demostración">✎ PERSONALIZAR</button></div></header>
+    <header className="td-nav"><Link href="/" className="td-brand" aria-label="Te Hice Esto - inicio">TE HICE ESTO <span>✦</span></Link><span className="td-nav-middle">UNA EXPERIENCIA PARA SENTIR</span><div className="td-nav-actions"><button type="button" onClick={toggleSound} aria-label={sound?"Silenciar sonido":"Activar sonido"} title="Sonido">{sound?"♫ SONIDO ON":"♫ SONIDO OFF"}</button><button type="button" onClick={()=>setEditing(true)} className="td-edit-btn" aria-label="Personalizar esta demostración">✎ PERSONALIZAR</button></div></header>
     <div className="td-progress" aria-label={`Escena ${step+1} de 5`}><span style={{width:`${((step+1)/5)*100}%`}}/></div>
 
-    {step === 0 && <section className="td-scene td-intro" key="intro"><div className="td-arch-background" aria-hidden="true"><div className="td-arch-door"/></div><div className="td-center td-intro-center"><span className="td-overline">INVITACIÓN PRIVADA · EXPOSICIÓN N.º 001</span><div className="td-mini-star"><Ornament size={38}/></div><h1>TODAVÍA<span className="td-period">.</span></h1><p className="td-intro-sub">El museo de los recuerdos<br/><em>que aún no vivimos.</em></p><div className="td-gold-rule"/><p className="td-script-line">Para {story.to || "alguien especial"}. Hay un lugar reservado para vos.</p><button type="button" className="td-ticket" onClick={enter} aria-label="Abrir la invitación y entrar al museo"><div className="td-ticket-left"><span>ADMISIÓN ÚNICA</span><strong>01</strong><small>UN VIAJE PARA DOS</small></div><div className="td-ticket-right"><span>UN REGALO DE {story.from || "ALGUIEN ESPECIAL"}</span><strong>ENTRAR AL MUSEO <b>↗</b></strong><small>ESTE BOLETO NO CADUCA</small></div></button><span className="td-small-note">TOCÁ EL BOLETO PARA COMENZAR · 4 MIN</span></div><div className="td-intro-bottom">EXISTEN HISTORIAS QUE NO TERMINAN EN LA ÚLTIMA PÁGINA</div></section>}
+    {step === 0 && <section className="td-scene td-intro" key="intro"><div className="td-arch-background" aria-hidden="true"><div className="td-arch-door"/></div><div className="td-center td-intro-center"><span className="td-overline">INVITACIÓN PRIVADA · EXPOSICIÓN N.º 001</span><div className="td-mini-star"><Ornament size={38}/></div><h1>TODAVÍA<span className="td-period">.</span></h1><p className="td-intro-sub">El museo de los recuerdos<br/><em>que aún no vivimos.</em></p><div className="td-gold-rule"/><p className="td-script-line">Para {story.to || "alguien especial"}. Hay un lugar reservado para vos.</p><button type="button" className="td-ticket" onClick={enter} aria-label="Abrir la invitación y entrar al museo"><div className="td-ticket-left"><span>ADMISIÓN ÚNICA</span><strong>01</strong><small>UN VIAJE PARA DOS</small></div><div className="td-ticket-right"><span>UN REGALO DE {story.from || "ALGUIEN ESPECIAL"}</span><strong>ENTRAR AL MUSEO <b>↗</b></strong><small>ESTE BOLETO NO CADUCA</small></div></button><span className="td-small-note">TOCÁ EL BOLETO PARA COMENZAR · APROX. 4 MIN</span></div><div className="td-intro-bottom">EXISTEN HISTORIAS QUE NO TERMINAN EN LA ÚLTIMA PÁGINA</div></section>}
 
     {step === 1 && <section className="td-scene td-gallery" key="gallery"><div className="td-gallery-architecture" aria-hidden="true"><div className="td-gallery-ceiling"/><div className="td-gallery-wall"/><div className="td-gallery-floor"/><div className="td-gallery-vanishing"/></div><div className="td-gallery-content"><div className="td-scene-heading"><div className="td-overline">SALA I · LOS INSTANTES QUE NOS TRAJERON ACÁ</div><h2>Cada historia merece <em>un museo.</em></h2><p>Elegí una pieza. Dentro de cada una hay algo que vale la pena recordar.</p></div><div className="td-exhibits">{story.memories.map((item,i)=><button type="button" className={`td-display td-display-${i} ${seen.includes(i)?"td-seen":""}`} key={i} onClick={()=>viewMemory(i)} aria-label={`Descubrir recuerdo ${i+1}: ${item.title}`}><span className="td-display-light"/><span className="td-display-case"><MuseumObject kind={i}/></span><span className="td-display-base"><small>PIEZA 0{i+1} {seen.includes(i)?"· VISTA":""}</small><strong>{item.title}</strong><span>DESCUBRIR <b>↗</b></span></span></button>)}</div><div className="td-gallery-bottom"><span>{seen.length} DE 3 RECUERDOS DESCUBIERTOS</span><span className="td-discovery-dots">{story.memories.map((_,i)=><i key={i} className={seen.includes(i)?"on":""}/>)}</span><button type="button" className="td-text-button" onClick={proceed} disabled={seen.length !== 3}>{seen.length===3?"ENTRAR A LA ÚLTIMA SALA ↗":"LA ÚLTIMA SALA ESTÁ CERRADA · DESCUBRÍ LAS 3 PIEZAS"}</button></div></div></section>}
 
     {step === 2 && <section className="td-scene td-memory" key={`memory-${active}`}><div className="td-memory-photo" style={{backgroundImage:`linear-gradient(90deg,rgba(5,13,14,.94) 0%,rgba(5,13,14,.62) 48%,rgba(5,13,14,.30) 100%),url("${photoOverrides[active] || memory.image}")`}}/><div className="td-memory-art"><div className="td-memory-frame"><div className="td-photo-inside" style={{backgroundImage:`url("${photoOverrides[active] || memory.image}")`}}/><span className="td-photo-dust"/></div><div className="td-memory-caption">ARCHIVO PRIVADO / 0{active+1}</div></div><div className="td-memory-copy"><span className="td-overline">{memory.date} · PIEZA 0{active+1}</span><Ornament size={33}/><h2>{memory.title}</h2><p>“{memory.words}”</p><div className="td-memory-signature">Una parte de nosotros, para siempre.</div><button className="td-gold-button" type="button" onClick={()=>{tone([440,587.33,880]);setStep(1)}}>VOLVER AL MUSEO <span>↗</span></button></div></section>}
 
-    {step === 3 && <section className="td-scene td-void" key="void"><div className="td-void-door" aria-hidden="true"/><div className="td-void-content"><span className="td-overline">SALA II · LA PIEZA AUSENTE</span><h2>Hay un recuerdo<br/><em>que todavía no existe.</em></h2><p>Esta sala está vacía por una razón.<br/>El momento más hermoso de nuestra historia <strong>aún nos está esperando.</strong></p><div className="td-orb-wrap"><div className={`td-orb-light ${charge?"td-charging":""}`}><div className="td-orb-satellite"/><button type="button" className="td-orb-btn" onPointerDown={startHold} onPointerUp={cancelHold} onPointerCancel={cancelHold} onPointerLeave={cancelHold} onKeyDown={(e)=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();finish()}}} aria-label="Mantené presionada la esfera para descubrir el futuro"><Ornament size={61}/></button></div><span className="td-hold-label">{charge?"UN RECUERDO ESTÁ POR NACER…":"MANTENÉ PRESIONADA LA LUZ"}</span></div><button className="td-accessible-skip" type="button" onClick={finish}>¿NO PODÉS MANTENER? TOCÁ PARA REVELAR</button></div></section>}
+    {step === 3 && <section className="td-scene td-void" key="void"><div className="td-void-door" aria-hidden="true"/><div className="td-void-content"><span className="td-overline">SALA II · LA PIEZA AUSENTE</span><h2>Hay un recuerdo<br/><em>que todavía no existe.</em></h2><p>Esta sala está vacía por una razón.<br/>El momento más hermoso de nuestra historia <strong>aún nos está esperando.</strong></p><div className="td-orb-wrap"><div className={`td-orb-light ${charge?"td-charging":""}`}><div className="td-orb-satellite"/><button type="button" className="td-orb-btn" onPointerDown={(e)=>{e.currentTarget.setPointerCapture(e.pointerId);startHold()}} onPointerUp={cancelHold} onPointerCancel={cancelHold} onPointerLeave={cancelHold} onKeyDown={(e)=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();finish()}}} aria-label="Mantené presionada la esfera para descubrir el futuro"><Ornament size={61}/></button></div><span className="td-hold-label">{charge?"UN RECUERDO ESTÁ POR NACER…":"MANTENÉ PRESIONADA LA LUZ"}</span></div><button className="td-accessible-skip" type="button" onClick={finish}>¿NO PODÉS MANTENER? TOCÁ PARA REVELAR</button></div></section>}
 
     {step === 4 && <section className="td-scene td-final" key="final"><div className="td-sunrise" aria-hidden="true"><div className="td-sun-disc"/><div className="td-mountains td-mountain-back"/><div className="td-mountains td-mountain-front"/><div className="td-reflection"/></div><div className="td-final-content"><span className="td-overline">LA ÚLTIMA SALA · NUESTRA PRÓXIMA HISTORIA</span><div className="td-final-ornament"><Ornament size={42}/></div><h2>Lo mejor de nosotros<br/><em>todavía no pasó.</em></h2><div className="td-final-note"><span>PARA {story.to || "VOS"}</span><p>Si pudiera elegir con quién vivir cada mañana, cada viaje, cada aventura y cada pequeño milagro…</p><strong>Te elegiría a vos. Otra vez. Siempre.</strong><p className="td-promise">{story.promise}</p><span className="td-signature">Con amor, {story.from || "yo"}.</span></div><div className="td-final-actions"><button className="td-gold-button" type="button" onClick={download}>GUARDAR NUESTRO BOLETO ↓</button><button className="td-outline-button" type="button" onClick={reset}>VOLVER A VIVIRLO ↺</button></div><Link className="td-create-link" href="/crear">Quiero regalar una experiencia así ↗</Link><span className="td-small-note">ESTA ES UNA DEMOSTRACIÓN PERSONALIZABLE · NO GUARDA TUS FOTOS EN UN SERVIDOR</span></div></section>}
 
