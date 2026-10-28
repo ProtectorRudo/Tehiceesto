@@ -434,6 +434,7 @@ export default function AccountPortal() {
                 <StudioEnhancements
                   key={studio.code}
                   access={{ code: studio.code, editorToken: studio.editorToken }}
+                  ownerToken={session?.access_token || ""}
                   gift={studioData as StudioGift}
                   initialMedia={studio.media}
                   onError={(value) => { setError(value); setMessage(""); }}
