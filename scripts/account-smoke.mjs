@@ -47,6 +47,18 @@ await run("GitHub Pages independent portal rendering and JavaScript interaction"
   await page.locator("#auth-form").waitFor({timeout:15000});
   await page.getByRole("button",{name:"Crear cuenta"}).click();
   await page.getByRole("heading",{name:"Creá tu cuenta"}).waitFor({timeout:15000});
+  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
+  if(overflow>2)throw new Error("Pages mobile horizontal overflow "+overflow+"px");
+  const guestAccess=await page.evaluate(async ({project,key})=>{
+    const response=await fetch(project+"/functions/v1/gift-account",{
+      method:"POST",headers:{"apikey":key,"content-type":"application/json"},
+      body:JSON.stringify({action:"list"}),
+    });
+    return {status:response.status,payload:await response.json()};
+  },{project,key:publicKey});
+  if(guestAccess.status!==401||guestAccess.payload.error!=="account_unauthorized")
+    throw new Error("Browser CORS/guest authorization failure "+guestAccess.status);
+  console.log("PAGES_CORS_AND_GUEST_DENIAL_PASS");
   if(!(await page.locator("#media-file").count()))throw new Error("media editor missing");
   await page.screenshot({path:images+"/pages-mobile.png",fullPage:true});
   await page.close();
