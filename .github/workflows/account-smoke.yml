@@ -8,6 +8,8 @@ on:
       - "components/StudioEnhancements.tsx"
       - "components/VoiceRecorder.tsx"
       - "components/GuestVoiceInvites.tsx"
+      - "components/FloatingWhatsApp.tsx"
+      - "app/voz/**"
       - "scripts/account-smoke.mjs"
       - "scripts/voice-studio-smoke.mjs"
       - "scripts/guest-voice-smoke.mjs"
