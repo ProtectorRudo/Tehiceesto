@@ -142,8 +142,7 @@ export default function AccountPortal() {
             token_hash: tokenHash,
             type: kind,
           });
-          if (verified.error && kind === "magiclink" &&
-            (verified.error.code === "otp_expired" || verified.error.code === "otp_disabled")) {
+          if (verified.error && kind === "magiclink") {
             verified = await supabase.auth.verifyOtp({
               token_hash: tokenHash,
               type: "recovery",
