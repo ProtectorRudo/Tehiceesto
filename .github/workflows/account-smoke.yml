@@ -7,8 +7,10 @@ on:
       - "app/mis-regalos/**"
       - "components/StudioEnhancements.tsx"
       - "components/VoiceRecorder.tsx"
+      - "components/GuestVoiceInvites.tsx"
       - "scripts/account-smoke.mjs"
       - "scripts/voice-studio-smoke.mjs"
+      - "scripts/guest-voice-smoke.mjs"
       - ".github/workflows/account-smoke.yml"
   workflow_dispatch:
 
@@ -44,6 +46,8 @@ jobs:
         run: node scripts/account-smoke.mjs
       - name: Audit recording and WhatsApp OPUS with mocked authenticated gift
         run: node scripts/voice-studio-smoke.mjs
+      - name: Audit voice-only invite and denied editor access
+        run: node scripts/guest-voice-smoke.mjs
       - name: Capture audit screenshots
         if: always()
         uses: actions/upload-artifact@v4
