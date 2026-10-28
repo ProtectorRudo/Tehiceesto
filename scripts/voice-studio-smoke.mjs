@@ -5,6 +5,8 @@ const url = "https://protectorrudo.github.io/tehiceesto/mi-cuenta/";
 const browser = await chromium.launch({headless:true,args:["--use-fake-device-for-media-stream","--use-fake-ui-for-media-stream"]});
 const context = await browser.newContext({viewport:{width:390,height:844},permissions:["microphone"]});
 const page = await context.newPage();
+page.on("pageerror",error=>console.log("PAGE_JS_ERROR",error.message));
+page.on("console",msg=>{if(msg.type()==="error")console.log("PAGE_CONSOLE_ERROR",msg.text().slice(0,300));});
 const ops = [];
 const base64url = data => Buffer.from(JSON.stringify(data)).toString("base64url");
 const fakeAccess = base64url({alg:"HS256",typ:"JWT"})+"."+base64url({sub:"11111111-1111-4111-8111-111111111111",aud:"authenticated",role:"authenticated",exp:Math.floor(Date.now()/1000)+3600})+".sig";
@@ -54,7 +56,7 @@ try{
   await page.locator("#submit").click();
   await page.locator("#gifts .gift").waitFor({timeout:15000});
   await page.getByRole("button",{name:"Editar textos"}).click();
-  await page.locator("#voice-start:visible").waitFor({timeout:15000});
+  await page.locator("#voice-start:visible").waitFor({timeout:15000}).catch(async(e)=>{console.log("VOICE_DIAGNOSTICS",JSON.stringify(await page.evaluate(()=>({editorHidden:document.getElementById("editor")?.hidden,voiceStart:document.getElementById("voice-start")?.outerHTML,accountFeedback:document.getElementById("account-feedback")?.innerText,inviteError:document.getElementById("voice-invite-error")?.innerText}))).slice(0,1300));throw e;});
   await page.locator("#voice-invite-create").click();
   await page.locator("#voice-invite-result:visible").waitFor({timeout:10000});
   const inviteHref=await page.locator("#voice-invite-url").inputValue();
