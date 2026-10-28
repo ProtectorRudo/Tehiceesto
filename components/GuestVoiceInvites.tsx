@@ -6,9 +6,9 @@ import styles from "@/app/mis-regalos/account.module.css";
 const base=process.env.NEXT_PUBLIC_SUPABASE_URL||"";
 const apikey=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY||"";
 type Invite={id:string;created_at:string;expires_at:string;revoked_at:string|null;submissions_count:number;max_submissions:number};
-type Props={code:string;bearer:string;onError:(message:string)=>void};
+type Props={code:string;bearer:string;onError:(message:string)=>void;onRefresh:()=>Promise<void>};
 
-export default function GuestVoiceInvites({code,bearer,onError}:Props){
+export default function GuestVoiceInvites({code,bearer,onError,onRefresh}:Props){
   const [invites,setInvites]=useState<Invite[]>([]);
   const [link,setLink]=useState("");
   const [busy,setBusy]=useState(false);
@@ -46,6 +46,12 @@ export default function GuestVoiceInvites({code,bearer,onError}:Props){
     catch{onError("No pudimos desactivar la invitación.");}
     finally{setBusy(false);}
   }
+  async function refreshReceived(){
+    setBusy(true);
+    try{await Promise.all([reload(),onRefresh()]);setNotice("Mensajes actualizados.");}
+    catch{onError("No pudimos actualizar los mensajes.");}
+    finally{setBusy(false);}
+  }
   async function copy(){
     try{await navigator.clipboard.writeText(link);setNotice("Enlace copiado.");}
     catch{onError("No pudimos copiar automáticamente. Seleccioná el enlace y copialo.");}
@@ -58,6 +64,7 @@ export default function GuestVoiceInvites({code,bearer,onError}:Props){
     <button className={styles.primary} type="button" disabled={busy} onClick={()=>void create()}>
       {busy?"Preparando…":active?"Crear otro enlace privado →":"Crear enlace para invitar →"}
     </button>
+    <button type="button" className={styles.ghost} disabled={busy} onClick={()=>void refreshReceived()}>Actualizar mensajes recibidos</button>
     {link&&<div className={styles.guestInviteLink}>
       <label htmlFor="guest-share-url">Tu enlace privado para compartir</label>
       <input id="guest-share-url" readOnly value={link} onFocus={event=>event.target.select()} />
