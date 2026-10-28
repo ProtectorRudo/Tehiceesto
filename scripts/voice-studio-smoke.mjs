@@ -54,7 +54,7 @@ try{
   await page.locator("#voice-save").click();
   await page.locator("#voice-start:visible").waitFor({timeout:20000});
   if(!ops.some(x=>x.startsWith("creator:prepareStudioUpload:audio/")))throw Error("Voice upload not prepared");
-  if(!ops.includes("creator:registerStudioMedia"))throw Error("Voice upload not registered");
+  if(!ops.some(x=>x.startsWith("creator:registerStudioMedia")))throw Error("Voice upload not registered");
   if(!ops.some(x=>x.startsWith("storage:")))throw Error("Voice upload not sent to Storage");
   console.log("PASS record/preview/save to mocked secured gift");
 
