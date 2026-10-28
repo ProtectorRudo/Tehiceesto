@@ -40,6 +40,10 @@ await run("Supabase independent portal public rendering",async()=>{
   const page=await browser.newPage({viewport:{width:390,height:844}});
   const response=await page.goto(external,{waitUntil:"domcontentloaded",timeout:35000});
   if(response?.status()!==200)throw new Error("HTTP "+response?.status());
+  const contentType = response.headers()["content-type"] || "";
+  const bodySample = (await page.content()).slice(0,650);
+  console.log("EDGE_CONTENT_TYPE="+contentType+" EDGE_URL="+page.url()+" DOM_SAMPLE="+bodySample.replace(/\s+/g," ").slice(0,420));
+  await page.screenshot({path:images+"/edge-debug.png",fullPage:true});
   await page.locator("#auth-form").waitFor({timeout:15000});
   if(!(await page.locator("#media-file").count()))throw new Error("media editor missing");
   await page.screenshot({path:images+"/edge-mobile.png",fullPage:true});
