@@ -6,7 +6,7 @@ import { getExperience } from "@/data/experiences";
 export default function FloatingWhatsApp() {
   const pathname = usePathname();
 
-  if (pathname.startsWith("/mis-regalos") || pathname.startsWith("/r/") || pathname.startsWith("/admin") || pathname.startsWith("/escape-r/") || pathname.startsWith("/escapes/")) {
+  if (pathname.startsWith("/mis-regalos") || pathname.startsWith("/voz") || pathname.startsWith("/r/") || pathname.startsWith("/admin") || pathname.startsWith("/escape-r/") || pathname.startsWith("/escapes/")) {
     return null;
   }
 
