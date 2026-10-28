@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 
 const key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||"";
 const project="https://efvvadfxuyieswdqnsjg.supabase.co";
-const url=process.env.TEST_BASE_URL?process.env.TEST_BASE_URL+"/voz":"https://tehiceesto.com/voz";
+const url=(process.env.TEST_BASE_URL||"http://127.0.0.1:3000")+"/voz";
 const inviteToken="c".repeat(64);
 let failures=0;
 async function test(name,fn){try{await fn();console.log("PASS "+name)}catch(e){failures++;console.error("FAIL "+name+" "+e.message)}}
