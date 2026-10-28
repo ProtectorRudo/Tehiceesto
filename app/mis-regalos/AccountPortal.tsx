@@ -133,20 +133,38 @@ export default function AccountPortal() {
         const hash = new URLSearchParams(window.location.hash.slice(1));
         const tokenHash = hash.get("token_hash");
         const kind = hash.get("type");
-        if (tokenHash && (kind === "magiclink" || kind === "recovery" || kind === "signup" || kind === "email")) {
-          const { error: verificationError } = await supabase.auth.verifyOtp({
+        if (tokenHash && (kind === "magiclink" || kind === "recovery" || kind === "signup" || kind === "email" || kind === "invite")) {
+          // Auth can create a recovery token for an existing account, even when
+          // the link generator was asked for a magic link. Accept old emails
+          // that carried the incorrect type as well as new correct links.
+          let verifiedKind = kind;
+          let verified = await supabase.auth.verifyOtp({
             token_hash: tokenHash,
             type: kind,
           });
+          if (verified.error && kind === "magiclink" &&
+            (verified.error.code === "otp_expired" || verified.error.code === "otp_disabled")) {
+            verified = await supabase.auth.verifyOtp({
+              token_hash: tokenHash,
+              type: "recovery",
+            });
+            if (!verified.error) verifiedKind = "recovery";
+          }
           window.history.replaceState(null, "", window.location.pathname + window.location.search);
-          if (verificationError) throw verificationError;
-          if (kind === "recovery") setPasswordPanel(true);
+          if (verified.error) throw verified.error;
+          if (verifiedKind === "recovery") {
+            setPasswordPanel(true);
+            setMessage("Acceso verificado. Ya podés crear tu contraseña personal.");
+          }
         }
         const { data, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) throw sessionError;
         if (alive) setSession(data.session);
       } catch {
-        if (alive) setError("El enlace venció o no es válido. Pedí uno nuevo desde el correo.");
+        if (alive) {
+          setMode("email");
+          setError("El enlace venció o fue reemplazado. Pedí uno nuevo desde «Entrar sin contraseña» y abrí el correo más reciente.");
+        }
       } finally {
         if (alive) setChecking(false);
       }
