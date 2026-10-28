@@ -3,6 +3,7 @@
 import { useMemo, useState, type FormEvent, type MouseEvent } from "react";
 import ExperienceEngine from "@/components/ExperienceEngine";
 import VoiceRecorder from "@/components/VoiceRecorder";
+import GuestVoiceInvites from "@/components/GuestVoiceInvites";
 import { getExperience, type SceneType } from "@/data/experiences";
 import { normalizeSceneTextOverrides } from "@/data/scene-text";
 import styles from "@/app/mis-regalos/account.module.css";
@@ -41,6 +42,7 @@ export type StudioGift = {
 export type StudioAccess = { code: string; editorToken: string };
 type Props = {
   access: StudioAccess;
+  ownerToken: string;
   gift: StudioGift;
   initialMedia: StudioMedia[];
   onError: (value: string) => void;
@@ -85,7 +87,7 @@ function displayError(value: unknown): string {
 
 type SelectedText = { scene: string; source: string; current: string };
 
-export default function StudioEnhancements({ access, gift, initialMedia, onError, onNotice, onPublished }: Props) {
+export default function StudioEnhancements({ access, ownerToken, gift, initialMedia, onError, onNotice, onPublished }: Props) {
   const [media, setMedia] = useState<StudioMedia[]>(initialMedia);
   const [sceneContent, setSceneContent] = useState(() => normalizeSceneTextOverrides(gift.story_data?.sceneContent));
   const [preview, setPreview] = useState(false);
@@ -279,6 +281,7 @@ export default function StudioEnhancements({ access, gift, initialMedia, onError
           disabled={Boolean(uploading) || busy || orderedMedia.length >= 30}
           onSave={(file) => uploadFile(file, scenes.includes("voices" as SceneType) ? "voices" : scenes.includes("recording" as SceneType) ? "recording" : scenes[0] || "intro")}
         />
+        <GuestVoiceInvites code={access.code} bearer={ownerToken} onError={onError} />
         <div className={styles.uploadRow}>
           <label className={styles.uploadButton}>
             + Incorporar archivos
