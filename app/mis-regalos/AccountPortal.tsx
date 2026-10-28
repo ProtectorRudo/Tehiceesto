@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
 import styles from "./account.module.css";
 
-type Mode = "signin" | "signup" | "email";
+type Mode = "signin" | "signup" | "email" | "recover";
 type Gift = {
   code: string;
   status: string;
@@ -176,6 +176,12 @@ export default function AccountPortal() {
       if (mode === "email") {
         await callApi("gift-account", { action: "requestLink", email: cleanEmail });
         setMessage("Si tu correo tiene regalos asociados, vas a recibir un enlace privado. Revisá también Spam.");
+      } else if (mode === "recover") {
+        const { error: recoveryError } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+          redirectTo: window.location.origin + "/mis-regalos",
+        });
+        if (recoveryError) throw recoveryError;
+        setMessage("Si esa cuenta existe, vas a recibir un enlace para elegir una contraseña nueva.");
       } else if (mode === "signup") {
         if (password.length < 8) throw new Error("password");
         if (password !== passwordRepeat) throw new Error("password_mismatch");
@@ -308,7 +314,7 @@ export default function AccountPortal() {
             </div>
             <div className={styles.authCard}>
               <span className={styles.eyebrow}>TU CUENTA</span>
-              <h2>{mode === "signup" ? "Creá tu cuenta" : mode === "email" ? "Entrá desde tu correo" : "Qué lindo verte de nuevo."}</h2>
+              <h2>{mode === "signup" ? "Creá tu cuenta" : mode === "email" ? "Entrá desde tu correo" : mode === "recover" ? "Recuperá tu contraseña" : "Qué lindo verte de nuevo."}</h2>
               <p className={styles.subtle}>El mismo correo que usaste al comprar reúne todos tus regalos.</p>
               <div className={styles.tabs} role="group" aria-label="Forma de acceso">
                 <button type="button" className={mode === "signin" ? styles.activeTab : ""} onClick={() => switchMode("signin")}>Entrar</button>
@@ -318,7 +324,7 @@ export default function AccountPortal() {
                 <label>Correo electrónico
                   <input required autoComplete="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="tu@email.com" />
                 </label>
-                {mode !== "email" && <label>Contraseña
+                {mode !== "email" && mode !== "recover" && <label>Contraseña
                   <input required minLength={mode === "signup" ? 8 : undefined} autoComplete={mode === "signup" ? "new-password" : "current-password"} type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Tu contraseña" />
                 </label>}
                 {mode === "signup" && <label>Repetí tu contraseña
@@ -327,12 +333,13 @@ export default function AccountPortal() {
                 {error && <p className={styles.error} role="alert">{error}</p>}
                 {message && <p className={styles.success} role="status">{message}</p>}
                 <button className={styles.primary} disabled={loading} type="submit">
-                  {loading ? "Un momento…" : mode === "signup" ? "Crear mi cuenta →" : mode === "email" ? "Enviarme un enlace →" : "Entrar a mis regalos →"}
+                  {loading ? "Un momento…" : mode === "signup" ? "Crear mi cuenta →" : mode === "email" ? "Enviarme un enlace →" : mode === "recover" ? "Recuperar contraseña →" : "Entrar a mis regalos →"}
                 </button>
               </form>
               <div className={styles.authFooter}>
-                {mode === "email" ? <button onClick={() => switchMode("signin")}>Prefiero usar mi contraseña</button> :
-                  <button onClick={() => switchMode("email")}>{mode === "signup" ? "Ya tengo regalos, quiero un enlace de acceso" : "Olvidé mi contraseña / Entrar sin contraseña"}</button>}
+                {mode === "signin" ? <><button onClick={() => switchMode("recover")}>Olvidé mi contraseña</button><span className={styles.authDivider}> · </span><button onClick={() => switchMode("email")}>Entrar sin contraseña</button></> :
+                  mode === "signup" ? <button onClick={() => switchMode("email")}>Ya tengo regalos, quiero un enlace de acceso</button> :
+                  <button onClick={() => switchMode("signin")}>Prefiero usar mi contraseña</button>}
               </div>
               <p className={styles.secure}><span aria-hidden="true">✧</span> Acceso protegido. Solo vos podés ver los regalos asociados a tu correo.</p>
             </div>
@@ -399,7 +406,7 @@ export default function AccountPortal() {
                       <div className={styles.giftActions}>
                         {assisted(gift) ? <span className={styles.assisted}>Nuestro equipo personaliza esta experiencia.</span> :
                           <button disabled={Boolean(openingCode)} onClick={() => void openGift(gift)}>{openingCode === gift.code ? "Abriendo…" : "Editar mensajes →"}</button>}
-                        {gift.status === "published" && <a href={"/r/" + gift.code} target="_blank" rel="noopener noreferrer">Ver regalo ↗</a>}
+                        {gift.status === "published" && <a href={(gift.experienceSlug.startsWith("escape-") ? "/escape-r/" : "/r/") + gift.code} target="_blank" rel="noopener noreferrer">Ver regalo ↗</a>}
                       </div>
                     </article>
                   )}</div>}
