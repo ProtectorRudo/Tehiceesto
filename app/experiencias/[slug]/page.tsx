@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "./embed.css";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ExperienceEngine from "@/components/ExperienceEngine";

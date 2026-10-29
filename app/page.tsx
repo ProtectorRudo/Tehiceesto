@@ -2,6 +2,7 @@ import Link from "next/link";
 import { experiences } from "@/data/experiences";
 import BoutiqueGallery from "@/components/BoutiqueGallery";
 import "./home-boutique.css";
+import "./ethos-redesign.css";
 
 export default function Home() {
   return (

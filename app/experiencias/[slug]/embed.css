@@ -1,0 +1,5 @@
+/* This stylesheet is loaded by demo routes too: embedded previews must be clean. */
+body:has(.boutique-embedded-route) > .site-header,
+body:has(.boutique-embedded-route) > .floating-whatsapp{display:none!important}
+body:has(.boutique-embedded-route){overflow-x:hidden}
+.boutique-embedded-route{min-height:100dvh}

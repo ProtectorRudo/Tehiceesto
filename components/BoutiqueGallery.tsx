@@ -1,94 +1,113 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { Experience } from "@/data/experiences";
 
 type Props = { experiences: Experience[] };
-
-const cardDesign: Record<string,{name:string;tagline:string;figure:string;note:string}> = {
- pareja:{name:"Para mi amor",tagline:"Cada momento nos trajo hasta acá.",figure:"♡",note:"LO QUE SOMOS"},
- cumpleanos:{name:"Feliz vuelta al sol",tagline:"Un día que se convierte en mundo.",figure:"✷",note:"QUE EMPIECE LA MAGIA"},
- hijos:{name:"Desde que llegaste",tagline:"Para que nunca olvides cuánto amor había.",figure:"☾",note:"UN AMOR INFINITO"},
- abuelos:{name:"Una vida de historias",tagline:"Todo lo que aprendimos de vos.",figure:"❦",note:"EL ÁLBUM DE UNA VIDA"},
- aniversario:{name:"Nuestro aniversario",tagline:"Por cada día, por cada nosotros.",figure:"∞",note:"SIEMPRE VOS"},
- propuesta:{name:"Tengo una pregunta",tagline:"Una historia antes del gran sí.",figure:"◇",note:"UN NUEVO COMIENZO"},
- mama:{name:"Para mamá",tagline:"Gracias por cada gesto invisible.",figure:"✿",note:"TODO LO QUE ME DISTE"},
- papa:{name:"Para papá",tagline:"Esas cosas tuyas que viven en mí.",figure:"✦",note:"APRENDÍ DE VOS"},
- amistad:{name:"Nuestra amistad",tagline:"Un expediente de momentos inolvidables.",figure:"✳",note:"CÓMPLICES DESDE SIEMPRE"},
- secreto:{name:"Te guardé un secreto",tagline:"Hay noticias que merecen otro final.",figure:"✧",note:"UNA SORPRESA PARA VOS"}
+const labels: Record<string, { title: string; mood: string; gesture: string }> = {
+  pareja: { title: "Para mi amor", mood: "Lo nuestro, contado de otra forma.", gesture: "Abrí la puerta y descubrí su historia" },
+  cumpleanos: { title: "Feliz cumpleaños", mood: "Un día entero hecho sorpresa.", gesture: "Encendé la emoción, un momento a la vez" },
+  hijos: { title: "Desde que llegaste", mood: "El primer capítulo de una vida.", gesture: "Recorré recuerdos que valen una vida" },
+  abuelos: { title: "Para los abuelos", mood: "Una vida que sigue abrazándonos.", gesture: "Abrí el álbum de toda una familia" },
+  aniversario: { title: "Nuestro aniversario", mood: "El tiempo pasa. Nosotros elegimos.", gesture: "Volvé a ese primer nosotros" },
+  propuesta: { title: "La gran pregunta", mood: "Un instante para recordar siempre.", gesture: "Descubrí cada pista antes del gran sí" },
+  mama: { title: "Para mamá", mood: "Gracias por cada gesto invisible.", gesture: "Descubrí todo lo que hizo por amor" },
+  papa: { title: "Para papá", mood: "Hay cosas tuyas que viven en mí.", gesture: "Recorré su historia y lo que te enseñó" },
+  amistad: { title: "Nuestra amistad", mood: "Anécdotas, códigos y una vida juntos.", gesture: "Abrí el expediente confidencial" },
+  secreto: { title: "Te guardé un secreto", mood: "Una noticia que merece su momento.", gesture: "Seguí las pistas hasta la revelación" },
 };
-
+const favorites = ["pareja", "mama", "cumpleanos", "amistad", "papa"];
 export default function BoutiqueGallery({ experiences }: Props) {
-  const trackRef=useRef<HTMLDivElement>(null);
-  const closeRef=useRef<HTMLButtonElement>(null);
-  const triggerRef=useRef<HTMLElement|null>(null);
-  const [active,setActive]=useState<Experience|null>(null);
-  const [loading,setLoading]=useState(false);
-  const [index,setIndex]=useState(0);
-  const [soundHint,setSoundHint]=useState(true);
-  const onClose=useCallback(()=>{setActive(null);setLoading(false);setSoundHint(true);},[]);
-  const onOpen=useCallback((experience:Experience, trigger:HTMLElement)=>{
-    triggerRef.current=trigger;
-    setActive(experience);setLoading(true);setSoundHint(true);
-  },[]);
-  useEffect(()=>{
-    if(!active)return;
-    const previous=document.body.style.overflow;
-    document.body.style.overflow="hidden";
-    const handleKey=(event:KeyboardEvent)=>{if(event.key==="Escape")onClose();};
-    document.addEventListener("keydown",handleKey);
-    const raf=requestAnimationFrame(()=>closeRef.current?.focus());
-    return ()=>{document.body.style.overflow=previous;document.removeEventListener("keydown",handleKey);cancelAnimationFrame(raf);triggerRef.current?.focus();};
-  },[active,onClose]);
-  const move=(dir:number)=>{
-    const track=trackRef.current;if(!track)return;
-    const card=track.querySelector<HTMLElement>(".boutique-card");
-    track.scrollBy({left:dir*((card?.offsetWidth||350)+20),behavior:"smooth"});
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState<string | null>(null);
+  const [epoch, setEpoch] = useState(0);
+  const [index, setIndex] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const start = (slug: string) => {
+    setLoaded(false);
+    if (active === slug) setEpoch((value) => value + 1);
+    else { setActive(slug); setEpoch(0); }
   };
-  const onScroll=()=>{
-    const track=trackRef.current;const card=track?.querySelector<HTMLElement>(".boutique-card");
-    if(!track||!card)return;
-    setIndex(Math.min(experiences.length-1,Math.round(track.scrollLeft/(card.offsetWidth+20))));
+  const stop = () => {setActive(null); setLoaded(false);};
+  const move = (direction: number) => {
+    const track = trackRef.current;
+    const first = track?.querySelector<HTMLElement>(".ethos-like-card");
+    if (track && first) track.scrollBy({left:direction * (first.offsetWidth + 22), behavior:"smooth"});
   };
+  const onScroll = () => {
+    const track=trackRef.current;
+    const first=track?.querySelector<HTMLElement>(".ethos-like-card");
+    if (track && first) setIndex(Math.min(experiences.length-1,Math.max(0,Math.round(track.scrollLeft/(first.offsetWidth+22)))));
+  };
+  const ordered = [...experiences].sort((a,b) => {
+    const ai=favorites.indexOf(a.slug), bi=favorites.indexOf(b.slug);
+    return (ai===-1?100:ai)-(bi===-1?100:bi);
+  });
   return (
-    <section className="boutique-collection" id="coleccion" aria-labelledby="collection-title">
-      <div className="boutique-collection-intro">
-        <div><span className="boutique-kicker">LA COLECCIÓN · EXPERIENCIAS PARA REGALAR</span><h2 id="collection-title">Elegí a quién<br/><em>querés emocionar.</em></h2><p>Cada historia es un mundo distinto. Deslizá, elegí la que te gusta y entrá a probarla acá mismo, sin salir de esta página.</p></div>
-        <div className="boutique-collection-side"><span>01—{String(experiences.length).padStart(2,"0")} / COLECCIÓN</span><p>Regalos para tocar,<br/>escuchar y descubrir.</p></div>
+    <section className="boutique-collection ethos-collection" id="coleccion" aria-labelledby="collection-title">
+      <div className="ethos-collection-head">
+        <div className="ethos-heading-group">
+          <span className="ethos-pink-kicker"><span aria-hidden="true">✦</span> LA COLECCIÓN DE TE HICE ESTO</span>
+          <h2 id="collection-title">Cada regalo es<br/><em>una experiencia entera.</em></h2>
+          <p>No mirás una foto de muestra. Entrás al regalo real, tocás sus escenas y descubrís sus sorpresas. <strong>Probalo acá, sin salir de esta página.</strong></p>
+        </div>
+        <div className="ethos-collection-note">
+          <span>01 / {String(experiences.length).padStart(2,"0")}</span>
+          <strong>Elegí. Tocá.<br/>Sentí.</strong>
+          <p>El celular que ves es interactivo.</p>
+        </div>
       </div>
-      <div className="boutique-carousel-shell">
-        <div className="boutique-gallery-track" ref={trackRef} onScroll={onScroll} role="region" aria-label="Colección de experiencias; deslizar horizontalmente" tabIndex={0}>
-          {experiences.map((experience,i)=>{
-            const info=cardDesign[experience.slug]||{name:experience.title,tagline:experience.short,figure:experience.icon,note:"HECHO PARA VOS"};
-            return <article className={"boutique-card boutique-card--"+experience.slug} key={experience.slug}>
-              <button type="button" className={"boutique-card-visual boutique-card-visual--"+experience.slug} onClick={e=>onOpen(experience,e.currentTarget)} aria-label={"Probar demo de "+info.name}>
-                <span className="boutique-card-upper"><small>TE HICE ESTO</small><small>{String(i+1).padStart(2,"0")} / {String(experiences.length).padStart(2,"0")}</small></span>
-                <span className="boutique-visual-halo" aria-hidden="true"/>
-                <span className="boutique-visual-figure" aria-hidden="true">{info.figure}</span>
-                <span className="boutique-visual-paper" aria-hidden="true"><small>{info.note}</small><strong>{experience.demoRecipient}</strong><em>Hecho sólo para vos.</em></span>
-                <span className="boutique-card-glow" aria-hidden="true">✦</span>
-                <span className="boutique-play"><span>↗</span> PROBAR EN VIVO</span>
-              </button>
-              <div className="boutique-card-details"><div><span className="boutique-card-category">{experience.eyebrow}</span><h3>{info.name}</h3><p>{info.tagline}</p></div><div className="boutique-card-actions"><button type="button" onClick={e=>onOpen(experience,e.currentTarget)}>Probar experiencia <span aria-hidden="true">↗</span></button><Link href="/crear" aria-label={"Elegir "+info.name+" para regalar"}>Elegir <span aria-hidden="true">→</span></Link></div></div>
+      <div className="ethos-catalog-toolbar">
+        <span><i aria-hidden="true" /> {experiences.length} experiencias personalizables</span>
+        <span>DESLIZÁ PARA EXPLORAR <b aria-hidden="true">→</b></span>
+      </div>
+      <div className="ethos-catalog-viewport">
+        <div className="ethos-catalog-track" ref={trackRef} onScroll={onScroll} role="region" aria-label="Catálogo de regalos digitales para probar directamente" tabIndex={0}>
+          {ordered.map((experience,i) => {
+            const demo=labels[experience.slug]||{title:experience.title,mood:experience.short,gesture:"Entrá a descubrirlo"};
+            const isActive=active===experience.slug;
+            return <article className={"ethos-like-card ethos-like-card--"+experience.slug+(isActive?" ethos-like-card--playing":"")} key={experience.slug}>
+              <div className="ethos-card-showcase">
+                <div className="ethos-card-topline"><span className="ethos-card-tag">EXPERIENCIA REAL</span><span className="ethos-card-count">{String(i+1).padStart(2,"0")}</span></div>
+                <div className="ethos-phone-wrap">
+                  <div className="ethos-phone" aria-label={"Celular interactivo: "+demo.title}>
+                    <div className="ethos-phone-camera" aria-hidden="true" />
+                    <div className="ethos-phone-screen">
+                      {isActive ? <>
+                        {!loaded&&<div className="ethos-phone-wait" role="status"><span className="ethos-wait-spark">✧</span> Preparando tu regalo…</div>}
+                        <iframe key={experience.slug+"-"+epoch} title={"Demo interactiva de "+demo.title} src={"/experiencias/"+experience.slug+"?embed=1"} allow="autoplay; microphone" onLoad={()=>setLoaded(true)} loading="eager"/>
+                      </> : <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={"/demo-previews/"+experience.slug+".jpg"} alt={"Vista previa real de "+demo.title} loading={i<3?"eager":"lazy"} />
+                        <div className="ethos-phone-screen-shade" aria-hidden="true"/>
+                        <button className="ethos-phone-start" onClick={()=>start(experience.slug)} type="button" aria-label={"Iniciar demo de "+demo.title}><span className="ethos-phone-start-icon">▶</span><span>PROBAR EN VIVO</span></button>
+                      </>}
+                    </div>
+                    <span className="ethos-phone-homebar" aria-hidden="true" />
+                  </div>
+                  {isActive && <div className="ethos-phone-playing-label"><i/> DEMO EN CURSO · SEGUÍ EXPLORANDO LA HOME</div>}
+                </div>
+                <div className="ethos-card-corner-flower" aria-hidden="true">✽</div>
+              </div>
+              <div className="ethos-card-info">
+                <div className="ethos-card-information"><span className="ethos-card-eyebrow">{experience.eyebrow}</span><h3>{demo.title}</h3><p>{demo.mood}</p></div>
+                <p className="ethos-card-gesture">{demo.gesture}</p>
+                <div className="ethos-card-cta">
+                  <button type="button" className="ethos-card-test" onClick={()=>start(experience.slug)}>{isActive?"↻  Reiniciar demo":"▶  Probar acá mismo"}</button>
+                  {isActive && <button type="button" className="ethos-card-stop" onClick={stop}>Detener</button>}
+                  <Link href="/crear" className="ethos-card-select">Elegir regalo <span aria-hidden="true">↗</span></Link>
+                </div>
+              </div>
             </article>;
           })}
         </div>
       </div>
-      <div className="boutique-gallery-bottom"><div className="boutique-gallery-progress"><span className="boutique-gallery-current">{String(index+1).padStart(2,"0")}</span><div className="boutique-gallery-line"><i style={{width:((index+1)/experiences.length*100)+"%"}} /></div><span>{String(experiences.length).padStart(2,"0")}</span></div><p>DESLIZÁ PARA VER MÁS <span aria-hidden="true">⟶</span></p><div className="boutique-gallery-nav"><button type="button" aria-label="Ver experiencia anterior" onClick={()=>move(-1)} disabled={index===0}>←</button><button type="button" aria-label="Ver experiencia siguiente" onClick={()=>move(1)} disabled={index>=experiences.length-1}>→</button></div></div>
-      {active&&(
-        <div className="boutique-demo-backdrop" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)onClose();}}>
-          <section className="boutique-demo-dialog" role="dialog" aria-modal="true" aria-label={"Demo interactiva de "+active.title}>
-            <div className="boutique-demo-top"><span>TE HICE ESTO <b>♥</b><small> / DEMO EN VIVO</small></span><button ref={closeRef} type="button" className="boutique-demo-close" onClick={onClose}>Cerrar <span aria-hidden="true">✕</span></button></div>
-            <div className="boutique-demo-content">
-              <aside className="boutique-demo-aside"><span className="boutique-kicker">UNA EXPERIENCIA REAL</span><h2>{(cardDesign[active.slug]||{}).name||active.title}<em>.</em></h2><p>{active.short}</p><div className="boutique-demo-instruction"><span>01</span> Tocá, deslizá y descubrí.</div><div className="boutique-demo-instruction"><span>02</span> El recorrido es completamente interactivo.</div><div className="boutique-demo-instruction"><span>03</span> Después lo hacemos con tus recuerdos.</div><Link href="/crear" className="boutique-demo-buy">Quiero regalar esta experiencia <span>↗</span></Link><small>LA DEMO NO GUARDA TUS DATOS PERSONALES.</small></aside>
-              <div className="boutique-demo-device"><div className="boutique-demo-device-top"><span>VISTA PREVIA INTERACTIVA</span><span><i /> ACTIVA</span></div><div className="boutique-demo-screen">{loading&&<div className="boutique-demo-loading" role="status">Preparando tu experiencia…</div>}<iframe key={active.slug} src={"/experiencias/"+encodeURIComponent(active.slug)+"?embed=1"} title={"Demo de "+active.title} allow="autoplay; microphone" loading="eager" onLoad={()=>setLoading(false)} /></div></div>
-            </div>
-            <div className="boutique-demo-mobile-bar"><span>{active.title}</span><Link href="/crear">Quiero regalar esta experiencia ↗</Link></div>
-            {soundHint&&<div className="boutique-demo-sound"><span>♪</span> Para vivirla completa, activá el sonido cuando lo pida la demo.<button type="button" onClick={()=>setSoundHint(false)} aria-label="Ocultar aviso">✕</button></div>}
-          </section>
-        </div>
-      )}
+      <div className="ethos-carousel-footer">
+        <div className="ethos-carousel-progress"><strong>{String(index+1).padStart(2,"0")}</strong><div className="ethos-carousel-progress-bar"><i style={{width:(((index+1)/experiences.length)*100)+"%"}} /></div><span>{String(experiences.length).padStart(2,"0")}</span></div>
+        <p>Tocá dentro del teléfono para avanzar en la experiencia. Podés continuar recorriendo la Home.</p>
+        <div className="ethos-carousel-nav"><button aria-label="Experiencia anterior" onClick={()=>move(-1)} type="button" disabled={index===0}>←</button><button aria-label="Experiencia siguiente" onClick={()=>move(1)} type="button" disabled={index>=experiences.length-1}>→</button></div>
+      </div>
     </section>
   );
 }
