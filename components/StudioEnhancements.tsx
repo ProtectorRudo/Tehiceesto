@@ -2,6 +2,8 @@
 
 import { useMemo, useState, type FormEvent, type MouseEvent } from "react";
 import ExperienceEngine from "@/components/ExperienceEngine";
+import SevenDaysExperience from "@/components/SevenDaysExperience";
+import SevenDaysSharePanel from "@/components/SevenDaysSharePanel";
 import VoiceRecorder from "@/components/VoiceRecorder";
 import GuestVoiceInvites from "@/components/GuestVoiceInvites";
 import { getExperience, type SceneType } from "@/data/experiences";
@@ -63,6 +65,8 @@ async function action(access: StudioAccess, name: string, payload: Record<string
 }
 
 const sceneLabels: Record<string, string> = {
+  day1:"Día 1 · Mimo",day2:"Día 2 · Luna",day3:"Día 3 · Bruno",
+  day4:"Día 4 · Bubi",day5:"Día 5 · Duque",day6:"Día 6 · Pipo",day7:"Día 7 · Rosa",
   intro:"Entrada",door:"La puerta",memories:"Recuerdos",stars:"Estrellas",scratch:"Sorpresa",
   letter:"Carta",finale:"Final",candles:"Velas",balloons:"Globos",timeline:"Línea del tiempo",
   voices:"Voces",quiz:"Preguntas",vault:"Cofre",capsule:"Cápsula",proposal:"Propuesta",video:"Video",
@@ -270,6 +274,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
 
   return (
     <div className={styles.enhancement}>
+      {gift.experience_slug==="siete-dias" && <SevenDaysSharePanel code={access.code} editorToken={access.editorToken} />}
       <section className={styles.studioSection}>
         <div className={styles.studioHeading}>
           <span className={styles.eyebrow}>MATERIALES PERSONALES</span>
@@ -344,6 +349,15 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
         </div>
         {preview && model && <div className={styles.previewWindow} onClickCapture={chooseText}>
           {editingCopy && <p className={styles.editModeLabel} role="status">MODO EDICIÓN · Tocá una frase del recorrido para cambiarla</p>}
+          {gift.experience_slug==="siete-dias" ?
+            <SevenDaysExperience
+              experience={{...model,demoGiver:gift.giver_name,demoRecipient:gift.recipient_name}}
+              sceneTextOverrides={sceneContent}
+              photoMedia={signedPhotos}
+              audioMedia={audioMedia}
+              editing={editingCopy}
+              onTextSelect={selection=>{setSelected(selection);setCopyValue(selection.current);}}
+            /> :
           <ExperienceEngine
             experience={{...model,
               demoGiver:gift.giver_name,demoRecipient:gift.recipient_name,
@@ -359,7 +373,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
             videoMedia={videoMedia}
             storyContext={{keyDate:String(gift.story_data?.keyDate||""),anecdote:String(gift.story_data?.anecdote||"")}}
             sceneTextOverrides={sceneContent}
-          />
+          />}
         </div>}
         {selected && <div className={styles.copyModal} role="dialog" aria-modal="true" aria-label="Editar texto de escena">
           <div className={styles.copyPanel}>

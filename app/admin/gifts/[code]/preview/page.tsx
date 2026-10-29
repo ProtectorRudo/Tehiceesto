@@ -4,6 +4,7 @@ import { getAdminGiftByCode } from "@/lib/gifts/repository";
 import { getExperience } from "@/data/experiences";
 import ExperienceEngine from "@/components/ExperienceEngine";
 import AdminCopyEditor from "@/components/admin/AdminCopyEditor";
+import SevenDaysAdminPreview from "@/components/admin/SevenDaysAdminPreview";
 import { normalizeSceneTextOverrides } from "@/data/scene-text";
 
 export default async function AdminGiftPreviewPage({
@@ -75,6 +76,12 @@ export default async function AdminGiftPreviewPage({
       url: item.signed_url as string,
       caption: item.caption || undefined,
     }));
+
+  if (gift.experience_slug==="siete-dias") {
+    return <SevenDaysAdminPreview code={gift.public_code} experience={experience}
+      initialOverrides={normalizeSceneTextOverrides(gift.story_data?.sceneContent)}
+      photos={photoMedia} audio={audioMedia} />;
+  }
 
   return (
     <>

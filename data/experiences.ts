@@ -49,7 +49,8 @@ export type SceneType =
   | "confession"
   | "passage"
   | "reveal"
-  | "keepsake";
+  | "keepsake"
+  | "day1" | "day2" | "day3" | "day4" | "day5" | "day6" | "day7";
 
 export type Experience = {
   slug: string;
@@ -219,6 +220,21 @@ export const experiences: Experience[] = [
     recipe: ["invitation", "portal", "gallery", "timepiece", "recording", "clues", "confession", "passage", "reveal", "keepsake"],
   },
 
+  {
+    slug: "siete-dias",
+    eyebrow: "Siete sorpresas · Una por día",
+    title: "Un poquito de mí, cada día",
+    short: "Siete capítulos independientes para sorprender durante toda una semana.",
+    description: "Mimo, Luna, Bruno, Bubi, Duque y Pipo te acompañan durante seis días; el séptimo, una rosa abre la última carta. Cada escena, frase, nombre y recuerdo puede personalizarse sin cambiar los efectos.",
+    icon: "♡",
+    accent: "#b93468",
+    demoRecipient: "Lucía",
+    demoGiver: "Martín",
+    opening: "Una sola sorpresa no alcanza para contarte todo lo que siento.",
+    closing: "Siete días. Infinitas maneras de amarte.",
+    tags: ["Pareja", "Siete días", "Romántico", "Edición personalizable"],
+    recipe: ["day1", "day2", "day3", "day4", "day5", "day6", "day7"],
+  },
 ];
 
 // Hide unlaunched models from the public catalog without changing their routes,

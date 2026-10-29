@@ -1,0 +1,14 @@
+.seven-days-experience{min-height:100svh;background:radial-gradient(ellipse at 82% 5%,#ffe6ed,transparent 41%),#fcf3f0;color:#49313d;font-family:Arial,Helvetica,sans-serif;--accent:#bd386d;display:flex;flex-direction:column}
+.seven-days-nav{min-height:68px;display:flex;align-items:center;justify-content:space-between;padding:10px clamp(12px,3vw,32px);background:#fffdfbed;border-bottom:1px solid #f1d7e0;gap:12px}
+.seven-days-nav-brand{display:flex;flex-direction:column;gap:4px;letter-spacing:.15em;font-size:11px;color:#513443}
+.seven-days-nav-brand span{color:#bd386d}.seven-days-nav-brand small{font-size:8px;color:#ae8296;font-weight:700}
+.seven-days-nav-count{font-size:12px;font-weight:800;letter-spacing:.14em;white-space:nowrap;color:#985776}
+.seven-days-nav-controls{display:flex;gap:6px}.seven-days-nav-controls button{width:39px;height:39px;border-radius:50%;background:#b93468;border:0;color:white;font-size:26px;line-height:1;cursor:pointer}
+.seven-days-nav-controls button:disabled{opacity:.3;cursor:default}
+.seven-days-tabs{display:flex;gap:8px;padding:9px 16px;justify-content:center;flex-wrap:wrap;border-bottom:1px solid #f0d5df;background:#fffaf8}
+.seven-days-tabs button{border:1px solid #ecd4dc;background:#fff;color:#9c7084;padding:7px 13px;border-radius:18px;cursor:pointer;font-size:11px;font-weight:bold}
+.seven-days-tabs button.active{background:#b93468;border-color:#b93468;color:#fff}
+.seven-days-frame{border:0;background:#f9eeee;width:100%;flex:1;height:min(850px,calc(100svh - 132px));min-height:650px;display:block}
+.seven-days-edit-hint{margin:0;text-align:center;padding:12px;color:#a13b6a;font-size:13px;font-weight:bold;background:#fff5f8}
+.seven-days-error{padding:30px;text-align:center;color:#a13b6a}
+@media(max-width:520px){.seven-days-nav{min-height:60px}.seven-days-nav-brand{font-size:9px}.seven-days-nav-brand small{font-size:7px}.seven-days-nav-count{font-size:10px}.seven-days-nav-controls button{width:35px;height:35px}.seven-days-tabs{gap:5px;padding:8px}.seven-days-tabs button{padding:6px 10px}.seven-days-frame{min-height:calc(100svh - 116px);height:calc(100svh - 116px)}}
