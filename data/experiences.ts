@@ -50,7 +50,7 @@ export type SceneType =
   | "passage"
   | "reveal"
   | "keepsake"
-  | "day1" | "day2" | "day3" | "day4" | "day5" | "day6" | "day7";
+  | "day1" | "day2" | "day3" | "day4" | "day5" | "day6" | "day7" | "jar365";
 
 export type Experience = {
   slug: string;
@@ -220,6 +220,21 @@ export const experiences: Experience[] = [
     recipe: ["invitation", "portal", "gallery", "timepiece", "recording", "clues", "confession", "passage", "reveal", "keepsake"],
   },
 
+  {
+    slug: "frasco365",
+    eyebrow: "365 papelitos · Un año de cariño",
+    title: "Un año de cosas lindas",
+    short: "Un frasco de vidrio con 365 papelitos de colores. Uno nuevo cada 24 horas.",
+    description: "Una experiencia íntima y cotidiana: razones, cualidades, agradecimientos, planes, promesas y pequeños vales. Cada papelito puede reescribirse desde el editor sin cambiar el diseño.",
+    icon: "✉",
+    accent: "#b94a76",
+    demoRecipient: "Luz",
+    demoGiver: "Fran",
+    opening: "Te hice esto para que tengas algo lindo que descubrir cada día.",
+    closing: "Hay un montón de cosas que todavía quiero decirte.",
+    tags: ["Pareja", "Un año", "365 mensajes", "Personalizable"],
+    recipe: ["jar365"],
+  },
   {
     slug: "siete-dias",
     eyebrow: "Siete sorpresas · Una por día",
