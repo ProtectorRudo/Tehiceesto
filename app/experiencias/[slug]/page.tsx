@@ -4,44 +4,32 @@ import { notFound } from "next/navigation";
 import ExperienceEngine from "@/components/ExperienceEngine";
 import { getExperience } from "@/data/experiences";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const experience = getExperience(slug);
   if (!experience) return {};
-
   return {
-    title: `${experience.title} — Te Hice Esto`,
+    title: experience.title + " — Te Hice Esto",
     description: experience.short,
-    openGraph: {
-      title: `${experience.title} — Te Hice Esto`,
-      description: experience.short,
-      siteName: "Te Hice Esto",
-      type: "website",
-    },
+    openGraph: { title: experience.title + " — Te Hice Esto", description: experience.short, siteName: "Te Hice Esto", type: "website" },
   };
 }
-
 export default async function ExperiencePage({
-  params,
+  params, searchParams
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ embed?: string }>;
 }) {
   const { slug } = await params;
+  const { embed } = await searchParams;
   const experience = getExperience(slug);
-
   if (!experience) notFound();
-
+  const isEmbedded=embed==="1";
   return (
-    <>
-      <div className="demo-ribbon">
-        <span>DEMO · {experience.title}</span>
-        <Link href="/crear">Crear la mía →</Link>
-      </div>
+    <div className={isEmbedded?"boutique-embedded-route":undefined}>
+      {!isEmbedded&&<div className="demo-ribbon"><span>DEMO · {experience.title}</span><Link href="/crear">Crear la mía →</Link></div>}
       <ExperienceEngine experience={experience} />
-    </>
+    </div>
   );
 }
+
