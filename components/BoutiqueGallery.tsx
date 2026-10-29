@@ -200,7 +200,7 @@ export default function BoutiqueGallery({ experiences }: Props) {
                 <div className="ethos-card-cta">
                   <button type="button" className="ethos-card-test" onClick={()=>start(experience.slug)}>{isActive?"↻  Reiniciar demo":"▶  Probar acá mismo"}</button>
                   {isActive && <button type="button" className="ethos-card-stop" onClick={stop}>Detener</button>}
-                  <Link href="/crear" className="ethos-card-select">Elegir regalo <span aria-hidden="true">↗</span></Link>
+                  <Link href={experience.slug==="siete-dias"?"/comprar/siete-dias":"/crear"} className="ethos-card-select">{experience.slug==="siete-dias"?"Comprar los 7 días":"Elegir regalo"} <span aria-hidden="true">↗</span></Link>
                 </div>
               </div>
             </article>;
