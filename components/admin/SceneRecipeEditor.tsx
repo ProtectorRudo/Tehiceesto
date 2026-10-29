@@ -4,6 +4,13 @@ import { useMemo, useState } from "react";
 import type { SceneType } from "@/data/experiences";
 
 const catalog: { type: SceneType; label: string; hint: string }[] = [
+  { type:"day1",label:"Día 1 · Asalto de besos",hint:"Gatito Mimo" },
+  { type:"day2",label:"Día 2 · Ridículamente besable",hint:"Conejita Luna" },
+  { type:"day3",label:"Día 3 · El caso del corazón robado",hint:"Bruno detective" },
+  { type:"day4",label:"Día 4 · Abrazo de emergencia",hint:"Osito Bubi" },
+  { type:"day5",label:"Día 5 · El privilegio de tus besos",hint:"Duque" },
+  { type:"day6",label:"Día 6 · Hay algo que confesarte",hint:"Pipo" },
+  { type:"day7",label:"Día 7 · Todo lo que sos para mí",hint:"Rosa y carta final" },
   { type: "intro", label: "Entrada", hint: "Apertura cinematográfica" },
   { type: "door", label: "Puerta", hint: "Puerta interactiva" },
   { type: "memories", label: "Recuerdos", hint: "Fotos / polaroids" },
