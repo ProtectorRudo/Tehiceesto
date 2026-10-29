@@ -25,6 +25,7 @@ export default async function GiftPage({
 
       return (
         <ExperienceEngine
+          customerGift
           experience={storedGift.experience}
           letterText={storedGift.letterText}
           photoMedia={storedGift.photoMedia}
