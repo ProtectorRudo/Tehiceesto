@@ -162,7 +162,12 @@ export default async function AdminGiftEditorPage({
               </div>
             </div>
 
-            <SceneRecipeEditor initialRecipe={gift.scene_recipe || base.recipe} />
+            {gift.experience_slug==="siete-dias"
+              ? <div><input type="hidden" name="sceneRecipe" value={JSON.stringify(base.recipe)} />
+                  <p>Los siete capítulos tienen un orden fijo para preservar su diseño y su historia. Editá todas las frases tocándolas en la vista previa y cargá fotos o audios para la carta final.</p>
+                  <a className="ghost-action" href={`/admin/gifts/${gift.public_code}/preview`}>Abrir editor visual de los siete días →</a>
+                </div>
+              : <SceneRecipeEditor initialRecipe={gift.scene_recipe || base.recipe} />}
           </div>
 
           <div className="admin-form-footer">
