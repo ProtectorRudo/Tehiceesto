@@ -104,7 +104,7 @@ export default function PairVoicePremium({
             onEnded={()=>{setPlaying(false);setCurrentTime(audioRef.current?.duration||0);onSoundStop()}}
             onError={()=>{setPlaying(false);setError(true);onSoundStop()}}
           />
-          {error&&<p role="alert" className="pvp-error">No se pudo reproducir este audio. Tocá para intentar de nuevo.</p>}
+          {error&&<p role="alert" className="pvp-error">No pudimos reproducir este audio. Podés volver a intentar o continuar con la experiencia.</p>}
         </div>
         {tracks.length>1&&<div className="pvp-multiple" aria-label="Elegí una nota de voz">
           {tracks.map((track,i)=><button key={track.src+"-"+i} type="button" onClick={()=>choose(i)}
@@ -112,7 +112,7 @@ export default function PairVoicePremium({
             {track.name||"Voz "+(i+1)}
           </button>)}
         </div>}
-        <button data-action="advance" type="button" className="pvp-keep" disabled={playable&&!heard.length}
+        <button data-action="advance" type="button" className="pvp-keep" disabled={playable&&!heard.length&&!error}
           onClick={onContinue} aria-label={cta.replace(/\s*→\s*$/,"")}>
           <span>{cta.replace(/\s*→\s*$/,"")}</span><b aria-hidden="true">→</b>
         </button>

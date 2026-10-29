@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import ExperienceEngine from "@/components/ExperienceEngine";
-import { experiences, getExperience } from "@/data/experiences";
+import { publicExperiences, getExperience } from "@/data/experiences";
 
 type Draft = {
   experience: string;
@@ -161,7 +161,7 @@ export default function CreatorWizard() {
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
       const selected = new URLSearchParams(window.location.search).get("experiencia");
-      const validSelected = selected && experiences.some((item) => item.slug === selected);
+      const validSelected = selected && publicExperiences.some((item) => item.slug === selected);
       if (saved) setDraft({ ...emptyDraft, ...(JSON.parse(saved) as Draft), ...(validSelected ? { experience: selected } : {}) });
       else if (validSelected) setDraft({ ...emptyDraft, experience: selected });
     } catch {
@@ -180,7 +180,7 @@ export default function CreatorWizard() {
     return () => photoUrls.forEach((url) => URL.revokeObjectURL(url));
   }, [photoUrls]);
 
-  const baseExperience = getExperience(draft.experience) || experiences[0];
+  const baseExperience = getExperience(draft.experience) || publicExperiences[0];
   const prompts = creatorPrompts[baseExperience.slug] || creatorPrompts.pareja;
 
   const personalizedExperience = useMemo(
@@ -320,7 +320,7 @@ export default function CreatorWizard() {
           <span className="eyebrow">01 · Elegí el momento</span>
           <h1>¿Qué querés convertir en algo inolvidable?</h1>
           <div className="choice-grid">
-            {experiences.map((item) => (
+            {publicExperiences.map((item) => (
               <button
                 key={item.slug}
                 onClick={() => update("experience", item.slug)}

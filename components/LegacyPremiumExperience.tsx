@@ -14,7 +14,10 @@ export default function LegacyPremiumExperience(props:Props){
   const source=useMemo(()=>getArchivedExperience(experience.slug),[experience.slug]);
   if(!source)return null;
   const model={...source,demoRecipient:experience.demoRecipient,demoGiver:experience.demoGiver,opening:experience.opening,closing:experience.closing,accent:experience.accent};
-  if(!opened&&experience.slug!=="pareja")return <div className="experience-shell legacy-floral-prologue"><PremiumOpeningIntro experience={experience} onContinue={()=>setOpened(true)}/></div>;
+  // Mamá and Amistad use their original wrapped gift, without floral prologue.
+  if(!opened&&!["pareja","mama","amistad"].includes(experience.slug))return <div className="experience-shell legacy-floral-prologue"><PremiumOpeningIntro experience={experience} onContinue={()=>setOpened(true)}/></div>;
   const photoMedia=(props.photoMedia?.length?props.photoMedia:props.photoUrls?.map(url=>({url})))||[];
-  return <div className="thi-root legacy-premium-renderer"><ArchivedPremiumEngine experience={model} letterText={props.letterText} photoMedia={photoMedia} audioMedia={props.audioMedia} soundtrackMedia={props.soundtrackMedia} videoMedia={props.videoMedia} storyContext={props.storyContext} sceneTextOverrides={props.sceneTextOverrides} customerGift={props.customerGift||false}/></div>;
+  // Cumpleaños skips the redundant text-based intro, entering at its candles scene.
+  const activeModel=experience.slug==="cumpleanos"?{...model,recipe:model.recipe.filter(scene=>scene!=="intro")}:model;
+  return <div className="thi-root legacy-premium-renderer"><ArchivedPremiumEngine experience={activeModel} letterText={props.letterText} photoMedia={photoMedia} audioMedia={props.audioMedia} soundtrackMedia={props.soundtrackMedia} videoMedia={props.videoMedia} storyContext={props.storyContext} sceneTextOverrides={props.sceneTextOverrides} customerGift={props.customerGift||false}/></div>;
 }

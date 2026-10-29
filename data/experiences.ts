@@ -221,6 +221,11 @@ export const experiences: Experience[] = [
 
 ];
 
+// Hide unlaunched models from the public catalog without changing their routes,
+// saved orders, editor, recipes or previously shared gifts.
+export const hiddenExperienceSlugs = new Set(["hijos","abuelos","aniversario","propuesta","secreto"]);
+export const publicExperiences = experiences.filter(experience=>!hiddenExperienceSlugs.has(experience.slug));
+
 export function getExperience(slug: string) {
   if (slug === "mama-papa") return experiences.find((experience) => experience.slug === "mama");
   return experiences.find((experience) => experience.slug === slug);

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { experiences } from "@/data/experiences";
+import { publicExperiences } from "@/data/experiences";
 import BoutiqueGallery from "@/components/BoutiqueGallery";
 import "./home-boutique.css";
 import "./ethos-redesign.css";
@@ -36,7 +36,7 @@ export default function Home() {
 
       <div className="boutique-marquee" aria-hidden="true"><div>PARA MAMÁ <span>✳</span> PARA ESA PERSONA <span>✳</span> PARA TU MEJOR AMISTAD <span>✳</span> PARA QUIEN TE CAMBIÓ LA VIDA <span>✳</span></div></div>
 
-      <BoutiqueGallery experiences={experiences} />
+      <BoutiqueGallery experiences={publicExperiences} />
 
       <section className="boutique-belief" aria-labelledby="boutique-belief-title">
         <div className="boutique-belief-overline">NO ES UNA TARJETA DIGITAL. ES UN RECUERDO EN MOVIMIENTO.</div>
