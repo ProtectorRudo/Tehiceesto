@@ -1,10 +1,103 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Experience } from "@/data/experiences";
 
 type Props = { experiences: Experience[] };
+/** Render a 375px mobile viewport, then scale it to the preview phone. */
+const PREVIEW_WIDTH = 375;
+function ScaledDemoFrame({ slug, epoch, title, onReady, onSwipe }: {
+  slug: string; epoch: number; title: string; onReady: () => void; onSwipe: (direction: number) => void;
+}) {
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLIFrameElement>(null);
+  const detachSwipeRef = useRef<() => void>(()=>{});
+  const [dimensions, setDimensions] = useState({ scale: 0.6, height: 760 });
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const measure = () => {
+      const { width, height } = viewport.getBoundingClientRect();
+      if (!width || !height) return;
+      const scale = width / PREVIEW_WIDTH;
+      setDimensions(previous => {
+        const next = { scale, height: height / scale };
+        return Math.abs(previous.scale-next.scale)<0.001 && Math.abs(previous.height-next.height)<0.5 ? previous : next;
+      });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, []);
+  // Same-origin demo. A background swipe across the glass moves the catalog,
+  // but buttons, scratch canvases and interactive scene elements keep their gestures.
+  useEffect(() => () => detachSwipeRef.current(), []);
+  const onFrameLoaded = () => {
+    detachSwipeRef.current();
+    const documentInFrame = frameRef.current?.contentDocument;
+    if (documentInFrame) {
+      let initial: { x: number; y: number } | null = null;
+      const isInteractive = (target: EventTarget | null) =>
+        (target as Element | null)?.nodeType === 1 &&
+        !!(target as Element).closest("button,a,input,textarea,select,canvas,video,[role=button],[contenteditable=true],.scene-scratch,.scene-light");
+      const begin = (x: number, y: number, target: EventTarget | null) => {
+        initial = isInteractive(target) ? null : {x,y};
+      };
+      const end = (x: number, y: number) => {
+        if (!initial) return;
+        const dx=x-initial.x, dy=y-initial.y;
+        initial=null;
+        if (Math.abs(dx)>65 && Math.abs(dx)>Math.abs(dy)*1.4) onSwipe(dx<0?1:-1);
+      };
+      const onTouchStart = (event: TouchEvent) => {
+        if (event.touches.length!==1) return;
+        begin(event.touches[0].clientX,event.touches[0].clientY,event.target);
+      };
+      const onTouchEnd = (event: TouchEvent) => {
+        if (event.changedTouches.length===1) end(event.changedTouches[0].clientX,event.changedTouches[0].clientY);
+      };
+      const onTouchCancel = () => {initial=null;};
+      const onMouseDown = (event: MouseEvent) => begin(event.clientX,event.clientY,event.target);
+      const onMouseUp = (event: MouseEvent) => end(event.clientX,event.clientY);
+      documentInFrame.addEventListener("touchstart",onTouchStart,{passive:true});
+      documentInFrame.addEventListener("touchend",onTouchEnd,{passive:true});
+      documentInFrame.addEventListener("touchcancel",onTouchCancel,{passive:true});
+      documentInFrame.addEventListener("mousedown",onMouseDown);
+      documentInFrame.addEventListener("mouseup",onMouseUp);
+      detachSwipeRef.current=()=>{
+        documentInFrame.removeEventListener("touchstart",onTouchStart);
+        documentInFrame.removeEventListener("touchend",onTouchEnd);
+        documentInFrame.removeEventListener("touchcancel",onTouchCancel);
+        documentInFrame.removeEventListener("mousedown",onMouseDown);
+        documentInFrame.removeEventListener("mouseup",onMouseUp);
+      };
+    }
+    onReady();
+  };
+  return (
+    <div className="ethos-scaled-viewport" ref={viewportRef}>
+      <iframe
+        ref={frameRef}
+        key={slug+"-"+epoch}
+        className="ethos-scaled-iframe"
+        title={"Demo interactiva de "+title}
+        src={"/experiencias/"+encodeURIComponent(slug)+"?embed=1"}
+        allow="autoplay; microphone"
+        onLoad={onFrameLoaded}
+        loading="eager"
+        style={{
+          width: PREVIEW_WIDTH,
+          height: dimensions.height,
+          transform: "scale("+dimensions.scale+")",
+          transformOrigin: "top left",
+        }}
+      />
+    </div>
+  );
+}
+
 const labels: Record<string, { title: string; mood: string; gesture: string }> = {
   pareja: { title: "Para mi amor", mood: "Lo nuestro, contado de otra forma.", gesture: "Abrí la puerta y descubrí su historia" },
   cumpleanos: { title: "Feliz cumpleaños", mood: "Un día entero hecho sorpresa.", gesture: "Encendé la emoción, un momento a la vez" },
@@ -35,6 +128,16 @@ export default function BoutiqueGallery({ experiences }: Props) {
     const first = track?.querySelector<HTMLElement>(".ethos-like-card");
     if (track && first) track.scrollBy({left:direction * (first.offsetWidth + 22), behavior:"smooth"});
   };
+  useEffect(() => {
+    const collection = trackRef.current?.closest(".boutique-collection");
+    if (!collection) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => document.body.classList.toggle("boutique-catalog-visible",entry.isIntersecting),
+      { threshold: 0.08 }
+    );
+    observer.observe(collection);
+    return () => {observer.disconnect();document.body.classList.remove("boutique-catalog-visible");};
+  }, []);
   const onScroll = () => {
     const track=trackRef.current;
     const first=track?.querySelector<HTMLElement>(".ethos-like-card");
@@ -63,7 +166,7 @@ export default function BoutiqueGallery({ experiences }: Props) {
         <span>DESLIZÁ PARA EXPLORAR <b aria-hidden="true">→</b></span>
       </div>
       <div className="ethos-catalog-viewport">
-        <div className="ethos-catalog-track" ref={trackRef} onScroll={onScroll} role="region" aria-label="Catálogo de regalos digitales para probar directamente" tabIndex={0}>
+        <div className={"ethos-catalog-track"+(active?" ethos-catalog-track--demo-active":"")} ref={trackRef} onScroll={onScroll} role="region" aria-label="Catálogo de regalos digitales para probar directamente" tabIndex={0}>
           {ordered.map((experience,i) => {
             const demo=labels[experience.slug]||{title:experience.title,mood:experience.short,gesture:"Entrá a descubrirlo"};
             const isActive=active===experience.slug;
@@ -76,7 +179,7 @@ export default function BoutiqueGallery({ experiences }: Props) {
                     <div className="ethos-phone-screen">
                       {isActive ? <>
                         {!loaded&&<div className="ethos-phone-wait" role="status"><span className="ethos-wait-spark">✧</span> Preparando tu regalo…</div>}
-                        <iframe key={experience.slug+"-"+epoch} title={"Demo interactiva de "+demo.title} src={"/experiencias/"+experience.slug+"?embed=1"} allow="autoplay; microphone" onLoad={()=>setLoaded(true)} loading="eager"/>
+                        <ScaledDemoFrame slug={experience.slug} epoch={epoch} title={demo.title} onReady={()=>setLoaded(true)} onSwipe={move}/>
                       </> : <>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={"/demo-previews/"+experience.slug+".jpg"} alt={"Vista previa real de "+demo.title} loading={i<3?"eager":"lazy"} />
@@ -86,12 +189,12 @@ export default function BoutiqueGallery({ experiences }: Props) {
                     </div>
                     <span className="ethos-phone-homebar" aria-hidden="true" />
                   </div>
-                  {isActive && <div className="ethos-phone-playing-label"><i/> DEMO EN CURSO · SEGUÍ EXPLORANDO LA HOME</div>}
+
                 </div>
                 <div className="ethos-card-corner-flower" aria-hidden="true">✽</div>
               </div>
               <div className="ethos-card-info">
-                <div className="ethos-card-information"><span className="ethos-card-eyebrow">{experience.eyebrow}</span><h3>{demo.title}</h3><p>{demo.mood}</p></div>
+                <div className="ethos-card-information"><span className="ethos-card-eyebrow">{experience.eyebrow}</span>{isActive&&<span className="ethos-inline-live"><i/> DEMO EN VIVO</span>}<h3>{demo.title}</h3><p>{demo.mood}</p></div>
                 <p className="ethos-card-gesture">{demo.gesture}</p>
                 <div className="ethos-card-cta">
                   <button type="button" className="ethos-card-test" onClick={()=>start(experience.slug)}>{isActive?"↻  Reiniciar demo":"▶  Probar acá mismo"}</button>
@@ -105,7 +208,7 @@ export default function BoutiqueGallery({ experiences }: Props) {
       </div>
       <div className="ethos-carousel-footer">
         <div className="ethos-carousel-progress"><strong>{String(index+1).padStart(2,"0")}</strong><div className="ethos-carousel-progress-bar"><i style={{width:(((index+1)/experiences.length)*100)+"%"}} /></div><span>{String(experiences.length).padStart(2,"0")}</span></div>
-        <p>Tocá dentro del teléfono para avanzar en la experiencia. Podés continuar recorriendo la Home.</p>
+        <p>La experiencia se maneja dentro del teléfono; las flechas cambian de regalo y podés seguir bajando por la Home.</p>
         <div className="ethos-carousel-nav"><button aria-label="Experiencia anterior" onClick={()=>move(-1)} type="button" disabled={index===0}>←</button><button aria-label="Experiencia siguiente" onClick={()=>move(1)} type="button" disabled={index>=experiences.length-1}>→</button></div>
       </div>
     </section>

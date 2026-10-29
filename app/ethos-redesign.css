@@ -225,3 +225,31 @@ body:has(.boutique-home)>.floating-whatsapp svg{width:28px!important;height:28px
 }
 @media(max-width:380px){.ethos-card-showcase{height:483px}.ethos-phone{width:220px;height:428px}}
 
+
+/* Preview v3: a faithful 375px mobile viewport scaled to the physical phone. */
+.ethos-scaled-viewport{position:absolute;inset:0;width:100%;height:100%;overflow:hidden;z-index:3;touch-action:pan-x pan-y}
+.ethos-phone-screen>.ethos-scaled-viewport{position:absolute;inset:0}
+.ethos-scaled-iframe{
+  position:absolute;top:0;left:0;border:0;display:block;
+  max-width:none!important;max-height:none!important;
+  background:#130e16;pointer-events:auto;
+}
+.ethos-catalog-track--demo-active{scroll-snap-type:none;overscroll-behavior-x:contain}
+.ethos-catalog-track--demo-active .ethos-phone-screen{touch-action:pan-x pan-y}
+.ethos-phone-playing-label{
+  bottom:9px;left:16px;right:16px;line-height:1.2;letter-spacing:.06em;
+  font-size:9px;color:#8d3b61;
+}
+.ethos-like-card--playing .ethos-card-showcase{
+  background:linear-gradient(140deg,#ffedf3 0%,#f5dfea 100%);
+}
+.ethos-like-card--playing .ethos-phone{
+  box-shadow:0 14px 32px #3e273545,0 0 0 2px #db98b1;
+}
+body:has(.boutique-home)>.floating-whatsapp{bottom:24px;right:11px;width:46px!important;height:46px!important;min-width:46px!important;opacity:.88}
+body:has(.boutique-home)>.floating-whatsapp .floating-whatsapp-icon svg{width:24px!important;height:24px!important}
+
+/* Avoid text touching the physical phone and keep the purchase area unobstructed. */
+.ethos-inline-live{display:inline-flex;align-items:center;gap:6px;margin-left:12px;color:#a42358;font-size:9px;font-weight:800;letter-spacing:.11em}
+.ethos-inline-live i{width:6px;height:6px;border-radius:50%;background:#27a66a}
+body.boutique-catalog-visible>.floating-whatsapp{opacity:0!important;pointer-events:none!important;transform:translateY(10px)!important}
