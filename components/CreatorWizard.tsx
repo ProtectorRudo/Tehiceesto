@@ -123,6 +123,16 @@ const creatorPrompts: Record<string, {
     wordsHeading: "Escribí una carta íntima y después prepará la frase de la gran revelación.",
     letterPlaceholder: "Antes de la sorpresa final, ¿qué te gustaría decirle para que este momento sea inolvidable?",
   },
+  "siete-dias": {
+    relationshipLabel: "¿Por qué querés sorprender a esta persona durante siete días?",
+    relationshipPlaceholder: "Qué los une, qué gestos quieren celebrar y qué recuerdos son sólo suyos…",
+    dateLabel: "Fecha en la que querés empezar los siete días",
+    anecdoteLabel: "Un recuerdo tierno o divertido que merezca aparecer",
+    anecdotePlaceholder: "Un abrazo, una frase, un beso o una anécdota que no olvidan…",
+    photoHeading: "Elegí hasta cuatro fotos para la carta final de la semana.",
+    wordsHeading: "Siete días para decir lo que sentís.",
+    letterPlaceholder: "Escribí una carta que cierre la semana, con tus propias palabras.",
+  },
   amistad: {
     relationshipLabel: "¿Cómo llegó esta amistad a convertirse en esto?",
     relationshipPlaceholder: "Cómo se conocieron, qué códigos nacieron, qué atravesaron y por qué esa persona ya es parte de tu vida...",
