@@ -108,9 +108,10 @@ const labels: Record<string, { title: string; mood: string; gesture: string }> =
   mama: { title: "Para mamá", mood: "Gracias por cada gesto invisible.", gesture: "Descubrí todo lo que hizo por amor" },
   papa: { title: "Para papá", mood: "Hay cosas tuyas que viven en mí.", gesture: "Recorré su historia y lo que te enseñó" },
   amistad: { title: "Nuestra amistad", mood: "Anécdotas, códigos y una vida juntos.", gesture: "Abrí el expediente confidencial" },
+  "siete-dias": { title: "Un poquito de mí, cada día", mood: "Siete sorpresas distintas. Una semana de amor.", gesture: "Probá los siete capítulos originales" },
   secreto: { title: "Te guardé un secreto", mood: "Una noticia que merece su momento.", gesture: "Seguí las pistas hasta la revelación" },
 };
-const favorites = ["pareja", "mama", "cumpleanos", "amistad", "papa"];
+const favorites = ["siete-dias", "pareja", "mama", "cumpleanos", "amistad", "papa"];
 export default function BoutiqueGallery({ experiences }: Props) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState<string | null>(null);
@@ -182,7 +183,7 @@ export default function BoutiqueGallery({ experiences }: Props) {
                         <ScaledDemoFrame slug={experience.slug} epoch={epoch} title={demo.title} onReady={()=>setLoaded(true)} onSwipe={move}/>
                       </> : <>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={"/demo-previews/"+experience.slug+".jpg"} alt={"Vista previa real de "+demo.title} loading={i<3?"eager":"lazy"} />
+                        <img src={experience.slug==="siete-dias"?"/demo-previews/pareja.jpg":"/demo-previews/"+experience.slug+".jpg"} alt={"Vista previa real de "+demo.title} loading={i<3?"eager":"lazy"} />
                         <div className="ethos-phone-screen-shade" aria-hidden="true"/>
                         <button className="ethos-phone-start" onClick={()=>start(experience.slug)} type="button" aria-label={"Iniciar demo de "+demo.title}><span className="ethos-phone-start-icon">▶</span><span>PROBAR EN VIVO</span></button>
                       </>}
