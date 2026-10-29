@@ -11,7 +11,7 @@ type JarState = {
   total:number; openedCount:number; available:number; startedAt:string|null;
   nextAt:string|null; serverNow:string;
 };
-type Props={experience:Experience;giftCode?:string;};
+type Props={experience:Experience;giftCode?:string;previewNotes?:Jar365Note[];};
 
 function formatCountdown(millis:number) {
   const seconds=Math.max(0,Math.ceil(millis/1000));
@@ -77,7 +77,7 @@ function JarIllustration({progress,drawing}:{progress:number;drawing:boolean}){
   </svg>;
 }
 
-export default function Jar365Experience({experience,giftCode}:Props){
+export default function Jar365Experience({experience,giftCode,previewNotes}:Props){
   const demo=!giftCode;
   const [state,setState]=useState<JarState|null>(demo?{
     giver:experience.demoGiver,recipient:experience.demoRecipient,total:365,
@@ -132,7 +132,7 @@ export default function Jar365Experience({experience,giftCode}:Props){
     try{
       let note:OpenedNote, next:JarState;
       if(demo){
-        const record=JAR365_SEED[demoDay%365];
+        const record=(previewNotes?.length===365?previewNotes:JAR365_SEED)[demoDay%365];
         note={...record,openedAt:new Date().toISOString()};
         next={...(state as JarState),available:1,openedCount:current+1,opened:[...opened,note]};
         setDemoDay(n=>n+1);
