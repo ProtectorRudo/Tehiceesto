@@ -84,6 +84,7 @@ export default async function AdminGiftPreviewPage({
       </div>
 
       <ExperienceEngine
+          customerGift
         experience={experience}
         letterText={gift.letter_text || undefined}
         photoMedia={photoMedia}
