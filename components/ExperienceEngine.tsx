@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Experience, SceneType } from "@/data/experiences";
 import type { SceneTextOverrides } from "@/data/scene-text";
 import FriendshipScenes from "./FriendshipScenes";
-import CoupleGiftIntro from "./CoupleGiftIntro";
+import PremiumOpeningIntro from "./PremiumOpeningIntro";
 import SecretExperience from "./SecretExperience";
 
 export type ExperiencePhoto = {
@@ -437,30 +437,8 @@ function StandardExperienceEngine({
         />
       );
     }
-    if (experience.slug === "pareja" && scene === "intro") {
-      return (
-        <CoupleGiftIntro
-          recipient={experience.demoRecipient}
-          giver={experience.demoGiver}
-          opening={experience.opening}
-          onContinue={next}
-        />
-      );
-    }
+    if (scene === "intro") return <PremiumOpeningIntro experience={experience} onContinue={next} />;
     switch (scene) {
-      case "intro":
-        return (
-          <section className={`scene scene-intro ${isProposal ? "scene-intro-proposal" : ""} ${isMother ? "scene-intro-mother" : ""} ${isFather ? "scene-intro-father" : ""} ${isFriendship ? "scene-intro-friendship" : ""}`}>
-            <div className="orb orb-one" />
-            <div className="orb orb-two" />
-            <p className="scene-kicker">{introKicker}</p>
-            <h1>{experience.demoRecipient}</h1>
-            <p className="scene-lead">{experience.opening}</p>
-            <button className="primary-action" onClick={next}>{introAction}</button>
-            <small>{introNote}</small>
-          </section>
-        );
-
       case "door":
         return (
           <section className="scene scene-door">
