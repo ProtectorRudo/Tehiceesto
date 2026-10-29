@@ -307,7 +307,7 @@ export default function AccountPortal() {
   };
 
   return (
-    <main id="mis-regalos" className={styles.page}>
+    <main id="mis-regalos" className={styles.page + " studio-page studio-account-page"}>
       <div className={styles.ambient} aria-hidden="true" />
       <div className={styles.frame}>
         <div className={styles.topline}>

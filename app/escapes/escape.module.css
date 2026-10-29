@@ -3,3 +3,18 @@
 .card{position:relative;min-height:440px;display:flex;flex-direction:column;padding:30px 28px;border:1px solid #ffffff22;border-radius:20px;background:linear-gradient(165deg,color-mix(in srgb,var(--accent),transparent 83%) 0%,#10121a 58%);text-decoration:none!important;color:#f6f1e9!important;overflow:hidden;transition:transform .3s,border-color .3s}.card:before{content:"";position:absolute;right:-48px;top:-36px;width:220px;height:220px;border:1px solid color-mix(in srgb,var(--accent),transparent 35%);border-radius:50%;box-shadow:0 0 0 34px #ffffff05,0 0 0 75px #ffffff04}.card:hover{transform:translateY(-7px);border-color:var(--accent)}.number{display:block;font-size:12px;letter-spacing:.18em;color:var(--accent)}.card h2{font-family:Georgia,serif;font-size:clamp(2rem,2.5vw,3.1rem);line-height:1.12;font-weight:400;margin:auto 0 18px;position:relative}.card p{line-height:1.6;color:#c1bac5}.meta{font-size:.72rem;letter-spacing:.13em;color:var(--accent);margin-top:22px}.action{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #ffffff33;padding-top:19px;margin-top:26px;font-weight:700;letter-spacing:.06em}.note{max-width:1180px;margin:45px auto 0;color:#bdb9bb;line-height:1.7}
 .playerPage{background:#0a0c11;color:#f7f0e9;min-height:100dvh;padding-top:76px}.playerHeader{max-width:1600px;margin:auto;min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:10px 24px;font-size:.72rem;letter-spacing:.08em}.playerHeader a,.playerFooter a{color:#f3c3b8;text-decoration:none}.playerHeader .order{background:#eac2b5;padding:11px 15px;color:#211b20;font-weight:700;border-radius:999px}.frameWrap{position:relative;width:100%;height:calc(100dvh - 77px);min-height:470px;background:#000}.playerHeader+.frameWrap{height:calc(100dvh - 205px)}.frame{width:100%;height:100%;display:block;border:0;background:#000}.playerFooter{max-width:1500px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:20px 24px;font-size:.86rem;color:#b4acb1}.playerFooter p{margin:0}
 @media(max-width:850px){.cards{grid-template-columns:1fr}.card{min-height:310px}.heading{margin-bottom:38px}.playerHeader{flex-wrap:wrap;justify-content:center;padding:12px;min-height:90px}.playerHeader>span{display:none}.playerPage{padding-top:70px}.playerHeader+.frameWrap{height:calc(100dvh - 230px)}.playerFooter{display:block;text-align:center;font-size:.8rem}.playerFooter a{display:block;margin-top:8px}}
+/* Boutique entrance to the escape-room collection; games stay cinematic. */
+.section{background:radial-gradient(ellipse at 70% 4%,#ffdae9,transparent 43%),#fdf7f3;color:#372831;padding:clamp(125px,12vw,165px) max(5vw,22px) 60px}
+.heading{max-width:1140px;margin-bottom:50px}
+.eyebrow{color:#a44b6f}
+.heading h1{font-family:"Instrument Serif",Georgia,serif;letter-spacing:-.035em;font-size:clamp(3.5rem,7vw,7rem);color:#3c2d37;max-width:900px}
+.heading h1 em{color:#bd2762;font-style:italic}
+.lead{color:#77656d}
+.cards{max-width:1140px;gap:20px}
+.card{background:radial-gradient(ellipse at 80% 9%,color-mix(in srgb,var(--accent),transparent 64%),transparent 47%),linear-gradient(145deg,#2b2530,#231e29);border-radius:22px;min-height:405px;border:1px solid #e9ccd05c;box-shadow:0 20px 50px #39233520}
+.card:hover{box-shadow:0 28px 57px #39233535}
+.card h2{font-family:"Instrument Serif",Georgia,serif;line-height:1.01;font-size:clamp(2.6rem,3.2vw,4rem)}
+.card p{color:#dbd0d7}
+.number,.meta{color:#e6b0c8}
+.note{color:#806d76;max-width:1140px}
+@media(max-width:760px){.section{padding:110px 16px 38px}.heading h1{font-size:clamp(48px,10vw,69px)}.cards{grid-template-columns:1fr;gap:15px}.card{min-height:280px}}

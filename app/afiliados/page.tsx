@@ -23,7 +23,7 @@ export default async function AffiliadosPage({
 
   if (!session) {
     return (
-      <main className={styles.shell}>
+      <main className={styles.shell + " studio-page studio-affiliates-page"}>
         <section className={styles.login}>
           <span className={styles.kicker}>TE HICE ESTO · SOCIOS</span>
           <h1>Tu impacto,<br /><em>en números reales.</em></h1>
@@ -74,7 +74,7 @@ export default async function AffiliadosPage({
   const baseUrl = primaryCode ? `https://tehiceesto.com/ref/${primaryCode}` : "";
 
   return (
-    <main className={styles.dashboard}>
+    <main className={styles.dashboard + " studio-page studio-affiliates-page"}>
       <header className={styles.header}>
         <div>
           <span className={styles.kicker}>TE HICE ESTO · SOCIOS</span>

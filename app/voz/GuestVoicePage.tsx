@@ -163,7 +163,7 @@ export default function GuestVoicePage(){
     }finally{sending.current=false}
   }
   const clock=String(Math.floor(time/60)).padStart(2,"0")+":"+String(time%60).padStart(2,"0");
-  return <main id="guest-voice" className={styles.page}>
+  return <main id="guest-voice" className={styles.page + " studio-page studio-voice-page"}>
     <div className={styles.frame}>
       <div className={styles.brand}>TE HICE ESTO <span>♥</span></div>
       <section className={styles.card}>

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 import "./globals.css";
+import "./studio-system.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://tehiceesto.com"),

@@ -23,3 +23,30 @@
 .footer{max-width:1320px;margin:28px auto 0;display:flex;justify-content:space-between;gap:20px;color:#69635c;font-size:11px}.footer p{margin:0;max-width:600px;text-align:right;line-height:1.5}
 @media(max-width:900px){.heroStats{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}.header{align-items:flex-start}.sectionHead{align-items:flex-start}}
 @media(max-width:560px){.dashboard{padding:20px 14px}.heroStats{grid-template-columns:1fr}.header,.sectionHead,.footer{flex-direction:column}.footer p{text-align:left}.login{padding:28px 22px}}
+
+/* Partner portal boutique palette: preserve reporting and form behaviors. */
+.shell,.dashboard{background:radial-gradient(ellipse at 80% 12%,#ffe3ed,transparent 45%),#fdf7f3;color:#362934;font-family:"DM Sans",sans-serif}
+.shell{padding:116px 18px 45px}
+.login{border:1px solid #eddae1;background:linear-gradient(145deg,#fffefdf5,#fff8faf8);border-radius:24px;box-shadow:0 26px 80px #8052661a}
+.kicker,.sectionLabel{color:#9f4b6d}
+.login h1,.header h1,.card h2{font-family:"Instrument Serif",Georgia,serif;color:#392936;font-weight:400}
+.login h1{font-size:clamp(46px,9vw,71px);line-height:1}
+.login h1 em{color:#be2863}
+.login>p,.header p,.card p{color:#786b73}
+.form label span{color:#735e6a}
+.form input{background:#fffdfb;color:#41313b;border:1px solid #ead8df;border-radius:10px}
+.form input:focus{border-color:#ba275c}
+.form button{background:#b7215a;color:#fff;border-radius:999px;box-shadow:0 8px 23px #a92d612f;align-items:center}
+.form button:hover{background:#93204b}
+.private{color:#99818a}
+.dashboard{padding:130px clamp(18px,5vw,64px) 70px}
+.header h1{font-size:clamp(48px,6vw,76px)}
+.heroStats article,.card{background:#fffdfb;border:1px solid #efdee3;border-radius:16px;box-shadow:0 10px 35px #9e607314}
+.heroStats article{color:#483342}
+.heroStats article strong{color:#382632}
+.heroStats article span,.heroStats article small{color:#876e7b}
+.logout{border:1px solid #e9d6dc;background:#fffdfb;border-radius:999px;color:#784c63}
+.highlight{background:#fff0f5!important;border-color:#e9b7cd!important}
+.linkBox{background:#fff6f8;color:#684454;border-color:#ecd7df}
+.linkBox code,.sources code{color:#874161}
+@media(max-width:700px){.dashboard{padding:95px 15px 45px}.shell{padding:104px 13px 40px}.login{padding:29px 23px}.header{align-items:flex-start}}

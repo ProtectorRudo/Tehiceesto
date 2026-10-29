@@ -1,10 +1,11 @@
 import type {Metadata} from "next";
 import Link from "next/link";
+import StudioFooter from "@/components/StudioFooter";
 import {escapeRooms} from "@/data/escape-rooms";
 import styles from "./escape.module.css";
 export const metadata:Metadata={title:"Escape rooms para regalar · Te Hice Esto",description:"Tres salas de escape premium que terminan con una invitación o una carta personal."};
 export default function EscapeCatalog(){
- return <main className={styles.section}>
+ return <main className={styles.section + " studio-page studio-escapes-page"}>
   <header className={styles.heading}>
     <span className={styles.eyebrow}>TE HICE ESTO · COLECCIÓN INTERACTIVA</span>
     <h1>Un misterio que termina en <em>algo inolvidable.</em></h1>
@@ -17,5 +18,6 @@ export default function EscapeCatalog(){
    <div className={styles.action}><span>ENTRAR A LA DEMO</span><strong>↗</strong></div>
   </Link>)}</div>
   <p className={styles.note}>Cada sala conserva exactamente sus mecanismos y recorrido. Personalizamos únicamente la invitación final y los contenidos previstos. En CASO M, también el código de seis cifras y sus indicios.</p>
+ <StudioFooter/>
  </main>;
 }

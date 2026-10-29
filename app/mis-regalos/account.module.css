@@ -18,3 +18,33 @@
 @media(prefers-reduced-motion:reduce){.voicePulseActive{animation:none}}
 
 .guestInvite{padding:27px;margin:23px 0;background:#fff9f5;border:1px solid #e5d4d7;border-radius:11px}.guestInvite h3{font:400 clamp(26px,3vw,35px)/1.2 Georgia,serif;color:#49353c;margin:10px 0}.guestInvite p{font-size:13px;line-height:1.8;color:#79656b}.guestInviteLink{margin:20px 0;display:grid;gap:11px}.guestInviteLink label{font-size:12px;color:#80676d;font-weight:700}.guestInviteLink input{padding:13px;border:1px solid #e7d5d5;border-radius:7px;background:#fff;color:#4e3d43;width:100%;font-size:13px}.guestInviteActions{display:flex;flex-wrap:wrap;gap:12px}.guestInviteActions a{display:inline-flex;align-items:center;background:#e5f4e8;border-radius:7px;padding:12px 18px;font-size:13px;font-weight:700;text-decoration:none;color:#286a44}.guestInviteStatus{display:flex;align-items:center;gap:15px;flex-wrap:wrap;font-size:12px;color:#77636a;margin:20px 0}.guestInviteStatus button{border:0;background:none;text-decoration:underline;color:#9c5368;font-size:12px}.guestInviteFine{font-size:11px!important;color:#9f8c91!important}.guestInviteNotice{color:#487455!important;font-size:12px!important}@media(max-width:620px){.guestInvite{padding:19px}.guestInviteActions a,.guestInviteActions button{width:100%;justify-content:center}}
+/* 2026 boutique unification: only presentation, no changes to authentication. */
+.page{--ink:#392833;--muted:#7c6a73;--rose:#b92460;--border:#edd8de;background:radial-gradient(ellipse at 79% 15%,#ffe7ee,transparent 47%),#fdf7f3;color:#392833;font-family:"DM Sans",sans-serif}
+.ambient{opacity:.34;background:radial-gradient(ellipse,#e9a6ba 0,transparent 72%)}
+.frame{max-width:1180px;padding:92px 36px 20px}
+.topline{display:none}
+.authShell{grid-template-columns:minmax(0,1.05fr) minmax(360px,.95fr);gap:50px;padding:55px 0 95px;min-height:680px}
+.authIntro h1,.dashboardHead h1{font-family:"Instrument Serif",Georgia,serif;font-size:clamp(49px,6vw,82px);letter-spacing:-.03em;line-height:1.02}
+.authIntro h1 em{color:#b82761}
+.authIntro>p,.authShell>p{line-height:1.72;color:#7c6971}
+.miniScene{background:linear-gradient(140deg,#ad6a76,#44283c);box-shadow:23px 23px 0 #f5dce4,0 26px 60px #7342571b;border-radius:10px}
+.miniScene strong{font-family:"Instrument Serif",Georgia,serif;font-size:33px}
+.authCard{background:#fffdfb;border:1px solid #f0dce1;border-radius:23px;box-shadow:0 26px 70px #734b6418;padding:clamp(24px,4vw,44px)}
+.authCard h2{font-family:"Instrument Serif",Georgia,serif;font-weight:400;letter-spacing:-.025em;color:#412f3b}
+.eyebrow{color:#af3b6a}
+.tabs{border-color:#f2e2e5;background:#fcf5f5}
+.tabs button{color:#836b76}
+.activeTab{background:#fff!important;border-color:#e7ccd5!important;color:#aa2057!important;box-shadow:0 2px 10px #6d364313}
+.form :is(input,textarea){border-color:#e9d7de;background:#fffdfb;color:#402e3a;border-radius:10px}
+.form :is(input,textarea):focus{border-color:#b82761;outline:2px solid #b8276120}
+.primary{background:#b8215b!important;color:white!important;border-color:#b8215b!important;border-radius:999px!important}
+.primary:hover{background:#91204a!important}
+.ghost{background:#fffdfb;color:#8c4f65;border-color:#ead6dd;border-radius:999px}
+.dashboard{padding-bottom:85px}
+.dashboardHead{border-color:#eadce0}
+.giftCard,.studioSection,.passwordCard{border-color:#eddae0;background:#fffdfa;box-shadow:0 14px 40px #8f65700c}
+.giftCard{border-radius:17px}
+.studioHeading h2,.giftCard h2{font-family:"Instrument Serif",Georgia,serif;color:#3b2935}
+.footer{border-color:#eddee1;color:#937982}
+@media(max-width:900px){.frame{padding:88px 22px 20px}.authShell{grid-template-columns:1fr;gap:30px;padding:30px 0 45px;min-height:0}.authIntro{max-width:650px}.miniScene{margin-top:25px}}
+@media(max-width:600px){.frame{padding:83px 15px 14px}.authIntro h1{font-size:49px}.authCard{padding:25px 19px}.miniScene{width:min(260px,90%);height:185px}.dashboardHead h1{font-size:52px}}
