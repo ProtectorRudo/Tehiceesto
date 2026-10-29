@@ -1,0 +1,47 @@
+name: Jar 365 visual and interaction audit
+
+on:
+  pull_request:
+    paths:
+      - "components/Jar365*"
+      - "components/jar365*"
+      - "data/jar365-notes.ts"
+      - "app/api/jar365/**"
+      - "app/experiencias/**"
+      - "scripts/jar365-visual-audit.mjs"
+      - ".github/workflows/jar365-visual-audit.yml"
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies and Chromium
+        run: |
+          npm install
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Build production bundle
+        run: npm run build
+      - name: Start local server
+        run: |
+          npm start -- -H 127.0.0.1 -p 3000 > /tmp/jar365.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:3000/experiencias/frasco365 >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/jar365.log
+          exit 1
+      - name: Mobile 320 / mobile 390 / desktop interactive screenshots
+        run: node scripts/jar365-visual-audit.mjs
+      - name: Preserve screenshots and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jar365-visual-report
+          path: visual-jar365/
+          retention-days: 7
