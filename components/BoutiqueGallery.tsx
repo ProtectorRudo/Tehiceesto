@@ -183,7 +183,7 @@ export default function BoutiqueGallery({ experiences }: Props) {
                         <ScaledDemoFrame slug={experience.slug} epoch={epoch} title={demo.title} onReady={()=>setLoaded(true)} onSwipe={move}/>
                       </> : <>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={experience.slug==="siete-dias"?"/demo-previews/pareja.jpg":"/demo-previews/"+experience.slug+".jpg"} alt={"Vista previa real de "+demo.title} loading={i<3?"eager":"lazy"} />
+                        <img src={experience.slug==="siete-dias"?"/demo-previews/siete-dias.svg":"/demo-previews/"+experience.slug+".jpg"} alt={"Vista previa real de "+demo.title} loading={i<3?"eager":"lazy"} />
                         <div className="ethos-phone-screen-shade" aria-hidden="true"/>
                         <button className="ethos-phone-start" onClick={()=>start(experience.slug)} type="button" aria-label={"Iniciar demo de "+demo.title}><span className="ethos-phone-start-icon">▶</span><span>PROBAR EN VIVO</span></button>
                       </>}
