@@ -3,6 +3,7 @@
 import { useMemo, useState, type FormEvent, type MouseEvent } from "react";
 import ExperienceEngine from "@/components/ExperienceEngine";
 import SevenDaysExperience from "@/components/SevenDaysExperience";
+import SevenDaysSharePanel from "@/components/SevenDaysSharePanel";
 import VoiceRecorder from "@/components/VoiceRecorder";
 import GuestVoiceInvites from "@/components/GuestVoiceInvites";
 import { getExperience, type SceneType } from "@/data/experiences";
@@ -273,6 +274,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
 
   return (
     <div className={styles.enhancement}>
+      {gift.experience_slug==="siete-dias" && <SevenDaysSharePanel code={access.code} editorToken={access.editorToken} />}
       <section className={styles.studioSection}>
         <div className={styles.studioHeading}>
           <span className={styles.eyebrow}>MATERIALES PERSONALES</span>
