@@ -6,6 +6,7 @@ import type { SceneTextOverrides } from "@/data/scene-text";
 import FriendshipScenes from "./FriendshipScenes";
 import PremiumOpeningIntro from "./PremiumOpeningIntro";
 import SecretExperience from "./SecretExperience";
+import SevenDaysExperience from "./SevenDaysExperience";
 import LegacyPremiumExperience,{restoredPremiumSlugs} from "./LegacyPremiumExperience";
 
 export type ExperiencePhoto = {
@@ -1545,6 +1546,7 @@ function StandardExperienceEngine({
 // All private and demo renders share the same immutable model; only the content changes.
 export default function ExperienceEngine(props: Props) {
   if (restoredPremiumSlugs.has(props.experience.slug)) return <LegacyPremiumExperience {...props} />;
+  if (props.experience.slug === "siete-dias") return <SevenDaysExperience experience={props.experience} sceneTextOverrides={props.sceneTextOverrides} photoMedia={props.photoMedia} audioMedia={props.audioMedia} />;
   if (props.experience.slug === "secreto") return <SecretExperience {...props} />;
   return <StandardExperienceEngine {...props} />;
 }
