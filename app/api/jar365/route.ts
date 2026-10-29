@@ -9,7 +9,7 @@ const noStore={"Cache-Control":"private, no-store, max-age=0","X-Content-Type-Op
 const json=(data:unknown,status=200)=>NextResponse.json(data,{status,headers:noStore});
 const validCode=(code:unknown):code is string=>typeof code==="string" && /^[0-9a-f]{18}$/.test(code);
 const validCategory=(value:unknown)=>typeof value==="string" && JAR365_CATEGORIES.some(c=>c.key===value);
-const allowedActions=new Set(["status","open","studio-read","studio-save","studio-save-many"]);
+const allowedActions=new Set(["status","open","studio-read","studio-save","studio-save-many","admin-read","admin-save","admin-save-many"]);
 type NoteRow={position:number;category:string;message:string};
 type OpeningRow={position:number;opened_at:string};
 
@@ -84,19 +84,21 @@ function cleanNote(value:unknown){
 async function dispatch(code:string,action:string,token:unknown,noteInput:unknown){
   if(!validCode(code)||!allowedActions.has(action))return json({error:"invalid_request"},400);
   const studio=action.startsWith("studio-");
-  const ctx=studio?await requirePaidEditor(code,token):await giftFor(code,true);
-  if(!ctx)return json({error:studio?"unauthorized":"not_found"},studio?403:404);
+  const admin=action.startsWith("admin-");
+  const authorizedAdmin=admin&&(await (await import("@/lib/admin-auth")).isAdminAuthenticated());
+  const ctx=studio?await requirePaidEditor(code,token):authorizedAdmin?await giftFor(code,false):admin?null:await giftFor(code,true);
+  if(!ctx)return json({error:(studio||admin)?"unauthorized":"not_found"},studio||admin?403:404);
   const {db,gift}=ctx;
   await seedIfNeeded(db,gift.id);
   if(action==="status")return json(await currentState(db,gift));
-  if(action==="studio-read"){
+  if(action==="studio-read"||action==="admin-read"){
     const {data,error}=await db.from("jar365_notes").select("position,category,message")
       .eq("gift_id",gift.id).order("position");
     if(error)return json({error:"read_failed"},500);
     return json({notes:data||[],recipient:gift.recipient_name,giver:gift.giver_name});
   }
-  if(action==="studio-save"||action==="studio-save-many"){
-    const notes=action==="studio-save-many"?noteInput:[noteInput];
+  if(["studio-save","studio-save-many","admin-save","admin-save-many"].includes(action)){
+    const notes=action.endsWith("-many")?noteInput:[noteInput];
     if(!Array.isArray(notes)||notes.length<1||notes.length>365)return json({error:"invalid_notes"},400);
     const checked=notes.map(cleanNote);
     if(checked.some(x=>!x))return json({error:"invalid_note"},400);
