@@ -12,7 +12,7 @@ export async function POST(request:Request) {
   const base=process.env.NEXT_PUBLIC_SUPABASE_URL||process.env.SUPABASE_URL;
   const publishable=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY||process.env.SUPABASE_PUBLISHABLE_KEY;
   if(!base||!publishable)return NextResponse.json({error:"unavailable"},{status:503});
-  const result=await fetch(base.replace(/\\/$/,"")+"/functions/v1/creator-api",{
+  const result=await fetch(base.replace(/\/$/,"")+"/functions/v1/creator-api",{
     method:"POST",cache:"no-store",
     headers:{"apikey":publishable,"content-type":"application/json"},
     body:JSON.stringify({action:"openStudio",code,editorToken})
