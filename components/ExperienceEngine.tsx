@@ -75,6 +75,7 @@ function StandardExperienceEngine({
   sceneTextOverrides,
 }: Props) {
   const [sceneIndex, setSceneIndex] = useState(0);
+  const [classicIntroReady, setClassicIntroReady] = useState(false);
   const [stars, setStars] = useState<number[]>([]);
   const [letterOpen, setLetterOpen] = useState(false);
   const [scratched, setScratched] = useState(false);
@@ -437,8 +438,34 @@ function StandardExperienceEngine({
         />
       );
     }
-    if (scene === "intro") return <PremiumOpeningIntro experience={experience} onContinue={next} />;
+    // Keep the original cinematic experience intact. The new floral opening is
+    // an additional entrance, not a replacement for the model's scenes/effects.
+    // Pareja intentionally replaces ONLY its old gift BOX with the flower:
+    // after the floral dedication it enters the existing animated door.
+    if (scene === "intro" && (experience.slug === "pareja" || !classicIntroReady)) {
+      return <PremiumOpeningIntro
+        experience={experience}
+        onContinue={() => {
+          if (experience.slug === "pareja") next();
+          else setClassicIntroReady(true);
+        }}
+      />;
+    }
     switch (scene) {
+      case "intro":
+        return (
+          <section className={`scene scene-intro ${isProposal ? "scene-intro-proposal" : ""} ${isMother ? "scene-intro-mother" : ""} ${isFather ? "scene-intro-father" : ""} ${isFriendship ? "scene-intro-friendship" : ""}`}>
+            <div className="orb orb-one" />
+            <div className="orb orb-two" />
+            <p className="scene-kicker">{introKicker}</p>
+            <h1>{experience.demoRecipient}</h1>
+            <p className="scene-lead">{experience.opening}</p>
+            <button className="primary-action" onClick={next}>{introAction}</button>
+            <small>{introNote}</small>
+          </section>
+        );
+
+
       case "door":
         return (
           <section className="scene scene-door">
@@ -1450,7 +1477,7 @@ function StandardExperienceEngine({
             <div className="reaction-row">
               {["🥹", "❤️", "😭", "✨"].map((reaction) => <button key={reaction}>{reaction}</button>)}
             </div>
-            <button className="ghost-action" onClick={() => setSceneIndex(0)}>Volver al comienzo</button>
+            <button className="ghost-action" onClick={() => { setClassicIntroReady(false); setSceneIndex(0); }}>Volver al comienzo</button>
             <small>creado con ♥ en Te Hice Esto</small>
           </section>
         );

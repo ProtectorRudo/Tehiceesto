@@ -253,3 +253,42 @@ body:has(.boutique-home)>.floating-whatsapp .floating-whatsapp-icon svg{width:24
 .ethos-inline-live{display:inline-flex;align-items:center;gap:6px;margin-left:12px;color:#a42358;font-size:9px;font-weight:800;letter-spacing:.11em}
 .ethos-inline-live i{width:6px;height:6px;border-radius:50%;background:#27a66a}
 body.boutique-catalog-visible>.floating-whatsapp{opacity:0!important;pointer-events:none!important;transform:translateY(10px)!important}
+
+/* Recovery: render the authentic demo large enough to preserve its typography,
+   visual details, touch targets and full scene effects, without leaving the Home. */
+.ethos-like-card--playing{
+  flex-basis:min(94vw,430px);
+}
+.ethos-like-card--playing .ethos-card-showcase{
+  height:min(775px,calc(94vw * 2.03));
+}
+.ethos-like-card--playing .ethos-phone-wrap{
+  padding:39px 8px 17px;
+}
+.ethos-like-card--playing .ethos-phone{
+  height:auto;
+  aspect-ratio:245/478;
+  width:min(350px,calc(100% - 22px));
+  max-height:690px;
+  transition:width .35s ease,box-shadow .35s ease;
+}
+.ethos-catalog-track--demo-active{scroll-padding-left:10px}
+.ethos-like-card--playing .ethos-card-topline{z-index:5}
+.ethos-like-card--playing .ethos-card-cta{gap:8px}
+@media(max-width:760px){
+  .ethos-like-card--playing{
+    flex-basis:min(94vw,390px);
+  }
+  .ethos-like-card--playing .ethos-card-showcase{
+    height:calc(min(94vw,390px) * 1.93);
+    min-height:560px;
+  }
+  .ethos-like-card--playing .ethos-phone{
+    width:min(350px,calc(100% - 12px));
+  }
+}
+@media(max-width:350px){
+  .ethos-like-card--playing .ethos-card-showcase{
+    min-height:515px;
+  }
+}
