@@ -92,3 +92,10 @@
 @media (max-width:540px){.jar365-topbar{padding:12px 16px;min-height:68px}.jar365-brand{font-size:10px;gap:4px;letter-spacing:.15em}.jar365-brand>span{font-size:15px}.jar365-brand small{font-size:7px}.jar365-top-count{font-size:10px;letter-spacing:.08em}.jar365-top-count i{width:5px;height:5px;margin-right:3px}.jar365-top-link{font-size:10px;padding:9px 10px}.jar365-top-link span{display:none}.jar365-body{padding:32px 16px 18px}.jar365-kicker{font-size:9px;letter-spacing:.13em}.jar365-intro h1{font-size:clamp(47px,10.8vw,65px);margin:14px 0 12px}.jar365-lead{font-size:13px;line-height:1.6;max-width:350px}.jar365-stage{height:360px;margin-top:-5px;margin-bottom:-13px}.jar365-orbit-caption{top:29px;font-size:8px}.jar365-ritual-copy strong{font-size:24px}.jar365-ritual-copy span{font-size:12px}.jar365-main-cta{margin-top:17px;min-height:58px}.jar365-progress-caption{font-size:10px}.jar365-bottom{font-size:8px;flex-direction:column;gap:8px;padding-top:15px}.jar365-note-modal{padding:43px 25px 24px;min-height:430px}.jar365-note-message{font-size:34px}.jar365-note-actions button{font-size:11px;padding:11px 8px}}
 @media (max-width:360px){.jar365-stage{height:315px}.jar365-intro h1{font-size:44px}.jar365-topbar{gap:7px}.jar365-top-link{font-size:9px}.jar365-main-cta{font-size:13px!important}.jar365-note-message{font-size:30px}}
 @media (prefers-reduced-motion:reduce){.jar365-shell *, .jar365-shell *::before,.jar365-shell *::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+/* Independent full-screen gift: do not overlay global site chrome or WhatsApp on the daily ritual. */
+body:has(.jar365-shell) > .site-header,
+body:has(.jar365-shell) > .floating-whatsapp,
+body:has(.jar365-shell) .demo-ribbon{display:none!important}
+body:has(.jar365-shell){overflow-x:hidden;background:#f8eeec;color:#49333e}
+.jar365-note-modal:after{opacity:.12;background:radial-gradient(ellipse at 40% 12%,rgba(255,255,255,.75),transparent 70%)}
