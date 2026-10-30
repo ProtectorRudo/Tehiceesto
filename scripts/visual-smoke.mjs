@@ -9,6 +9,8 @@ await fs.mkdir(out,{recursive:true});
 const routes = [
   ["/","home"],
   ["/crear","crear"],
+  ["/comprar/pareja","comprar-pareja"],
+  ["/admin/operaciones","admin-operaciones-login"],
   ...["pareja","cumpleanos","hijos","abuelos","aniversario","propuesta","mama","papa","amistad"]
     .map(slug=>[`/experiencias/${slug}`,`demo-${slug}`]),
 ];
@@ -83,6 +85,10 @@ for(const [mode,width,height] of configs){
       };
     },route.startsWith("/experiencias/"));
     const file=`${name}-${mode}.png`;
+    if(["/comprar/pareja","/admin/operaciones"].includes(route)){
+      if(metrics.overflow>2)throw Error("Mobile horizontal overflow on "+route+": "+metrics.overflow);
+      if(errors.length)throw Error("Browser errors on "+route+": "+errors.join(";"));
+    }
     await page.screenshot({path:path.join(out,file),fullPage:route==="/"||route==="/crear"});
     report.push({route,mode,status:response?.status()??null,file,metrics,errors});
   }
