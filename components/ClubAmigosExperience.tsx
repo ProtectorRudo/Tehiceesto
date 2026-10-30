@@ -5,6 +5,7 @@ import {useEffect,useRef,useState,type CSSProperties} from "react";
 import type {Experience,SceneType} from "@/data/experiences";
 import type {SceneTextOverrides} from "@/data/scene-text";
 import "./ClubAmigosExperience.css";
+import DoorAtmosphere from "./DoorAtmosphere";
 
 type Photo={url:string;caption?:string;fit?:"cover"|"contain";position?:"center"|"top"|"bottom"|"left"|"right"};
 type Audio={url:string;caption?:string};
@@ -75,6 +76,8 @@ export default function ClubAmigosExperience({experience,letterText,photoMedia=[
  const [step,setStep]=useState(0),[opened,setOpened]=useState<number[]>([]),[activePet,setActivePet]=useState(0);
  const [chatIndex,setChatIndex]=useState(0),[wheel,setWheel]=useState(-1),[giftOpen,setGiftOpen]=useState(false);
  const [playing,setPlaying]=useState(false),[confetti,setConfetti]=useState(false);
+ const [doorEntering,setDoorEntering]=useState(false);
+ const doorTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
  const soundtrackRef=useRef<HTMLAudioElement>(null);
  const name=experience.demoRecipient||"Sofi",giver=experience.demoGiver||"Tu amistad";
  const text=(value:string)=>sceneTextOverrides?.club?.[value]??value;
@@ -82,11 +85,18 @@ export default function ClubAmigosExperience({experience,letterText,photoMedia=[
  const letter=letterText||text("Gracias por cada plan improvisado, por escucharme hasta cuando no sé qué decir y por lograr que hasta los días normales terminen siendo recuerdos. No sé cómo habría sido todo sin vos, pero sé que me gusta mucho más así. Que nos queden mil historias por inventar.");
  const current=CHAPTERS[step];
  const next=()=>{setStep(s=>Math.min(CHAPTERS.length-1,s+1));setOpened([]);setGiftOpen(false);setWheel(-1);setChatIndex(0);setActivePet(0);};
+ const enterClub=()=>{
+   if(step!==0||doorEntering)return;
+   setDoorEntering(true);
+   try { if("vibrate" in navigator)navigator.vibrate?.([9,35,11]); } catch { /* optional */ }
+   const reduced=window.matchMedia?.("(prefers-reduced-motion: reduce)").matches??false;
+   doorTimer.current=setTimeout(()=>{doorTimer.current=null;next();setDoorEntering(false);},reduced?35:1110);
+ };
  const prev=()=>{setStep(s=>Math.max(0,s-1));setOpened([]);setGiftOpen(false);};
  const toggle=(i:number)=>setOpened(a=>a.includes(i)?a.filter(n=>n!==i):[...a,i]);
- const replay=()=>{setStep(0);setOpened([]);setChatIndex(0);setGiftOpen(false);setConfetti(false);};
+ const replay=()=>{setStep(0);setDoorEntering(false);setOpened([]);setChatIndex(0);setGiftOpen(false);setConfetti(false);};
  useEffect(()=>{if(step===15){setConfetti(true);}else setConfetti(false);},[step]);
- useEffect(()=>()=>{soundtrackRef.current?.pause();},[]);
+ useEffect(()=>()=>{soundtrackRef.current?.pause();if(doorTimer.current)clearTimeout(doorTimer.current);},[]);
  const progress=Math.round(step/(CHAPTERS.length-1)*100);
  return <main className={"club-experience experience-shell"+(step===0?" is-door":"")} data-current-scene="club" aria-label="Club de Amigos de Toda la Vida">
   {soundtrackMedia&&<audio ref={soundtrackRef} src={soundtrackMedia.url} preload="none" loop playsInline onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)}/>}
@@ -99,14 +109,16 @@ export default function ClubAmigosExperience({experience,letterText,photoMedia=[
   </header>
   <div className="club-stage" key={step}>
    <div className="club-chapter"><span>CAPÍTULO {String(step+1).padStart(2,"0")}</span><h2>{current[0]}</h2><p>{current[1]}</p></div>
-   {step===0&&<section className="club-door-scene">
+   {step===0&&<section className={"club-door-scene"+(doorEntering?" is-entering":"")}>
      <div className="club-fairy" aria-hidden="true">✦ ✧ ✦</div>
-     <div className="club-door">
-      <div className="club-door-sign"><span>UN LUGAR AL QUE SIEMPRE VOLVER</span><strong>CLUB DE<br/>AMIGOS<br/>DE TODA LA VIDA</strong><em>♥ DESDE QUE NOS CONOCIMOS ♥</em></div>
+     <button type="button" className="club-door" aria-label="Abrir la puerta del club" onClick={enterClub} disabled={doorEntering}>
+      <DoorAtmosphere/>
+      <span className="club-door-sign"><span>UN LUGAR AL QUE SIEMPRE VOLVER</span><strong>CLUB DE<br/>AMIGOS<br/>DE TODA LA VIDA</strong><em>♥ DESDE QUE NOS CONOCIMOS ♥</em></span>
       <span className="club-door-knob" aria-hidden="true"/>
-     </div>
+     </button>
      <p className="club-intro-line">{text("Hay amistades tan especiales que merecen tener un lugar secreto solo para ellas.")}</p>
-     <button className="club-primary club-door-action" onClick={next}>TOCÁ PARA ENTRAR <span>↗</span></button>
+     <button className="club-primary club-door-action" onClick={enterClub} disabled={doorEntering}>{doorEntering?"ENTRANDO AL CLUB…":"TOCÁ PARA ENTRAR"} <span>↗</span></button>
+     <span className="club-door-veil" aria-hidden="true"/>
    </section>}
    {step===1&&<section className="club-meet-scene">
      <div className="club-lightbulbs" aria-hidden="true">✦ · ✦ · ✦</div>
