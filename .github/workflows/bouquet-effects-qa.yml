@@ -1,0 +1,52 @@
+name: Premium bouquet visual and touch audit
+on:
+  push:
+    branches: [main]
+    paths:
+      - "components/PremiumOpeningIntro.tsx"
+      - "components/PremiumOpeningIntro.css"
+      - "scripts/bouquet-effects-qa.mjs"
+      - ".github/workflows/bouquet-effects-qa.yml"
+  pull_request:
+    paths:
+      - "components/PremiumOpeningIntro.tsx"
+      - "components/PremiumOpeningIntro.css"
+      - "scripts/bouquet-effects-qa.mjs"
+      - ".github/workflows/bouquet-effects-qa.yml"
+jobs:
+  bouquet-mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies and chromium
+        run: |
+          npm install
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Build production
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-dummy-public-key
+      - name: Start local web app
+        run: |
+          npm start -- -H 127.0.0.1 -p 3000 > /tmp/bouquet-audit.log 2>&1 &
+          for i in {1..35}; do
+            if curl -fsS "http://127.0.0.1:3000/experiencias/pareja?embed=1" >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/bouquet-audit.log
+          exit 1
+      - name: Test floral choreography and touch on mobile and desktop
+        run: node scripts/bouquet-effects-qa.mjs
+      - name: Keep screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-bouquet-mobile-visuals
+          path: visual-bouquet-audit/
+          retention-days: 14
