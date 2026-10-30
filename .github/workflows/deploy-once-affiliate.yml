@@ -70,18 +70,18 @@ jobs:
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "Deployed: $url"
 
-      - name: Verify deployment URL
+      - name: Inspect deployment URL (may require Vercel Authentication)
         env:
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
         run: |
-          for i in {1..30}; do
-            if curl -fsSL --max-time 30 "$DEPLOYMENT_URL/api/version" > /tmp/version.json; then
-              cat /tmp/version.json
-              break
-            fi
-            sleep 5
-          done
-          test -s /tmp/version.json
+          code="$(curl -sSL --max-time 30 -o /tmp/version.json -w '%{http_code}' "$DEPLOYMENT_URL/api/version" || true)"
+          if [ "$code" = "200" ]; then
+            cat /tmp/version.json
+          elif [ "$code" = "401" ] || [ "$code" = "403" ]; then
+            echo "Deployment URL is protected; verifying production alias instead."
+          else
+            echo "::warning::Deployment URL returned HTTP $code; validating via production alias."
+          fi
 
       - name: Verify production alias
         env:
@@ -98,3 +98,14 @@ jobs:
           done
           echo "::error::tehiceesto.com does not expose expected commit $EXPECTED_SHA"
           exit 1
+
+      - name: Confirm influencer and checkout routes on published domain
+        run: |
+          for path in /afiliados /admin/affiliates /comprar/pareja; do
+            status="$(curl -sSL --max-time 30 -o /dev/null -w '%{http_code}' "https://tehiceesto.com$path")"
+            test "$status" = "200" || { echo "::error::$path HTTP $status"; exit 1; }
+          done
+          # The checkout endpoint must exist but reject GET: no test order is created.
+          code="$(curl -sSL --max-time 30 -o /dev/null -w '%{http_code}' https://tehiceesto.com/api/checkout)"
+          test "$code" = "405" || { echo "::error::Checkout API missing or unsafe: HTTP $code"; exit 1; }
+          echo "Affiliate management, referral-aware checkout and quick purchase routes are published."
