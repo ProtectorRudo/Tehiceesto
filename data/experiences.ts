@@ -50,6 +50,7 @@ export type SceneType =
   | "passage"
   | "reveal"
   | "keepsake"
+  | "club"
   | "day1" | "day2" | "day3" | "day4" | "day5" | "day6" | "day7" | "jar365";
 
 export type Experience = {
@@ -203,6 +204,21 @@ export const experiences: Experience[] = [
     closing: "Entre todas las personas que la vida podía cruzarme, qué suerte que me tocaste vos.",
     tags: ["Amistad", "Códigos", "Recuerdos"],
     recipe: ["intro", "casefile", "memories", "insidejokes", "incidents", "proof", "letter", "pact", "finale"],
+  },
+  {
+    slug: "club-amigos",
+    eyebrow: "NUEVO · Una amistad que merece su propio club",
+    title: "Club de Amigos de Toda la Vida",
+    short: "Un club secreto de recuerdos, stickers que hablan, bromas, música, sorpresas y una carta inesperada.",
+    description: "Una aventura de 16 capítulos: entrá al club, conocé a la banda, descubrí códigos y anécdotas, abrí papelitos, escuchá audios, girá una ruleta y emocionate con el final. Todos los mensajes, las fotografías y los audios se personalizan desde Mis regalos.",
+    icon: "✳",
+    accent: "#cf6559",
+    demoRecipient: "Sofi",
+    demoGiver: "Cami",
+    opening: "Hay amistades tan especiales que merecen tener un lugar secreto solo para ellas.",
+    closing: "Qué suerte la nuestra de habernos encontrado.",
+    tags: ["Amistad", "Stickers", "Interactiva", "16 capítulos"],
+    recipe: ["club"],
   },
   {
     slug: "secreto",
