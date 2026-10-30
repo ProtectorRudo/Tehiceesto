@@ -6,9 +6,9 @@ Estado a 29 de octubre de 2026: **desarrollo + CI visual listo; venta y deploy b
 - «Un año de cosas lindas» / slug `frasco365`; modelo visual fijo (cristal, notas pastel, papel desplegado, microanimaciones y recuerdos abiertos).
 - 365 mensajes redactados en `data/jar365-notes.ts`; auditoría comprobó 365 textos/posiciones únicos.
 - La persona que compra puede cambiar todos los textos y sus 10 categorías en `/mis-regalos`; también hay editor administrativo.
-- La experiencia del destinatario vive en `/r/[code]`, con solo un cupo al iniciar y otro por cada **24 horas desde la primera apertura**. Los cupos no utilizados se acumulan. Las aperturas no se pueden adelantar cambiando el reloj del teléfono.
+- La experiencia del destinatario vive en `/r/[code]`, con un único papelito disponible al comenzar y luego **uno nuevo 24 horas después de cada apertura real**. No acumula múltiples aperturas; si alguien no entra durante varios días, sus mensajes siguen pendientes y se retoma de a uno cada 24 horas. Las aperturas no se pueden adelantar cambiando el reloj del teléfono.
 - Los mensajes por abrir nunca salen en el endpoint público; se almacenan en `public.jar365_notes` (RLS habilitada, sin acceso anon/authenticated) y el progreso en `public.jar365_collections` / `jar365_openings`.
-- La apertura atómica utiliza `public.jar365_open_note(uuid)` restringida a `service_role`.
+- La apertura atómica utiliza `public.jar365_open_note(uuid)` restringida a `service_role`. Migración `jar365_one_note_per_24_hours` aplicada con bloqueo por registro y validación del último `opened_at`.
 
 ## Evidencia de auditoría
 - GitHub Actions Build pasó (run 304).
@@ -27,9 +27,12 @@ Estado a 29 de octubre de 2026: **desarrollo + CI visual listo; venta y deploy b
 ## Pruebas pendientes antes de vender
 - Probar un pedido controlado sin cobro real y verificar `experience_slug=frasco365`, `scene_recipe=["jar365"]`, `template_version=jar365-v1` y precio $25.000 ARS vigente.
 - Verificar que solo un pago aprobado permita editor comprador; guardar 365 textos; abrir regalo publicado; confirmar papelito editado en lugar del modelo.
-- Verificar una primera apertura autorizada, segunda bloqueada (HTTP 409), siguiente cupo a las 24h y acumulación tras varios días, también con dos aperturas simultáneas.
+- Verificar una primera apertura autorizada, segunda bloqueada (HTTP 409), siguiente cupo a las 24h después de la última apertura, imposibilidad de abrir varios de golpe aunque se hayan omitido días, también con dos aperturas simultáneas.
 - Comprobar cuenta comprador, admin, enlace privado, 320px/390px/desktop y reducción de movimiento.
 - Confirmar que otros modelos y compras de TeHiceEsto no cambian.
 - Con CI y backend verificados, fusionar PR #4, publicar última `main`, validar SHA y dominio final.
 
 No declarar producto publicado o comercialmente operativo hasta completar esto.
+
+## Cambio visual 29/10
+Se muestran 365 papelitos pastel distribuidos por todo el volumen del frasco, y se reduce el número de figuras a medida que se abren. Contador visible `papelitos que quedan` y `que ya abriste`, sin revelar mensajes pendientes. En el regalo comercial el botón se bloquea tras una apertura; en la demo se mantiene la posibilidad de probar varios para auditoría sin saltarse el servidor.
