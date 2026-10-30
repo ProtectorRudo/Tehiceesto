@@ -64,9 +64,9 @@ function Bouquet({id}:{id:string}){
      <path d="M66 405 Q300 528 509 397 L347 660 Q298 684 235 658Z" fill={"url(#"+id+"paper)"} stroke="#c29e79" strokeWidth="2"/>
      <path d="M70 410 L286 558 L505 400" fill="none" stroke="#f4dfc2" strokeWidth="2" opacity=".55"/>
      <path d="M84 443 L279 567 M499 437 L316 566" fill="none" stroke="#b88e6c" strokeWidth="2" opacity=".55"/>
-     <path d="M282 592 L245 703 Q271 690 287 697 L300 603Z" fill="#f7e6ce" stroke="#d4b99e" strokeWidth="2"/>
-     <path d="M304 593 L351 697 Q328 685 309 696 L287 608Z" fill="#faf0df" stroke="#d4b99e" strokeWidth="2"/>
-     <path d="M294 605 C239 568 217 583 216 604 C220 644 263 623 294 606 C326 579 366 582 360 606 C355 641 318 624 294 605Z" fill="#f9eddd" stroke="#d7bea7" strokeWidth="2"/>
+     <path className="opening-ribbon-tail opening-ribbon-tail--left" d="M282 592 L245 703 Q271 690 287 697 L300 603Z" fill="#f7e6ce" stroke="#d4b99e" strokeWidth="2"/>
+     <path className="opening-ribbon-tail opening-ribbon-tail--right" d="M304 593 L351 697 Q328 685 309 696 L287 608Z" fill="#faf0df" stroke="#d4b99e" strokeWidth="2"/>
+     <path className="opening-ribbon-bow" d="M294 605 C239 568 217 583 216 604 C220 644 263 623 294 606 C326 579 366 582 360 606 C355 641 318 624 294 605Z" fill="#f9eddd" stroke="#d7bea7" strokeWidth="2"/>
      <circle cx="294" cy="605" r="15" fill="#f7ecdb"/><circle cx="294" cy="605" r="5" fill="#d6bba1"/>
      <g transform="translate(295 519)"><circle r="26" fill="#aa5663" stroke="#8e4452" strokeWidth="3"/><path d="M0 14 C-34 -11 -14 -27 0 -10 C14 -28 37 -9 0 14Z" fill="#e69da2"/></g>
    </g>
@@ -110,6 +110,7 @@ function chime(){
 export default function PremiumOpeningIntro({experience,onContinue}:{experience:Experience;onContinue:()=>void}){
  const meta=config[experience.slug]??config.pareja;const[phase,setPhase]=useState<Phase>("sealed");
  const timer=useRef<ReturnType<typeof setTimeout>|null>(null),locked=useRef(false);
+ const hasBouquet=meta.mode==="flowers";
  const uid=useId().replace(/:/g,"");
  useEffect(()=>()=>{if(timer.current)clearTimeout(timer.current)},[]);
  const open=()=>{
@@ -117,11 +118,12 @@ export default function PremiumOpeningIntro({experience,onContinue}:{experience:
   const reduced=window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   if(!reduced)chime();navigator.vibrate?.(12);
   if(reduced){setPhase("revealed");return}
-  setPhase("unfolding");timer.current=setTimeout(()=>setPhase("revealed"),1100);
+  setPhase("unfolding");timer.current=setTimeout(()=>setPhase("revealed"),hasBouquet?1900:1100);
  };
  const revealed=phase==="revealed";
  return <section className={"scene premium-intro premium-intro--"+meta.mode+" premium-intro--"+phase} aria-label={"Un regalo especial para "+experience.demoRecipient} style={{"--gift-accent":meta.accent} as CSSProperties}>
-  <div className="premium-grain"/><div className="premium-sparks" aria-hidden="true">{Array.from({length:15},(_,i)=><span key={i} style={{"--n":i} as CSSProperties}>✦</span>)}</div>
+  <div className="premium-grain"/><div className="premium-sparks" aria-hidden="true">{Array.from({length:hasBouquet?7:15},(_,i)=><span key={i} style={{"--n":i} as CSSProperties}>✦</span>)}</div>
+  {hasBouquet&&<div className="premium-petal-field" aria-hidden="true">{driftingPetals.map((petal,i)=><i key={i} className="premium-floating-petal" style={{left:petal.x+"%",top:petal.y+"%","--fall-x":petal.dx+"px","--fall-y":petal.dy+"px","--fall-spin":petal.spin+"deg","--fall-delay":petal.delay+"s"} as CSSProperties}/>)}</div>
   <div className="premium-heading"><small>TE HICE ESTO ♡</small><p>{experience.demoGiver} <span>→</span> {experience.demoRecipient}</p><h1>{meta.headline}</h1></div>
   <div className="premium-object" aria-hidden="true"><svg viewBox="0 0 600 720" xmlns="http://www.w3.org/2000/svg" className="premium-illustration"><ellipse cx="295" cy="687" rx="163" ry="17" fill="#7b5746" opacity=".12"/>{meta.mode==="flowers"?<Bouquet id={uid}/>:<Alternative mode={meta.mode}/>}</svg>
     <div className="premium-tag"><small>UNA HISTORIA PARA</small><strong>{experience.demoRecipient}</strong><em>hecha con amor ♡</em></div>
