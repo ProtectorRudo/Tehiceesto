@@ -1,0 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&family=Instrument+Serif:ital@0;1&display=swap');
+body:has(.extra-letter-shell)>.site-header,body:has(.extra-letter-shell)>.floating-whatsapp{display:none!important}
+.extra-letter-shell{min-height:100svh;background:radial-gradient(ellipse at 18% 14%,#f8dfe8,transparent 42%),#f8eee9;color:#563a48;padding:24px 16px;font-family:"DM Sans",sans-serif}
+.extra-letter-shell *{box-sizing:border-box}
+.extra-letter-shell>header{max-width:720px;margin:auto;display:flex;justify-content:space-between;gap:18px;font-size:12px;font-weight:800;letter-spacing:.08em;color:#ab5879}
+.extra-letter-shell>header a{color:inherit;text-decoration:none;letter-spacing:normal}
+.extra-letter-paper{width:min(630px,100%);min-height:60vh;background:#fffdf7;border:1px solid #e9cfd5;box-shadow:0 16px 54px #75455726;margin:32px auto;padding:clamp(29px,7vw,67px);position:relative}
+.extra-letter-paper:before{content:"";position:absolute;inset:11px;border:1px solid #f0e4df;pointer-events:none}
+.extra-letter-eyebrow{font-size:10px;letter-spacing:.2em;font-weight:800;color:#b7738d}
+.extra-letter-paper h1{font:400 clamp(42px,8vw,64px)/1 "Instrument Serif",Georgia,serif;margin:17px 0 35px}
+.extra-letter-paper h1 em{color:#b63569}
+.extra-letter-body{font:400 clamp(22px,4vw,27px)/1.5 "Instrument Serif",Georgia,serif;white-space:pre-wrap;overflow-wrap:anywhere;color:#62404e}
+.extra-letter-signature{text-align:right;font:italic 29px "Instrument Serif",Georgia,serif;color:#af537c;margin-top:48px}
