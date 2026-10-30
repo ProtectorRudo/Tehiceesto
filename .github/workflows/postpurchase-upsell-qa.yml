@@ -1,0 +1,50 @@
+name: Postpurchase upsell UI audit
+
+on:
+  pull_request:
+    paths:
+      - "components/PostPurchase.tsx"
+      - "components/postpurchase.css"
+      - "components/ExtraLetter*"
+      - "app/pedido/**"
+      - "app/sorpresa/**"
+      - "app/r/[code]/page.tsx"
+      - "scripts/postpurchase-qa.mjs"
+      - ".github/workflows/postpurchase-upsell-qa.yml"
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install app and Chromium
+        run: |
+          npm install
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: mock-test-only
+      - name: Run Next
+        run: |
+          npm start -- -H 127.0.0.1 -p 3000 >/tmp/upsell.log 2>&1 &
+          for i in {1..30};do
+            if curl -fsS http://127.0.0.1:3000/pedido/ab129ed5c08a392be1 >/dev/null;then exit 0;fi
+            sleep 2
+          done
+          cat /tmp/upsell.log;exit 1
+      - name: Verify safe offer and decline on Android and desktop
+        run: node scripts/postpurchase-qa.mjs
+      - name: Upload visual QA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: postpurchase-upsell-qa
+          path: visual-upsell/
+          retention-days: 7
