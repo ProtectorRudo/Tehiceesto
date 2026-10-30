@@ -19,6 +19,14 @@ for(const size of [{name:"mobile-320",width:320,height:720},{name:"mobile-390",w
  if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2))throw Error(size.name+": horizontal overflow");
  const buy=form.getByRole("button",{name:/Continuar a Mercado Pago/});
  if(await buy.isEnabled())throw Error(size.name+": submit enabled with empty contact");
+ await form.locator("#checkout-email").fill("mauroedmorales");
+ await form.locator("#checkout-phone").fill("2215869910");
+ if(await buy.isEnabled())throw Error(size.name+": invalid email must not enable payments");
+ await form.getByText(/Completá tu correo con @ y dominio/).waitFor({state:"visible"});
+ await form.getByText(/Para continuar, completá correctamente tu email/).waitFor({state:"visible"});
+ await form.locator("#checkout-email").fill("mauro@example.com");
+ if(await form.locator(".quick-checkout-field-hint").count())throw Error(size.name+": warning persists after valid email");
+ if(!await buy.isEnabled())throw Error(size.name+": completed email and phone should immediately enable checkout");
  await page.screenshot({path:path.join(dir,size.name+"-two-fields.png"),fullPage:true});
 
  let captured=null;
