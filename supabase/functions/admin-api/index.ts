@@ -178,6 +178,57 @@ Deno.serve(async (req: Request) => {
     return json(origin, { ok: true });
   }
 
+  if (action === "listSales") {
+    // All buyer contact data stays behind the validated admin session.
+    const {data:orders,error:orderError}=await supabase.from("orders")
+      .select("id,gift_id,status,provider,amount_minor,currency,buyer_email,paid_at,created_at,ops_contacted_at,access_email_sent_at")
+      .eq("provider","mercadopago").order("created_at",{ascending:false}).limit(100);
+    if(orderError)return json(origin,{error:"sales_unavailable"},503);
+    const giftIds=[...new Set((orders||[]).map(o=>o.gift_id).filter(Boolean))];
+    const {data:gifts,error:giftError}=giftIds.length?
+      await supabase.from("gifts")
+        .select("id,public_code,experience_slug,recipient_name,giver_name,status,story_data")
+        .in("id",giftIds):
+      {data:[],error:null};
+    if(giftError)return json(origin,{error:"sales_unavailable"},503);
+    const byGift=new Map((gifts||[]).map(g=>([g.id,g])));
+    const sales=(orders||[]).map(order=>{
+      const gift=byGift.get(order.gift_id);
+      const story=gift?.story_data&&typeof gift.story_data==="object"?gift.story_data:{};
+      const creator=story.creator&&typeof story.creator==="object"?story.creator:{};
+      const contact=creator.contact&&typeof creator.contact==="object"?creator.contact:{};
+      return {
+        orderId:order.id,
+        code:gift?.public_code||"",
+        status:order.status,priceMinor:order.amount_minor,currency:order.currency||"ARS",
+        experienceSlug:gift?.experience_slug||"",
+        giftStatus:gift?.status||"",
+        giverName:gift?.giver_name||"",
+        recipientName:gift?.recipient_name||"",
+        buyerEmail:order.buyer_email||"",
+        whatsapp:String(contact.whatsapp||"").slice(0,40),
+        createdAt:order.created_at,paidAt:order.paid_at,
+        contactedAt:order.ops_contacted_at,
+        accessEmailAccepted:!!order.access_email_sent_at,
+        assisted:creator.mode==="assisted"||
+          (gift?.template_version==="premium-v5"&&gift?.experience_slug==="pareja"),
+      };
+    });
+    return json(origin,{sales});
+  }
+
+  if (action === "markSaleContacted") {
+    const id=String(body.orderId||"");
+    if(!/^[a-f0-9-]{36}$/.test(id))return json(origin,{error:"invalid_order"},400);
+    const {data,error}=await supabase.from("orders")
+      .update({ops_contacted_at:new Date().toISOString()})
+      .eq("id",id).eq("provider","mercadopago").eq("status","approved")
+      .select("id,ops_contacted_at").maybeSingle();
+    if(error)return json(origin,{error:"update_failed"},503);
+    if(!data)return json(origin,{error:"approved_order_required"},409);
+    return json(origin,{ok:true,contactedAt:data.ops_contacted_at});
+  }
+
   if (action === "getCommerceSettings") {
     const { data, error } = await supabase
       .from("commerce_settings")
