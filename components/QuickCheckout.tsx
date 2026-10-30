@@ -70,6 +70,7 @@ export default function QuickCheckout({experience}:Props){
       const code=err instanceof Error?err.message:"";
       if(code==="experience_coming_soon")setMessage("Esta experiencia todavía no está disponible para comprar.");
       else if(code==="too_many_orders")setMessage("Alcanzaste el límite de intentos. Probá más tarde o escribinos.");
+      else if(code==="request_already_completed")setMessage("Esa compra ya se completó. Entrá a «Mis regalos» con tu correo para editar tu experiencia.");
       else setMessage("No pudimos abrir Mercado Pago. Revisá tu conexión y volvé a intentar; no se realizó ningún cobro.");
     }finally{setBusy(false);}
   }
