@@ -7,6 +7,8 @@ const account=read("supabase/functions/gift-account/index.ts");
 const buyer=read("app/mis-regalos/AccountPortal.tsx");
 const checkout=read("components/QuickCheckout.tsx");
 const post=read("components/PostPurchase.tsx");
+const home=read("app/page.tsx");
+const catalog=read("app/crear/page.tsx");
 
 assert.match(order,/mode:"selfserve"/,"All new purchases must create editable gifts");
 assert.match(order,/story_data:withEditorToken\(/,"New gift stores a hashed editor token");
@@ -37,4 +39,8 @@ assert.doesNotMatch(buyer,/Coordinar por WhatsApp/,"No manual coordination in bu
 assert.match(checkout,/email con acceso a «Mis regalos»/,"Checkout promises self-service email login");
 assert.match(post,/href="\/mis-regalos"/,"Postpurchase must link to buyer portal");
 assert.doesNotMatch(post,/Coordinar mi regalo por WhatsApp/,"Postpurchase must not redirect to manual team");
+assert.doesNotMatch(home,/PERSONALIZADO POR NUESTRO EQUIPO/,"Homepage must not promise manual gift production");
+assert.match(home,/PERSONALIZADO POR VOS/,"Homepage must explain buyer personalization");
+assert.doesNotMatch(catalog,/Después la personalizamos/,"Catalog must not promise manual gift production");
+assert.match(catalog,/Mis regalos/,"Catalog must explain private editor access");
 console.log("BUYER_SELF_SERVICE_ACCESS_AND_TEMPLATE_QA_PASS");
