@@ -1,0 +1,46 @@
+name: Fullscreen demo mobile audit
+
+on:
+  pull_request:
+    paths:
+      - "components/DemoFullscreen.tsx"
+      - "components/demo-fullscreen.css"
+      - "components/BoutiqueGallery.tsx"
+      - "components/CreatorExperienceGrid.tsx"
+      - "scripts/demo-fullscreen-audit.mjs"
+      - ".github/workflows/demo-fullscreen-audit.yml"
+
+jobs:
+  mobile-and-desktop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install project and Chromium
+        run: |
+          npm install
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Build production bundle
+        run: npm run build
+      - name: Start local server
+        run: |
+          npm start -- -H 127.0.0.1 -p 3000 > /tmp/fullscreen.log 2>&1 &
+          for i in {1..35}; do
+            if curl -fsS http://127.0.0.1:3000/crear >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/fullscreen.log
+          exit 1
+      - name: Audit Home and Crear at 320, 390, 1440
+        run: node scripts/demo-fullscreen-audit.mjs
+      - name: Preserve screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-fullscreen-audit
+          path: visual-demo-fullscreen/
+          retention-days: 7
