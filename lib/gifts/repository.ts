@@ -1,3 +1,4 @@
+import {adminRequest} from "@/lib/admin-auth";
 import "server-only";
 import type { Experience, SceneType } from "@/data/experiences";
 import { getExperience } from "@/data/experiences";
@@ -67,7 +68,7 @@ export function isGiftDatabaseConfigured() {
 }
 
 export function isAdminDatabaseConfigured() {
-  return Boolean(adminCredentials());
+  return Boolean(publicCredentials());
 }
 
 export async function getPublishedGiftByCode(
@@ -221,30 +222,18 @@ export type AdminGiftSummary = {
 };
 
 export async function listRecentGifts(limit = 30): Promise<AdminGiftSummary[]> {
-  const env = adminCredentials();
-  if (!env) return [];
-
-  const safeLimit = Math.max(1, Math.min(limit, 100));
-  const endpoint =
-    `${env.url}/rest/v1/gifts?select=public_code,status,experience_slug,giver_name,recipient_name,created_at,published_at&order=created_at.desc&limit=${safeLimit}`;
-
-  const response = await fetch(endpoint, {
-    headers: {
-      apikey: env.secret,
-      Authorization: `Bearer ${env.secret}`,
-      Accept: "application/json",
-    },
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    console.error("admin gift listing failed", response.status);
-    return [];
-  }
-
-  return (await response.json()) as AdminGiftSummary[];
+  const payload=await adminRequest("listGifts");
+  const gifts=Array.isArray(payload?.gifts)?payload.gifts:[];
+  return gifts.slice(0,Math.max(1,Math.min(limit,100))).map((row:Record<string,any>)=>({
+    public_code:String(row.public_code||""),
+    status:String(row.status||"draft"),
+    experience_slug:String(row.experience_slug||""),
+    giver_name:String(row.giver_name||""),
+    recipient_name:String(row.recipient_name||""),
+    created_at:String(row.created_at||""),
+    published_at:row.published_at?String(row.published_at):null
+  }));
 }
-
 
 export type AdminGiftDetail = {
   id: string;
@@ -288,57 +277,21 @@ export type AdminGiftMedia = {
   signed_url: string | null;
 };
 
-export async function getAdminGiftByCode(code: string): Promise<{
-  gift: AdminGiftDetail;
-  media: AdminGiftMedia[];
-} | null> {
-  const { createAdminSupabase } = await import("@/lib/supabase/admin");
-  const supabase = createAdminSupabase();
-
-  const { data: gift, error } = await supabase
-    .from("gifts")
-    .select("*")
-    .eq("public_code", code)
-    .single();
-
-  if (error || !gift) return null;
-
-  const { data: mediaRows, error: mediaError } = await supabase
-    .from("gift_media")
-    .select("id,kind,storage_path,caption,sort_order,metadata")
-    .eq("gift_id", gift.id)
-    .order("sort_order", { ascending: true });
-
-  if (mediaError) {
-    console.error(mediaError);
-    throw new Error("admin_media_lookup_failed");
-  }
-
-  const media = (mediaRows || []) as Omit<AdminGiftMedia, "signed_url">[];
-  const paths = media.map((item) => item.storage_path);
-
-  let signedByPath = new Map<string, string>();
-  if (paths.length > 0) {
-    const { data: signed, error: signedError } = await supabase.storage
-      .from("gift-media")
-      .createSignedUrls(paths, 60 * 60);
-
-    if (signedError) {
-      console.error(signedError);
-    } else {
-      signedByPath = new Map(
-        (signed || [])
-          .filter((item) => item.path && item.signedUrl)
-          .map((item) => [item.path as string, item.signedUrl as string]),
-      );
-    }
-  }
-
-  return {
-    gift: gift as AdminGiftDetail,
-    media: media.map((item) => ({
-      ...item,
-      signed_url: signedByPath.get(item.storage_path) || null,
-    })),
-  };
+export async function getAdminGiftByCode(code:string):Promise<{
+  gift:AdminGiftDetail;media:AdminGiftMedia[];
+}|null>{
+  if(!/^[a-f0-9]{18}$/.test(code))return null;
+  const payload=await adminRequest("getGift",{code});
+  if(!payload?.gift)return null;
+  const rows=Array.isArray(payload.media)?payload.media:[];
+  const media:AdminGiftMedia[]=rows.map((row:Record<string,any>)=>({
+    id:String(row.id||""),
+    kind:row.kind,
+    storage_path:String(row.storage_path||""),
+    caption:row.caption||null,
+    sort_order:Number(row.sort_order||0),
+    metadata:row.metadata||null,
+    signed_url:typeof row.url==="string"?row.url:null,
+  }));
+  return {gift:payload.gift as AdminGiftDetail,media};
 }
