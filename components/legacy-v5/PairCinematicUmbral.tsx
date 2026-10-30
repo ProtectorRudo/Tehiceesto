@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import "./PairCinematicUmbral.css";
+import DoorAtmosphere from "../DoorAtmosphere";
 
 type Props = {
   kicker: string;
@@ -11,11 +12,12 @@ type Props = {
   onAdvance: () => void;
   invitation?: string;
   recipient?: string;
+  tone?: "romance" | "friendship" | "neutral";
 };
 
 type DoorPhase = "closed" | "opening" | "open" | "entering";
 
-export default function PairCinematicUmbral({ kicker, title, cta, onOpen, onAdvance, invitation = "Del otro lado estamos nosotros.", recipient }: Props) {
+export default function PairCinematicUmbral({ kicker, title, cta, onOpen, onAdvance, invitation = "Del otro lado estamos nosotros.", recipient, tone = "romance" }: Props) {
   const [phase, setPhase] = useState<DoorPhase>("closed");
   const phaseRef = useRef<DoorPhase>("closed");
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -26,6 +28,9 @@ export default function PairCinematicUmbral({ kicker, title, cta, onOpen, onAdva
   }, []);
 
   const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  const gentleHaptic = (pattern: number | number[]) => {
+    try { if ("vibrate" in navigator) navigator.vibrate?.(pattern); } catch { /* optional */ }
+  };
   const setDoorPhase = (next: DoorPhase) => {
     phaseRef.current = next;
     setPhase(next);
@@ -34,7 +39,7 @@ export default function PairCinematicUmbral({ kicker, title, cta, onOpen, onAdva
   const openDoor = () => {
     if (phaseRef.current !== "closed") return;
     setDoorPhase("opening");
-    if ("vibrate" in navigator) navigator.vibrate?.(12);
+    gentleHaptic(12);
     timers.current.push(setTimeout(() => {
       setDoorPhase("open");
       onOpen();
@@ -44,16 +49,18 @@ export default function PairCinematicUmbral({ kicker, title, cta, onOpen, onAdva
   const proceed = () => {
     if (phaseRef.current !== "open") return;
     setDoorPhase("entering");
-    timers.current.push(setTimeout(onAdvance, reducedMotion() ? 30 : 1080));
+    gentleHaptic([8, 32, 10]);
+    timers.current.push(setTimeout(onAdvance, reducedMotion() ? 30 : 1160));
   };
 
   const opened = phase === "open" || phase === "entering";
   return (
-    <section className={"thi-scene pair-cinematic-umbral is-" + phase} data-cinematic-umbral="closed-then-open-v2">
+    <section className={"thi-scene pair-cinematic-umbral pcu-tone-" + tone + " is-" + phase} data-cinematic-umbral="closed-then-open-v2">
       <div className="pcu-atmosphere" aria-hidden="true">
         <div className="pcu-orbit pcu-orbit-one" />
         <div className="pcu-orbit pcu-orbit-two" />
         <div className="pcu-airlight" />
+        <div className="pcu-dust" aria-hidden="true">{Array.from({length:9},(_,i)=><i key={i} style={{"--dust":i} as React.CSSProperties}/>)}</div>
       </div>
 
       <div className="pcu-content">
@@ -72,7 +79,9 @@ export default function PairCinematicUmbral({ kicker, title, cta, onOpen, onAdva
         >
           <span className="pcu-door-scene" aria-hidden="true">
             <span className="pcu-door-bloom" />
-            <span className="pcu-door-picture" />
+            <span className="pcu-door-picture"><DoorAtmosphere/></span>
+            <span className="pcu-door-frame-depth"/>
+            <span className="pcu-door-lightspill"/>
             <span className="pcu-door-closed-leaf">
               <i className="pcu-door-panel-upper" />
               <i className="pcu-door-panel-lower" />
@@ -80,6 +89,7 @@ export default function PairCinematicUmbral({ kicker, title, cta, onOpen, onAdva
               {recipient&&<span className="pcu-door-friend-name">{recipient}</span>}
             </span>
             <span className="pcu-threshold-glimmer" />
+          <span className="pcu-camera-glow" />
           </span>
         </button>
 
