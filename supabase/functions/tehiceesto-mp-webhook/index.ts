@@ -64,6 +64,11 @@ Deno.serve(async request=>{
  const type=String(parsed.searchParams.get("type")||body.type||"").trim().toLowerCase();
  if(type!=="order"||!/^[A-Za-z0-9_-]{6,160}$/.test(dataId))return json({ok:true,ignored:true});
  if(!await validSignature(request,webhookSecret,dataId))return json({error:"invalid_signature"},401);
+ // The Developers notification simulator defaults to a numeric Data ID (e.g. 123456),
+ // which is not a Checkout Pro Orders resource ID. Accept only AUTHENTICATED
+ // simulation delivery, and never query it as a charge or modify a gift/order.
+ // Real Orders identifiers start with ORD and continue to be checked against MP.
+ if(/^\d{1,18}$/.test(dataId))return json({ok:true,ignored:true,reason:"simulator_notification"},200);
  try{
   const result=await fetch("https://api.mercadopago.com/v1/orders/"+encodeURIComponent(dataId),
    {headers:{"authorization":"Bearer "+accessToken,"accept":"application/json"},signal:AbortSignal.timeout(10000)});
