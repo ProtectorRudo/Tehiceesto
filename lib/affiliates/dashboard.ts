@@ -7,6 +7,8 @@ export type AffiliateDashboard={
  stats:Record<string,number|string|null>;
  links:Array<{id:string;code:string;label:string;status:string;created_at:string}>;
  recentSales:Array<{id:string;date:string;experienceSlug:string;saleAmountMinor:number;commissionAmountMinor:number;status:string}>;
+ series:Array<{date:string;clicks:number;uniqueVisitors:number;sales:number;revenueMinor:number}>;
+ sources:Record<string,{clicks:number;sales:number}>;
 };
 export async function getAffiliateDashboard():Promise<AffiliateDashboard|null>{
  const jar=await cookies();const token=jar.get(AFFILIATE_SESSION_COOKIE)?.value;
