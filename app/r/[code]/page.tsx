@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import ExperienceEngine from "@/components/ExperienceEngine";
 import SevenDaysExperience from "@/components/SevenDaysExperience";
 import Jar365Experience from "@/components/Jar365Experience";
+import ExtraLetterLink from "@/components/ExtraLetterLink";
 import { getExperience } from "@/data/experiences";
 import {
   getPublishedGiftByCode,
@@ -25,10 +26,11 @@ export default async function GiftPage({
     try {
       const storedGift = await getPublishedGiftByCode(code);
 
-      if (storedGift.experience.slug==="frasco365") return <Jar365Experience experience={storedGift.experience} giftCode={code} />;
-      if (storedGift.experience.slug==="siete-dias") return <SevenDaysExperience experience={storedGift.experience} singleDay={1} sceneTextOverrides={storedGift.sceneTextOverrides} photoMedia={storedGift.photoMedia} audioMedia={storedGift.audioMedia} />;
+      if (storedGift.experience.slug==="frasco365") return <><Jar365Experience experience={storedGift.experience} giftCode={code} /><ExtraLetterLink code={code}/></>;
+      if (storedGift.experience.slug==="siete-dias") return <><SevenDaysExperience experience={storedGift.experience} singleDay={1} sceneTextOverrides={storedGift.sceneTextOverrides} photoMedia={storedGift.photoMedia} audioMedia={storedGift.audioMedia} /><ExtraLetterLink code={code}/></>;
 
       return (
+        <>
         <ExperienceEngine
           customerGift
           experience={storedGift.experience}
@@ -40,6 +42,8 @@ export default async function GiftPage({
           storyContext={storedGift.storyContext}
           sceneTextOverrides={storedGift.sceneTextOverrides}
         />
+        <ExtraLetterLink code={code}/>
+        </>
       );
     } catch (error) {
       if (
