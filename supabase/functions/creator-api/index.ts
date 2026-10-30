@@ -70,6 +70,7 @@ const recipes:Record<string,string[]>={
   mama: ["intro","childhood","memories","care","sacrifices","voices","letter","finale"],
   papa: ["intro","memories","lessons","presence","inheritance","voices","letter","lookback","finale"],
   amistad: ["intro","door","casefile","memories","insidejokes","incidents","proof","puzzle","letter","pact","finale"],
+  "club-amigos": ["club"],
 };
 
 function cleanText(value: unknown, max: number) {
