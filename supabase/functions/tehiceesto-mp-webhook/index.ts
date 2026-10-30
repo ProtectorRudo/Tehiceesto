@@ -68,7 +68,7 @@ Deno.serve(async request=>{
  // which is not a Checkout Pro Orders resource ID. Accept only AUTHENTICATED
  // simulation delivery, and never query it as a charge or modify a gift/order.
  // Real Orders identifiers start with ORD and continue to be checked against MP.
- if(/^\\d{1,18}$/.test(dataId))return json({ok:true,ignored:true,reason:"simulator_notification"},200);
+ if(/^\d{1,18}$/.test(dataId))return json({ok:true,ignored:true,reason:"simulator_notification"},200);
  try{
   const result=await fetch("https://api.mercadopago.com/v1/orders/"+encodeURIComponent(dataId),
    {headers:{"authorization":"Bearer "+accessToken,"accept":"application/json"},signal:AbortSignal.timeout(10000)});
