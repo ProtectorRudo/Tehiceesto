@@ -4,6 +4,8 @@ on:
     branches: [main]
     paths:
       - "supabase/functions/order-create/**"
+      - "supabase/functions/payment-bridge/**"
+      - "supabase/functions/admin-api/**"
       - "supabase/functions/gift-account/**"
       - "supabase/functions/creator-api/**"
       - "components/QuickCheckout.tsx"
@@ -16,6 +18,8 @@ on:
   pull_request:
     paths:
       - "supabase/functions/order-create/**"
+      - "supabase/functions/payment-bridge/**"
+      - "supabase/functions/admin-api/**"
       - "supabase/functions/gift-account/**"
       - "supabase/functions/creator-api/**"
       - "components/QuickCheckout.tsx"
