@@ -86,15 +86,15 @@ export default function QuickCheckout({experience}:Props){
           <div className="quick-checkout-product">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img alt="" src={photo(experience.slug)} loading="eager"/>
-            <div><span>{experience.eyebrow}</span><h1>{experience.title}</h1><p>Personalizado por nuestro equipo</p></div>
+            <div><span>{experience.eyebrow}</span><h1>{experience.title}</h1><p>Personalizable después de comprar</p></div>
           </div>
           <div className="quick-checkout-price"><strong>$25.000 <small>ARS</small></strong><span>Pago único · Sin suscripción</span></div>
-          <p className="quick-checkout-help">Elegí la experiencia y completá tus datos. Cuando Mercado Pago confirme el pago, nuestro equipo se pondrá en contacto para preparar juntos tus nombres, mensajes, fotos y audios. Vos no tenés que diseñar nada.</p>
+          <p className="quick-checkout-help">Elegí tu experiencia y pagá de forma segura. Cuando se confirme el pago, vas a recibir un email con acceso a «Mis regalos», donde podés personalizar nombres, mensajes, fotos y audios. El diseño, las escenas y los efectos ya están preparados.</p>
         </section>
         <form className="quick-checkout-form" onSubmit={submit}>
           <span className="quick-checkout-form-kicker">COMPRA RÁPIDA · 2 DATOS</span>
           <h2>Ya casi <em>es tuyo.</em></h2>
-          <p>¿Dónde te contactamos para preparar tu regalo?</p>
+          <p>¿A qué correo enviamos el acceso para editar tu regalo?</p>
           <label htmlFor="checkout-email">Tu email
             <input id="checkout-email" required type="email" autoComplete="email" inputMode="email"
               placeholder="tu@email.com" maxLength={180} value={email} onChange={event=>setEmail(event.target.value)}
