@@ -1,0 +1,46 @@
+name: Create experience grid visual audit
+
+on:
+  pull_request:
+    paths:
+      - "components/CreatorExperienceGrid.tsx"
+      - "components/CreatorWizard.tsx"
+      - "components/BoutiqueGallery.tsx"
+      - "app/crear/**"
+      - "scripts/creator-grid-audit.mjs"
+      - ".github/workflows/creator-grid-audit.yml"
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install project and Chromium
+        run: |
+          npm install
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Build production bundle
+        run: npm run build
+      - name: Start local server
+        run: |
+          npm start -- -H 127.0.0.1 -p 3000 > /tmp/creator-grid.log 2>&1 &
+          for i in {1..35}; do
+            if curl -fsS http://127.0.0.1:3000/crear >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/creator-grid.log
+          exit 1
+      - name: Screenshot and interaction audit at 320, 390, 768 and 1440
+        run: node scripts/creator-grid-audit.mjs
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: creator-grid-visual-report
+          path: visual-creator-grid/
+          retention-days: 7
