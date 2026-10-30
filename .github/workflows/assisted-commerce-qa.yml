@@ -1,4 +1,4 @@
-name: Assisted commerce security and copy
+name: Buyer self-service checkout, editing and security
 on:
   push:
     branches: [main]
