@@ -7,7 +7,7 @@ import type { Experience } from "@/data/experiences";
 type Props = { experiences: Experience[] };
 /** Render a 375px mobile viewport, then scale it to the preview phone. */
 const PREVIEW_WIDTH = 375;
-function ScaledDemoFrame({ slug, epoch, title, onReady, onSwipe }: {
+export function ScaledDemoFrame({ slug, epoch, title, onReady, onSwipe }: {
   slug: string; epoch: number; title: string; onReady: () => void; onSwipe: (direction: number) => void;
 }) {
   const viewportRef = useRef<HTMLDivElement>(null);
