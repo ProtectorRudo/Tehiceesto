@@ -8,6 +8,8 @@ on:
       - "app/api/checkout/**"
       - "components/QuickCheckout.tsx"
       - "lib/affiliates/**"
+      - "supabase/functions/affiliate-public/**"
+      - "supabase/functions/order-create/**"
       - "scripts/affiliate-checkout-audit.mjs"
       - ".github/workflows/affiliate-checkout-qa.yml"
 
