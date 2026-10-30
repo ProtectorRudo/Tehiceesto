@@ -187,7 +187,7 @@ Deno.serve(async (req: Request) => {
     const giftIds=[...new Set((orders||[]).map(o=>o.gift_id).filter(Boolean))];
     const {data:gifts,error:giftError}=giftIds.length?
       await supabase.from("gifts")
-        .select("id,public_code,experience_slug,recipient_name,giver_name,status,story_data")
+        .select("id,public_code,experience_slug,recipient_name,giver_name,status,template_version,story_data")
         .in("id",giftIds):
       {data:[],error:null};
     if(giftError)return json(origin,{error:"sales_unavailable"},503);
