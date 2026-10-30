@@ -36,6 +36,8 @@ export default function QuickCheckout({experience}:Props){
   const validPhone=/^\d{8,15}$/.test(cleanPhone(phone));
   const validEmail=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const valid=validEmail&&validPhone;
+  const showEmailHint=email.trim().length>0&&!validEmail;
+  const showPhoneHint=phone.trim().length>0&&!validPhone;
 
   async function submit(event:FormEvent<HTMLFormElement>){
     event.preventDefault();
@@ -96,15 +98,18 @@ export default function QuickCheckout({experience}:Props){
           <label htmlFor="checkout-email">Tu email
             <input id="checkout-email" required type="email" autoComplete="email" inputMode="email"
               placeholder="tu@email.com" maxLength={180} value={email} onChange={event=>setEmail(event.target.value)}
-              disabled={busy}/>
+              disabled={busy} aria-invalid={showEmailHint} aria-describedby={showEmailHint?"checkout-email-hint":undefined}/>
+            {showEmailHint&&<span id="checkout-email-hint" className="quick-checkout-field-hint" role="status">Completá tu correo con @ y dominio. Ej.: nombre@gmail.com</span>}
           </label>
           <label htmlFor="checkout-phone">Tu WhatsApp
             <input id="checkout-phone" required type="tel" autoComplete="tel" inputMode="tel"
               placeholder="221 555 1234" value={phone} onChange={event=>setPhone(event.target.value)}
-              maxLength={40} disabled={busy}/>
+              maxLength={40} disabled={busy} aria-invalid={showPhoneHint} aria-describedby={showPhoneHint?"checkout-phone-hint":undefined}/>
+            {showPhoneHint&&<span id="checkout-phone-hint" className="quick-checkout-field-hint" role="status">Revisá el número. Incluí característica y teléfono, sin 0 ni 15.</span>}
           </label>
           <p className="quick-checkout-phonehint">Argentina: escribí tu número con característica, sin 0 ni 15. Si estás en otro país, incluí el código internacional (+).</p>
           <div className="quick-checkout-honey" aria-hidden="true"><label>Sitio web<input tabIndex={-1} autoComplete="off" value={website} onChange={event=>setWebsite(event.target.value)}/></label></div>
+          {!busy&&!valid&&(email.trim()||phone.trim())&&<p className="quick-checkout-form-guidance" role="status">Para continuar, completá correctamente {showEmailHint||!email.trim()?"tu email": "tu WhatsApp"}.</p>}
           <button className="quick-checkout-submit" type="submit" disabled={busy||!valid||Boolean(website)}>
             {busy?"Preparando tu pago…":"Continuar a Mercado Pago"} <span aria-hidden="true">↗</span>
           </button>
