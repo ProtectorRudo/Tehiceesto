@@ -99,3 +99,36 @@ body:has(.jar365-shell) > .floating-whatsapp,
 body:has(.jar365-shell) .demo-ribbon{display:none!important}
 body:has(.jar365-shell){overflow-x:hidden;background:#f8eeec;color:#49333e}
 .jar365-note-modal:after{opacity:.12;background:radial-gradient(ellipse at 40% 12%,rgba(255,255,255,.75),transparent 70%)}
+
+
+/* Glass inventory: restrained, legible and touch-first even on narrow Android viewports. */
+.jar365-slip{filter:drop-shadow(0 1px .65px #65464e34)}
+.jar365-inventory{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:clamp(17px,5vw,35px);
+  width:max-content;
+  max-width:100%;
+  min-height:70px;
+  padding:12px clamp(19px,5vw,40px);
+  margin:3px auto 17px;
+  border:1px solid #e6c6cf;
+  border-radius:18px;
+  background:linear-gradient(140deg,#fffdf9ee,#fff8f7e9);
+  box-shadow:0 8px 23px #8c53621a,0 1px 0 #fff inset;
+}
+.jar365-inventory-number{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:112px}
+.jar365-inventory-number strong{font-family:"Instrument Serif",Georgia,serif;font-size:35px;color:#9f3f69;font-weight:400;line-height:.9;font-variant-numeric:tabular-nums}
+.jar365-inventory-number span{font-family:"DM Sans",sans-serif;font-weight:700;font-size:10px;letter-spacing:.045em;color:#9e7a88;white-space:nowrap}
+.jar365-inventory-divider{height:34px;width:1px;background:#e4c9d3;flex:none}
+@media(max-width:390px){
+  .jar365-inventory{gap:16px;padding:11px 18px;min-height:65px;margin:3px auto 14px}
+  .jar365-inventory-number{min-width:103px}
+  .jar365-inventory-number strong{font-size:32px}
+  .jar365-inventory-number span{font-size:9.5px}
+}
+@media(max-width:340px){
+  .jar365-inventory{gap:10px;padding:10px 13px}
+  .jar365-inventory-number{min-width:99px}
+}
