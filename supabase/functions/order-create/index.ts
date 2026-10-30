@@ -79,37 +79,18 @@ function objectValue(value:unknown){
     :{};
 }
 
-function withEditorToken(storyValue:unknown,editorTokenHash:string,contact:{name:string;email:string;whatsapp:string},now:string,fingerprint:string,templateRecipe?:string[],templateVersion?:string){
-  const story=objectValue(storyValue);
-  const creator=objectValue(story.creator);
-  const hashes:string[]=[];
-  const primary=String(creator.editorTokenHash||"").trim().toLowerCase();
-  if(/^[a-f0-9]{64}$/.test(primary))hashes.push(primary);
-  if(Array.isArray(creator.editorTokenHashes)){
-    for(const item of creator.editorTokenHashes){
-      const hash=String(item||"").trim().toLowerCase();
-      if(/^[a-f0-9]{64}$/.test(hash)&&!hashes.includes(hash))hashes.push(hash);
-    }
-  }
-  const editorTokenHashes=[...hashes.filter(hash=>hash!==editorTokenHash),editorTokenHash].slice(-8);
-  return {
-    ...story,
-    creator:{
-      ...creator,
-      submitted:true,
-      mode:"selfserve",
-      editorTokenHash,
-      editorTokenHashes,
-      submittedAt:creator.submittedAt||now,
-      contact,
-      consentAt:creator.consentAt||now,
-      ipHash:creator.ipHash||fingerprint,
-      ...(templateRecipe?.length?{
-        templateVersion:templateVersion||"premium-v3",
-        templateRecipe:[...templateRecipe],
-      }:{}),
-    },
-  };
+// New sales are prepared by the Te Hice Esto team. Never mint buyer editing credentials.
+function assistedStory(contact:{name:string;email:string;whatsapp:string},now:string,fingerprint:string,templateRecipe:string[],templateVersion:string){
+  return {creator:{
+    submitted:true,
+    mode:"assisted",
+    submittedAt:now,
+    contact,
+    consentAt:now,
+    ipHash:fingerprint,
+    templateVersion,
+    templateRecipe:[...templateRecipe],
+  }};
 }
 
 async function ensureCheckout(order:{payment_token?:string|null;checkout_url?:string|null},enabled:boolean){
@@ -248,16 +229,7 @@ Deno.serve(async(req:Request)=>{
         return reply(origin,{error:"request_conflict"},409);
       }
 
-      const editorToken=createEditorToken();
-      const editorTokenHash=await sha256(editorToken);
-      const nextStory=withEditorToken(
-        existingGift.story_data,
-        editorTokenHash,
-        {name:customerName,email,whatsapp},
-        now,
-        fingerprint,
-      );
-      await db.from("gifts").update({giver_name:customerName,story_data:nextStory}).eq("id",existingGift.id);
+      // Reuse the original order without changing legacy editor tokens or paid gifts.
 
       const checkoutUrl=await ensureCheckout(existingOrder,commerce?.auto_checkout_enabled===true);
       const {count:attributionCount}=await db
@@ -272,7 +244,6 @@ Deno.serve(async(req:Request)=>{
         checkoutUrl,
         checkoutReady:Boolean(checkoutUrl),
         affiliateAttributed:(attributionCount||0)>0,
-        editorToken,
         reused:true,
       });
     }
@@ -307,18 +278,7 @@ Deno.serve(async(req:Request)=>{
         :null;
 
       if(existingOrder&&existingGift){
-        const editorToken=createEditorToken();
-        const editorTokenHash=await sha256(editorToken);
-        const nextStory=withEditorToken(
-          existingGift.story_data,
-          editorTokenHash,
-          {name:customerName,email,whatsapp},
-          now,
-          fingerprint,
-        );
-        await db.from("gifts")
-          .update({giver_name:customerName,story_data:nextStory})
-          .eq("id",existingGift.id);
+        // Retry is idempotent: never rotate an existing gift's editing credentials.
 
         const checkoutUrl=await ensureCheckout(existingOrder,commerce?.auto_checkout_enabled===true);
         const {count:attributionCount}=await db
@@ -333,7 +293,6 @@ Deno.serve(async(req:Request)=>{
           checkoutUrl,
           checkoutReady:Boolean(checkoutUrl),
           affiliateAttributed:(attributionCount||0)>0,
-          editorToken,
           reused:true,
           retryRecovered:true,
         });
@@ -341,8 +300,6 @@ Deno.serve(async(req:Request)=>{
     }
   }
 
-  const editorToken=createEditorToken();
-  const editorTokenHash=await sha256(editorToken);
   const since=new Date(Date.now()-60*60*1000).toISOString();
   const {count}=await db
     .from("gifts")
@@ -361,9 +318,7 @@ Deno.serve(async(req:Request)=>{
       giver_name:customerName,
       recipient_name:"A definir",
       scene_recipe:recipes[experienceSlug],
-      story_data:withEditorToken(
-        {},
-        editorTokenHash,
+      story_data:assistedStory(
         {name:customerName,email,whatsapp},
         now,
         fingerprint,
@@ -407,6 +362,5 @@ Deno.serve(async(req:Request)=>{
     checkoutUrl,
     checkoutReady:Boolean(checkoutUrl),
     affiliateAttributed,
-    editorToken,
   });
 });
