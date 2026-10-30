@@ -21,7 +21,7 @@ for(const viewport of [{label:"android-360",width:360,height:740},{label:"mobile
 const page=await browser.newPage();
 const invalid=await page.goto(base+"/ref/no-existe-prueba-999",{waitUntil:"domcontentloaded"});
 assert.equal(invalid.status(),200,"Invalid referral should redirect safely to home");
-assert.match(page.url(),/^http:\/\/127\.0\.0\.1:3000\/?$/);
+assert.equal(new URL(page.url()).pathname,"/","Unknown referral safely returns home, independent of localhost hostname");
 assert.equal((await page.context().cookies()).filter(c=>c.name==="thi_ref").length,0,"Unknown referrals must not set attribution");
 const bad=await page.request.post(base+"/api/checkout",{data:{experienceSlug:"pareja"}});
 assert.equal(bad.status(),400,"Reject invalid checkout data without creating an order");
