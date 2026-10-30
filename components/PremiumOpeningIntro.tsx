@@ -24,11 +24,24 @@ const blooms:[number,number,number,number,number][]=[
  [291,420,1.03,-5,0],[387,437,.89,8,1],
 ];
 const flowerColors=[["#f8c5b3","#dca390"],["#f7bed0","#c67f9c"],["#f6d0db","#d19cab"],["#fff8ed","#cebfae"]];
+// Deterministic choreography. The demo and gift behave identically.
+const driftingPetals=[
+ {x:18,y:29,dx:-36,dy:205,delay:.16,spin:-115},
+ {x:33,y:34,dx:28,dy:232,delay:.46,spin:92},
+ {x:56,y:27,dx:-23,dy:246,delay:.26,spin:-150},
+ {x:76,y:37,dx:43,dy:215,delay:.73,spin:144},
+ {x:23,y:50,dx:15,dy:201,delay:.9,spin:170},
+ {x:63,y:50,dx:-35,dy:196,delay:.58,spin:-104},
+ {x:47,y:22,dx:41,dy:257,delay:1.08,spin:203},
+ {x:81,y:47,dx:-26,dy:219,delay:.37,spin:-181},
+ {x:39,y:39,dx:34,dy:217,delay:1.22,spin:97},
+ {x:67,y:33,dx:-18,dy:245,delay:1.0,spin:-132},
+];
 function Flower({x,y,size,rotation,color}:{x:number;y:number;size:number;rotation:number;color:number}){
  const [base,outline]=flowerColors[color];
- return <g transform={"translate("+x+" "+y+") rotate("+rotation+") scale("+size+")"}>
-   {Array.from({length:9},(_,i)=><path key={i} transform={"rotate("+(i*40)+")"} d="M0 0 C-20 -26 -36 -67 -15 -75 C11 -86 35 -52 20 -32 C10 -12 7 -7 0 0Z" fill={base} stroke={outline} strokeWidth="1.7" strokeLinejoin="round"/>)}
-   {Array.from({length:7},(_,i)=><path key={i} transform={"rotate("+(i*51.43)+") scale(.64)"} d="M0 0 C-13 -22 -32 -53 -6 -56 C22 -60 34 -28 12 -8Z" fill={base} stroke={outline} strokeWidth="2"/>)}
+ return <g className="opening-bloom-shape" transform={"translate("+x+" "+y+") rotate("+rotation+") scale("+size+")"}>
+   {Array.from({length:9},(_,i)=><path className="opening-petal-outer" key={i} style={{"--petal-index":i} as CSSProperties} transform={"rotate("+(i*40)+")"} d="M0 0 C-20 -26 -36 -67 -15 -75 C11 -86 35 -52 20 -32 C10 -12 7 -7 0 0Z" fill={base} stroke={outline} strokeWidth="1.7" strokeLinejoin="round"/>)}
+   {Array.from({length:7},(_,i)=><path className="opening-petal-inner" key={i} style={{"--petal-index":i} as CSSProperties} transform={"rotate("+(i*51.43)+") scale(.64)"} d="M0 0 C-13 -22 -32 -53 -6 -56 C22 -60 34 -28 12 -8Z" fill={base} stroke={outline} strokeWidth="2"/>)}
    <path d="M-21 2 C-22 -23 17 -34 24 -6 C30 17 3 29 -12 13 C-22 1 -3 -17 10 -5 C17 1 12 12 3 11" fill="none" stroke={outline} strokeWidth="3.4" strokeLinecap="round"/>
    <path d="M-37 -30 Q-15 -46 5 -33" fill="none" stroke="#fff6ef" opacity=".8" strokeWidth="3" strokeLinecap="round"/>
  </g>;
@@ -38,13 +51,13 @@ function Bouquet({id}:{id:string}){
    <defs><linearGradient id={id+"paper"} x1="0" y1="0" x2="1" y2="1"><stop stopColor="#f2d7b6"/><stop offset=".55" stopColor="#d4b18f"/><stop offset="1" stopColor="#bb916d"/></linearGradient>
      <linearGradient id={id+"fold"}><stop stopColor="#fff0d6"/><stop offset="1" stopColor="#c9a17e"/></linearGradient></defs>
    <g className="opening-leaves">
-    {Array.from({length:12},(_,i)=>{const x=106+i*35,y=286+(i%3)*21;return <g key={i}>
+    {Array.from({length:12},(_,i)=>{const x=106+i*35,y=286+(i%3)*21;return <g className="opening-leaf-stem" key={i} style={{"--stem-index":i} as CSSProperties}>
       <path d={"M297 588 Q"+x+" 457 "+x+" "+y} stroke="#719485" strokeWidth="2.5" fill="none"/>
       <ellipse cx={x-14} cy={y+23} rx="22" ry="10" transform={"rotate(-39 "+(x-14)+" "+(y+23)+")"} fill="#9cb5a5" stroke="#749887" strokeWidth="1.5"/>
       <ellipse cx={x+18} cy={y+42} rx="19" ry="9" transform={"rotate(29 "+(x+18)+" "+(y+42)+")"} fill="#b5c8b4" stroke="#749887" strokeWidth="1.5"/>
     </g>})}
    </g>
-   <g className="opening-flowers">{blooms.map(([x,y,size,rotation,color],i)=><g className="opening-flower" key={i} style={{animationDelay:i*.06+"s"}}><Flower x={x} y={y} size={size} rotation={rotation} color={color}/></g>)}</g>
+   <g className="opening-flowers">{blooms.map(([x,y,size,rotation,color],i)=><g className="opening-flower" key={i} style={{"--bloom-index":i} as CSSProperties}><Flower x={x} y={y} size={size} rotation={rotation} color={color}/></g>)}</g>
    <g className="opening-wrapper">
      <path d="M67 397 L174 354 L305 566 L281 633Z" fill={"url(#"+id+"fold)"} stroke="#c39a7d" strokeWidth="2"/>
      <path d="M510 395 L420 351 L275 550 L308 632Z" fill={"url(#"+id+"fold)"} stroke="#c39a7d" strokeWidth="2"/>
