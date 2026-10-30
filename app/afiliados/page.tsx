@@ -114,13 +114,13 @@ export default async function AffiliadosPage({
           <span>VENTAS CONFIRMADAS</span><strong>{sales}</strong><small>Pagos aprobados</small>
         </article>
         <article>
-          <span>FACTURACIÓN GENERADA</span><strong>{money(stats?.revenue_minor)}</strong><small>Atribuida a tus ventas</small>
+          <span>FACTURACIÓN GENERADA</span><strong>{money(Number(stats?.revenue_minor||0))}</strong><small>Atribuida a tus ventas</small>
         </article>
         <article className={styles.highlight}>
-          <span>COMISIÓN PENDIENTE</span><strong>{money(stats?.commission_pending_minor)}</strong><small>Lista para próxima liquidación</small>
+          <span>COMISIÓN PENDIENTE</span><strong>{money(Number(stats?.commission_pending_minor||0))}</strong><small>Lista para próxima liquidación</small>
         </article>
         <article>
-          <span>COMISIÓN PAGADA</span><strong>{money(stats?.commission_paid_minor)}</strong><small>Histórico liquidado</small>
+          <span>COMISIÓN PAGADA</span><strong>{money(Number(stats?.commission_paid_minor||0))}</strong><small>Histórico liquidado</small>
         </article>
       </section>
 
