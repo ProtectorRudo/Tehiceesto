@@ -12,7 +12,7 @@ export default function Jar365StaffEditor({code}:{code:string}){
  const [notice,setNotice]=useState("");
  const [filter,setFilter]=useState("");
  async function call(action:string,extra:Record<string,unknown>={}){
-  const result=await fetch("/api/jar365",{method:"POST",cache:"no-store",headers:{"content-type":"application/json"},
+  const result=await fetch("/admin/api/jar365",{method:"POST",cache:"no-store",headers:{"content-type":"application/json"},
     body:JSON.stringify({action,code,...extra})});
   if(!result.ok)throw new Error("request_failed");
   return result.json();
