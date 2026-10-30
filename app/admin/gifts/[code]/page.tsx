@@ -3,6 +3,7 @@ import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { getAdminGiftByCode } from "@/lib/gifts/repository";
 import { getExperience } from "@/data/experiences";
 import SceneRecipeEditor from "@/components/admin/SceneRecipeEditor";
+import Jar365StaffEditor from "@/components/Jar365StaffEditor";
 import AdminMediaManager from "@/components/admin/AdminMediaManager";
 import AdminPublishControls from "@/components/admin/AdminPublishControls";
 import { saveGiftContentAction } from "../actions";
@@ -37,6 +38,7 @@ export default async function AdminGiftEditorPage({
         <AdminPublishControls code={gift.public_code} status={gift.status} />
       </header>
 
+      {gift.experience_slug==="frasco365" && <Jar365StaffEditor code={gift.public_code} />}
       <section className="admin-editor-card">
         <div className="admin-block-heading">
           <div>
@@ -156,13 +158,15 @@ export default async function AdminGiftEditorPage({
               <div>
                 <span className="eyebrow">Recorrido</span>
                 <h2>Orden de escenas</h2>
-                <p>
-                  Se puede repetir, quitar o mover cualquier escena.
-                </p>
+                <p>{gift.experience_slug==="frasco365"?"Una sola experiencia de 365 papelitos: la estructura no se modifica.":"Se puede repetir, quitar o mover cualquier escena."}</p>
               </div>
             </div>
 
-            {gift.experience_slug==="siete-dias"
+            {gift.experience_slug==="frasco365"
+              ? <div><input type="hidden" name="sceneRecipe" value={JSON.stringify(base.recipe)} />
+                  <p>El recorrido del Frasco 365 permanece fijo. Personalizá arriba los 365 mensajes y sus colores; el destinatario abre uno por cada 24 horas.</p>
+                </div>
+              : gift.experience_slug==="siete-dias"
               ? <div><input type="hidden" name="sceneRecipe" value={JSON.stringify(base.recipe)} />
                   <p>Los siete capítulos tienen un orden fijo para preservar su diseño y su historia. Editá todas las frases tocándolas en la vista previa y cargá fotos o audios para la carta final.</p>
                   <a className="ghost-action" href={`/admin/gifts/${gift.public_code}/preview`}>Abrir editor visual de los siete días →</a>
@@ -182,7 +186,7 @@ export default async function AdminGiftEditorPage({
         </form>
       </section>
 
-      <AdminMediaManager code={gift.public_code} media={media} />
+      {gift.experience_slug!=="frasco365" && <AdminMediaManager code={gift.public_code} media={media} />}
     </main>
   );
 }

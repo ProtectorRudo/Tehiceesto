@@ -5,6 +5,9 @@ import { getExperience } from "@/data/experiences";
 import ExperienceEngine from "@/components/ExperienceEngine";
 import AdminCopyEditor from "@/components/admin/AdminCopyEditor";
 import SevenDaysAdminPreview from "@/components/admin/SevenDaysAdminPreview";
+import Jar365Experience from "@/components/Jar365Experience";
+import { JAR365_SEED, type Jar365Note } from "@/data/jar365-notes";
+import { createAdminSupabase } from "@/lib/supabase/admin";
 import { normalizeSceneTextOverrides } from "@/data/scene-text";
 
 export default async function AdminGiftPreviewPage({
@@ -76,6 +79,29 @@ export default async function AdminGiftPreviewPage({
       url: item.signed_url as string,
       caption: item.caption || undefined,
     }));
+
+  if (gift.experience_slug==="frasco365") {
+    const supabase = createAdminSupabase();
+    const {data: overrides, error} = await supabase.from("jar365_notes")
+      .select("position,category,message").eq("gift_id",gift.id).order("position");
+    if (error) throw new Error("jar365_admin_preview_unavailable");
+    const overridesByPosition = new Map((overrides || []).map(note => [Number(note.position), note]));
+    const previewNotes:Jar365Note[] = JAR365_SEED.map(defaultNote => {
+      const saved=overridesByPosition.get(defaultNote.position);
+      return saved ? {
+        position: defaultNote.position,
+        category: saved.category as Jar365Note["category"],
+        message: saved.message,
+      } : defaultNote;
+    });
+    return <>
+      <div className="admin-preview-toolbar">
+        <a href={`/admin/gifts/${gift.public_code}`}>← Volver a editar los 365 papelitos</a>
+        <span>VISTA PREVIA PERSONALIZADA · {gift.recipient_name}</span>
+      </div>
+      <Jar365Experience experience={experience} previewNotes={previewNotes} />
+    </>;
+  }
 
   if (gift.experience_slug==="siete-dias") {
     return <SevenDaysAdminPreview code={gift.public_code} experience={experience}

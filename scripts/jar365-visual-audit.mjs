@@ -1,0 +1,60 @@
+import { chromium } from "playwright";
+import fs from "node:fs/promises";
+import path from "node:path";
+
+const base=process.env.AUDIT_BASE_URL||"http://127.0.0.1:3000";
+const dir=process.env.AUDIT_OUTPUT_DIR||"visual-jar365";
+await fs.mkdir(dir,{recursive:true});
+const browser=await chromium.launch({headless:true,args:["--no-sandbox"]});
+const report=[];
+for (const size of [{name:"mobile-320",width:320,height:720},{name:"mobile-390",width:390,height:844},{name:"desktop",width:1440,height:900}]) {
+ const page=await browser.newPage({viewport:{width:size.width,height:size.height},deviceScaleFactor:1,isMobile:size.width<600,hasTouch:size.width<600});
+ const errors=[];
+ page.on("pageerror",e=>errors.push(e.message));
+ const response=await page.goto(base+"/experiencias/frasco365",{waitUntil:"networkidle",timeout:45000});
+ if(!response||response.status()!==200)throw Error(size.name+": demo route failed");
+ const visualPapers=await page.locator(".jar365-slip").count();
+ if(visualPapers!==365)throw Error(size.name+": expected 365 visible papers, got "+visualPapers);
+ if(await page.locator(".jar365-illustration").getAttribute("data-paper-count")!=="365")throw Error(size.name+": full jar should start with 365");
+ const firstCount=await page.locator(".jar365-inventory").innerText();
+ if(!firstCount.includes("365")||!firstCount.includes("0")||!firstCount.includes("papelitos que quedan"))throw Error(size.name+": initial remaining/opened count missing");
+ await page.screenshot({path:path.join(dir,size.name+"-01-frasco.png"),fullPage:true});
+ if(await page.getByRole("button",{name:/Sacar mi papelito/i}).count()!==1)throw Error(size.name+": draw button missing");
+ const wide=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2);
+ if(wide)throw Error(size.name+": horizontal overflow");
+ await page.getByRole("button",{name:/Sacar mi papelito/i}).click();
+ const modal=page.getByRole("dialog",{name:/Papelito 1/i});
+ await modal.waitFor({state:"visible",timeout:5000});
+ if(await page.locator(".jar365-slip").count()!==364)throw Error(size.name+": jar must lose exactly one visual paper");
+ const count=await page.locator(".jar365-inventory").innerText();
+ if(!count.includes("364")||!count.includes("1"))throw Error(size.name+": remaining/opened figures did not update");
+ const text=await modal.locator(".jar365-note-message").innerText();
+ if(!text||text.length<18)throw Error(size.name+": empty opening text");
+ await page.screenshot({path:path.join(dir,size.name+"-02-abierto.png"),fullPage:true});
+ await modal.getByRole("button",{name:/Guardar y cerrar/i}).click();
+ await page.getByRole("button",{name:/Mis papelitos abiertos/i}).click();
+ const history=page.getByRole("dialog",{name:"Papelitos que ya abriste"});
+ await history.waitFor({state:"visible",timeout:4000});
+ if(await history.locator(".jar365-history-note").count()!==1)throw Error(size.name+": history missing opened note");
+ await page.screenshot({path:path.join(dir,size.name+"-03-historial.png"),fullPage:true});
+ if(errors.length)throw Error(size.name+": JavaScript errors "+errors.join(" | "));
+ report.push({viewport:size.name,status:"OK",firstNote:text,overflow:false});
+ await page.close();
+}
+// Commercial wiring check: the model appears in the public catalog with a
+// working demo and purchase route; checkout stays safely closed until verified.
+const catalog=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+const home=await catalog.goto(base+"/",{waitUntil:"domcontentloaded",timeout:45000});
+if(!home||home.status()!==200)throw Error("Catalog homepage unavailable");
+const jarCard=catalog.locator("article").filter({hasText:"Un año de cosas lindas"}).first();
+await jarCard.waitFor({state:"visible",timeout:15000});
+const jarLink=jarCard.locator('a[href="/comprar/frasco365"]');
+if(await jarLink.count()!==1)throw Error("Frasco 365 catalog purchase link missing");
+await catalog.goto(base+"/comprar/frasco365",{waitUntil:"domcontentloaded"});
+if(await catalog.getByText(/todavía no habilitamos pagos/i).count()<1)throw Error("Unverified checkout must remain gated");
+if(await catalog.locator('form:has(input[type="email"])').count()>0)throw Error("Unverified checkout leaked purchase form");
+report.push({viewport:"catalog-and-editor-gate",status:"OK",catalogListed:true,purchaseGated:true});
+await catalog.close();
+await browser.close();
+await fs.writeFile(path.join(dir,"report.json"),JSON.stringify(report,null,2));
+console.log("JAR365 VISUAL AUDIT OK "+JSON.stringify(report));

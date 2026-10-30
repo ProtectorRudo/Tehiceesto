@@ -4,6 +4,9 @@ import { useMemo, useState, type FormEvent, type MouseEvent } from "react";
 import ExperienceEngine from "@/components/ExperienceEngine";
 import SevenDaysExperience from "@/components/SevenDaysExperience";
 import SevenDaysSharePanel from "@/components/SevenDaysSharePanel";
+import Jar365Editor from "@/components/Jar365Editor";
+import Jar365Experience from "@/components/Jar365Experience";
+import type { Jar365Note } from "@/data/jar365-notes";
 import VoiceRecorder from "@/components/VoiceRecorder";
 import GuestVoiceInvites from "@/components/GuestVoiceInvites";
 import { getExperience, type SceneType } from "@/data/experiences";
@@ -95,6 +98,8 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
   const [media, setMedia] = useState<StudioMedia[]>(initialMedia);
   const [sceneContent, setSceneContent] = useState(() => normalizeSceneTextOverrides(gift.story_data?.sceneContent));
   const [preview, setPreview] = useState(false);
+  const [jarNotes,setJarNotes] = useState<Jar365Note[]>([]);
+  const [jarPreviewVersion,setJarPreviewVersion] = useState(0);
   const [editingCopy, setEditingCopy] = useState(false);
   const [selected, setSelected] = useState<SelectedText | null>(null);
   const [copyValue, setCopyValue] = useState("");
@@ -275,7 +280,8 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
   return (
     <div className={styles.enhancement}>
       {gift.experience_slug==="siete-dias" && <SevenDaysSharePanel code={access.code} editorToken={access.editorToken} />}
-      <section className={styles.studioSection}>
+      {gift.experience_slug==="frasco365" && <Jar365Editor code={access.code} editorToken={access.editorToken} onNotesChange={(notes)=>{setJarNotes(notes);setJarPreviewVersion(version=>version+1);}} />}
+      {gift.experience_slug!=="frasco365" && <section className={styles.studioSection}>
         <div className={styles.studioHeading}>
           <span className={styles.eyebrow}>MATERIALES PERSONALES</span>
           <h2>Fotos, voces y momentos</h2>
@@ -336,20 +342,21 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
             </div>
           </article>
         )}</div>}
-      </section>
+      </section>}
       <section className={styles.studioSection}>
         <div className={styles.studioHeading}>
           <span className={styles.eyebrow}>VISTA PREVIA DEL MODELO ORIGINAL</span>
           <h2>Viví tu experiencia</h2>
-          <p>Revisá el recorrido con tus datos. Podés seleccionar textos en la vista previa y cambiarlos sin alterar los efectos ni las animaciones.</p>
+          <p>{gift.experience_slug==="frasco365"?"Abrí una demo de tu frasco con tus frases guardadas. Probá los papelitos sin consumir las aperturas de la persona que lo recibe.":"Revisá el recorrido con tus datos. Podés seleccionar textos en la vista previa y cambiarlos sin alterar los efectos ni las animaciones."}</p>
         </div>
         <div className={styles.previewActions}>
           <button className={styles.ghost} type="button" onClick={() => setPreview(!preview)}>{preview?"Cerrar vista previa":"Abrir vista previa →"}</button>
-          {preview && <button className={styles.ghost} type="button" onClick={()=>{setEditingCopy(!editingCopy);setSelected(null)}}>{editingCopy?"Terminar edición de textos":"Personalizar textos de las escenas"}</button>}
+          {preview && gift.experience_slug!=="frasco365" && <button className={styles.ghost} type="button" onClick={()=>{setEditingCopy(!editingCopy);setSelected(null)}}>{editingCopy?"Terminar edición de textos":"Personalizar textos de las escenas"}</button>}
         </div>
         {preview && model && <div className={styles.previewWindow} onClickCapture={chooseText}>
           {editingCopy && <p className={styles.editModeLabel} role="status">MODO EDICIÓN · Tocá una frase del recorrido para cambiarla</p>}
-          {gift.experience_slug==="siete-dias" ?
+          {gift.experience_slug==="frasco365" ?
+            <Jar365Experience key={access.code+"-"+jarPreviewVersion} experience={{...model,demoGiver:gift.giver_name,demoRecipient:gift.recipient_name}} previewNotes={jarNotes} /> : gift.experience_slug==="siete-dias" ?
             <SevenDaysExperience
               experience={{...model,demoGiver:gift.giver_name,demoRecipient:gift.recipient_name}}
               sceneTextOverrides={sceneContent}

@@ -1,0 +1,50 @@
+.jar365-editor{font-family:"DM Sans",Arial,sans-serif;color:#493340;border:1px solid #ead4dc;border-radius:24px;background:radial-gradient(at 90% 3%,#fff3f4,#fffaf7 55%,#fcf7f4);padding:clamp(16px,4vw,31px);margin:26px 0;box-shadow:0 8px 35px #a85d7810}
+.jar365-editor *{box-sizing:border-box}.jar365-editor button{font:inherit;cursor:pointer}
+.jar365-editor-head{display:flex;align-items:start;justify-content:space-between;gap:20px}
+.jar365-editor-head>div:first-child{max-width:620px}
+.jar365-editor-eyebrow{font-size:10px;letter-spacing:.18em;font-weight:800;color:#aa5175}
+.jar365-editor-head h2{font-family:"Instrument Serif",Georgia,serif;font-size:clamp(32px,5vw,49px);font-weight:400;line-height:1;margin:15px 0 9px}
+.jar365-editor-head h2 em{color:#b54a76}
+.jar365-editor-head p{font-size:13px;color:#8e7682;line-height:1.65;margin:0 0 16px}
+.jar365-editor-total{font-family:"Instrument Serif",Georgia,serif;font-size:51px;color:#a14671;text-align:center;line-height:1}
+.jar365-editor-total span{font-family:"DM Sans",sans-serif;font-size:9px;color:#ae8b9a;letter-spacing:.16em;display:block;margin-top:8px}
+.jar365-editor-tools{display:flex;gap:9px;flex-wrap:wrap;margin:11px 0 23px}
+.jar365-editor-tools input{min-width:190px;flex:1}
+.jar365-editor-tools input,.jar365-editor-tools select{border:1px solid #e6cbd4;border-radius:12px;padding:11px 13px;background:#fff;color:#674a5b;font-size:12px}
+.jar365-editor-tools button{padding:10px 12px;border:1px solid #e9cfd8;border-radius:12px;background:#fff7f8;color:#a45072;font-size:11px;font-weight:800}
+.jar365-editor-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.18fr);gap:20px}
+.jar365-editor-list{border:1px solid #e8d9dc;border-radius:17px;background:#fffdfb;overflow:hidden;padding:7px;align-self:start}
+.jar365-editor-list>button{width:100%;display:flex;align-items:center;gap:11px;text-align:left;padding:8px;border:1px solid transparent;border-radius:12px;background:none;margin-bottom:3px}
+.jar365-editor-list>button.selected{background:#f9eff2;border-color:#e9bfcf}
+.jar365-editor-list>button i{width:22px;height:31px;flex-shrink:0;border:1px solid #ac8e8d36;transform:rotate(-5deg);box-shadow:2px 2px #eadcdd}
+.jar365-editor-list>button span:nth-child(2){min-width:0;flex:1}
+.jar365-editor-list b{font-size:10px;color:#a45072;display:block}
+.jar365-editor-list small{font-size:11px;color:#725c66;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;margin-top:3px}
+.jar365-editor-list>button>span:last-child{font-size:18px;color:#b38c9b}
+.jar365-editor-pager{display:flex;align-items:center;justify-content:center;gap:18px;padding:11px}
+.jar365-editor-pager span{font-size:12px;color:#927585}
+.jar365-editor-pager button{width:30px;height:30px;border:1px solid #ead6dc;background:white;border-radius:50%;color:#a45072}
+.jar365-editor-pager button:disabled{opacity:.35}
+.jar365-editor-sheet{position:relative;border-radius:8px;background:var(--edit-color);padding:clamp(16px,3vw,30px);box-shadow:0 9px 30px #b07b8b2c;display:flex;flex-direction:column;align-self:start;gap:17px}
+.jar365-editor-sheet:before{content:"";position:absolute;inset:8px;border:1px solid #fff9faaa;pointer-events:none}
+.jar365-editor-sheet-number{font-size:10px;letter-spacing:.16em;font-weight:800;color:#765769;z-index:1}
+.jar365-editor-sheet label{font-size:12px;font-weight:800;color:#674752;display:grid;gap:8px;z-index:1}
+.jar365-editor-sheet textarea,.jar365-editor-sheet select{width:100%;border:1px solid #ffffffc7;box-shadow:0 3px 10px #69485717;background:#fffefbdc;border-radius:9px;color:#4d3542;padding:12px;font-size:15px;font-family:"DM Sans",sans-serif;resize:vertical}
+.jar365-editor-sheet textarea{font-family:"Instrument Serif",Georgia,serif;font-size:25px;line-height:1.25;min-height:140px}
+.jar365-editor-remaining{font-size:10px;color:#735964;text-align:right}
+.jar365-editor-sheet>button{background:#73475d;color:#fff;border:0;border-radius:40px;padding:13px;font-weight:800;font-size:13px;z-index:1}
+.jar365-editor-sheet>button:disabled{opacity:.45}
+.jar365-editor-sheet-navigation{display:flex;justify-content:space-between}
+.jar365-editor-sheet-navigation button{border:1px solid #ffffffb5;background:#fff6;color:#654759;padding:9px 12px;border-radius:40px;font-size:12px;font-weight:700}
+.jar365-editor-sheet-navigation button:disabled{opacity:.3}
+.jar365-editor-sheet>small{line-height:1.6;color:#735a65;font-size:11px;font-style:italic}
+.jar365-editor-bulk{border:1px dashed #d5a0b2;background:#fffbf7;border-radius:17px;margin-bottom:20px;padding:20px}
+.jar365-editor-bulk h3{font:normal 30px "Instrument Serif",Georgia,serif;margin:0}
+.jar365-editor-bulk p{color:#8c6c7c;font-size:13px;line-height:1.65}
+.jar365-editor-bulk textarea{display:block;width:100%;padding:13px;border:1px solid #e9cbd5;border-radius:10px;line-height:1.6;min-height:160px}
+.jar365-editor-bulk button{border:0;background:#a63f6d;color:white;padding:11px 18px;border-radius:40px;margin-top:13px;font-size:12px;font-weight:800}
+.jar365-editor-notice{color:#8d4168;font-size:13px;font-weight:700;border-radius:12px;background:#f6e9ef;padding:12px}
+.jar365-editor-reload{background:transparent;color:#a3607c;border:0;font-size:11px;margin:15px auto 0;display:block;text-decoration:underline}
+.jar365-editor-loading{padding:40px;color:#8c6074;text-align:center}
+@media(max-width:750px){.jar365-editor-grid{grid-template-columns:1fr}.jar365-editor-head{gap:10px}.jar365-editor-total{font-size:37px}.jar365-editor-head h2{font-size:38px}}
+@media(max-width:390px){.jar365-editor-head{flex-direction:column}.jar365-editor-total{display:none}.jar365-editor-tools input,.jar365-editor-tools select{width:100%}.jar365-editor-tools button{flex:1}}

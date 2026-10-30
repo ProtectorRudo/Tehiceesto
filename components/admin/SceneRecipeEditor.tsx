@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { SceneType } from "@/data/experiences";
 
 const catalog: { type: SceneType; label: string; hint: string }[] = [
+  { type:"jar365",label:"Frasco 365",hint:"365 papelitos y apertura diaria de contenido" },
   { type:"day1",label:"Día 1 · Asalto de besos",hint:"Gatito Mimo" },
   { type:"day2",label:"Día 2 · Ridículamente besable",hint:"Conejita Luna" },
   { type:"day3",label:"Día 3 · El caso del corazón robado",hint:"Bruno detective" },

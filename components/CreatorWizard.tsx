@@ -333,7 +333,7 @@ export default function CreatorWizard() {
             {publicExperiences.map((item) => (
               <button
                 key={item.slug}
-                onClick={() => update("experience", item.slug)}
+                onClick={() => item.slug==="frasco365"?window.location.assign("/comprar/frasco365"):update("experience", item.slug)}
                 className={draft.experience === item.slug ? "selected" : ""}
                 style={{ "--choice-accent": item.accent } as React.CSSProperties}
               >
