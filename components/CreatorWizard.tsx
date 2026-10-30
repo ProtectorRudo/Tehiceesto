@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import ExperienceEngine from "@/components/ExperienceEngine";
+import CreatorExperienceGrid from "@/components/CreatorExperienceGrid";
 import { publicExperiences, getExperience } from "@/data/experiences";
 
 type Draft = {
@@ -289,8 +290,8 @@ export default function CreatorWizard() {
   const stepLabels = ["Momento", "Personas", "Historia", "Recuerdos", "Palabras", "Preview"];
 
   return (
-    <div className="creator-workspace">
-      <aside className="creator-rail">
+    <div className={step===0?"creator-workspace creator-workspace--gallery":"creator-workspace"}>
+      {step > 0 && <aside className="creator-rail">
         <div className="creator-rail-brand">
           <small>TE HICE ESTO · TALLER</small>
           <strong>{baseExperience.icon} {baseExperience.title}</strong>
@@ -318,38 +319,20 @@ export default function CreatorWizard() {
           </div>
           <button type="button" onClick={clearDraft}>Borrar borrador</button>
         </div>
-      </aside>
+      </aside>}
 
-      <div className="creator-card creator-card-wide">
-      <div className="creator-progress">
+      <div className={step===0?"creator-card creator-card-wide creator-card--gallery":"creator-card creator-card-wide"}>
+      {step > 0 && <div className="creator-progress">
         <span style={{ width: `${progress}%` }} />
-      </div>
+      </div>}
 
-      {step === 0 && (
-        <div className="creator-step">
-          <span className="eyebrow">01 · Elegí el momento</span>
-          <h1>¿Qué querés convertir en algo inolvidable?</h1>
-          <div className="choice-grid">
-            {publicExperiences.map((item) => (
-              <button
-                key={item.slug}
-                onClick={() => item.slug==="frasco365"?window.location.assign("/comprar/frasco365"):update("experience", item.slug)}
-                className={draft.experience === item.slug ? "selected" : ""}
-                style={{ "--choice-accent": item.accent } as React.CSSProperties}
-              >
-                <span>{item.icon}</span>
-                <div>
-                  <strong>{item.title}</strong>
-                  <small>{item.eyebrow}</small>
-                </div>
-              </button>
-            ))}
-          </div>
-          <button className="primary-action" onClick={() => setStep(1)}>
-            Continuar
-          </button>
-        </div>
-      )}
+      {step === 0 && <CreatorExperienceGrid experiences={publicExperiences} onChoose={slug=>{
+        if(slug==="frasco365"){window.location.assign("/comprar/frasco365");return;}
+        if(slug==="siete-dias"){window.location.assign("/comprar/siete-dias");return;}
+        update("experience",slug);
+        setStep(1);
+        window.scrollTo({top:0,behavior:"smooth"});
+      }} />}
 
       {step === 1 && (
         <div className="creator-step">
