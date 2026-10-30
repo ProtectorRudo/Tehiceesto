@@ -47,18 +47,18 @@ export default function Home() {
       </section>
 
       <section className="boutique-how" id="como-funciona" aria-labelledby="boutique-how-title">
-        <div className="boutique-section-head"><div><span className="boutique-kicker">ASÍ DE SIMPLE, ASÍ DE PERSONAL</span><h2 id="boutique-how-title">Vos ponés la historia.<br/><em>Nosotros hacemos la magia.</em></h2></div><p>Elegís la experiencia y pagás con solo dos datos. Después preparás los detalles del regalo con tranquilidad.</p></div>
+        <div className="boutique-section-head"><div><span className="boutique-kicker">ASÍ DE SIMPLE, ASÍ DE PERSONAL</span><h2 id="boutique-how-title">Vos ponés la historia.<br/><em>Nosotros hacemos la magia.</em></h2></div><p>Elegís la experiencia y pagás con solo dos datos. Después recibís el acceso por email, entrás a «Mis regalos» y personalizás vos mismo los mensajes, fotos y audios.</p></div>
         <div className="boutique-how-grid">
           <article><span className="boutique-how-index">01 /</span><div className="boutique-how-icon">◇</div><h3>Elegí su mundo.</h3><p>Explorá y probá nuestras experiencias. Quedate con la que más se parezca a esa persona.</p></article>
           <article><span className="boutique-how-index">02 /</span><div className="boutique-how-icon">✍</div><h3>Comprá en un momento.</h3><p>Solo dejás tu email y WhatsApp. Pagás con Mercado Pago, sin formularios largos.</p></article>
-          <article><span className="boutique-how-index">03 /</span><div className="boutique-how-icon">✦</div><h3>Personalizás después.</h3><p>Con el pago confirmado, agregás los recuerdos y mensajes. El diseño y sus efectos se mantienen.</p></article>
+          <article><span className="boutique-how-index">03 /</span><div className="boutique-how-icon">✦</div><h3>Personalizás después.</h3><p>Con el pago confirmado, recibís un email para entrar a «Mis regalos». Editás textos, fotos y audios y después publicás y compartís. El diseño y sus efectos se mantienen.</p></article>
           <article><span className="boutique-how-index">04 /</span><div className="boutique-how-icon">♡</div><h3>Le mandás el enlace.</h3><p>Lo abre desde su celular. Y descubre algo que no se parecía a ningún otro regalo.</p></article>
         </div>
       </section>
 
       <section className="boutique-escapes" id="escapes"><div><span className="boutique-kicker">PARA REGALOS INESPERADOS</span><h2>¿Y si su sorpresa<br/><em>fuera una aventura?</em></h2><p>Tres misterios para jugar. Al final del recorrido, una invitación personal que sólo ustedes entienden.</p><Link className="boutique-button boutique-button-light" href="/escapes">Explorar salas de escape <span aria-hidden="true">↗</span></Link></div><div className="boutique-escapes-card"><span>COLECCIÓN · MUNDOS SECRETOS</span><div className="boutique-escapes-orbit">✳</div><strong>TRES MISTERIOS.<br/>UNA HISTORIA<br/>PARA RECORDAR.</strong></div></section>
 
-      <section className="boutique-ending"><span className="boutique-kicker">SEGURO QUE YA SABÉS PARA QUIÉN</span><h2>Hay alguien que merece<br/><em>algo que sólo sea suyo.</em></h2><Link className="boutique-button boutique-button-dark" href="/crear">Hacer un regalo inolvidable <span aria-hidden="true">↗</span></Link><small>PERSONALIZADO POR NUESTRO EQUIPO · ENLACE PRIVADO · PENSADO PARA CELULAR</small></section>
+      <section className="boutique-ending"><span className="boutique-kicker">SEGURO QUE YA SABÉS PARA QUIÉN</span><h2>Hay alguien que merece<br/><em>algo que sólo sea suyo.</em></h2><Link className="boutique-button boutique-button-dark" href="/crear">Hacer un regalo inolvidable <span aria-hidden="true">↗</span></Link><small>PERSONALIZADO POR VOS · ACCESO PRIVADO POR EMAIL · PENSADO PARA CELULAR</small></section>
       <footer className="boutique-footer"><Link href="/" className="boutique-footer-brand">TE HICE ESTO <span>♥</span></Link><p>Regalos digitales que se sienten de verdad.</p><div><Link href="/mis-regalos">Mis regalos</Link><Link href="/crear">Crear un regalo</Link></div><span>ARGENTINA · 2026</span></footer>
     </main>
   );
