@@ -30,7 +30,7 @@ for(const size of [{name:"mobile-320",width:320,height:720},{name:"mobile-390",w
  await page.screenshot({path:path.join(dir,size.name+"-two-fields.png"),fullPage:true});
 
  let captured=null;
- await page.route("https://example.supabase.co/functions/v1/order-create",async route=>{
+ await page.route("**/api/checkout",async route=>{
    captured=JSON.parse(route.request().postData()||"{}");
    await route.fulfill({status:200,contentType:"application/json",headers:{"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"apikey,content-type"},
      body:JSON.stringify({code:"test123",priceMinor:2500000,currency:"ARS",checkoutReady:true,checkoutUrl:"https://www.mercadopago.com.ar/checkout/v1/redirect-test"})});
@@ -41,7 +41,7 @@ for(const size of [{name:"mobile-320",width:320,height:720},{name:"mobile-390",w
  if(!await buy.isEnabled())throw Error(size.name+": valid contact unexpectedly blocked");
  await buy.click();
  await page.waitForURL("**/checkout/v1/redirect-test",{timeout:10000});
- if(!captured||captured.customerName!==undefined||captured.email!=="prueba@example.com"||captured.whatsapp!=="5492215551234"||captured.consent!==true)
+ if(!captured||captured.customerName!==undefined||captured.affiliateToken!==undefined||captured.email!=="prueba@example.com"||captured.whatsapp!=="5492215551234"||captured.consent!==true)
   throw Error(size.name+": incorrect request "+JSON.stringify(captured));
  if(errors.length)throw Error(size.name+": JS errors "+errors.join(","));
  records.push({viewport:size.name,fields,validation:true,redirect:true,contactOnly:true});
