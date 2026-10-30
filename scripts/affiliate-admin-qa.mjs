@@ -20,7 +20,7 @@ assert(source[3].includes("tehiceesto.com/ref/"),"Influencer URL must use referr
 assert(!source[3].includes("return json(origin,{affiliate,initialPassword"),"Never return raw affiliate secret fields");
 assert(source[4].includes('.from("admin_access")'),"Admin login must look up the configured key in Supabase");
 assert(source[4].includes('.eq("secret_hash", secretHash)'),"Admin authentication must check the hash against the private table");
-assert(!/const\\s+expectedHash\\s*=/.test(source[4]),"Hardcoded administrator hashes are prohibited");
+assert(!source[4].includes("const expectedHash"),"Hardcoded administrator hashes are prohibited");
 assert(source[4].includes('admin_login_lookup_failed'),"Backend lookup errors must fail closed with diagnostics");
 
 
