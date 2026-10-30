@@ -44,3 +44,25 @@
   .demo-fullscreen-iframe{width:100%;box-shadow:none}
 }
 @media(prefers-reduced-motion:reduce){.demo-fullscreen *{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+
+/* Gentle, always-available secondary action on both demo collections. */
+.demo-expand-trigger{
+  appearance:none;display:inline-flex;align-items:center;justify-content:flex-start;
+  align-self:flex-start;gap:8px;
+  width:max-content;max-width:100%;min-height:34px;
+  padding:5px 9px;margin:0 0 13px -9px;
+  border:1px solid transparent;border-radius:10px;
+  background:transparent;color:#9b6281;
+  font-size:11px;font-weight:700;letter-spacing:.005em;
+  cursor:pointer;touch-action:manipulation;transition:color .2s,background .2s,border-color .2s;
+}
+.demo-expand-trigger svg{flex:none;color:#b63c73}
+.demo-expand-trigger:hover,.demo-expand-trigger:focus-visible{
+  color:#843253;background:#fff4f8;border-color:#ecd2dd;
+}
+.demo-expand-trigger:focus-visible{outline:2px solid #b62a65;outline-offset:2px}
+.ethos-card-gesture{margin-bottom:1px!important}
+.create-gallery-info>p{margin-bottom:8px!important}
+.create-gallery-info .demo-expand-trigger{margin-bottom:16px}
+@media(max-width:600px){.demo-expand-trigger{font-size:12px;min-height:40px}}
