@@ -24,6 +24,8 @@ for(const vp of [{name:"android-320",width:320,height:720},{name:"android-390",w
   assert.match(await page.locator(".club-door-sign").innerText(),/CLUB DE/);
   await stableCapture(page,vp.name+"-opening.png");
   await page.getByRole("button",{name:/TOCÁ PARA ENTRAR/}).click();
+  assert.equal(await page.locator(".club-door-scene.is-entering").count(),1,"Door should travel into the club");
+  await page.locator(".club-chapter h2").filter({hasText:/La banda/i}).waitFor({state:"visible",timeout:5000});
   assert.match(await page.locator(".club-chapter h2").innerText(),/La banda/i);
   await page.getByRole("button",{name:"Escuchar a Luna"}).click();
   assert.match(await page.locator(".club-speech-card").innerText(),/Luna dice/i);
