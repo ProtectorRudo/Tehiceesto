@@ -1,0 +1,33 @@
+name: Assisted commerce security and copy
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/functions/order-create/**"
+      - "supabase/functions/gift-account/**"
+      - "supabase/functions/creator-api/**"
+      - "components/QuickCheckout.tsx"
+      - "components/PostPurchase.tsx"
+      - "app/mis-regalos/**"
+      - "scripts/assisted-commerce-qa.mjs"
+      - ".github/workflows/assisted-commerce-qa.yml"
+  pull_request:
+    paths:
+      - "supabase/functions/order-create/**"
+      - "supabase/functions/gift-account/**"
+      - "supabase/functions/creator-api/**"
+      - "components/QuickCheckout.tsx"
+      - "components/PostPurchase.tsx"
+      - "app/mis-regalos/**"
+      - "scripts/assisted-commerce-qa.mjs"
+      - ".github/workflows/assisted-commerce-qa.yml"
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Assert assisted commerce invariants
+        run: node scripts/assisted-commerce-qa.mjs
