@@ -125,11 +125,14 @@ export default function PremiumOpeningIntro({experience,onContinue}:{experience:
   <div className="premium-grain"/><div className="premium-sparks" aria-hidden="true">{Array.from({length:hasBouquet?7:15},(_,i)=><span key={i} style={{"--n":i} as CSSProperties}>✦</span>)}</div>
   {hasBouquet&&<div className="premium-petal-field" aria-hidden="true">{driftingPetals.map((petal,i)=><i key={i} className="premium-floating-petal" style={{left:petal.x+"%",top:petal.y+"%","--fall-x":petal.dx+"px","--fall-y":petal.dy+"px","--fall-spin":petal.spin+"deg","--fall-delay":petal.delay+"s"} as CSSProperties}/>)}</div>
   <div className="premium-heading"><small>TE HICE ESTO ♡</small><p>{experience.demoGiver} <span>→</span> {experience.demoRecipient}</p><h1>{meta.headline}</h1></div>
-  <div className="premium-object" aria-hidden="true"><svg viewBox="0 0 600 720" xmlns="http://www.w3.org/2000/svg" className="premium-illustration"><ellipse cx="295" cy="687" rx="163" ry="17" fill="#7b5746" opacity=".12"/>{meta.mode==="flowers"?<Bouquet id={uid}/>:<Alternative mode={meta.mode}/>}</svg>
-    <div className="premium-tag"><small>UNA HISTORIA PARA</small><strong>{experience.demoRecipient}</strong><em>hecha con amor ♡</em></div>
+  <div className="premium-object">
+    {hasBouquet&&<div className="premium-bouquet-aura" aria-hidden="true"/>}
+    <svg viewBox="0 0 600 720" xmlns="http://www.w3.org/2000/svg" className="premium-illustration" aria-hidden="true"><ellipse cx="295" cy="687" rx="163" ry="17" fill="#7b5746" opacity=".12"/>{meta.mode==="flowers"?<Bouquet id={uid}/>:<Alternative mode={meta.mode}/>}</svg>
+    <div className="premium-tag" aria-hidden="true"><small>UNA HISTORIA PARA</small><strong>{experience.demoRecipient}</strong><em>hecha con amor ♡</em></div>
+    {hasBouquet&&<button type="button" className="premium-bouquet-touch" aria-label={"Tocar el ramo. "+meta.action} disabled={phase!=="sealed"} onClick={open}><span>TOCÁ LAS FLORES <b aria-hidden="true">✦</b></span></button>
   </div>
   <div className={"premium-note"+(revealed?" premium-note--visible":"")} aria-hidden={!revealed}><span>UNA DEDICATORIA, SÓLO PARA VOS</span><b aria-hidden="true">♡</b><h2>{experience.demoRecipient}</h2><p>{experience.opening}</p><div className="premium-rule">✦</div><button type="button" className="premium-continue" disabled={!revealed} tabIndex={revealed?0:-1} onClick={onContinue}>Entrá en tu historia <i>↗</i></button></div>
-  <div className="premium-controls"><p>{meta.kicker}</p><button type="button" className="premium-start" onClick={open} disabled={phase!=="sealed"}><span>✦</span> {meta.action} <span>↗</span></button><small>Tocá para descubrir lo que prepararon para vos</small></div>
+  <div className="premium-controls"><p>{meta.kicker}</p><button type="button" className="premium-start" onClick={open} disabled={phase!=="sealed"}><span>✦</span> {meta.action} <span>↗</span></button><small>{hasBouquet?"Tocá el ramo o abrí la tarjeta para descubrir tu mensaje":"Tocá para descubrir lo que prepararon para vos"}</small></div>
  </section>;
 }
 
