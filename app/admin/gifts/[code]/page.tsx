@@ -3,6 +3,7 @@ import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { getAdminGiftByCode } from "@/lib/gifts/repository";
 import { getExperience } from "@/data/experiences";
 import SceneRecipeEditor from "@/components/admin/SceneRecipeEditor";
+import Jar365StaffEditor from "@/components/Jar365StaffEditor";
 import AdminMediaManager from "@/components/admin/AdminMediaManager";
 import AdminPublishControls from "@/components/admin/AdminPublishControls";
 import { saveGiftContentAction } from "../actions";
@@ -37,6 +38,7 @@ export default async function AdminGiftEditorPage({
         <AdminPublishControls code={gift.public_code} status={gift.status} />
       </header>
 
+      {gift.experience_slug==="frasco365" && <Jar365StaffEditor code={gift.public_code} />}
       <section className="admin-editor-card">
         <div className="admin-block-heading">
           <div>
