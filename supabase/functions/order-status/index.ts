@@ -1,7 +1,4 @@
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const TEHICEESTO_PAYMENT_GATEWAY=Deno.env.get("TEHICEESTO_NATIVE_MP_ENABLED")==="true"
-  ? "https://efvvadfxuyieswdqnsjg.supabase.co/functions/v1/tehiceesto-checkout-native"
-  : "https://bwsgxpttnrctklrcjmjs.supabase.co/functions/v1/tehiceesto-checkout-v2";
 
 function defaultKey(envName: string) {
   try {
@@ -84,7 +81,7 @@ Deno.serve(async (req: Request) => {
     try{
       const checkoutAction=order.status==="approved"||(order.checkout_url&&order.provider_reference)?"sync-status":"create";
       const syncResponse=await fetch(
-        TEHICEESTO_PAYMENT_GATEWAY,
+        "https://efvvadfxuyieswdqnsjg.supabase.co/functions/v1/tehiceesto-checkout-native",
         {
           method:"POST",
           headers:{"content-type":"application/json"},
