@@ -113,6 +113,14 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
     return()=>{clearInterval(timer);document.removeEventListener("visibilitychange",onFocus);};
   },[load]);
   useEffect(()=>{try{const value=JSON.parse(localStorage.getItem(giftStorage)||"[]");if(Array.isArray(value))setFavorites(value.filter(Number.isInteger));}catch{}},[giftStorage]);
+  // A paper becomes available even if the recipient keeps the page open overnight.
+  useEffect(()=>{
+    if(demo||!state?.nextAt||state.available>0)return;
+    const millis=Date.parse(state.nextAt)-Date.now();
+    const timer=window.setTimeout(()=>void load(),Math.max(120,Math.min(millis+150,2147483600)));
+    return()=>window.clearTimeout(timer);
+  },[demo,load,state?.nextAt,state?.available]);
+
   const available=state?.available||0;
   const opened=state?.opened||[];
   const current=state?.openedCount||0;
