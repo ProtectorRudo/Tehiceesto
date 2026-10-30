@@ -36,3 +36,11 @@
 .club-stage:has(.club-night-scene) .club-chapter span,.club-stage:has(.club-finale-scene) .club-chapter span{color:#f3c992}
 .club-stage:has(.club-night-scene) .club-chapter p,.club-stage:has(.club-finale-scene) .club-chapter p{color:#d0b5a8}
 .club-stage:has(.club-night-scene):before,.club-stage:has(.club-finale-scene):before{box-shadow:inset 0 0 24px #07070b55}
+
+/* Offline/deferred images retain a designed placeholder instead of a blank frame. */
+.club-polaroid-visual{display:block;position:relative;aspect-ratio:1.02;background:radial-gradient(circle at 50% 35%,#fbe9c9,#d7b68d);overflow:hidden}
+.club-polaroid-visual>span{position:absolute;inset:0;display:grid;place-items:center;font-size:44px;color:#ac7845}
+.club-polaroid-visual img{position:absolute;inset:0;display:block;width:100%;height:100%;aspect-ratio:auto;object-fit:cover;z-index:1}
+.club-pet-fallback{position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(32px,10vw,55px);background:#e9d6b6;border-radius:50%}
+.club-pet-portrait img{position:relative;z-index:1}
+.club-pet-accessory{z-index:2}
