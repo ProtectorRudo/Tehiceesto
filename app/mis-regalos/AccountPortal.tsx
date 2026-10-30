@@ -11,6 +11,7 @@ type Gift = {
   status: string;
   experienceSlug: string;
   templateVersion: string;
+  assisted?: boolean;
   giverName: string;
   recipientName: string;
   purchasedAt: string;
@@ -42,7 +43,7 @@ const labels: Record<string, string> = {
 };
 
 function assisted(gift: Gift) {
-  return gift.experienceSlug.startsWith("escape-") ||
+  return gift.assisted === true || gift.experienceSlug.startsWith("escape-") ||
     (gift.experienceSlug === "pareja" && gift.templateVersion === "premium-v5");
 }
 function errorText(error: string) {
@@ -458,7 +459,7 @@ export default function AccountPortal() {
                       <h2>{gift.recipientName || "Una persona especial"}</h2>
                       <p>De {gift.giverName || "alguien especial"}</p>
                       <div className={styles.giftActions}>
-                        {assisted(gift) ? <span className={styles.assisted}>Nuestro equipo personaliza esta experiencia.</span> :
+                        {assisted(gift) ? <><span className={styles.assisted}>Nuestro equipo personaliza esta experiencia.</span><a href={"https://wa.me/5492215653163?text="+encodeURIComponent("Hola, quiero coordinar la personalización de mi regalo "+gift.code+" de Te Hice Esto.")} target="_blank" rel="noopener noreferrer">Coordinar por WhatsApp ↗</a></> :
                           <button disabled={Boolean(openingCode)} onClick={() => void openGift(gift)}>{openingCode === gift.code ? "Abriendo…" : "Editar mensajes →"}</button>}
                         {gift.status === "published" && <a href={(gift.experienceSlug.startsWith("escape-") ? "/escape-r/" : "/r/") + gift.code} target="_blank" rel="noopener noreferrer">Ver regalo ↗</a>}
                       </div>
