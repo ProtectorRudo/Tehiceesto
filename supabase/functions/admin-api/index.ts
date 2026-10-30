@@ -92,15 +92,15 @@ const allowedScenes = new Set([
 ]);
 
 const defaultRecipes: Record<string, string[]> = {
-  pareja:["intro","door","memories","stars","scratch","letter","finale"],
-  cumpleanos:["intro","candles","balloons","memories","voices","letter","finale"],
+  pareja:["intro","door","memories","voices","light","stars","scratch","hold","letter","finale"],
+  cumpleanos:["intro","candles","balloons","memories","light","voices","hold","letter","finale"],
   hijos:["intro","timeline","memories","light","stars","capsule","hold","letter","finale"],
   abuelos:["intro","archive","timeline","memories","home","voices","letter","legacy","finale"],
   aniversario:["intro","timeline","memories","rituals","chapters","letter","future","finale"],
   propuesta:["intro","origin","memories","reasons","certainty","letter","threshold","proposal"],
-  mama:["intro","childhood","memories","care","sacrifices","voices","letter","return","finale"],
+  mama:["intro","childhood","memories","care","sacrifices","voices","letter","finale"],
   papa:["intro","memories","lessons","presence","inheritance","voices","letter","lookback","finale"],
-  "mama-papa":["intro","childhood","memories","care","sacrifices","voices","letter","return","finale"],
+  "mama-papa":["intro","childhood","memories","care","sacrifices","voices","letter","finale"],
   amistad:["intro","casefile","memories","insidejokes","incidents","proof","letter","pact","finale"],
 };
 
@@ -131,13 +131,19 @@ Deno.serve(async (req: Request) => {
     }
 
     const secretHash = await sha256(accessKey);
-    const { data: access } = await supabase
+    // Match the configured administrator key from the private, RLS-protected table.
+    // No credential hashes belong in source code or deployment bundles.
+    const { data: access, error: accessError } = await supabase
       .from("admin_access")
       .select("id")
       .eq("name", "primary")
       .eq("secret_hash", secretHash)
       .maybeSingle();
 
+    if (accessError) {
+      console.error("admin_login_lookup_failed", accessError.code || "unknown");
+      return json(origin, { error: "admin_temporarily_unavailable" }, 503);
+    }
     if (!access) {
       await new Promise((resolve) => setTimeout(resolve, 500));
       return json(origin, { error: "invalid_credentials" }, 401);
@@ -172,14 +178,95 @@ Deno.serve(async (req: Request) => {
     return json(origin, { ok: true });
   }
 
+  if (action === "getCommerceSettings") {
+    const { data, error } = await supabase
+      .from("commerce_settings")
+      .select("default_price_minor,currency,auto_checkout_enabled,updated_at")
+      .eq("id", "default")
+      .maybeSingle();
+
+    if (error) return json(origin, { error: "commerce_settings_failed" }, 500);
+
+    return json(origin, {
+      settings: data || {
+        default_price_minor: null,
+        currency: "ARS",
+        auto_checkout_enabled: false,
+        updated_at: null,
+      },
+    });
+  }
+
+  if (action === "updateCommerceSettings") {
+    const rawPrice = body.defaultPriceMinor;
+    const defaultPriceMinor =
+      rawPrice === null || rawPrice === undefined || rawPrice === ""
+        ? null
+        : Number(rawPrice);
+    const autoCheckoutEnabled = body.autoCheckoutEnabled === true;
+
+    if (
+      defaultPriceMinor !== null &&
+      (!Number.isInteger(defaultPriceMinor) ||
+        defaultPriceMinor <= 0 ||
+        defaultPriceMinor > 2_000_000_000)
+    ) {
+      return json(origin, { error: "invalid_default_price" }, 400);
+    }
+
+    if (autoCheckoutEnabled && defaultPriceMinor === null) {
+      return json(origin, { error: "default_price_required" }, 400);
+    }
+
+    const { error } = await supabase
+      .from("commerce_settings")
+      .upsert(
+        {
+          id: "default",
+          default_price_minor: defaultPriceMinor,
+          currency: "ARS",
+          auto_checkout_enabled: autoCheckoutEnabled,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" },
+      );
+
+    if (error) return json(origin, { error: "commerce_settings_update_failed" }, 500);
+
+    return json(origin, {
+      ok: true,
+      settings: {
+        default_price_minor: defaultPriceMinor,
+        currency: "ARS",
+        auto_checkout_enabled: autoCheckoutEnabled,
+      },
+    });
+  }
+
   if (action === "listGifts") {
     const { data, error } = await supabase
       .from("gifts")
-      .select("public_code,status,experience_slug,giver_name,recipient_name,created_at,published_at")
+      .select("id,public_code,status,experience_slug,giver_name,recipient_name,created_at,published_at,story_data")
       .order("created_at", { ascending: false })
       .limit(100);
     if (error) return json(origin, { error: "list_failed" }, 500);
-    return json(origin, { gifts: data || [] });
+
+    const giftRows = data || [];
+    const giftIds = giftRows.map((gift) => gift.id);
+    const { data: orderRows } = giftIds.length
+      ? await supabase
+          .from("orders")
+          .select("gift_id,status,amount_minor,currency,provider,checkout_url")
+          .in("gift_id", giftIds)
+      : { data: [] as Record<string, unknown>[] };
+
+    const orderMap = new Map((orderRows || []).map((order: any) => [order.gift_id, order]));
+    const gifts = giftRows.map((gift) => {
+      const { id, ...safeGift } = gift;
+      return { ...safeGift, order: orderMap.get(id) || null };
+    });
+
+    return json(origin, { gifts });
   }
 
   if (action === "createGift") {
@@ -195,6 +282,7 @@ Deno.serve(async (req: Request) => {
       .insert({
         status: "draft",
         experience_slug: experienceSlug,
+        template_version: "premium-v1",
         giver_name: giverName,
         recipient_name: recipientName,
         occasion: String(body.occasion || "").trim() || null,
@@ -249,8 +337,15 @@ Deno.serve(async (req: Request) => {
     const safeGift = { ...gift };
     delete safeGift.id;
 
+    const { data: order } = await supabase
+      .from("orders")
+      .select("status,provider,provider_reference,checkout_url,amount_minor,currency,paid_at,created_at,updated_at")
+      .eq("gift_id", gift.id)
+      .maybeSingle();
+
     return json(origin, {
       gift: safeGift,
+      order: order || null,
       media: media.map((item) => ({
         ...item,
         url: signedMap.get(item.storage_path) || null,
@@ -275,6 +370,15 @@ Deno.serve(async (req: Request) => {
     try { scriptSize = JSON.stringify(script).length; } catch { return json(origin, { error: "invalid_script" }, 400); }
     if (scriptSize > 120000) return json(origin, { error: "script_too_large" }, 400);
 
+    const { data: existingGift } = await supabase
+      .from("gifts")
+      .select("story_data")
+      .eq("public_code", code)
+      .maybeSingle();
+    const existingStoryData = existingGift?.story_data && typeof existingGift.story_data === "object" && !Array.isArray(existingGift.story_data)
+      ? existingGift.story_data
+      : {};
+
     const { error } = await supabase
       .from("gifts")
       .update({
@@ -288,6 +392,7 @@ Deno.serve(async (req: Request) => {
         music_url: String(body.musicUrl || "").trim() || null,
         scene_recipe: recipe,
         story_data: {
+          ...existingStoryData,
           relationship: String(body.relationship || "").trim(),
           keyDate: String(body.keyDate || "").trim(),
           anecdote: String(body.anecdote || "").trim(),
@@ -298,6 +403,61 @@ Deno.serve(async (req: Request) => {
 
     if (error) return json(origin, { error: "update_failed" }, 500);
     return json(origin, { ok: true });
+  }
+
+  if (action === "saveSceneCopyOverride" || action === "removeSceneCopyOverride") {
+    let code: string;
+    try { code = cleanCode(body.code); } catch { return json(origin, { error: "invalid_code" }, 400); }
+
+    const scene = String(body.scene || "").trim();
+    const source = String(body.source || "").trim();
+    const replacement = String(body.replacement || "").trim();
+
+    if (!allowedScenes.has(scene) || !source || source.length > 5000 || replacement.length > 5000) {
+      return json(origin, { error: "invalid_scene_copy" }, 400);
+    }
+
+    const { data: gift, error: giftError } = await supabase
+      .from("gifts")
+      .select("id,story_data")
+      .eq("public_code", code)
+      .maybeSingle();
+    if (giftError) return json(origin, { error: "gift_lookup_failed" }, 500);
+    if (!gift) return json(origin, { error: "gift_not_found" }, 404);
+
+    const storyData = gift.story_data && typeof gift.story_data === "object" && !Array.isArray(gift.story_data)
+      ? { ...gift.story_data }
+      : {};
+    const rawSceneContent = storyData.sceneContent && typeof storyData.sceneContent === "object" && !Array.isArray(storyData.sceneContent)
+      ? storyData.sceneContent
+      : {};
+    const sceneContent: Record<string, Record<string,string>> = {};
+    for (const [sceneKey, entries] of Object.entries(rawSceneContent as Record<string, unknown>)) {
+      if (!entries || typeof entries !== "object" || Array.isArray(entries)) continue;
+      const clean: Record<string,string> = {};
+      for (const [sourceKey, value] of Object.entries(entries as Record<string,unknown>)) {
+        if (typeof value === "string" && sourceKey.trim()) clean[sourceKey]=value;
+      }
+      if (Object.keys(clean).length) sceneContent[sceneKey]=clean;
+    }
+
+    const sceneEntries = { ...(sceneContent[scene] || {}) };
+    if (action === "saveSceneCopyOverride") {
+      sceneEntries[source] = replacement;
+      sceneContent[scene] = sceneEntries;
+    } else {
+      delete sceneEntries[source];
+      if (Object.keys(sceneEntries).length) sceneContent[scene] = sceneEntries;
+      else delete sceneContent[scene];
+    }
+
+    const { error } = await supabase
+      .from("gifts")
+      .update({ story_data: { ...storyData, sceneContent } })
+      .eq("id", gift.id);
+    if (error) return json(origin, { error: "scene_copy_update_failed" }, 500);
+
+    return json(origin, { ok: true, sceneContent });
   }
 
   if (action === "prepareUpload") {
@@ -364,6 +524,7 @@ Deno.serve(async (req: Request) => {
         fit: "cover",
         position: "center",
         scene: defaultScene,
+        ...(String(body.kind || "") === "audio" ? { role: "voice" } : {}),
       },
     });
 
@@ -380,7 +541,7 @@ Deno.serve(async (req: Request) => {
     if (!gift) return json(origin, { error: "gift_not_found" }, 404);
 
     const { data: media } = await supabase
-      .from("gift_media").select("metadata").eq("id", mediaId).eq("gift_id", gift.id).maybeSingle();
+      .from("gift_media").select("kind,metadata").eq("id", mediaId).eq("gift_id", gift.id).maybeSingle();
     if (!media) return json(origin, { error: "media_not_found" }, 404);
 
     const fit = body.fit === "contain" ? "contain" : "cover";
@@ -391,12 +552,35 @@ Deno.serve(async (req: Request) => {
     const scene = recipe.includes(requestedScene)
       ? requestedScene
       : (String(media.metadata?.scene || "") || recipe[0] || "memories");
+    const role = media.kind === "audio" && String(body.role || "") === "soundtrack"
+      ? "soundtrack"
+      : media.kind === "audio"
+        ? "voice"
+        : undefined;
+
+    if (role === "soundtrack") {
+      const { data: otherAudio } = await supabase
+        .from("gift_media")
+        .select("id,metadata")
+        .eq("gift_id", gift.id)
+        .eq("kind", "audio")
+        .neq("id", mediaId);
+
+      for (const other of otherAudio || []) {
+        const { error: roleError } = await supabase
+          .from("gift_media")
+          .update({ metadata: { ...(other.metadata || {}), role: "voice" } })
+          .eq("id", other.id)
+          .eq("gift_id", gift.id);
+        if (roleError) return json(origin, { error: "media_soundtrack_role_failed" }, 500);
+      }
+    }
 
     const { error } = await supabase
       .from("gift_media")
       .update({
         caption: String(body.caption || "").trim() || null,
-        metadata: { ...(media.metadata || {}), fit, position, scene },
+        metadata: { ...(media.metadata || {}), fit, position, scene, ...(role ? { role } : {}) },
       })
       .eq("id", mediaId).eq("gift_id", gift.id);
 
@@ -435,15 +619,164 @@ Deno.serve(async (req: Request) => {
     return json(origin, { ok: true });
   }
 
+  if (action === "prepareAutomaticCheckout") {
+    let code: string;
+    try { code = cleanCode(body.code); } catch { return json(origin, { error: "invalid_code" }, 400); }
+
+    const amountMinor = Number(body.amountMinor);
+    if (!Number.isInteger(amountMinor) || amountMinor <= 0 || amountMinor > 2_000_000_000) {
+      return json(origin, { error: "invalid_amount" }, 400);
+    }
+
+    const { data: gift } = await supabase
+      .from("gifts")
+      .select("id,status,story_data")
+      .eq("public_code", code)
+      .maybeSingle();
+    if (!gift) return json(origin, { error: "gift_not_found" }, 404);
+    if (gift.status === "published") return json(origin, { error: "already_published" }, 409);
+
+    const { data: existing } = await supabase
+      .from("orders")
+      .select("id,status,payment_token")
+      .eq("gift_id", gift.id)
+      .maybeSingle();
+
+    if (existing?.status === "approved") {
+      return json(origin, { error: "payment_already_approved" }, 409);
+    }
+
+    let order;
+    if (existing) {
+      const { data, error } = await supabase
+        .from("orders")
+        .update({
+          provider: "mercadopago",
+          status: "pending",
+          amount_minor: amountMinor,
+          currency: "ARS",
+          paid_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id)
+        .select("payment_token")
+        .single();
+      if (error || !data) return json(origin, { error: "checkout_prepare_failed" }, 500);
+      order = data;
+    } else {
+      const { data, error } = await supabase
+        .from("orders")
+        .insert({
+          gift_id: gift.id,
+          provider: "mercadopago",
+          status: "pending",
+          amount_minor: amountMinor,
+          currency: "ARS",
+        })
+        .select("payment_token")
+        .single();
+      if (error || !data) return json(origin, { error: "checkout_prepare_failed" }, 500);
+      order = data;
+    }
+
+    if (gift.story_data?.creator?.submitted) {
+      await supabase.from("gifts").update({ status: "awaiting_payment" }).eq("id", gift.id);
+    }
+
+    return json(origin, {
+      paymentToken: order.payment_token,
+      amountMinor,
+      currency: "ARS",
+    });
+  }
+
+  if (action === "setPaymentStatus") {
+    let code: string;
+    try { code = cleanCode(body.code); } catch { return json(origin, { error: "invalid_code" }, 400); }
+
+    const status = String(body.status || "");
+    if (!["pending","approved","rejected","refunded","cancelled"].includes(status)) {
+      return json(origin, { error: "invalid_payment_status" }, 400);
+    }
+
+    const rawAmount = body.amountMinor;
+    const amountMinor = rawAmount === null || rawAmount === undefined || rawAmount === ""
+      ? null
+      : Number(rawAmount);
+    if (amountMinor !== null && (!Number.isInteger(amountMinor) || amountMinor < 0 || amountMinor > 2_000_000_000)) {
+      return json(origin, { error: "invalid_amount" }, 400);
+    }
+
+    const { data: gift } = await supabase
+      .from("gifts")
+      .select("id,status,story_data")
+      .eq("public_code", code)
+      .maybeSingle();
+    if (!gift) return json(origin, { error: "gift_not_found" }, 404);
+
+    const providerReference = String(body.providerReference || "").trim().slice(0, 200) || null;
+    const rawCheckoutUrl = String(body.checkoutUrl || "").trim().slice(0, 1000);
+    const checkoutUrl = rawCheckoutUrl && /^https:\/\//i.test(rawCheckoutUrl) ? rawCheckoutUrl : null;
+    if (rawCheckoutUrl && !checkoutUrl) return json(origin, { error: "invalid_checkout_url" }, 400);
+
+    const { data: existing } = await supabase
+      .from("orders")
+      .select("id")
+      .eq("gift_id", gift.id)
+      .maybeSingle();
+
+    const orderPatch = {
+      provider: "mercadopago",
+      provider_reference: providerReference,
+      checkout_url: checkoutUrl,
+      amount_minor: amountMinor,
+      currency: "ARS",
+      status,
+      paid_at: status === "approved" ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error: orderError } = existing
+      ? await supabase.from("orders").update(orderPatch).eq("id", existing.id)
+      : await supabase.from("orders").insert({ gift_id: gift.id, ...orderPatch });
+
+    if (orderError) return json(origin, { error: "payment_update_failed" }, 500);
+
+    if (gift.status !== "published" && gift.story_data?.creator?.submitted) {
+      const nextGiftStatus = status === "approved" ? "paid" : "awaiting_payment";
+      await supabase.from("gifts").update({ status: nextGiftStatus }).eq("id", gift.id);
+    }
+
+    return json(origin, { ok: true, status });
+  }
+
   if (action === "publish" || action === "unpublish") {
     let code: string;
     try { code = cleanCode(body.code); } catch { return json(origin, { error: "invalid_code" }, 400); }
 
+    const { data: gift } = await supabase
+      .from("gifts")
+      .select("id,status,story_data")
+      .eq("public_code", code)
+      .maybeSingle();
+    if (!gift) return json(origin, { error: "gift_not_found" }, 404);
+
     const published = action === "publish";
+    if (published && gift.story_data?.creator?.submitted) {
+      const { data: order } = await supabase
+        .from("orders")
+        .select("status")
+        .eq("gift_id", gift.id)
+        .maybeSingle();
+      if (order?.status !== "approved") {
+        return json(origin, { error: "payment_required" }, 409);
+      }
+    }
+
     const { error } = await supabase.from("gifts").update({
-      status: published ? "published" : "draft",
+      status: published ? "published" : (gift.story_data?.creator?.submitted ? "paid" : "draft"),
       published_at: published ? new Date().toISOString() : null,
-    }).eq("public_code", code);
+    }).eq("id", gift.id);
 
     if (error) return json(origin, { error: "publish_failed" }, 500);
     return json(origin, { ok: true });
