@@ -132,15 +132,10 @@ async function assertStudioAccess(
     .maybeSingle();
 
   if (error || !gift) throw new Error("studio_not_found");
-  // Escape-room customers receive an assisted experience, not an editable template.
-  if (String(gift.experience_slug||"").startsWith("escape-")) throw new Error("studio_not_found");
-  // Pareja v5 is assembled by our team. Existing paid editable gifts remain unaffected.
-  if (gift.template_version === "premium-v5" && gift.experience_slug === "pareja") throw new Error("studio_not_found");
+  // Only verified buyers with approved payments and a valid editor token can edit.
 
   const story = storyObject(gift.story_data);
   const creator = storyObject(story.creator);
-  // Team-assisted orders are never accessible through the customer editor.
-  if (creator.mode === "assisted") throw new Error("studio_not_found");
   const hashes = new Set<string>();
   const primaryHash = String(creator.editorTokenHash || "").trim().toLowerCase();
   if (/^[a-f0-9]{64}$/.test(primaryHash)) hashes.add(primaryHash);
@@ -493,32 +488,8 @@ Deno.serve(async (req: Request) => {
   }
 
   if (action === "saveStudioRecipe") {
-    let code: string;
-    try { code = cleanCode(body.code); } catch { return json(origin, { error: "invalid_code" }, 400); }
-
-    try {
-      const { gift, story } = await assertStudioAccess(supabase, code, body.editorToken);
-      // Keep the original scene designs immutable while letting each customer
-      // omit optional chapters. Introduction and finale remain mandatory.
-      const recipe = cleanStudioRecipe(canonicalRecipeForGift(gift, story), body.sceneRecipe);
-      if (recipe.length < 2) return json(origin, { error: "recipe_too_short" }, 400);
-
-      const { error } = await supabase
-        .from("gifts")
-        .update({
-          scene_recipe: recipe,
-          story_data: {
-            ...story,
-            creator: { ...(story.creator || {}), lastEditedAt: new Date().toISOString() },
-          },
-        })
-        .eq("id", gift.id);
-      if (error) return json(origin, { error: "studio_recipe_failed" }, 500);
-      return json(origin, { ok: true, sceneRecipe: recipe });
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : "studio_recipe_failed";
-      return json(origin, { error: reason }, reason === "payment_required" ? 409 : 401);
-    }
+    // Model scenes, order, transitions and effects are immutable for every buyer.
+    return json(origin, { error: "template_immutable" }, 409);
   }
 
   if (action === "saveStudioSceneText" || action === "restoreStudioSceneText") {
@@ -846,33 +817,12 @@ Deno.serve(async (req: Request) => {
         .select("kind,metadata")
         .eq("gift_id", gift.id);
 
-      const hasPhoto = (publishMedia || []).some((item) => item.kind === "image");
-      const hasVoice = (publishMedia || []).some(
-        (item) => item.kind === "audio" && item.metadata?.role !== "soundtrack",
-      );
-      const hasVideo = (publishMedia || []).some((item) => item.kind === "video");
-      const canonical = canonicalRecipeForGift(gift, story);
-      // Default to the complete premium model for new purchases, but respect
-      // the optional chapters this customer intentionally turned off.
-      let publishRecipe = cleanStudioRecipe(
-        canonical,
-        Array.isArray(gift.scene_recipe) ? gift.scene_recipe : canonical,
-      );
-
-      if (!["premium-v3","premium-v4","premium-v5"].includes(gift.template_version) && !hasPhoto) publishRecipe = publishRecipe.filter((scene) => scene !== "memories");
-      if (!["premium-v3","premium-v4","premium-v5"].includes(gift.template_version) && !hasVoice) publishRecipe = publishRecipe.filter((scene) => scene !== "voices");
-      if (!["premium-v3","premium-v4","premium-v5"].includes(gift.template_version) && !hasVideo) publishRecipe = publishRecipe.filter((scene) => scene !== "video");
-      if (canonical.includes("intro") && !publishRecipe.includes("intro")) publishRecipe.unshift("intro");
-      const terminal = canonical.includes("proposal") ? "proposal" : canonical.includes("finale") ? "finale" : canonical[canonical.length - 1];
-      if (terminal && !publishRecipe.includes(terminal)) publishRecipe.push(terminal);
-      publishRecipe = canonical.filter((scene) => publishRecipe.includes(scene));
-
+      // Preserve the purchased model's scenes regardless of uploaded media.
       const { error } = await supabase
         .from("gifts")
         .update({
           status: "published",
           published_at: gift.published_at || new Date().toISOString(),
-          scene_recipe: publishRecipe,
           story_data: {
             ...story,
             creator: {
