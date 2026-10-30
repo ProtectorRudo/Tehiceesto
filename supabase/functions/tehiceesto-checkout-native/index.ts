@@ -226,9 +226,9 @@ Deno.serve(async(req:Request)=>{
       }],
       config:{
         online:{
-          success_url:`https://tehiceesto.com/pedido/${code}?pago=exitoso`,
-          pending_url:`https://tehiceesto.com/pedido/${code}?pago=pendiente`,
-          failure_url:`https://tehiceesto.com/pedido/${code}?pago=fallido`,
+          success_url:`https://tehiceesto.com/mis-regalos?pedido=${code}&pago=exitoso`,
+          pending_url:`https://tehiceesto.com/mis-regalos?pedido=${code}&pago=pendiente`,
+          failure_url:`https://tehiceesto.com/mis-regalos?pedido=${code}&pago=fallido`,
           auto_return:"approved",
         },
         // Cuotas configuradas mediante parámetros admitidos por Checkout Pro Orders.
