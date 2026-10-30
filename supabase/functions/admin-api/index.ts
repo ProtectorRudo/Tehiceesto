@@ -385,8 +385,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const safeGift = { ...gift };
-    delete safeGift.id;
+    const safeGift = { ...gift }; // Admin-authenticated editor requires the internal gift id.
 
     const { data: order } = await supabase
       .from("orders")
@@ -423,12 +422,17 @@ Deno.serve(async (req: Request) => {
 
     const { data: existingGift } = await supabase
       .from("gifts")
-      .select("story_data")
+      .select("story_data,scene_recipe")
       .eq("public_code", code)
       .maybeSingle();
     const existingStoryData = existingGift?.story_data && typeof existingGift.story_data === "object" && !Array.isArray(existingGift.story_data)
       ? existingGift.story_data
       : {};
+    const isAssisted=existingStoryData?.creator?.mode==="assisted";
+    // Preserve every scene and transition of the purchased model.
+    if(isAssisted && JSON.stringify(recipe)!==JSON.stringify(existingGift?.scene_recipe||[])){
+      return json(origin,{error:"immutable_template"},409);
+    }
 
     const { error } = await supabase
       .from("gifts")
@@ -772,9 +776,14 @@ Deno.serve(async (req: Request) => {
 
     const { data: existing } = await supabase
       .from("orders")
-      .select("id")
+      .select("id,status,provider,amount_minor")
       .eq("gift_id", gift.id)
       .maybeSingle();
+    // A human cannot invent, cancel or rewrite a real Mercado Pago payment.
+    if((existing?.provider==="mercadopago"&&Number(existing.amount_minor)>0)||
+       ((amountMinor||0)>0&&status==="approved")){
+      return json(origin,{error:"provider_verified_payment_required"},409);
+    }
 
     const orderPatch = {
       provider: "mercadopago",
