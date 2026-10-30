@@ -42,10 +42,6 @@ const labels: Record<string, string> = {
   "escape-ultima-campanada": "Escape · Última campanada",
 };
 
-function assisted(gift: Gift) {
-  return gift.assisted === true || gift.experienceSlug.startsWith("escape-") ||
-    (gift.experienceSlug === "pareja" && gift.templateVersion === "premium-v5");
-}
 function errorText(error: string) {
   if (/invalid.login|invalid.credentials/i.test(error)) return "Ese correo y contraseña no coinciden.";
   if (/email.not.confirmed/i.test(error)) return "Confirmá tu correo desde el enlace que te enviamos.";
@@ -263,7 +259,7 @@ export default function AccountPortal() {
   };
 
   const openGift = async (gift: Gift) => {
-    if (!session || assisted(gift) || openingCode) return;
+    if (!session || openingCode) return;
     clearFeedback();
     setOpeningCode(gift.code);
     try {
@@ -396,7 +392,7 @@ export default function AccountPortal() {
               <div className={styles.studio}>
                 <button type="button" className={styles.back} onClick={() => { setStudio(null); setStudioData(null); clearFeedback(); }}>← Volver a mis regalos</button>
                 <div className={styles.studioHeading}>
-                  <span className={styles.eyebrow}>EDITAR CONTENIDO · SIN MODIFICAR EL DISEÑO</span>
+                  <span className={styles.eyebrow}>TU EXPERIENCIA · PERSONALIZÁ EL CONTENIDO</span>
                   <h2>{labels[gifts.find((gift) => gift.code === studio.code)?.experienceSlug || ""] || "Mi regalo"}</h2>
                   <p>Personalizá nombres y mensajes. Las escenas y animaciones originales permanecen iguales.</p>
                 </div>
@@ -453,14 +449,13 @@ export default function AccountPortal() {
                   <div className={styles.empty}><h2>Todavía no hay historias acá.</h2><p>Si compraste un regalo, asegurate de ingresar con el mismo correo de compra.</p><a className={styles.primary} href="/#experiencias">Explorar experiencias →</a></div> :
                   <div className={styles.giftGrid}>{gifts.map((gift, index) =>
                     <article className={styles.giftCard} key={gift.code}>
-                      <div className={styles.giftTop}><span>{String(index + 1).padStart(2, "0")} / TE HICE ESTO</span><span className={styles.giftState}>{gift.status === "published" ? "PUBLICADO" : assisted(gift) ? "EDICIÓN ASISTIDA" : "PARA PERSONALIZAR"}</span></div>
+                      <div className={styles.giftTop}><span>{String(index + 1).padStart(2, "0")} / TE HICE ESTO</span><span className={styles.giftState}>{gift.status === "published" ? "PUBLICADO" : "PARA PERSONALIZAR"}</span></div>
                       <div className={styles.giftArt} aria-hidden="true"><span>♡</span></div>
                       <span className={styles.eyebrow}>{labels[gift.experienceSlug] || gift.experienceSlug.replaceAll("-", " ")}</span>
                       <h2>{gift.recipientName || "Una persona especial"}</h2>
                       <p>De {gift.giverName || "alguien especial"}</p>
                       <div className={styles.giftActions}>
-                        {assisted(gift) ? <><span className={styles.assisted}>Nuestro equipo personaliza esta experiencia.</span><a href={"https://wa.me/5492215653163?text="+encodeURIComponent("Hola, quiero coordinar la personalización de mi regalo "+gift.code+" de Te Hice Esto.")} target="_blank" rel="noopener noreferrer">Coordinar por WhatsApp ↗</a></> :
-                          <button disabled={Boolean(openingCode)} onClick={() => void openGift(gift)}>{openingCode === gift.code ? "Abriendo…" : "Editar mensajes →"}</button>}
+                        <button disabled={Boolean(openingCode)} onClick={() => void openGift(gift)}>{openingCode === gift.code ? "Abriendo…" : "Editar mi experiencia →"}</button>
                         {gift.status === "published" && <a href={(gift.experienceSlug.startsWith("escape-") ? "/escape-r/" : "/r/") + gift.code} target="_blank" rel="noopener noreferrer">Ver regalo ↗</a>}
                       </div>
                     </article>
