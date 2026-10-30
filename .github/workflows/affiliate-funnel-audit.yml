@@ -1,0 +1,52 @@
+name: Affiliate referral and purchase integrity
+
+on:
+  pull_request:
+    paths:
+      - "app/afiliados/**"
+      - "app/ref/**"
+      - "app/api/checkout/**"
+      - "components/QuickCheckout.tsx"
+      - "components/CopyReferralLink.tsx"
+      - "lib/affiliates/**"
+      - "scripts/affiliate-integration-audit.mjs"
+      - ".github/workflows/affiliate-funnel-audit.yml"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 19
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install and prepare Chromium
+        run: |
+          npm ci
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Production build (mock public configuration)
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-public-dummy
+      - name: Run Next server
+        run: |
+          npm start -- -H 127.0.0.1 -p 3000 >/tmp/affiliate.log 2>&1 &
+          for i in {1..35}; do
+            if curl -fsS http://127.0.0.1:3000/afiliados >/dev/null;then exit 0;fi
+            sleep 2
+          done
+          cat /tmp/affiliate.log;exit 1
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-public-dummy
+      - name: Verify referral-safe checkout and partner login on mobile
+        run: node scripts/affiliate-integration-audit.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: affiliate-integration-screenshots
+          path: visual-affiliate-funnel/
+          retention-days: 7
