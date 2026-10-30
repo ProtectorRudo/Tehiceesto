@@ -36,9 +36,11 @@ export async function changeAffiliatePassword(formData:FormData){
  if(password.length<12||password!==confirm)redirect("/afiliados?change=1&error=password");
  const token=(await cookies()).get(AFFILIATE_SESSION_COOKIE)?.value;
  if(!token)redirect("/afiliados?error=credenciales");
+ let changed=false;
  try{
-  const changed=await callAffiliateBackend({action:"changePassword",password},token);
-  if(changed.ok)redirect("/afiliados");
+  const response=await callAffiliateBackend({action:"changePassword",password},token);
+  changed=response.ok;
  }catch{}
- redirect("/afiliados?change=1&error=password");
+ if(!changed)redirect("/afiliados?change=1&error=password");
+ redirect("/afiliados");
 }
