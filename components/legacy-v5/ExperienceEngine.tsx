@@ -277,7 +277,17 @@ export default function ExperienceEngine({experience,letterText,photoMedia,audio
           onContinue={next}
         />;
         return <section className="thi-scene thi-intro thi-scene-rich"><div className="thi-glow a"/><div className="thi-glow b"/><div className="thi-intro-constellation" aria-hidden="true"><i/><i/><i/><i/><i/><i/></div><p className="thi-kicker">{token(copy.intro.kicker)}</p><h1>{token(copy.intro.title)}</h1>{experience.slug==="pareja"?<p className="thi-intro-whisper">{token(copy.intro.footnote)}</p>:<div className="thi-hairline"/>}<p className="thi-lead">{token(copy.intro.lead)}</p><button data-action="advance" className="thi-primary thi-primary-premium" onClick={next}><span>{token(copy.intro.cta)}</span><b>→</b></button>{experience.slug!=="pareja"&&<small>{token(copy.intro.footnote)}</small>}</section>;
-      case"door":return experience.slug==="pareja"||experience.slug==="amistad"?<PairCinematicUmbral kicker={token(copy.door.kicker)} title={copy.door.title.map(line=>token(line))} cta={token(copy.door.openCta)} onOpen={openDoor} onAdvance={next} invitation={experience.slug==="amistad"?"Del otro lado nos esperan los recuerdos que solo nosotros entendemos.":undefined} recipient={experience.slug==="amistad"?experience.demoRecipient:undefined} />:<section className="thi-scene thi-scene-door thi-scene-rich"><p className="thi-kicker">{token(copy.door.kicker)}</p><h2>{titleLines(copy.door.title)}</h2><div className="thi-door-light" aria-hidden="true"/><div className="thi-door-floor" aria-hidden="true"/><button data-action="open-door" className={`thi-door-wrap ${doorOpen?"opening":""}`} onClick={openDoor}><span className="thi-door-frame"><span className="thi-door"><i/><b/></span><span className="thi-door-world"/></span></button>{!doorOpen?<p className="thi-hint">{token(copy.door.closedHint)}</p>:<button data-action="advance" className="thi-primary thi-door-enter" onClick={next}>{token(copy.door.openCta)}</button>}</section>;
+      case"door":return <PairCinematicUmbral
+        key={`${runId}-${sceneIndex}-door`}
+        kicker={token(copy.door.kicker)}
+        title={copy.door.title.map(line=>token(line))}
+        cta={token(copy.door.openCta)}
+        onOpen={openDoor}
+        onAdvance={next}
+        invitation={experience.slug==="amistad"?"Del otro lado nos esperan los recuerdos que solo nosotros entendemos.":undefined}
+        recipient={experience.slug==="amistad"?experience.demoRecipient:undefined}
+        tone={experience.slug==="amistad"?"friendship":experience.slug==="pareja"?"romance":"neutral"}
+      />;
       case"memories":{
         if(experience.slug==="mama"){
           const mamaMemoryItems=(displayPhotos.length?displayPhotos:memoryLines.map(caption=>({url:"",caption,fit:"cover" as const,position:"center" as const}))).slice(0,customerGift?20:3);
