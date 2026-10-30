@@ -1,4 +1,7 @@
 import { getAffiliateDashboard } from "@/lib/affiliates/dashboard";
+import {AFFILIATE_SESSION_COOKIE} from "@/lib/affiliates/backend";
+import {cookies} from "next/headers";
+import {redirect} from "next/navigation";
 import { loginAffiliate, logoutAffiliate,changeAffiliatePassword } from "./actions";
 import styles from "./afiliados.module.css";
 
@@ -21,6 +24,28 @@ export default async function AffiliadosPage({
   const session = dashboard?.affiliate||null;
   const { error,change } = await searchParams;
 
+  if(change==="1"){
+    // The backend intentionally blocks dashboard reads until the temporary
+    // password is replaced. Show this form to a browser holding a session;
+    // the server endpoint still validates that session before changing a password.
+    const jar=await cookies();
+    const hasSession=Boolean(jar.get(AFFILIATE_SESSION_COOKIE)?.value);
+    if(!hasSession)redirect("/afiliados?error=credenciales");
+
+    return <main className={styles.shell+" studio-page studio-affiliates-page"}>
+      <section className={styles.login}>
+        <span className={styles.kicker}>TE HICE ESTO · ACCESO SEGURO</span>
+        <h1>Protegé <em>tu cuenta.</em></h1>
+        <p>Para continuar, elegí una contraseña nueva de al menos 12 caracteres.</p>
+        <form action={changeAffiliatePassword} className={styles.form}>
+          <label><span>Contraseña nueva</span><input name="password" type="password" autoComplete="new-password" minLength={12} required/></label>
+          <label><span>Repetir contraseña</span><input name="confirm" type="password" autoComplete="new-password" minLength={12} required/></label>
+          {error&&<small className={styles.error}>Revisá que ambas contraseñas coincidan y tengan al menos 12 caracteres.</small>}
+          <button type="submit">Guardar y entrar al panel ↗</button>
+        </form>
+      </section>
+    </main>;
+  }
   if (!session) {
     return (
       <main className={styles.shell + " studio-page studio-affiliates-page"}>
@@ -49,21 +74,6 @@ export default async function AffiliadosPage({
     );
   }
 
-  if(change==="1"){
-    return <main className={styles.shell+" studio-page studio-affiliates-page"}>
-      <section className={styles.login}>
-        <span className={styles.kicker}>TE HICE ESTO · ACCESO SEGURO</span>
-        <h1>Protegé <em>tu cuenta.</em></h1>
-        <p>Para continuar, elegí una contraseña nueva de al menos 12 caracteres.</p>
-        <form action={changeAffiliatePassword} className={styles.form}>
-          <label><span>Contraseña nueva</span><input name="password" type="password" autoComplete="new-password" minLength={12} required/></label>
-          <label><span>Repetir contraseña</span><input name="confirm" type="password" autoComplete="new-password" minLength={12} required/></label>
-          {error&&<small className={styles.error}>Revisá que ambas contraseñas coincidan y tengan al menos 12 caracteres.</small>}
-          <button type="submit">Guardar y entrar al panel ↗</button>
-        </form>
-      </section>
-    </main>;
-  }
   const stats=dashboard!.stats;
   const links=dashboard!.links;
   const commissions=dashboard!.recentSales.map(item=>({
