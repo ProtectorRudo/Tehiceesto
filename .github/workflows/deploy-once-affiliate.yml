@@ -1,6 +1,7 @@
 name: Deploy affiliate system once
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
@@ -37,12 +38,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
-      - name: Install pinned Vercel CLI
+      - name: Install Vercel CLI
         run: npm install --no-save vercel@latest
 
       - name: Pull production project settings
