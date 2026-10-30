@@ -23,7 +23,7 @@ function cleanPhone(raw:string){
   // 54 9 + area code + number already works.
   return value;
 }
-function photo(slug:string){return "/demo-previews/"+slug+(slug==="frasco365"||slug==="siete-dias"?".svg":".jpg");}
+function photo(slug:string){return "/demo-previews/"+slug+(slug==="frasco365"||slug==="siete-dias"||slug==="club-amigos"?".svg":".jpg");}
 
 export default function QuickCheckout({experience}:Props){
   const [email,setEmail]=useState("");
