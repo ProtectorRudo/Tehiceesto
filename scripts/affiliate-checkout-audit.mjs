@@ -46,6 +46,17 @@ assert.match(text[3],/getAffiliateDashboard/,"Influencer dashboard must use work
 assert.match(text[4],/path:"\/afiliados",maxAge:0/,"Logout should delete same-path session cookie");
 assert.match(text[5],/affiliate-public/,"New panel uses active Supabase functions");
 assert.equal(text[0].includes("affiliateToken:"),false,"Browser must never set an arbitrary affiliate token");
+const [affiliatePublic,orderCreate]=await Promise.all([
+ fs.readFile("supabase/functions/affiliate-public/index.ts","utf8"),
+ fs.readFile("supabase/functions/order-create/index.ts","utf8"),
+]);
+assert.match(affiliatePublic,/if\(action==="track"\)/,"Referral tracker must remain versioned in GitHub");
+assert.match(affiliatePublic,/link\.status!=="active"/,"Disabled referral links must not be tracked");
+assert.match(affiliatePublic,/30\*24\*60\*60\*1000/,"Referral lifetime must remain 30 days");
+assert.match(affiliatePublic,/token_hash:tokenHash/,"Referral tokens must be stored as hashes");
+assert.match(orderCreate,/\.gt\("expires_at",now\)/,"Expired attribution must not create commission credit");
+assert.match(orderCreate,/commission_bps_snapshot:/,"Attribution must retain the sale-time commission percentage");
+
 results.push({case:"invalid referral",safe:true},{case:"checkout CSRF & invalid payload",safe:true},{case:"attribution contract",passed:true});
 await browser.close();
 await fs.mkdir("affiliate-qa",{recursive:true});
