@@ -16,7 +16,7 @@ export default function CreatePage() {
       <div className="studio-public-intro">
         <span className="studio-eyebrow">UNA HISTORIA QUE MERECE SU LUGAR</span>
         <h1>El regalo más lindo es <em>el que lleva algo de vos.</em></h1>
-        <p>Elegí una experiencia, dejá tu email y WhatsApp y pagá. Después la personalizamos para esa persona.</p>
+        <p>Elegí una experiencia y pagá. Recibí el acceso por email, entrá a «Mis regalos» y personalizá vos mismo los textos, las fotos y los audios antes de publicarla.</p>
         <div className="studio-trustbar"><span>Hecho a medida</span><span>Privado y personal</span><span>Para abrir desde el celular</span></div>
       </div>
       <CreatorWizard />
