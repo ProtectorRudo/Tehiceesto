@@ -71,11 +71,11 @@ export default function PostPurchase({code}:{code:string}){
      <span className="postpurchase-check" aria-hidden="true">✓</span>
      <span className="postpurchase-kicker">PAGO CONFIRMADO</span>
      <h1>¡Ya es <em>tuya!</em></h1>
-     <p>Tu compra está confirmada. Nuestro equipo va a preparar tu experiencia con los nombres, mensajes, fotos y recuerdos que quieras incluir, sin cambiar el diseño ni los efectos del modelo que elegiste.</p>
+     <p>Tu pago está confirmado. Te enviamos un email para que entres a «Mis regalos» y personalices tu experiencia con nombres, mensajes, fotografías y audios. El recorrido y los efectos del modelo permanecen intactos.</p>
      {shouldOffer&&<div className="postpurchase-offer" aria-label="Oferta opcional después de la compra">
        <span className="postpurchase-offer-kicker">ANTES DE TERMINAR · UNA SORPRESA MÁS</span>
        <div className="postpurchase-offer-head">
-        <div><h2>¿Sumamos una <em>carta secreta?</em></h2><p>Una carta extra con tus propias palabras, que nuestro equipo incorporará a la experiencia que elegiste.</p></div>
+        <div><h2>¿Sumamos una <em>carta secreta?</em></h2><p>Una carta adicional que vas a poder escribir y personalizar desde tu espacio privado.</p></div>
         <strong>+$10.000 <small>ARS</small></strong>
        </div>
        <button type="button" className="postpurchase-yes" disabled={actionBusy} onClick={()=>void act("accept")}>
@@ -89,9 +89,9 @@ export default function PostPurchase({code}:{code:string}){
        <p>No te cobramos nada adicional todavía. Podés continuar el pago seguro en Mercado Pago.</p>
        <a className="postpurchase-yes postpurchase-link" href={offer.checkoutUrl}>Continuar el pago de $10.000</a>
      </div>}
-     {completed&&<div className="postpurchase-thanks"><strong>♡ Tu carta extra también está confirmada.</strong><p>Nuestro equipo coordinará con vos el texto de esa carta y la incorporará antes de publicar la experiencia.</p></div>}
-     <a className="postpurchase-my" href={"https://wa.me/5492215653163?text="+encodeURIComponent("¡Hola! Ya pagué mi regalo en Te Hice Esto. Mi número de pedido es "+code+". Quiero coordinar su personalización con el equipo.")} target="_blank" rel="noopener noreferrer">Coordinar mi regalo por WhatsApp <span aria-hidden="true">↗</span></a>
-     <p className="postpurchase-assistance">Te confirmamos la compra en el correo que usaste. También podés escribirnos por WhatsApp para empezar a preparar tu regalo.</p>
+     {completed&&<div className="postpurchase-thanks"><strong>♡ Tu carta extra también está confirmada.</strong><p>Si elegís agregarla, vas a encontrarla dentro de «Mis regalos» una vez acreditado el pago adicional.</p></div>}
+     <Link href="/mis-regalos" className="postpurchase-my">Ir a Mis regalos y personalizar <span aria-hidden="true">↗</span></Link>
+     <p className="postpurchase-assistance">El enlace de acceso privado llega al correo de tu compra. Desde «Mis regalos» podés editar el contenido, publicar tu experiencia y compartirla. Si no encontrás el mensaje, revisá spam o pedí otro acceso.</p>
    </section>:
    <section className="postpurchase-panel">
      <span className="postpurchase-kicker">TU COMPRA ESTÁ EN PROCESO</span>
