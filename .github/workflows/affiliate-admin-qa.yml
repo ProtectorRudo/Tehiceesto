@@ -1,11 +1,21 @@
 name: Affiliate administration security and mobile QA
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "app/admin/affiliates/**"
+      - "lib/affiliates/admin-backend.ts"
+      - "supabase/functions/affiliate-admin/**"
+      - "supabase/functions/admin-api/**"
+      - "scripts/affiliate-admin-qa.mjs"
+      - ".github/workflows/affiliate-admin-qa.yml"
   pull_request:
     paths:
       - "app/admin/affiliates/**"
       - "lib/affiliates/admin-backend.ts"
       - "supabase/functions/affiliate-admin/**"
+      - "supabase/functions/admin-api/**"
       - "scripts/affiliate-admin-qa.mjs"
       - ".github/workflows/affiliate-admin-qa.yml"
 
