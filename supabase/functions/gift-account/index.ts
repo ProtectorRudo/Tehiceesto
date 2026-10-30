@@ -180,7 +180,7 @@ async function sendCustomAccessEmail(email:string,redirect:string,code:string,or
   brandedAccess.hash=new URLSearchParams({token_hash:hashedToken,type:verificationType}).toString();
   const ownerStory=gift?.story_data&&typeof gift.story_data==="object"?gift.story_data:{};
   const ownerCreator=ownerStory?.creator&&typeof ownerStory.creator==="object"?ownerStory.creator:{};
-  const assisted=ownerCreator?.mode==="assisted"||(gift?.template_version==="premium-v5"&&gift?.experience_slug==="pareja");
+  const assisted=false; // Every purchased model is customer-editable after verified payment.
   const mail=premiumMail(String(gift?.giver_name||""),String(gift?.experience_slug||""),
     brandedAccess.toString(),Boolean(code),assisted);
   const sender=(Deno.env.get("TEHICEESTO_EMAIL_FROM")||"Te Hice Esto <hola@tehiceesto.com>").trim();
@@ -190,13 +190,7 @@ async function sendCustomAccessEmail(email:string,redirect:string,code:string,or
       headers:{"authorization":"Bearer "+apiKey,"content-type":"application/json"},
       body:JSON.stringify({
         from:sender,to:[email],
-        ...(code&&!assisted?{
-          template:{id:"tehiceesto-bienvenida-compra",variables:{
-            CUSTOMER_NAME:String(gift?.giver_name||"").trim().split(/\s+/)[0]||"Hola",
-            EXPERIENCE_NAME:EXPERIENCE_NAMES[String(gift?.experience_slug||"")]||"personalizada",
-            ACCESS_LINK:brandedAccess.toString(),
-          }},
-        }:{subject:mail.subject,html:mail.html,text:mail.text}),
+        subject:mail.subject,html:mail.html,text:mail.text,
         reply_to:"hola@tehiceesto.com",
         tags:[{name:"product",value:"tehiceesto"},{name:"flow",value:code?"purchase":"account_recovery"}],
       }),
@@ -299,9 +293,7 @@ Deno.serve(async(req:Request)=>{
         status:gift.status,
         experienceSlug:gift.experience_slug,
         templateVersion:gift.template_version||"premium-v1",
-        assisted:(gift.story_data?.creator?.mode==="assisted")||
-          (gift.template_version==="premium-v5"&&gift.experience_slug==="pareja")||
-          String(gift.experience_slug||"").startsWith("escape-"),
+        assisted:false,
         giverName:gift.giver_name,
         recipientName:gift.recipient_name,
         publishedAt:gift.published_at,
@@ -341,11 +333,8 @@ Deno.serve(async(req:Request)=>{
       ?rawStory.creator as Record<string,unknown>
       :{};
 
-    // Read-only ownership is retained. Assisted buyers are never issued editor tokens.
-    if(rawCreator.mode==="assisted"||
-       (gift.template_version==="premium-v5"&&gift.experience_slug==="pareja")){
-      return json(origin,{ok:true,code,assisted:true});
-    }
+    // Ownership was verified using the authenticated buyer email and an approved order.
+    // Restore editor access to purchases incorrectly flagged as assisted without altering payment.
     const editorToken=newStudioToken();
     const editorTokenHash=await sha256(editorToken);
     const existingHashes:string[]=[];
@@ -360,6 +349,7 @@ Deno.serve(async(req:Request)=>{
     const editorTokenHashes=[...existingHashes.filter(hash=>hash!==editorTokenHash),editorTokenHash].slice(-8);
     const creator={
       ...rawCreator,
+      mode:"selfserve",
       editorTokenHash,
       editorTokenHashes,
       accountOpenedAt:new Date().toISOString(),
