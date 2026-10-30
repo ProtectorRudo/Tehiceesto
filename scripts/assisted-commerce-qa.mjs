@@ -9,6 +9,8 @@ const checkout=read("components/QuickCheckout.tsx");
 const post=read("components/PostPurchase.tsx");
 const home=read("app/page.tsx");
 const catalog=read("app/crear/page.tsx");
+const paymentBridge=read("supabase/functions/payment-bridge/index.ts");
+const admin=read("supabase/functions/admin-api/index.ts");
 
 assert.match(order,/mode:"selfserve"/,"All new purchases must create editable gifts");
 assert.match(order,/story_data:selfserveStory\(/,"Checkout records self-service purchase details");
@@ -46,4 +48,11 @@ assert.doesNotMatch(home,/PERSONALIZADO POR NUESTRO EQUIPO/,"Homepage must not p
 assert.match(home,/PERSONALIZADO POR VOS/,"Homepage must explain buyer personalization");
 assert.doesNotMatch(catalog,/Después la personalizamos/,"Catalog must not promise manual gift production");
 assert.match(catalog,/Mis regalos/,"Catalog must explain private editor access");
+
+assert.match(paymentBridge,/verifyProviderOrder\(providerOrderId,token,status,amountMinor/,"Non-pending provider status must be reconciled");
+assert.match(paymentBridge,/api\.mercadopago\.com\/v1\/orders\//,"Reconciliation must query authoritative Orders API");
+assert.match(paymentBridge,/data\.external_reference\|\|""\)!=="thi_"\+token/,"Provider order must match payment token");
+assert.match(paymentBridge,/verifiedProviderStatus\(raw,detail\)!==status/,"Attacker-supplied status may not override provider status");
+assert.match(paymentBridge,/Math\.round\(Number\(data\.total_amount\)\*100\)!==amountMinor/,"Payment amount must match original sale");
+assert.match(admin,/provider_verified_payment_required" }, 403/,"Admin must not set payment status");
 console.log("BUYER_SELF_SERVICE_ACCESS_AND_TEMPLATE_QA_PASS");
