@@ -98,7 +98,7 @@ export default async function AdminAffiliatesPage({searchParams}:{searchParams:P
        <input type="hidden" name="affiliateId" value={item.id}/><input type="hidden" name="status" value={item.status==="active"?"paused":"active"}/>
        <button className="ghost-action" type="submit">{item.status==="active"?"Pausar":"Activar"}</button>
       </form>
-      {Number(item.commission_available_minor||item.commission_pending_minor||0)>0&&
+      {Number(item.commission_available_minor||0)>0&&
        <form action={payAffiliateAction} className={styles.pay} style={{marginTop:12,display:"grid",gap:8}}>
         <input type="hidden" name="affiliateId" value={item.id}/>
         <label><span>Referencia de transferencia ya realizada</span><input name="reference" minLength={5} required placeholder="Comprobante externo"/></label>
