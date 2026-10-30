@@ -1,0 +1,56 @@
+name: Club de Amigos · 16 chapters mobile audit
+on:
+  push:
+    branches: [main]
+    paths:
+      - "components/ClubAmigosExperience.*"
+      - "components/ExperienceEngine.tsx"
+      - "data/experiences.ts"
+      - "components/CreatorExperienceGrid.tsx"
+      - "public/demo-previews/club-amigos.svg"
+      - "scripts/club-amigos-qa.mjs"
+      - ".github/workflows/club-amigos-audit.yml"
+  pull_request:
+    paths:
+      - "components/ClubAmigosExperience.*"
+      - "components/ExperienceEngine.tsx"
+      - "data/experiences.ts"
+      - "scripts/club-amigos-qa.mjs"
+      - ".github/workflows/club-amigos-audit.yml"
+jobs:
+  complete-experience:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies and chromium
+        run: |
+          npm install
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Compile production app
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-dummy-public-key
+      - name: Start local app
+        run: |
+          npm start -- -H 127.0.0.1 -p 3000 > /tmp/club-amigos.log 2>&1 &
+          for i in {1..35}; do
+            if curl -fsS http://127.0.0.1:3000/experiencias/club-amigos?embed=1 >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/club-amigos.log
+          exit 1
+      - name: Test all 16 chapters on mobile and desktop
+        run: node scripts/club-amigos-qa.mjs
+      - name: Preserve visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: club-amigos-16-chapters
+          path: visual-club-amigos/
+          retention-days: 14
