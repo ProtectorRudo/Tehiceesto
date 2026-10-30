@@ -1,7 +1,4 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-const TEHICEESTO_PAYMENT_GATEWAY=Deno.env.get("TEHICEESTO_NATIVE_MP_ENABLED")==="true"
-  ? "https://efvvadfxuyieswdqnsjg.supabase.co/functions/v1/tehiceesto-checkout-native"
-  : "https://bwsgxpttnrctklrcjmjs.supabase.co/functions/v1/tehiceesto-checkout-v2";
 
 const SUPABASE_URL=Deno.env.get("SUPABASE_URL")!;
 
@@ -119,7 +116,7 @@ async function ensureCheckout(order:{payment_token?:string|null;checkout_url?:st
   let checkoutUrl=typeof order.checkout_url==="string"&&order.checkout_url?order.checkout_url:null;
   if(!checkoutUrl&&enabled&&order.payment_token){
     try{
-      const response=await fetch(TEHICEESTO_PAYMENT_GATEWAY,{
+      const response=await fetch("https://efvvadfxuyieswdqnsjg.supabase.co/functions/v1/tehiceesto-checkout-native",{
         method:"POST",
         headers:{"content-type":"application/json"},
         body:JSON.stringify({action:"create",token:order.payment_token}),
