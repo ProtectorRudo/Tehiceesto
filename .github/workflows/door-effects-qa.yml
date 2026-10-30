@@ -1,0 +1,57 @@
+name: Shared cinematic door mobile audit
+on:
+  push:
+    branches: [main]
+    paths:
+      - "components/DoorAtmosphere.*"
+      - "components/legacy-v5/PairCinematicUmbral.*"
+      - "components/legacy-v5/ExperienceEngine.tsx"
+      - "components/ExperienceEngine.tsx"
+      - "components/ClubAmigosExperience.*"
+      - "scripts/door-effects-qa.mjs"
+      - ".github/workflows/door-effects-qa.yml"
+  pull_request:
+    paths:
+      - "components/DoorAtmosphere.*"
+      - "components/legacy-v5/PairCinematicUmbral.*"
+      - "components/legacy-v5/ExperienceEngine.tsx"
+      - "components/ClubAmigosExperience.*"
+      - "scripts/door-effects-qa.mjs"
+      - ".github/workflows/door-effects-qa.yml"
+jobs:
+  door-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install deps and Chromium
+        run: |
+          npm install
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Production build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-dummy-public-key
+      - name: Serve app
+        run: |
+          npm start -- -H 127.0.0.1 -p 3000 > /tmp/door-audit.log 2>&1 &
+          for i in {1..35}; do
+            if curl -fsS http://127.0.0.1:3000/experiencias/pareja?embed=1 >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/door-audit.log
+          exit 1
+      - name: Test doors, gestures, stage transitions on Android and desktop
+        run: node scripts/door-effects-qa.mjs
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cinematic-door-audit
+          path: visual-door-audit/
+          retention-days: 14
