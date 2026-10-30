@@ -50,3 +50,20 @@
 .linkBox{background:#fff6f8;color:#684454;border-color:#ecd7df}
 .linkBox code,.sources code{color:#874161}
 @media(max-width:700px){.dashboard{padding:95px 15px 45px}.shell{padding:104px 13px 40px}.login{padding:29px 23px}.header{align-items:flex-start}}
+
+/* Readable 30-day attribution overview, preserves the boutique presentation. */
+.insights{display:grid;grid-template-columns:1.25fr 1fr;gap:12px;max-width:1320px;margin:0 auto 12px}
+.insights .card{width:auto;margin:0}
+.insightSummary{margin:12px 0;font-size:13px;color:#725565}
+.trend{height:114px;display:flex;gap:4px;align-items:flex-end;border-bottom:1px solid #e9d7df;margin:19px 0 11px;padding-bottom:1px}
+.trendColumn{flex:1;min-width:2px;background:linear-gradient(0deg,#b52c67,#ecc8d8);border-radius:4px 4px 0 0}
+.insightFoot{font-size:11px;line-height:1.5;color:#88717d}
+.insights .funnel div{border-color:#f1e2e7}
+.insights .funnel span,.insights .funnel small{color:#856977;font-size:11px}
+.insights .funnel strong{font:600 14px "DM Sans",Arial,sans-serif;color:#503546}
+.heroStats article,.insights .card,.grid .card,.dashboard>.card{color:#4a3845}
+.tableWrap th{color:#836775}
+.tableWrap td{color:#614b58}
+.tableWrap th,.tableWrap td{border-color:#eedee6}
+.status_pending{color:#a23f68;border-color:#e2c2d0}
+@media(max-width:780px){.insights{grid-template-columns:1fr}.insights .card{padding:21px}}

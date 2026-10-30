@@ -1,6 +1,9 @@
-import { getAffiliateSession } from "@/lib/affiliate-auth";
-import { createAdminSupabase } from "@/lib/supabase/admin";
-import { loginAffiliate, logoutAffiliate } from "./actions";
+import CopyReferralLink from "@/components/CopyReferralLink";
+import { getAffiliateDashboard } from "@/lib/affiliates/dashboard";
+import {AFFILIATE_SESSION_COOKIE} from "@/lib/affiliates/backend";
+import {cookies} from "next/headers";
+import {redirect} from "next/navigation";
+import { loginAffiliate, logoutAffiliate,changeAffiliatePassword } from "./actions";
 import styles from "./afiliados.module.css";
 
 export const dynamic = "force-dynamic";
@@ -16,11 +19,34 @@ function money(minor: number | null | undefined) {
 export default async function AffiliadosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; change?: string }>;
 }) {
-  const session = await getAffiliateSession();
-  const { error } = await searchParams;
+  const dashboard = await getAffiliateDashboard();
+  const session = dashboard?.affiliate||null;
+  const { error,change } = await searchParams;
 
+  if(change==="1"){
+    // The backend intentionally blocks dashboard reads until the temporary
+    // password is replaced. Show this form to a browser holding a session;
+    // the server endpoint still validates that session before changing a password.
+    const jar=await cookies();
+    const hasSession=Boolean(jar.get(AFFILIATE_SESSION_COOKIE)?.value);
+    if(!hasSession)redirect("/afiliados?error=credenciales");
+
+    return <main className={styles.shell+" studio-page studio-affiliates-page"}>
+      <section className={styles.login}>
+        <span className={styles.kicker}>TE HICE ESTO · ACCESO SEGURO</span>
+        <h1>Protegé <em>tu cuenta.</em></h1>
+        <p>Para continuar, elegí una contraseña nueva de al menos 12 caracteres.</p>
+        <form action={changeAffiliatePassword} className={styles.form}>
+          <label><span>Contraseña nueva</span><input name="password" type="password" autoComplete="new-password" minLength={12} required/></label>
+          <label><span>Repetir contraseña</span><input name="confirm" type="password" autoComplete="new-password" minLength={12} required/></label>
+          {error&&<small className={styles.error}>Revisá que ambas contraseñas coincidan y tengan al menos 12 caracteres.</small>}
+          <button type="submit">Guardar y entrar al panel ↗</button>
+        </form>
+      </section>
+    </main>;
+  }
   if (!session) {
     return (
       <main className={styles.shell + " studio-page studio-affiliates-page"}>
@@ -49,21 +75,18 @@ export default async function AffiliadosPage({
     );
   }
 
-  const supabase = createAdminSupabase();
-  const [{ data: stats }, { data: links }, { data: commissions }] = await Promise.all([
-    supabase.from("affiliate_stats").select("*").eq("id", session.id).maybeSingle(),
-    supabase
-      .from("affiliate_links")
-      .select("id,code,label,status,created_at")
-      .eq("affiliate_id", session.id)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("affiliate_commissions")
-      .select("id,gross_amount_minor,commission_amount_minor,status,approved_at,created_at")
-      .eq("affiliate_id", session.id)
-      .order("created_at", { ascending: false })
-      .limit(12),
-  ]);
+  const stats=dashboard!.stats;
+  const last30=dashboard!.series||[];
+  const sources=Object.entries(dashboard!.sources||{}).sort((a,b)=>b[1].clicks-a[1].clicks).slice(0,6);
+  const maxDailyClicks=Math.max(1,...last30.map(day=>day.clicks));
+  const clicks30=last30.reduce((sum,day)=>sum+day.clicks,0);
+  const sales30=last30.reduce((sum,day)=>sum+day.sales,0);
+  const links=dashboard!.links;
+  const commissions=dashboard!.recentSales.map(item=>({
+    id:item.id,gross_amount_minor:item.saleAmountMinor,
+    commission_amount_minor:item.commissionAmountMinor,status:item.status,
+    approved_at:item.date,created_at:item.date,
+  }));
 
   const visitors = Number(stats?.unique_visitors || 0);
   const sales = Number(stats?.approved_sales || 0);
@@ -91,13 +114,13 @@ export default async function AffiliadosPage({
           <span>VENTAS CONFIRMADAS</span><strong>{sales}</strong><small>Pagos aprobados</small>
         </article>
         <article>
-          <span>FACTURACIÓN GENERADA</span><strong>{money(stats?.revenue_minor)}</strong><small>Atribuida a tus ventas</small>
+          <span>FACTURACIÓN GENERADA</span><strong>{money(Number(stats?.revenue_minor||0))}</strong><small>Atribuida a tus ventas</small>
         </article>
         <article className={styles.highlight}>
-          <span>COMISIÓN PENDIENTE</span><strong>{money(stats?.commission_pending_minor)}</strong><small>Lista para próxima liquidación</small>
+          <span>COMISIÓN PENDIENTE</span><strong>{money(Number(stats?.commission_pending_minor||0))}</strong><small>Lista para próxima liquidación</small>
         </article>
         <article>
-          <span>COMISIÓN PAGADA</span><strong>{money(stats?.commission_paid_minor)}</strong><small>Histórico liquidado</small>
+          <span>COMISIÓN PAGADA</span><strong>{money(Number(stats?.commission_paid_minor||0))}</strong><small>Histórico liquidado</small>
         </article>
       </section>
 
@@ -108,6 +131,7 @@ export default async function AffiliadosPage({
           {baseUrl ? (
             <>
               <div className={styles.linkBox}><code>{baseUrl}</code></div>
+              <CopyReferralLink url={baseUrl}/>
               <div className={styles.sources}>
                 <code>{baseUrl}?src=instagram</code>
                 <code>{baseUrl}?src=tiktok</code>
@@ -132,13 +156,36 @@ export default async function AffiliadosPage({
         </article>
       </section>
 
+      <section className={styles.insights}>
+        <article className={styles.card}>
+          <span className={styles.sectionLabel}>ÚLTIMOS 30 DÍAS</span>
+          <h2>Tu alcance, día a día.</h2>
+          <p className={styles.insightSummary}>{clicks30} clics registrados · {sales30} ventas confirmadas</p>
+          <div className={styles.trend} role="img" aria-label={"Clics diarios de los últimos 30 días, total "+clicks30}>
+            {last30.map(day=><div key={day.date} className={styles.trendColumn}
+              title={day.date+": "+day.clicks+" clics, "+day.sales+" ventas"}
+              style={{height:Math.max(4,(day.clicks/maxDailyClicks)*100)+"%"}}/>)}
+          </div>
+          <p className={styles.insightFoot}>Cada barra representa un día. Las ventas cuentan únicamente pagos aprobados.</p>
+        </article>
+        <article className={styles.card}>
+          <span className={styles.sectionLabel}>DÓNDE TE ENCUENTRAN</span>
+          <h2>Canales de origen.</h2>
+          <div className={styles.funnel}>
+            {sources.length?sources.map(([name,detail])=><div key={name}>
+              <span>{name==="directo"?"Directo / sin etiqueta":name}</span>
+              <strong>{detail.clicks} <small>clics</small> · {detail.sales} <small>ventas</small></strong>
+            </div>):<p className={styles.insightFoot}>Todavía no hay visitas registradas en los últimos 30 días.</p>}
+          </div>
+        </article>
+      </section>
       <section className={styles.card}>
         <div className={styles.sectionHead}>
           <div>
             <span className={styles.sectionLabel}>ÚLTIMAS COMISIONES</span>
             <h2>Movimientos</h2>
           </div>
-          <strong>{(session.commission_bps / 100).toFixed(0)}% por venta</strong>
+          <strong>{(session.commissionBps / 100).toFixed(0)}% por venta</strong>
         </div>
 
         {!commissions?.length ? (

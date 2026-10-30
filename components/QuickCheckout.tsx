@@ -49,9 +49,9 @@ export default function QuickCheckout({experience}:Props){
       const normalizedPhone=cleanPhone(phone);
       const key=experience.slug+":"+normalizedEmail+":"+normalizedPhone;
       if(requestRef.current?.key!==key)requestRef.current={id:crypto.randomUUID(),key};
-      const response=await fetch(projectUrl.replace(/\/$/,"")+"/functions/v1/order-create",{
+      const response=await fetch("/api/checkout",{
         method:"POST",cache:"no-store",
-        headers:{"apikey":publicKey,"content-type":"application/json"},
+        headers:{"content-type":"application/json"},
         body:JSON.stringify({
           experienceSlug:experience.slug,
           email:normalizedEmail,whatsapp:normalizedPhone,
