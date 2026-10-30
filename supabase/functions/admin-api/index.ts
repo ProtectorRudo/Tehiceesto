@@ -88,7 +88,7 @@ const allowedScenes = new Set([
   "origin","reasons","certainty","threshold",
   "childhood","care","sacrifices","return",
   "lessons","presence","inheritance","lookback",
-  "casefile","insidejokes","incidents","proof","pact"
+  "casefile","insidejokes","incidents","proof","pact","club"
 ]);
 
 const defaultRecipes: Record<string, string[]> = {
@@ -102,6 +102,7 @@ const defaultRecipes: Record<string, string[]> = {
   papa:["intro","memories","lessons","presence","inheritance","voices","letter","lookback","finale"],
   "mama-papa":["intro","childhood","memories","care","sacrifices","voices","letter","finale"],
   amistad:["intro","casefile","memories","insidejokes","incidents","proof","letter","pact","finale"],
+  "club-amigos":["club"],
 };
 
 Deno.serve(async (req: Request) => {
