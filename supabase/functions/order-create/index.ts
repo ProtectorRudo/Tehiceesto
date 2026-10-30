@@ -61,11 +61,6 @@ async function sha256(value:string){
   return Array.from(new Uint8Array(digest)).map(byte=>byte.toString(16).padStart(2,"0")).join("");
 }
 
-function createEditorToken(){
-  const bytes=crypto.getRandomValues(new Uint8Array(32));
-  return Array.from(bytes).map(byte=>byte.toString(16).padStart(2,"0")).join("");
-}
-
 async function requestFingerprint(req:Request){
   const forwarded=req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   const ip=forwarded||req.headers.get("cf-connecting-ip")||req.headers.get("x-real-ip")||"unknown";
@@ -79,37 +74,12 @@ function objectValue(value:unknown){
     :{};
 }
 
-function withEditorToken(storyValue:unknown,editorTokenHash:string,contact:{name:string;email:string;whatsapp:string},now:string,fingerprint:string,templateRecipe?:string[],templateVersion?:string){
-  const story=objectValue(storyValue);
-  const creator=objectValue(story.creator);
-  const hashes:string[]=[];
-  const primary=String(creator.editorTokenHash||"").trim().toLowerCase();
-  if(/^[a-f0-9]{64}$/.test(primary))hashes.push(primary);
-  if(Array.isArray(creator.editorTokenHashes)){
-    for(const item of creator.editorTokenHashes){
-      const hash=String(item||"").trim().toLowerCase();
-      if(/^[a-f0-9]{64}$/.test(hash)&&!hashes.includes(hash))hashes.push(hash);
-    }
-  }
-  const editorTokenHashes=[...hashes.filter(hash=>hash!==editorTokenHash),editorTokenHash].slice(-8);
-  return {
-    ...story,
-    creator:{
-      ...creator,
-      submitted:true,
-      mode:"selfserve",
-      editorTokenHash,
-      editorTokenHashes,
-      submittedAt:creator.submittedAt||now,
-      contact,
-      consentAt:creator.consentAt||now,
-      ipHash:creator.ipHash||fingerprint,
-      ...(templateRecipe?.length?{
-        templateVersion:templateVersion||"premium-v3",
-        templateRecipe:[...templateRecipe],
-      }:{}),
-    },
-  };
+// Purchase creation never grants browser editing credentials. The buyer gets
+// editor access only via their authenticated account after approved payment.
+function selfserveStory(contact:{name:string;email:string;whatsapp:string},now:string,
+  fingerprint:string,templateRecipe:string[],templateVersion:string){
+  return {creator:{submitted:true,mode:"selfserve",submittedAt:now,contact,
+    consentAt:now,ipHash:fingerprint,templateRecipe:[...templateRecipe],templateVersion}};
 }
 
 async function ensureCheckout(order:{payment_token?:string|null;checkout_url?:string|null},enabled:boolean){
@@ -248,16 +218,9 @@ Deno.serve(async(req:Request)=>{
         return reply(origin,{error:"request_conflict"},409);
       }
 
-      const editorToken=createEditorToken();
-      const editorTokenHash=await sha256(editorToken);
-      const nextStory=withEditorToken(
-        existingGift.story_data,
-        editorTokenHash,
-        {name:customerName,email,whatsapp},
-        now,
-        fingerprint,
-      );
-      await db.from("gifts").update({giver_name:customerName,story_data:nextStory}).eq("id",existingGift.id);
+      // Completed purchases are edited only after authenticated email access.
+      if(existingOrder.status!=="pending")return reply(origin,{error:"request_already_completed"},409);
+      // Checkout retries never rotate editor tokens or rewrite gift contents.
 
       const checkoutUrl=await ensureCheckout(existingOrder,commerce?.auto_checkout_enabled===true);
       const {count:attributionCount}=await db
@@ -272,7 +235,7 @@ Deno.serve(async(req:Request)=>{
         checkoutUrl,
         checkoutReady:Boolean(checkoutUrl),
         affiliateAttributed:(attributionCount||0)>0,
-        editorToken,
+
         reused:true,
       });
     }
@@ -307,19 +270,7 @@ Deno.serve(async(req:Request)=>{
         :null;
 
       if(existingOrder&&existingGift){
-        const editorToken=createEditorToken();
-        const editorTokenHash=await sha256(editorToken);
-        const nextStory=withEditorToken(
-          existingGift.story_data,
-          editorTokenHash,
-          {name:customerName,email,whatsapp},
-          now,
-          fingerprint,
-        );
-        await db.from("gifts")
-          .update({giver_name:customerName,story_data:nextStory})
-          .eq("id",existingGift.id);
-
+        // A pending retry does not modify the gift or grant editing rights.
         const checkoutUrl=await ensureCheckout(existingOrder,commerce?.auto_checkout_enabled===true);
         const {count:attributionCount}=await db
           .from("affiliate_order_attributions")
@@ -333,7 +284,7 @@ Deno.serve(async(req:Request)=>{
           checkoutUrl,
           checkoutReady:Boolean(checkoutUrl),
           affiliateAttributed:(attributionCount||0)>0,
-          editorToken,
+
           reused:true,
           retryRecovered:true,
         });
@@ -341,8 +292,6 @@ Deno.serve(async(req:Request)=>{
     }
   }
 
-  const editorToken=createEditorToken();
-  const editorTokenHash=await sha256(editorToken);
   const since=new Date(Date.now()-60*60*1000).toISOString();
   const {count}=await db
     .from("gifts")
@@ -361,15 +310,8 @@ Deno.serve(async(req:Request)=>{
       giver_name:customerName,
       recipient_name:"A definir",
       scene_recipe:recipes[experienceSlug],
-      story_data:withEditorToken(
-        {},
-        editorTokenHash,
-        {name:customerName,email,whatsapp},
-        now,
-        fingerprint,
-        recipes[experienceSlug],
-        versionForNewGift(experienceSlug),
-      ),
+      story_data:selfserveStory({name:customerName,email,whatsapp},now,
+        fingerprint,recipes[experienceSlug],versionForNewGift(experienceSlug)),
       theme_data:{},
     })
     .select("id,public_code")
@@ -407,6 +349,6 @@ Deno.serve(async(req:Request)=>{
     checkoutUrl,
     checkoutReady:Boolean(checkoutUrl),
     affiliateAttributed,
-    editorToken,
+
   });
 });
