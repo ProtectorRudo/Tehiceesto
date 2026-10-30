@@ -8,7 +8,7 @@ import "./jar365.css";
 type OpenedNote = Jar365Note & { openedAt?:string|null };
 type JarState = {
   recipient:string; giver:string; opened:OpenedNote[];
-  total:number; openedCount:number; available:number; startedAt:string|null;
+  total:number; openedCount:number; remaining?:number; available:number; startedAt:string|null;
   nextAt:string|null; serverNow:string;
 };
 type Props={experience:Experience;giftCode?:string;previewNotes?:Jar365Note[];};
@@ -25,14 +25,24 @@ function labelFor(category:string){
   return JAR365_CATEGORIES.find(c=>c.key===category)?.label || "Un papelito para vos";
 }
 function JarIllustration({progress,drawing}:{progress:number;drawing:boolean}){
-  const slips=useMemo(()=>Array.from({length:76},(_,i)=>{
+  // All 365 little papers have stable, distributed positions; an opened one disappears.
+  // Filling the entire glass (including its lower half) keeps the jar believable on mobile.
+  const slips=useMemo(()=>Array.from({length:365},(_,i)=>{
     const seed=(i*271+19)%1009;
-    return {x:74+(seed*37)%244,y:131+(seed*17)%205,angle:-35+(seed*7)%71,
+    const depth=(i*353+47)%1013;
+    return {
+      x:90+(seed*37)%247,
+      y:153+(depth*19)%253,
+      angle:-38+(seed*7)%77,
       color:JAR365_CATEGORIES[(i*7+(i%3))%JAR365_CATEGORIES.length].color,
-      width:38+seed%34};
+      width:30+seed%30,
+      height:16+(seed%9),
+    };
   }),[]);
+  const visibleSlips=slips.slice(0,Math.max(0,365-Math.min(365,progress)));
   return <svg className={"jar365-illustration"+(drawing?" is-drawing":"")} viewBox="0 0 430 490" role="img"
-    aria-label={"Frasco de vidrio con 365 papelitos de colores. "+progress+" abiertos."}>
+    data-paper-count={visibleSlips.length}
+    aria-label={"Frasco de vidrio con "+visibleSlips.length+" papelitos restantes. "+progress+" abiertos."}>
     <defs>
       <linearGradient id="jarGlass" x1="0" x2="1" y1="0" y2=".3"><stop offset="0" stopColor="#fff" stopOpacity=".74"/><stop offset=".26" stopColor="#eef7f5" stopOpacity=".19"/><stop offset=".7" stopColor="#fefdfb" stopOpacity=".07"/><stop offset="1" stopColor="#d2e7e4" stopOpacity=".47"/></linearGradient>
       <linearGradient id="jarCap" x1="0" y1="0" x2="0" y2="1"><stop stopColor="#f3d4b7"/><stop offset=".5" stopColor="#d6ab84"/><stop offset="1" stopColor="#b98f70"/></linearGradient>
@@ -51,10 +61,11 @@ function JarIllustration({progress,drawing}:{progress:number;drawing:boolean}){
     <path d="M95 126Q82 130 79 153L76 348Q76 404 115 425Q151 449 215 449Q285 449 317 425Q356 403 353 348L350 153Q348 132 334 126Z" fill="#e5eff0" opacity=".61" stroke="#b9c7c6" strokeWidth="3"/>
     <g clipPath="url(#jarInside)">
       <rect x="76" y="128" width="279" height="313" fill="#f7f1e9" opacity=".24"/>
-      {slips.map((s,i)=><g key={i} transform={`translate(${s.x} ${s.y}) rotate(${s.angle})`}>
-        <rect x={-s.width/2} y="-13" width={s.width} height="28" rx="2" fill={s.color} stroke="#a7837e" strokeOpacity=".22" strokeWidth="1"/>
-        <path d={`M${-s.width/2+4} 0 H${s.width/2-4}`} stroke="#fff" strokeOpacity=".65" strokeWidth="1"/>
-        {i%3===0&&<path d={`M${-s.width/2+9} 7 h${s.width-18}`} stroke="#765d6e" strokeOpacity=".23" strokeWidth=".8"/>}
+      {visibleSlips.map((s,i)=><g key={i} className="jar365-slip" transform={`translate(${s.x} ${s.y}) rotate(${s.angle})`}>
+        <rect x={-s.width/2} y={-s.height/2} width={s.width} height={s.height} rx="2.2"
+          fill={s.color} stroke="#9b8081" strokeOpacity=".3" strokeWidth=".9"/>
+        <path d={`M${-s.width/2+4} 0 H${s.width/2-5}`} stroke="#fffdf9" strokeOpacity=".67" strokeWidth=".95"/>
+        {i%4===0&&<path d={`M${s.width/2-9} ${-s.height/2} l7 6 -7 1z`} fill="#fff7f0" opacity=".5"/>}
       </g>)}
       <path d="M77 280Q155 315 222 303Q300 285 357 311V452H76Z" fill="#ecd0cf" opacity=".11"/>
     </g>
@@ -81,7 +92,7 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
   const demo=!giftCode;
   const [state,setState]=useState<JarState|null>(demo?{
     giver:experience.demoGiver,recipient:experience.demoRecipient,total:365,
-    opened:[],available:1,openedCount:0,startedAt:null,nextAt:null,serverNow:new Date().toISOString(),
+    opened:[],available:1,openedCount:0,startedAt:null,nextAt:null,remaining:365,serverNow:new Date().toISOString(),
   }:null);
   const [busy,setBusy]=useState(false);
   const [drawing,setDrawing]=useState(false);
@@ -125,6 +136,7 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
   const opened=state?.opened||[];
   const current=state?.openedCount||0;
   const nextMs=state?.nextAt?Date.parse(state.nextAt)-clock:0;
+  const remaining=Math.max(0,365-current);
   const progress=Math.round(current/365*100);
   const toggleFavorite=(position:number)=>{
     setFavorites(prev=>{
@@ -142,7 +154,7 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
       if(demo){
         const record=(previewNotes?.length===365?previewNotes:JAR365_SEED)[demoDay%365];
         note={...record,openedAt:new Date().toISOString()};
-        next={...(state as JarState),available:1,openedCount:current+1,opened:[...opened,note]};
+        next={...(state as JarState),available:current+1<365?1:0,remaining:Math.max(0,364-current),openedCount:current+1,opened:[...opened,note]};
         setDemoDay(n=>n+1);
       }else{
         const response=await fetch("/api/jar365",{method:"POST",headers:{"content-type":"application/json"},
@@ -184,14 +196,19 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
         <div className="jar365-ground-glow"/>
       </section>
       <section className="jar365-ritual">
-        {demo&&<span className="jar365-demo-notice">DEMO INTERACTIVA · PODÉS ABRIR MÁS DE UNO PARA PROBAR</span>}
+        {ready&&state&&<div className="jar365-inventory" aria-label="Progreso del frasco">
+          <div className="jar365-inventory-number"><strong>{remaining}</strong><span>papelitos que quedan</span></div>
+          <span className="jar365-inventory-divider" aria-hidden="true"/>
+          <div className="jar365-inventory-number"><strong>{current}</strong><span>que ya abriste</span></div>
+        </div>}
+        {demo&&<span className="jar365-demo-notice">DEMO INTERACTIVA · PODÉS PROBAR VARIAS APERTURAS</span>}
         {!ready?<p className="jar365-loading">Buscando tu papelito de hoy…</p>:<>
           {current>=365?<div className="jar365-ritual-copy"><strong>Ya abriste los 365.</strong><span>Ahora tenés un año entero de mensajes para volver a leer.</span></div>:
-          available>0?<div className="jar365-ritual-copy"><strong>{demo&&current===0?"Tu primer papelito está listo.":available===1?"Hay un papelito esperándote.":`Tenés ${available} papelitos por abrir.`}</strong><span>Tocá el frasco y descubrí lo que te tocó hoy.</span></div>:
+          available>0?<div className="jar365-ritual-copy"><strong>{demo&&current===0?"Tu primer papelito está listo.":"Hay un papelito esperándote."}</strong><span>Tocá el frasco y descubrí lo que te tocó hoy.</span></div>:
           <div className="jar365-ritual-copy"><strong>Por hoy, ya está. ♡</strong><span>El siguiente se libera en <b className="jar365-countdown">{formatCountdown(nextMs)}</b></span></div>}
           <button className="jar365-main-cta" type="button" onClick={()=>void draw()}
             disabled={!available||busy||drawing||current>=365}>
-            <span className="jar365-cta-icon">✉</span>{busy?"Sacando tu papelito…":available?"Sacar mi papelito":"Tu próximo papelito, mañana"} <span>♡</span>
+            <span className="jar365-cta-icon">✉</span>{busy?"Sacando tu papelito…":available?"Sacar mi papelito":current>=365?"Ya abriste todos":"Ya abriste el de hoy"} <span>♡</span>
           </button>
         </>}
         {error&&<p className="jar365-error" role="alert">{error}</p>}
@@ -201,7 +218,7 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
         <div className="jar365-progress-track" role="progressbar" aria-valuenow={current} aria-valuemin={0} aria-valuemax={365}>
           <i style={{width:progress+"%"}}/>
         </div>
-        <p className="jar365-progress-caption">Los que no abrís hoy se guardan. Nunca perdés tu turno.</p>
+        <p className="jar365-progress-caption">{demo?"En un regalo real se desbloquea uno nuevo cada 24 horas.":"Uno cada 24 horas. Los que todavía no abriste siguen guardados para vos."}</p>
       </section>
       <footer className="jar365-bottom">
         <span>365 DÍAS · 365 PEQUEÑAS RAZONES</span><span>HECHO CON CARIÑO, PARA UNA SOLA PERSONA ♡</span>
