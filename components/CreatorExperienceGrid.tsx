@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ScaledDemoFrame } from "@/components/BoutiqueGallery";
+import DemoFullscreen from "@/components/DemoFullscreen";
 import type { Experience } from "@/data/experiences";
 
 type Props = { experiences: Experience[]; onChoose: (slug: string) => void };
@@ -24,6 +25,7 @@ export default function CreatorExperienceGrid({experiences,onChoose}:Props) {
   const [playing,setPlaying]=useState<string|null>(null);
   const [ready,setReady]=useState(false);
   const [epoch,setEpoch]=useState(0);
+  const [fullscreen,setFullscreen]=useState<{slug:string;title:string}|null>(null);
   const sorted=[...experiences].sort((a,b)=>{
     const ai=order.indexOf(a.slug),bi=order.indexOf(b.slug);
     return (ai<0?100:ai)-(bi<0?100:bi);
@@ -34,6 +36,7 @@ export default function CreatorExperienceGrid({experiences,onChoose}:Props) {
     else {setPlaying(slug);setEpoch(0);}
   };
   const stop=()=>{setPlaying(null);setReady(false);};
+  const openFullscreen=(slug:string,title:string)=>{stop();setFullscreen({slug,title});};
 
   return <section className="create-gallery" aria-labelledby="create-gallery-title">
     <div className="create-gallery-heading">
@@ -74,6 +77,10 @@ export default function CreatorExperienceGrid({experiences,onChoose}:Props) {
             <span className="create-gallery-eyebrow">{item.eyebrow}</span>
             <h3>{item.title}</h3>
             <p>{highlights[item.slug]||item.short}</p>
+            <button className="demo-expand-trigger demo-expand-trigger--create" type="button" onClick={()=>openFullscreen(item.slug,item.title)} aria-label={"Ver "+item.title+" en pantalla completa"}>
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M8 3H4a1 1 0 0 0-1 1v4M16 3h4a1 1 0 0 1 1 1v4M8 21H4a1 1 0 0 1-1-1v-4M16 21h4a1 1 0 0 0 1-1v-4"/></svg>
+              Ver en pantalla completa
+            </button>
             <div className="create-gallery-actions">
               <button type="button" className="create-gallery-choose" onClick={()=>onChoose(item.slug)}>Elegir esta experiencia <span aria-hidden="true">↗</span></button>
               {!isPlaying&&<button type="button" className="create-gallery-try" onClick={()=>start(item.slug)}>Ver demo</button>}
@@ -83,6 +90,7 @@ export default function CreatorExperienceGrid({experiences,onChoose}:Props) {
         </article>;
       })}
     </div>
+    {fullscreen&&<DemoFullscreen slug={fullscreen.slug} title={fullscreen.title} onClose={()=>setFullscreen(null)} />}
     <p className="create-gallery-after">El diseño y los efectos se mantienen. Lo que hace único cada regalo es lo que vos quieras contar.</p>
   </section>;
 }
