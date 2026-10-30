@@ -1,3 +1,4 @@
+import CopyReferralLink from "@/components/CopyReferralLink";
 import { getAffiliateDashboard } from "@/lib/affiliates/dashboard";
 import {AFFILIATE_SESSION_COOKIE} from "@/lib/affiliates/backend";
 import {cookies} from "next/headers";
@@ -75,6 +76,11 @@ export default async function AffiliadosPage({
   }
 
   const stats=dashboard!.stats;
+  const last30=dashboard!.series||[];
+  const sources=Object.entries(dashboard!.sources||{}).sort((a,b)=>b[1].clicks-a[1].clicks).slice(0,6);
+  const maxDailyClicks=Math.max(1,...last30.map(day=>day.clicks));
+  const clicks30=last30.reduce((sum,day)=>sum+day.clicks,0);
+  const sales30=last30.reduce((sum,day)=>sum+day.sales,0);
   const links=dashboard!.links;
   const commissions=dashboard!.recentSales.map(item=>({
     id:item.id,gross_amount_minor:item.saleAmountMinor,
@@ -125,6 +131,7 @@ export default async function AffiliadosPage({
           {baseUrl ? (
             <>
               <div className={styles.linkBox}><code>{baseUrl}</code></div>
+              <CopyReferralLink url={baseUrl}/>
               <div className={styles.sources}>
                 <code>{baseUrl}?src=instagram</code>
                 <code>{baseUrl}?src=tiktok</code>
@@ -149,6 +156,29 @@ export default async function AffiliadosPage({
         </article>
       </section>
 
+      <section className={styles.insights}>
+        <article className={styles.card}>
+          <span className={styles.sectionLabel}>ÚLTIMOS 30 DÍAS</span>
+          <h2>Tu alcance, día a día.</h2>
+          <p className={styles.insightSummary}>{clicks30} clics registrados · {sales30} ventas confirmadas</p>
+          <div className={styles.trend} role="img" aria-label={"Clics diarios de los últimos 30 días, total "+clicks30}>
+            {last30.map(day=><div key={day.date} className={styles.trendColumn}
+              title={day.date+": "+day.clicks+" clics, "+day.sales+" ventas"}
+              style={{height:Math.max(4,(day.clicks/maxDailyClicks)*100)+"%"}}/>)}
+          </div>
+          <p className={styles.insightFoot}>Cada barra representa un día. Las ventas cuentan únicamente pagos aprobados.</p>
+        </article>
+        <article className={styles.card}>
+          <span className={styles.sectionLabel}>DÓNDE TE ENCUENTRAN</span>
+          <h2>Canales de origen.</h2>
+          <div className={styles.funnel}>
+            {sources.length?sources.map(([name,detail])=><div key={name}>
+              <span>{name==="directo"?"Directo / sin etiqueta":name}</span>
+              <strong>{detail.clicks} <small>clics</small> · {detail.sales} <small>ventas</small></strong>
+            </div>):<p className={styles.insightFoot}>Todavía no hay visitas registradas en los últimos 30 días.</p>}
+          </div>
+        </article>
+      </section>
       <section className={styles.card}>
         <div className={styles.sectionHead}>
           <div>
