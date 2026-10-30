@@ -56,6 +56,7 @@ export default async function AdminPage({
         </div>
         <div className="admin-header-actions">
           <a className="ghost-action" href="/admin/escapes">Invitaciones escape</a>
+          <a className="ghost-action" href="/admin/operaciones">Ventas y coordinación</a>
           <a className="ghost-action" href="/admin/affiliates">Referidos</a>
           <a className="primary-action" href="/admin/new">+ Nuevo regalo</a>
           <form action={logoutAdmin}>
@@ -81,8 +82,8 @@ export default async function AdminPage({
         </article>
         <article>
           <span>Modo de operación</span>
-          <strong>Híbrido</strong>
-          <small>Automatizamos lo repetible y revisamos lo premium.</small>
+          <strong>Asistido</strong>
+          <small>El equipo prepara cada experiencia modelo sin alterar su recorrido.</small>
         </article>
       </section>
 
