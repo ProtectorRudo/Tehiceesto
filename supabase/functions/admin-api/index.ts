@@ -333,7 +333,8 @@ Deno.serve(async (req: Request) => {
       .insert({
         status: "draft",
         experience_slug: experienceSlug,
-        template_version: "premium-v1",
+        template_version: ["pareja","mama","amistad"].includes(experienceSlug)?"premium-v5":
+          experienceSlug==="frasco365"?"jar365-v1":experienceSlug==="siete-dias"?"seven-days-v1":"premium-v3",
         giver_name: giverName,
         recipient_name: recipientName,
         occasion: String(body.occasion || "").trim() || null,
@@ -428,9 +429,8 @@ Deno.serve(async (req: Request) => {
     const existingStoryData = existingGift?.story_data && typeof existingGift.story_data === "object" && !Array.isArray(existingGift.story_data)
       ? existingGift.story_data
       : {};
-    const isAssisted=existingStoryData?.creator?.mode==="assisted";
-    // Preserve every scene and transition of the purchased model.
-    if(isAssisted && JSON.stringify(recipe)!==JSON.stringify(existingGift?.scene_recipe||[])){
+    // The established model is immutable for both assisted and legacy gifts.
+    if(JSON.stringify(recipe)!==JSON.stringify(existingGift?.scene_recipe||[])){
       return json(origin,{error:"immutable_template"},409);
     }
 
@@ -451,7 +451,7 @@ Deno.serve(async (req: Request) => {
           relationship: String(body.relationship || "").trim(),
           keyDate: String(body.keyDate || "").trim(),
           anecdote: String(body.anecdote || "").trim(),
-          script,
+          script: body.script&&typeof body.script==="object"&&!Array.isArray(body.script)?script:existingStoryData.script||{},
         },
       })
       .eq("public_code", code);
