@@ -22,6 +22,11 @@ assert(source[4].includes('.from("admin_access")'),"Admin login must look up the
 assert(source[4].includes('.eq("secret_hash", secretHash)'),"Admin authentication must check the hash against the private table");
 assert(!source[4].includes("const expectedHash"),"Hardcoded administrator hashes are prohibited");
 assert(source[4].includes('admin_login_lookup_failed'),"Backend lookup errors must fail closed with diagnostics");
+assert(source[4].includes('error: "provider_verified_payment_required" }, 403'),"Admin must never manually approve, cancel, refund or rewrite Mercado Pago orders");
+assert(!source[4].includes('paid_at: status === "approved"'),"Admin must not manufacture an approved payment timestamp");
+assert(source[4].includes('error:"immutable_template"'),"Gift admin cannot replace model scenes or alter their order");
+assert(source[4].includes('action === "listSales"'),"Keep operations dashboard available");
+
 
 
 const browser=await chromium.launch({headless:true,args:["--no-sandbox"]});
