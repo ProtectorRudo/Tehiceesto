@@ -12,7 +12,7 @@ function envDefault(name:string){
 const SECRET=envDefault("SUPABASE_SECRET_KEYS");
 // SYNCHRONIZED with frozen premium-v3 demo snapshot. Tests guard all nine journeys.
 function versionForNewGift(slug:string){
-  return slug==="frasco365"?"jar365-v1":slug==="siete-dias"?"seven-days-v1":slug.startsWith("escape-")?"escape-v1":["pareja","mama","amistad"].includes(slug)?"premium-v5":"premium-v3";
+  return slug==="club-amigos"?"club-v1":slug==="frasco365"?"jar365-v1":slug==="siete-dias"?"seven-days-v1":slug.startsWith("escape-")?"escape-v1":["pareja","mama","amistad"].includes(slug)?"premium-v5":"premium-v3";
 }
 
 const recipes:Record<string,string[]>={
@@ -27,6 +27,7 @@ const recipes:Record<string,string[]>={
   mama: ["intro","childhood","memories","care","sacrifices","voices","letter","finale"],
   papa: ["intro","memories","lessons","presence","inheritance","voices","letter","lookback","finale"],
   amistad: ["intro","door","casefile","memories","insidejokes","incidents","proof","puzzle","letter","pact","finale"],
+  "club-amigos": ["club"],
   "escape-caso-m": ["intro","letter","finale"],
   "escape-ultima-funcion": ["intro","letter","finale"],
   "escape-ultima-campanada": ["intro","letter","finale"],
