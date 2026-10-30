@@ -1,0 +1,26 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+const read = path => fs.readFileSync(path, "utf8");
+const order=read("supabase/functions/order-create/index.ts");
+const creator=read("supabase/functions/creator-api/index.ts");
+const account=read("supabase/functions/gift-account/index.ts");
+const buyer=read("app/mis-regalos/AccountPortal.tsx");
+const checkout=read("components/QuickCheckout.tsx");
+const post=read("components/PostPurchase.tsx");
+
+assert.match(order,/mode:"assisted"/,"New orders must be assisted");
+assert.match(order,/story_data:assistedStory\(/,"New orders use assisted story creation");
+assert.doesNotMatch(order,/\beditorTokenHash\b|\beditorToken,\b/,"Checkout must never grant buyer an editor credential");
+assert.match(order,/affiliateAttributed/,"Keep referral attribution");
+assert.match(order,/clientRequestId/,"Keep request idempotency");
+assert.match(creator,/creator.mode === "assisted"/,"Block editing for assisted gifts");
+assert.match(creator,/storyObject\(storyObject\(data.story_data\).creator\).mode === "assisted"/,"Block old draft mutations");
+assert.match(account,/rawCreator.mode==="assisted"/,"Do not grant buyer editing credentials from account");
+assert.match(account,/assisted:true/,"Assisted account must be read only");
+assert.match(account,/ownerCreator\?\.mode==="assisted"/,"Buyer email must reflect assisted workflow");
+assert.match(buyer,/gift.assisted === true/,"Buyer portal must respect backend assisted flag");
+assert.match(buyer,/Coordinar por WhatsApp/,"Buyer portal should offer contacting the team");
+assert.match(checkout,/nuestro equipo se pondrá en contacto/i,"Checkout must explain assisted purchase");
+assert.match(post,/Coordinar mi regalo por WhatsApp/,"After payment, direct customer to team");
+assert.doesNotMatch(post,/Ir a personalizar mi regalo/,"No selfservice CTA after purchase");
+console.log("ASSISTED_COMMERCE_SECURITY_AND_COPY_PASS");
