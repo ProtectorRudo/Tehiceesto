@@ -35,6 +35,10 @@ try {
     await page.waitForTimeout(900);
     await page.screenshot({path:path.join(output,entry.slug+"-"+entry.w+"-unfolding.png")});
     await intro.locator(".premium-note--visible").waitFor({state:"visible",timeout:4000});
+    // Wait for opacity/transform transitions, not just DOM visibility.
+    await page.waitForTimeout(1200);
+    const noteOpacity=await intro.locator(".premium-note--visible").evaluate(el=>Number(getComputedStyle(el).opacity));
+    assert.ok(noteOpacity>.98,"Dedication card must finish at full opacity");
     await page.screenshot({path:path.join(output,entry.slug+"-"+entry.w+"-letter.png")});
     assert.equal(await intro.locator(".premium-continue:not([disabled])").count(),1,"Dedication CTA must remain functional");
     await intro.locator(".premium-continue").click();
