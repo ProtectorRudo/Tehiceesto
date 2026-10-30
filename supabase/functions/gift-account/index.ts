@@ -85,30 +85,28 @@ function safeHtml(value:unknown){
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;",
   }[character]||character));
 }
-function premiumMail(name:string,experience:string,actionLink:string,isPurchase:boolean,assisted=false){
+function premiumMail(name:string,experience:string,actionLink:string,isPurchase:boolean){
   const firstName=safeHtml(name.trim().split(/\s+/)[0]||"");
   const experienceName=safeHtml(EXPERIENCE_NAMES[experience]||"personalizada");
   const link=safeHtml(actionLink);
-  const title=assisted&&isPurchase?"Tu sorpresa ya está en nuestras manos.":isPurchase?"Tu regalo ya está esperando que lo hagas tuyo.":"Tus recuerdos siguen esperándote.";
-  const intro=assisted&&isPurchase
-    ?"Gracias por confiar en Te Hice Esto. Tu pago está confirmado. Nuestro equipo va a preparar tu experiencia "+experienceName+" respetando el diseño, las animaciones y cada detalle del modelo. Contactanos con tu número de pedido para coordinar los nombres, mensajes, fotos y audios."
-    :isPurchase
-    ?"Gracias por confiar en Te Hice Esto. Tu compra está confirmada. Ahora empieza la parte más linda: transformar una idea en algo que alguien va a recordar para siempre."
-    :"Preparamos un acceso privado para que puedas continuar creando, editar o volver a compartir tus experiencias.";
+  const title=isPurchase?"Tu regalo ya está listo para personalizar.":"Tus recuerdos siguen esperándote.";
+  const intro=isPurchase
+    ?"Tu pago está confirmado. Ingresá a Mis regalos para personalizar tu experiencia "+experienceName+" con tus palabras, nombres, fotos y audios. El diseño, las escenas y los efectos ya están preparados. Después podés publicar y compartir el regalo desde tu cuenta."
+    :"Este acceso privado te permite continuar editando y compartiendo tus experiencias desde Mis regalos.";
   const greeting=firstName?"Hola, "+firstName+".":"Hola.";
-  const button=assisted&&isPurchase?"Consultar mi pedido":isPurchase?"Empezar a crear mi regalo":"Entrar a mis regalos";
+  const button=isPurchase?"Entrar a Mis regalos y editar":"Entrar a Mis regalos";
   const html=[
     '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>',
     '<body style="margin:0;background:#f5f1ec;color:#292321;font-family:Arial,Helvetica,sans-serif;">',
     '<div style="display:none;font-size:1px;max-height:0;overflow:hidden;opacity:0;">',
-    assisted&&isPurchase?'Tu pago fue confirmado y nuestro equipo se ocupará de la personalización.':isPurchase?'Tu pago fue confirmado. Tu experiencia privada está lista para personalizar.':'Tu acceso privado a Te Hice Esto está listo.',
+    isPurchase?'Tu compra está confirmada: entrá a Mis regalos para editar y compartir.':'Tu acceso privado a Te Hice Esto está listo.',
     '</div><div style="padding:34px 12px;"><table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:580px;margin:auto;border:1px solid #e9e0d7;background:#fffdf9;border-radius:20px;overflow:hidden;">',
     '<tr><td style="padding:36px 32px 22px;text-align:center;"><div style="font-size:12px;font-weight:700;letter-spacing:3px;color:#7d5853;">TE HICE ESTO</div>',
     '<div style="width:44px;height:1px;background:#d8a79d;margin:22px auto 0;"></div></td></tr>',
     '<tr><td style="padding:8px 38px 30px;"><div style="font-size:14px;color:#966e69;margin-bottom:14px;">',greeting,'</div>',
     '<h1 style="font-size:31px;line-height:1.18;letter-spacing:-.8px;font-family:Georgia,serif;font-weight:400;margin:0 0 22px;color:#302522;">',title,'</h1>',
     '<p style="font-size:15px;line-height:1.85;color:#685d57;margin:0 0 17px;">',intro,'</p>',
-    isPurchase?'<p style="font-size:14px;color:#88685e;margin:0 0 22px;">Tu experiencia '+experienceName+' ya tiene su espacio reservado. '+(assisted?'Coordiná la personalización con nosotros por WhatsApp: +54 9 221 565-3163.':'Podés agregar tus palabras, fotos y audios a tu ritmo.')+'</p>':'',
+    isPurchase?'<p style="font-size:14px;color:#88685e;margin:0 0 22px;">Tu experiencia '+experienceName+' ya tiene su espacio reservado. Podés agregar palabras, fotografías y audios a tu ritmo.</p>':'',
     '<div style="text-align:center;padding:14px 0 26px;"><a href="',link,'" style="background:#382a29;border-radius:40px;color:#ffffff;display:inline-block;font-weight:700;text-decoration:none;padding:17px 30px;font-size:14px;">',button,' &nbsp;→</a></div>',
     '<p style="color:#817772;font-size:13px;line-height:1.75;margin:0;">El acceso es personal. Por seguridad, no compartas este correo. No necesitás instalar nada ni recordar una contraseña.</p>',
     '</td></tr><tr><td style="padding:26px 32px;background:#f9f4ee;text-align:center;">',
@@ -117,7 +115,7 @@ function premiumMail(name:string,experience:string,actionLink:string,isPurchase:
     '</td></tr></table></div></body></html>'
   ].join("");
   const text=[greeting,title,intro,
-    isPurchase?assisted?"Nuestro equipo personalizará tu regalo. Para coordinar: WhatsApp +54 9 221 565-3163.":"Tu experiencia "+(EXPERIENCE_NAMES[experience]||"personalizada")+" está lista para personalizar.":"",
+    isPurchase?"Tu experiencia "+(EXPERIENCE_NAMES[experience]||"personalizada")+" está lista para personalizar desde Mis regalos.":"",
     button+": "+actionLink,
     "Este enlace es privado. No lo compartas.",
     "¿Necesitás ayuda? WhatsApp: +54 9 221 565-3163.",
@@ -178,11 +176,8 @@ async function sendCustomAccessEmail(email:string,redirect:string,code:string,or
   const brandedAccess=new URL(portalBase);
   if(gift?.public_code&&code)brandedAccess.searchParams.set("regalo",gift.public_code);
   brandedAccess.hash=new URLSearchParams({token_hash:hashedToken,type:verificationType}).toString();
-  const ownerStory=gift?.story_data&&typeof gift.story_data==="object"?gift.story_data:{};
-  const ownerCreator=ownerStory?.creator&&typeof ownerStory.creator==="object"?ownerStory.creator:{};
-  const assisted=false; // Every purchased model is customer-editable after verified payment.
   const mail=premiumMail(String(gift?.giver_name||""),String(gift?.experience_slug||""),
-    brandedAccess.toString(),Boolean(code),assisted);
+    brandedAccess.toString(),Boolean(code));
   const sender=(Deno.env.get("TEHICEESTO_EMAIL_FROM")||"Te Hice Esto <hola@tehiceesto.com>").trim();
   try{
     const response=await fetch("https://api.resend.com/emails",{
@@ -293,7 +288,6 @@ Deno.serve(async(req:Request)=>{
         status:gift.status,
         experienceSlug:gift.experience_slug,
         templateVersion:gift.template_version||"premium-v1",
-        assisted:false,
         giverName:gift.giver_name,
         recipientName:gift.recipient_name,
         publishedAt:gift.published_at,
