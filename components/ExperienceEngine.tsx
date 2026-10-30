@@ -7,6 +7,7 @@ import FriendshipScenes from "./FriendshipScenes";
 import PremiumOpeningIntro from "./PremiumOpeningIntro";
 import SecretExperience from "./SecretExperience";
 import ClubAmigosExperience from "./ClubAmigosExperience";
+import PairCinematicUmbral from "./legacy-v5/PairCinematicUmbral";
 import SevenDaysExperience from "./SevenDaysExperience";
 import Jar365Experience from "./Jar365Experience";
 import LegacyPremiumExperience,{restoredPremiumSlugs} from "./LegacyPremiumExperience";
@@ -472,17 +473,15 @@ function StandardExperienceEngine({
 
 
       case "door":
-        return (
-          <section className="scene scene-door">
-            <p className="scene-kicker">Hay algo del otro lado</p>
-            <h2>Todo empieza abriendo una puerta.</h2>
-            <button className="door-wrap" onClick={next} aria-label="Abrir la puerta">
-              <span className="door-glow" />
-              <span className="door"><i className="door-knob" /></span>
-            </button>
-            <p className="scene-hint">Tocá la puerta</p>
-          </section>
-        );
+        return <PairCinematicUmbral
+          kicker="Hay algo del otro lado"
+          title={["Todo empieza","abriendo una puerta."]}
+          cta="Seguir entrando"
+          invitation="Del otro lado hay una historia para vos."
+          onOpen={()=>{}}
+          onAdvance={next}
+          tone={experience.slug==="amistad"?"friendship":experience.slug==="pareja"?"romance":"neutral"}
+        />;
 
       case "memories":
         return (
