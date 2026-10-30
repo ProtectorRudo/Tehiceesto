@@ -245,10 +245,11 @@ async function creatorIpHash(req: Request) {
 async function assertDraft(supabase: ReturnType<typeof adminClient>, code: string) {
   const { data } = await supabase
     .from("gifts")
-    .select("id,status,scene_recipe,created_at")
+    .select("id,status,scene_recipe,created_at,story_data")
     .eq("public_code", code)
     .maybeSingle();
   if (!data || !["draft","awaiting_payment"].includes(data.status)) throw new Error("draft_not_found");
+  if (storyObject(storyObject(data.story_data).creator).mode === "assisted") throw new Error("draft_not_found");
   return data;
 }
 
@@ -948,6 +949,10 @@ Deno.serve(async (req: Request) => {
         existing.story_data && typeof existing.story_data === "object" && !Array.isArray(existing.story_data)
           ? existing.story_data
           : {};
+      // A public gift code is not authorization to edit a paid-for assisted order.
+      if (storyObject(storyObject(existingStory).creator).mode === "assisted") {
+        return json(origin, { error: "draft_locked" }, 409);
+      }
 
       const { error } = await supabase
         .from("gifts")
