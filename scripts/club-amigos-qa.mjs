@@ -8,6 +8,11 @@ const out="visual-club-amigos";
 await fs.mkdir(out,{recursive:true});
 const browser=await chromium.launch({headless:true,args:["--no-sandbox"]});
 const report=[];
+async function stableCapture(page,file){
+ await page.locator(".club-stage").evaluate(el=>Promise.all(el.getAnimations({subtree:false}).map(a=>a.finished.catch(()=>{}))));
+ await page.screenshot({path:path.join(out,file)});
+}
+
 for(const vp of [{name:"android-320",width:320,height:720},{name:"android-390",width:390,height:844},{name:"desktop-1440",width:1440,height:900}]){
   const page=await browser.newPage({viewport:{width:vp.width,height:vp.height},deviceScaleFactor:1,isMobile:vp.width<600,hasTouch:vp.width<600});
   const errors=[];
@@ -17,7 +22,7 @@ for(const vp of [{name:"android-320",width:320,height:720},{name:"android-390",w
   await page.locator(".club-experience").waitFor();
   assert.equal(await page.locator('[data-current-scene="club"]').count(),1);
   assert.match(await page.locator(".club-door-sign").innerText(),/CLUB DE/);
-  await page.screenshot({path:path.join(out,vp.name+"-opening.png")});
+  await stableCapture(page,vp.name+"-opening.png");
   await page.getByRole("button",{name:/TOCÁ PARA ENTRAR/}).click();
   assert.match(await page.locator(".club-chapter h2").innerText(),/La banda/i);
   await page.getByRole("button",{name:"Escuchar a Luna"}).click();
@@ -51,13 +56,13 @@ for(const vp of [{name:"android-320",width:320,height:720},{name:"android-390",w
       await page.getByRole("button",{name:/Revelar sorpresa/}).click();
       assert.equal(await page.locator(".club-gift-message").count(),1);
     }
-    if([4,8,12,14].includes(step))await page.screenshot({path:path.join(out,vp.name+"-scene-"+step+".png")});
+    if([4,8,12,14].includes(step))await stableCapture(page,vp.name+"-scene-"+step+".png");
     assert.equal(await page.locator(".club-step-number").innerText(),String(step+1).padStart(2,"0")+" / 16");
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+2),false,"Horizontal overflow at "+vp.name+" step "+step);
     await page.locator(".club-footer .club-primary").click();
   }
   assert.match(await page.locator(".club-finale-brand").innerText(),/AMIGOS POR SIEMPRE/);
-  await page.screenshot({path:path.join(out,vp.name+"-finale.png")});
+  await stableCapture(page,vp.name+"-finale.png");
   await page.getByRole("button",{name:/Volver a vivirlo/}).click();
   assert.equal(await page.locator(".club-step-number").innerText(),"01 / 16");
   assert.deepEqual(errors,[],"No browser exceptions");
