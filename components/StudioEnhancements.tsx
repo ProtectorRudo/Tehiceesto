@@ -5,6 +5,7 @@ import ExperienceEngine from "@/components/ExperienceEngine";
 import SevenDaysExperience from "@/components/SevenDaysExperience";
 import SevenDaysSharePanel from "@/components/SevenDaysSharePanel";
 import Jar365Editor from "@/components/Jar365Editor";
+import ExtraLetterEditor from "@/components/ExtraLetterEditor";
 import Jar365Experience from "@/components/Jar365Experience";
 import type { Jar365Note } from "@/data/jar365-notes";
 import VoiceRecorder from "@/components/VoiceRecorder";
@@ -279,6 +280,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
 
   return (
     <div className={styles.enhancement}>
+      <ExtraLetterEditor code={access.code} editorToken={access.editorToken} />
       {gift.experience_slug==="siete-dias" && <SevenDaysSharePanel code={access.code} editorToken={access.editorToken} />}
       {gift.experience_slug==="frasco365" && <Jar365Editor code={access.code} editorToken={access.editorToken} onNotesChange={(notes)=>{setJarNotes(notes);setJarPreviewVersion(version=>version+1);}} />}
       {gift.experience_slug!=="frasco365" && <section className={styles.studioSection}>
