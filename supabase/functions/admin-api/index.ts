@@ -746,68 +746,9 @@ Deno.serve(async (req: Request) => {
   }
 
   if (action === "setPaymentStatus") {
-    let code: string;
-    try { code = cleanCode(body.code); } catch { return json(origin, { error: "invalid_code" }, 400); }
-
-    const status = String(body.status || "");
-    if (!["pending","approved","rejected","refunded","cancelled"].includes(status)) {
-      return json(origin, { error: "invalid_payment_status" }, 400);
-    }
-
-    const rawAmount = body.amountMinor;
-    const amountMinor = rawAmount === null || rawAmount === undefined || rawAmount === ""
-      ? null
-      : Number(rawAmount);
-    if (amountMinor !== null && (!Number.isInteger(amountMinor) || amountMinor < 0 || amountMinor > 2_000_000_000)) {
-      return json(origin, { error: "invalid_amount" }, 400);
-    }
-
-    const { data: gift } = await supabase
-      .from("gifts")
-      .select("id,status,story_data")
-      .eq("public_code", code)
-      .maybeSingle();
-    if (!gift) return json(origin, { error: "gift_not_found" }, 404);
-
-    const providerReference = String(body.providerReference || "").trim().slice(0, 200) || null;
-    const rawCheckoutUrl = String(body.checkoutUrl || "").trim().slice(0, 1000);
-    const checkoutUrl = rawCheckoutUrl && /^https:\/\//i.test(rawCheckoutUrl) ? rawCheckoutUrl : null;
-    if (rawCheckoutUrl && !checkoutUrl) return json(origin, { error: "invalid_checkout_url" }, 400);
-
-    const { data: existing } = await supabase
-      .from("orders")
-      .select("id,status,provider,amount_minor")
-      .eq("gift_id", gift.id)
-      .maybeSingle();
-    // A human cannot invent, cancel or rewrite a real Mercado Pago payment.
-    if((existing?.provider==="mercadopago"&&Number(existing.amount_minor)>0)||
-       ((amountMinor||0)>0&&status==="approved")){
-      return json(origin,{error:"provider_verified_payment_required"},409);
-    }
-
-    const orderPatch = {
-      provider: "mercadopago",
-      provider_reference: providerReference,
-      checkout_url: checkoutUrl,
-      amount_minor: amountMinor,
-      currency: "ARS",
-      status,
-      paid_at: status === "approved" ? new Date().toISOString() : null,
-      updated_at: new Date().toISOString(),
-    };
-
-    const { error: orderError } = existing
-      ? await supabase.from("orders").update(orderPatch).eq("id", existing.id)
-      : await supabase.from("orders").insert({ gift_id: gift.id, ...orderPatch });
-
-    if (orderError) return json(origin, { error: "payment_update_failed" }, 500);
-
-    if (gift.status !== "published" && gift.story_data?.creator?.submitted) {
-      const nextGiftStatus = status === "approved" ? "paid" : "awaiting_payment";
-      await supabase.from("gifts").update({ status: nextGiftStatus }).eq("id", gift.id);
-    }
-
-    return json(origin, { ok: true, status });
+    // The administrator must not create, approve, refund, cancel or rewrite a payment.
+    // Mercado Pago's verified webhook + payment-bridge is the single source of truth.
+    return json(origin, { error: "provider_verified_payment_required" }, 403);
   }
 
   if (action === "publish" || action === "unpublish") {
