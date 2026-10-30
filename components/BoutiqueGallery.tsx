@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { Experience } from "@/data/experiences";
+import DemoFullscreen from "@/components/DemoFullscreen";
 
 type Props = { experiences: Experience[] };
 /** Render a 375px mobile viewport, then scale it to the preview phone. */
@@ -119,12 +120,14 @@ export default function BoutiqueGallery({ experiences }: Props) {
   const [epoch, setEpoch] = useState(0);
   const [index, setIndex] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const [fullscreen, setFullscreen] = useState<{slug:string;title:string}|null>(null);
   const start = (slug: string) => {
     setLoaded(false);
     if (active === slug) setEpoch((value) => value + 1);
     else { setActive(slug); setEpoch(0); }
   };
   const stop = () => {setActive(null); setLoaded(false);};
+  const openFullscreen=(slug:string,title:string)=>{stop();setFullscreen({slug,title});};
   const move = (direction: number) => {
     const track = trackRef.current;
     const first = track?.querySelector<HTMLElement>(".ethos-like-card");
@@ -198,6 +201,10 @@ export default function BoutiqueGallery({ experiences }: Props) {
               <div className="ethos-card-info">
                 <div className="ethos-card-information"><span className="ethos-card-eyebrow">{experience.eyebrow}</span>{isActive&&<span className="ethos-inline-live"><i/> DEMO EN VIVO</span>}<h3>{demo.title}</h3><p>{demo.mood}</p></div>
                 <p className="ethos-card-gesture">{demo.gesture}</p>
+                <button type="button" className="demo-expand-trigger" onClick={()=>openFullscreen(experience.slug,demo.title)} aria-label={"Ver "+demo.title+" en pantalla completa"}>
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M8 3H4a1 1 0 0 0-1 1v4M16 3h4a1 1 0 0 1 1 1v4M8 21H4a1 1 0 0 1-1-1v-4M16 21h4a1 1 0 0 0 1-1v-4"/></svg>
+                  Ver en pantalla completa
+                </button>
                 <div className="ethos-card-cta">
                   <button type="button" className="ethos-card-test" onClick={()=>start(experience.slug)}>{isActive?"↻  Reiniciar demo":"▶  Probar acá mismo"}</button>
                   {isActive && <button type="button" className="ethos-card-stop" onClick={stop}>Detener</button>}
@@ -208,6 +215,7 @@ export default function BoutiqueGallery({ experiences }: Props) {
           })}
         </div>
       </div>
+      {fullscreen&&<DemoFullscreen slug={fullscreen.slug} title={fullscreen.title} onClose={()=>setFullscreen(null)} />}
       <div className="ethos-carousel-footer">
         <div className="ethos-carousel-progress"><strong>{String(index+1).padStart(2,"0")}</strong><div className="ethos-carousel-progress-bar"><i style={{width:(((index+1)/experiences.length)*100)+"%"}} /></div><span>{String(experiences.length).padStart(2,"0")}</span></div>
         <p>La experiencia se maneja dentro del teléfono; las flechas cambian de regalo y podés seguir bajando por la Home.</p>
