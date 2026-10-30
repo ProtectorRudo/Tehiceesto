@@ -37,9 +37,13 @@ try {
 
     await page.locator(".premium-continue").click();
     await page.locator("main[data-scene='door']").waitFor({timeout:7500});
-    assert(await page.locator(".thi-door-wrap").count()===1, "Original door scene after gift changed");
+    assert(await page.locator(".pair-cinematic-umbral.is-closed .pcu-door-hit").count()===1, "Current cinematic door scene missing");
+    await page.locator(".pcu-door-hit").click();
+    await page.locator(".pair-cinematic-umbral.is-open").waitFor({timeout:4500});
+    await page.locator(".pcu-invitation [data-action='advance']").click();
+    await page.locator("main[data-scene='memories']").waitFor({timeout:5500});
     assert(errors.length===0, "Browser errors: "+errors.join(" | "));
-    results.push({mode,width,height,passed:true,opened:true,recipient:name,originalDoorPreserved:true,horizontalOverflow});
+    results.push({mode,width,height,passed:true,opened:true,recipient:name,cinematicDoorAndMemoriesPreserved:true,horizontalOverflow});
     await context.close();
   }
 } finally {
