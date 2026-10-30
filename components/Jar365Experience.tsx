@@ -171,7 +171,7 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
       <div className="jar365-intro">
         <span className="jar365-kicker"><span>✺</span> {demo?"UN REGALO QUE PODÉS PROBAR":"UN REGALO HECHO PARA VOS"} <span>✺</span></span>
         <h1>Un año de <em>cosas lindas</em><br/>para decirte.</h1>
-        <p className="jar365-lead">{demo?"365 papelitos. Uno para abrir cada día. Nada de frases hechas: cosas que una persona de verdad le diría a otra.":`${state?.giver||experience.demoGiver} te dejó 365 papelitos. Hay cosas para agradecerte, otras para recordarte y algunas sorpresas. Hoy podés descubrir una.`}</p>
+        <p className="jar365-lead">{demo?"365 papelitos para ir abriendo de a uno. Algunos dicen gracias, otros guardan una promesa y otros son simplemente cosas que me encantan de vos.":`${state?.giver||experience.demoGiver} te dejó 365 papelitos. Hay cosas para agradecerte, otras para recordarte y algunas sorpresas. Hoy podés descubrir una.`}</p>
       </div>
       <section className="jar365-stage" aria-label="Frasco de papelitos">
         <span className="jar365-stage-spark s1">✦</span><span className="jar365-stage-spark s2">✧</span>
@@ -187,7 +187,7 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
         {demo&&<span className="jar365-demo-notice">DEMO INTERACTIVA · PODÉS ABRIR MÁS DE UNO PARA PROBAR</span>}
         {!ready?<p className="jar365-loading">Buscando tu papelito de hoy…</p>:<>
           {current>=365?<div className="jar365-ritual-copy"><strong>Ya abriste los 365.</strong><span>Ahora tenés un año entero de mensajes para volver a leer.</span></div>:
-          available>0?<div className="jar365-ritual-copy"><strong>{demo&&current===0?"Tu primer papelito está listo.":available===1?"Hay un papelito esperándote.":`Tenés ${available} papelitos por abrir.`}</strong><span>Elegí uno de los que están en el frasco. La sorpresa aparece al desplegarlo.</span></div>:
+          available>0?<div className="jar365-ritual-copy"><strong>{demo&&current===0?"Tu primer papelito está listo.":available===1?"Hay un papelito esperándote.":`Tenés ${available} papelitos por abrir.`}</strong><span>Tocá el frasco y descubrí lo que te tocó hoy.</span></div>:
           <div className="jar365-ritual-copy"><strong>Por hoy, ya está. ♡</strong><span>El siguiente se libera en <b className="jar365-countdown">{formatCountdown(nextMs)}</b></span></div>}
           <button className="jar365-main-cta" type="button" onClick={()=>void draw()}
             disabled={!available||busy||drawing||current>=365}>
