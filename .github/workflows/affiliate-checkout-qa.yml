@@ -1,0 +1,49 @@
+name: Affiliate referral to checkout and panel audit
+
+on:
+  pull_request:
+    paths:
+      - "app/ref/**"
+      - "app/afiliados/**"
+      - "app/api/checkout/**"
+      - "components/QuickCheckout.tsx"
+      - "lib/affiliates/**"
+      - "scripts/affiliate-checkout-audit.mjs"
+      - ".github/workflows/affiliate-checkout-qa.yml"
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Next and browser
+        run: |
+          npm install
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Build with fake public keys (never charge customers)
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-public-dummy
+      - name: Start Next
+        run: |
+          npm start -- -H 127.0.0.1 -p 3000 >/tmp/affiliates.log 2>&1 &
+          for i in {1..35};do
+            if curl -fsS http://127.0.0.1:3000/afiliados >/dev/null;then exit 0;fi
+            sleep 2
+          done
+          cat /tmp/affiliates.log;exit 1
+      - name: Exercise influencer login, referral and secure checkout
+        run: node scripts/affiliate-checkout-audit.mjs
+      - name: Audit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: affiliate-checkout-qa
+          path: affiliate-qa/
+          retention-days: 7
