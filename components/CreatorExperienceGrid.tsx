@@ -43,7 +43,7 @@ export default function CreatorExperienceGrid({experiences,onChoose}:Props) {
       <div>
         <span className="create-gallery-kicker"><i aria-hidden="true">✦</i> 01 / ELEGÍ TU EXPERIENCIA</span>
         <h2 id="create-gallery-title">Primero elegí <em>cómo sorprender.</em></h2>
-        <p>Probá los recorridos reales, tocá sus escenas y elegí el que más te guste. Después lo hacemos personal con tus nombres, mensajes y recuerdos.</p>
+        <p>Probá los recorridos reales, tocá sus escenas y elegí el que más te guste. Solo necesitás tu email y WhatsApp para comprar. Después personalizás el regalo a tu ritmo.</p>
       </div>
       <div className="create-gallery-aside"><span>{String(sorted.length).padStart(2,"0")}</span><small>EXPERIENCIAS DISPONIBLES</small><b>Para vivir.<br/>No solo mirar.</b></div>
     </div>
@@ -82,7 +82,7 @@ export default function CreatorExperienceGrid({experiences,onChoose}:Props) {
               Ver en pantalla completa
             </button>
             <div className="create-gallery-actions">
-              <button type="button" className="create-gallery-choose" onClick={()=>onChoose(item.slug)}>Elegir esta experiencia <span aria-hidden="true">↗</span></button>
+              <button type="button" className="create-gallery-choose" onClick={()=>onChoose(item.slug)}>Comprar esta experiencia <span aria-hidden="true">↗</span></button>
               {!isPlaying&&<button type="button" className="create-gallery-try" onClick={()=>start(item.slug)}>Ver demo</button>}
               {isPlaying&&<button type="button" className="create-gallery-try" onClick={()=>start(item.slug)}>Reiniciar</button>}
             </div>
