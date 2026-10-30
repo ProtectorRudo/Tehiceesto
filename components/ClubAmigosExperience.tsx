@@ -61,14 +61,14 @@ const wishes=["Seguir sumando anécdotas","No perder nunca nuestras charlas","Co
 function Pet({index=0,speech,small=false,onClick}: {index?:number;speech?:string;small?:boolean;onClick?:()=>void}){
  const c=CATS[index%CATS.length];
  return <button className={"club-pet club-pet--"+c.tone+(small?" club-pet--small":"")+(onClick?" is-interactive":"")} type="button" onClick={onClick} disabled={!onClick} aria-label={onClick?"Escuchar a "+c.name:c.name} title={c.name}>
-   <span className="club-pet-portrait"><img src={c.pic} alt="" draggable={false}/><b className="club-pet-accessory" aria-hidden="true">{c.accessory}</b></span>
+   <span className="club-pet-portrait"><span className="club-pet-fallback" aria-hidden="true">{index===2||index===4?"🐶":"🐱"}</span><img src={c.pic} alt="" draggable={false} onError={event=>{event.currentTarget.style.display="none";}}/><b className="club-pet-accessory" aria-hidden="true">{c.accessory}</b></span>
    <span className="club-pet-label">{c.name}</span>
    {speech&&<span className="club-pet-speech">{speech}</span>}
  </button>;
 }
 function Photograph({url,caption,tilt=0,onClick}:{url:string;caption:string;tilt?:number;onClick?:()=>void}){
  return <button type="button" className={"club-polaroid"+(onClick?" club-tappable":"")} style={{"--tilt":tilt+"deg"} as CSSProperties} disabled={!onClick} onClick={onClick}>
-  <img src={url} alt={caption} loading="lazy"/><span>{caption}</span>
+  <span className="club-polaroid-visual"><span aria-hidden="true">✳</span><img src={url} alt={caption} loading="eager" decoding="async" onError={event=>{event.currentTarget.style.display="none";}}/></span><span>{caption}</span>
  </button>;
 }
 export default function ClubAmigosExperience({experience,letterText,photoMedia=[],audioMedia=[],soundtrackMedia,sceneTextOverrides,customerGift=false}:Props){
@@ -160,7 +160,7 @@ export default function ClubAmigosExperience({experience,letterText,photoMedia=[
    {step===15&&<section className="club-finale-scene">{confetti&&<div className="club-confetti" aria-hidden="true">{Array.from({length:28},(_,i)=><i key={i} style={{"--i":i} as CSSProperties}/>)}</div>}
       <div className="club-finale-heart">♥</div><h3>{text("Qué suerte la nuestra de habernos encontrado.")}</h3><p>{text("Ojalá la vida nos encuentre siempre así: inventando planes, riéndonos de cualquier cosa y sabiendo que no estamos solos.")}</p>
       <div className="club-finale-pets">{CATS.map((_,i)=><Pet key={i} index={i} small/>)}</div><strong className="club-finale-brand">AMIGOS POR SIEMPRE</strong><span className="club-finale-sign">Hecho por {giver} para {name} ♡</span><button className="club-replay" type="button" onClick={replay}>↻ Volver a vivirlo</button>
-      {typeof navigator!=="undefined"&&customerGift&&<button className="club-share" type="button" onClick={()=>{if(navigator.share)void navigator.share({title:experience.title,url:location.href}).catch(()=>{});else void navigator.clipboard?.writeText(location.href);}}>Compartir experiencia ↗</button>}
+      {customerGift&&<button className="club-share" type="button" onClick={()=>{if(navigator.share)void navigator.share({title:experience.title,url:location.href}).catch(()=>{});else void navigator.clipboard?.writeText(location.href);}}>Compartir experiencia ↗</button>}
     </section>}
   </div>
   {step>0&&step<15&&<footer className="club-footer" data-copy-ignore="true"><span className="club-footer-text">✦ UN RECUERDO MÁS PARA NUESTRA HISTORIA ✦</span><button type="button" className="club-primary" onClick={next}>SEGUIR DESCUBRIENDO <span>→</span></button></footer>}
