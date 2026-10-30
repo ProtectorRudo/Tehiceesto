@@ -1,125 +1,79 @@
 "use server";
+import {cookies} from "next/headers";
+import {revalidatePath} from "next/cache";
+import {redirect} from "next/navigation";
+import {AFFILIATE_ADMIN_COOKIE,adminAffiliateCall,adminAffiliateCookieOptions,adminAffiliateSession} from "@/lib/affiliates/admin-backend";
 
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { isAdminAuthenticated } from "@/lib/admin-auth";
-import { hashAffiliatePassword } from "@/lib/affiliate-auth";
-import { createAdminSupabase } from "@/lib/supabase/admin";
-
-async function requireAdmin() {
-  if (!(await isAdminAuthenticated())) redirect("/admin");
+function safeValue(data:FormData,name:string,max=160){return String(data.get(name)||"").trim().slice(0,max);}
+async function authorized(){
+ const session=await adminAffiliateSession();
+ if(!session)redirect("/admin/affiliates?notice=sesion");
+ return session;
 }
-
-function slugify(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
+export async function loginAffiliateAdmin(formData:FormData){
+ const key=String(formData.get("accessKey")||"");
+ if(!key||key.length>200)redirect("/admin/affiliates?notice=credenciales");
+ try{
+  const r=await adminAffiliateCall({action:"login",accessKey:key});
+  const token=String(r.data.token||"");
+  if(!r.ok||!/^[A-Za-z0-9_-]{40,90}$/.test(token))redirect("/admin/affiliates?notice=credenciales");
+  (await cookies()).set(AFFILIATE_ADMIN_COOKIE,token,adminAffiliateCookieOptions());
+ }catch(e){
+  if(e instanceof Error&&e.message==="NEXT_REDIRECT")throw e;
+  redirect("/admin/affiliates?notice=credenciales");
+ }
+ redirect("/admin/affiliates");
 }
-
-export async function createAffiliateAction(formData: FormData) {
-  await requireAdmin();
-
-  const name = String(formData.get("name") || "").trim().slice(0, 100);
-  const email = String(formData.get("email") || "").trim().toLowerCase().slice(0, 200);
-  const whatsapp = String(formData.get("whatsapp") || "").trim().slice(0, 40) || null;
-  const password = String(formData.get("password") || "");
-  const requestedSlug = slugify(String(formData.get("slug") || name));
-  const percent = Number(formData.get("commissionPercent") || 20);
-  const commissionBps = Math.round(percent * 100);
-
-  if (
-    name.length < 2 ||
-    !email.includes("@") ||
-    password.length < 10 ||
-    requestedSlug.length < 3 ||
-    commissionBps < 0 ||
-    commissionBps > 5000
-  ) {
-    redirect("/admin/affiliates?notice=datos-invalidos");
-  }
-
-  const supabase = createAdminSupabase();
-  const { data: duplicate } = await supabase
-    .from("affiliates")
-    .select("id")
-    .eq("email", email)
-    .maybeSingle();
-
-  if (duplicate) redirect("/admin/affiliates?notice=email-existente");
-
-  const credentials = hashAffiliatePassword(password);
-  const { data: affiliate, error } = await supabase
-    .from("affiliates")
-    .insert({
-      slug: requestedSlug,
-      name,
-      email,
-      whatsapp,
-      commission_bps: commissionBps,
-      password_salt: credentials.salt,
-      password_hash: credentials.hash,
-    })
-    .select("id")
-    .single();
-
-  if (error || !affiliate) {
-    console.error("affiliate_create_failed", error);
-    redirect("/admin/affiliates?notice=no-se-pudo-crear");
-  }
-
-  const { error: linkError } = await supabase.from("affiliate_links").insert({
-    affiliate_id: affiliate.id,
-    code: requestedSlug,
-    label: "Principal",
-  });
-
-  if (linkError) {
-    await supabase.from("affiliates").delete().eq("id", affiliate.id);
-    console.error("affiliate_link_create_failed", linkError);
-    redirect("/admin/affiliates?notice=link-duplicado");
-  }
-
-  revalidatePath("/admin/affiliates");
-  redirect("/admin/affiliates?notice=creado");
+export async function logoutAffiliateAdmin(){
+ const jar=await cookies(),token=await adminAffiliateSession();
+ if(token){try{await adminAffiliateCall({action:"logout"},token)}catch{}}
+ jar.set(AFFILIATE_ADMIN_COOKIE,"",{...adminAffiliateCookieOptions(),maxAge:0});
+ redirect("/admin/affiliates");
 }
-
-export async function setAffiliateStatusAction(formData: FormData) {
-  await requireAdmin();
-  const affiliateId = String(formData.get("affiliateId") || "");
-  const status = String(formData.get("status") || "") === "paused" ? "paused" : "active";
-  const supabase = createAdminSupabase();
-
-  const { error } = await supabase
-    .from("affiliates")
-    .update({ status })
-    .eq("id", affiliateId);
-
-  if (error) throw new Error("affiliate_status_update_failed");
-  revalidatePath("/admin/affiliates");
+export async function createAffiliateAction(formData:FormData){
+ const token=await authorized();
+ const name=safeValue(formData,"name",100),email=safeValue(formData,"email",180).toLowerCase();
+ const whatsapp=safeValue(formData,"whatsapp",40),slug=safeValue(formData,"slug",50);
+ const password=String(formData.get("password")||"");
+ const percent=Number(formData.get("commissionPercent"));
+ if(name.length<2||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||password.length<12||password.length>128||
+  !Number.isFinite(percent)||percent<0||percent>50)redirect("/admin/affiliates?notice=datos-invalidos");
+ try{
+  const r=await adminAffiliateCall({action:"create",name,email,whatsapp,slug:slug||name,
+   password,commissionBps:Math.round(percent*100)},token);
+  if(!r.ok)redirect("/admin/affiliates?notice="+(r.data.error==="affiliate_exists"?"email-existente":"no-se-pudo-crear"));
+ }catch(e){
+  if(e instanceof Error&&e.message==="NEXT_REDIRECT")throw e;
+  redirect("/admin/affiliates?notice=no-se-pudo-crear");
+ }
+ revalidatePath("/admin/affiliates");
+ redirect("/admin/affiliates?notice=creado");
 }
-
-export async function payAffiliateAction(formData: FormData) {
-  await requireAdmin();
-  const affiliateId = String(formData.get("affiliateId") || "");
-  const reference = String(formData.get("reference") || "").trim().slice(0, 120) || null;
-  const supabase = createAdminSupabase();
-
-  const { error } = await supabase.rpc("record_affiliate_payout", {
-    p_affiliate_id: affiliateId,
-    p_provider_reference: reference,
-    p_notes: "Liquidación registrada desde panel Te Hice Esto",
-  });
-
-  if (error) {
-    console.error("affiliate_payout_failed", error);
-    redirect("/admin/affiliates?notice=sin-comisiones-pendientes");
-  }
-
-  revalidatePath("/admin/affiliates");
-  redirect("/admin/affiliates?notice=liquidado");
+export async function setAffiliateStatusAction(formData:FormData){
+ const token=await authorized();
+ const id=safeValue(formData,"affiliateId",50);
+ const status=safeValue(formData,"status",10);
+ if(!/^[0-9a-f-]{36}$/i.test(id)||!["active","paused"].includes(status))redirect("/admin/affiliates?notice=datos-invalidos");
+ try{
+  const r=await adminAffiliateCall({action:"update",id,status},token);
+  if(!r.ok)redirect("/admin/affiliates?notice=actualizacion-fallida");
+ }catch(e){if(e instanceof Error&&e.message==="NEXT_REDIRECT")throw e;redirect("/admin/affiliates?notice=actualizacion-fallida")}
+ revalidatePath("/admin/affiliates");
+ redirect("/admin/affiliates?notice=actualizado");
+}
+export async function payAffiliateAction(formData:FormData){
+ const token=await authorized();
+ const affiliateId=safeValue(formData,"affiliateId",50);
+ const reference=safeValue(formData,"reference",120);
+ const confirmed=formData.get("transferConfirmed")==="yes";
+ // IMPORTANT: booking a payout is NOT executing a bank transfer.
+ if(!/^[0-9a-f-]{36}$/i.test(affiliateId)||reference.length<5||!confirmed)
+  redirect("/admin/affiliates?notice=referencia-requerida");
+ try{
+  const r=await adminAffiliateCall({action:"payout",affiliateId,providerReference:reference,
+   notes:"Transferencia externa confirmada y registrada manualmente desde TeHiceEsto"},token);
+  if(!r.ok)redirect("/admin/affiliates?notice=sin-comisiones-pendientes");
+ }catch(e){if(e instanceof Error&&e.message==="NEXT_REDIRECT")throw e;redirect("/admin/affiliates?notice=sin-comisiones-pendientes")}
+ revalidatePath("/admin/affiliates");
+ redirect("/admin/affiliates?notice=liquidado");
 }

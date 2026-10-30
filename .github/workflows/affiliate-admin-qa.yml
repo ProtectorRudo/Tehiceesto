@@ -1,0 +1,49 @@
+name: Affiliate administration security and mobile QA
+
+on:
+  pull_request:
+    paths:
+      - "app/admin/affiliates/**"
+      - "lib/affiliates/admin-backend.ts"
+      - "supabase/functions/affiliate-admin/**"
+      - "scripts/affiliate-admin-qa.mjs"
+      - ".github/workflows/affiliate-admin-qa.yml"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install and prepare Chromium
+        run: |
+          npm install
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Build without any private credentials
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: public-dummy
+      - name: Start Next app
+        run: |
+          npm start -- -H 127.0.0.1 -p 3000 >/tmp/affiliate-admin.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:3000/admin/affiliates >/dev/null;then exit 0;fi
+            sleep 2
+          done
+          cat /tmp/affiliate-admin.log;exit 1
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: public-dummy
+      - name: Verify admin isolation and responsive login
+        run: node scripts/affiliate-admin-qa.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: affiliate-admin-qa
+          path: visual-affiliate-admin/
+          retention-days: 7
