@@ -56,11 +56,14 @@ async function currentState(db:ReturnType<typeof createAdminSupabase>,gift:{id:s
   ]);
   if(e1||e2)throw new Error("jar_progress_failed");
   const rows=(opening||[]) as OpeningRow[];
-  const start=collection?.started_at ? Date.parse(collection.started_at):null;
   const now=Date.now();
-  const accrued=Math.min(365,start===null?1:Math.max(1,1+Math.floor((now-start)/DAY)));
-  const available=Math.max(0,accrued-rows.length);
-  const nextAt=accrued>=365?null:start===null?null:new Date(start+accrued*DAY).toISOString();
+  const lastOpened=rows.length ? Date.parse(rows[rows.length-1].opened_at) : null;
+  // Exactly one message per real 24h interval. Missed days do not stack credits;
+  // unopened messages stay in sequence for the full 365-note experience.
+  const remaining=Math.max(0,365-rows.length);
+  const nextUnlock=lastOpened===null?null:lastOpened+DAY;
+  const available=remaining>0 && (nextUnlock===null || now>=nextUnlock) ? 1 : 0;
+  const nextAt=available || remaining===0 || nextUnlock===null ? null : new Date(nextUnlock).toISOString();
   const positions=rows.map(x=>x.position);
   const {data:notes,error:e3}=positions.length ? await db.from("jar365_notes")
     .select("position,category,message").eq("gift_id",gift.id).in("position",positions).order("position")
@@ -69,7 +72,7 @@ async function currentState(db:ReturnType<typeof createAdminSupabase>,gift:{id:s
   return {
     recipient:gift.recipient_name,giver:gift.giver_name,
     opened:(notes||[]).map(n=>({...n,openedAt:rows.find(r=>r.position===n.position)?.opened_at||null})),
-    available,total:365,openedCount:rows.length,nextAt,startedAt:collection?.started_at||null,
+    available,total:365,remaining,openedCount:rows.length,nextAt,startedAt:collection?.started_at||null,
     serverNow:new Date(now).toISOString(),
   };
 }
