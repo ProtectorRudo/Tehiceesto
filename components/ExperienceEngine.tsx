@@ -6,6 +6,7 @@ import type { SceneTextOverrides } from "@/data/scene-text";
 import FriendshipScenes from "./FriendshipScenes";
 import PremiumOpeningIntro from "./PremiumOpeningIntro";
 import SecretExperience from "./SecretExperience";
+import ClubAmigosExperience from "./ClubAmigosExperience";
 import SevenDaysExperience from "./SevenDaysExperience";
 import Jar365Experience from "./Jar365Experience";
 import LegacyPremiumExperience,{restoredPremiumSlugs} from "./LegacyPremiumExperience";
@@ -1546,6 +1547,7 @@ function StandardExperienceEngine({
 
 // All private and demo renders share the same immutable model; only the content changes.
 export default function ExperienceEngine(props: Props) {
+  if (props.experience.slug === "club-amigos") return <ClubAmigosExperience {...props} />;
   if (restoredPremiumSlugs.has(props.experience.slug)) return <LegacyPremiumExperience {...props} />;
   if (props.experience.slug === "frasco365") return <Jar365Experience experience={props.experience} />;
   if (props.experience.slug === "siete-dias") return <SevenDaysExperience experience={props.experience} sceneTextOverrides={props.sceneTextOverrides} photoMedia={props.photoMedia} audioMedia={props.audioMedia} />;
