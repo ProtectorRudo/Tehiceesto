@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import StudioFooter from "@/components/StudioFooter";
 import CreatorWizard from "@/components/CreatorWizard";
+import "./selection-grid.css";
 
 export const metadata: Metadata = {
-  title: "Crear una experiencia — Te Hice Esto",
+  title: "Elegí tu experiencia — Te Hice Esto",
   description:
-    "Elegí para quién es, contá la historia y armá una primera versión privada de su experiencia.",
+    "Descubrí nuestras experiencias personalizables en una cuadrícula con demos interactivas y elegí tu regalo.",
 };
 
 export default function CreatePage() {
