@@ -1,0 +1,50 @@
+name: Checkout two-field mobile audit
+
+on:
+  pull_request:
+    paths:
+      - "components/QuickCheckout.tsx"
+      - "components/quick-checkout.css"
+      - "components/CreatorWizard.tsx"
+      - "components/CreatorExperienceGrid.tsx"
+      - "app/comprar/**"
+      - "scripts/quick-checkout-audit.mjs"
+      - ".github/workflows/quick-checkout-audit.yml"
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install and prepare Chromium
+        run: |
+          npm install
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Build with harmless dummy public URL (all payments mocked)
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-public-dummy
+      - name: Start local Next server
+        run: |
+          npm start -- -H 127.0.0.1 -p 3000 > /tmp/checkout.log 2>&1 &
+          for i in {1..35}; do
+            if curl -fsS http://127.0.0.1:3000/comprar/pareja >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/checkout.log
+          exit 1
+      - name: Verify two-field checkout, mocked payment and catalog links
+        run: node scripts/quick-checkout-audit.mjs
+      - name: Save audit screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quick-checkout-audit
+          path: visual-fast-checkout/
+          retention-days: 7

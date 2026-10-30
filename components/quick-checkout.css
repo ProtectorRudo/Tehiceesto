@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap');
+body:has(.quick-checkout){background:#fcf7f4!important;color:#463241!important;color-scheme:light}
+body:has(.quick-checkout)>.site-header,body:has(.quick-checkout)>.floating-whatsapp{display:none!important}
+.quick-checkout{min-height:100svh;background:radial-gradient(ellipse at 80% 12%,#f9dfe8 0%,transparent 43%),radial-gradient(ellipse at 8% 78%,#f5e5df 0%,transparent 42%),#fcf7f4;color:#4d3643;font-family:"DM Sans",Arial,sans-serif;overflow-x:hidden;padding:clamp(15px,3vw,32px) 16px 50px}
+.quick-checkout *{box-sizing:border-box}
+.quick-checkout-container{max-width:890px;margin:0 auto}
+.quick-checkout-header{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:42px}
+.quick-checkout-back{color:#a45e7c;font-size:12px;text-decoration:none;font-weight:700;white-space:nowrap}
+.quick-checkout-brand{color:#4d3543;font-size:12px;font-weight:800;letter-spacing:.16em;text-decoration:none;white-space:nowrap}
+.quick-checkout-brand span{color:#b9326a}
+.quick-checkout-layout{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1fr);gap:clamp(20px,5vw,62px);align-items:center;margin-top:clamp(24px,6vw,65px)}
+.quick-checkout-kicker,.quick-checkout-form-kicker{font-size:10px;font-weight:800;letter-spacing:.18em;color:#ad6985}
+.quick-checkout-summary{min-width:0}
+.quick-checkout-product{display:flex;align-items:center;gap:16px;margin:27px 0 25px}
+.quick-checkout-product img{width:96px;height:132px;flex:none;object-fit:cover;object-position:top;border-radius:15px;box-shadow:0 9px 20px #8f5f7225;background:#f3e3e7;border:1px solid #e6cbd4}
+.quick-checkout-product>div{min-width:0}
+.quick-checkout-product>div>span{font-size:10px;text-transform:uppercase;color:#b16c86;font-weight:800;letter-spacing:.1em}
+.quick-checkout-product h1{font:400 clamp(33px,3.6vw,48px)/.99 "Instrument Serif",Georgia,serif;margin:9px 0;color:#503545}
+.quick-checkout-product p{font-size:12px;color:#987888;line-height:1.5;margin:0}
+.quick-checkout-price{display:flex;align-items:baseline;gap:13px;flex-wrap:wrap;border-bottom:1px solid #e6cfd5;padding-bottom:21px}
+.quick-checkout-price strong{font:400 39px/1 "Instrument Serif",Georgia,serif;color:#a63266}
+.quick-checkout-price small{font:700 12px "DM Sans",sans-serif;color:#9a7183}
+.quick-checkout-price>span{font-size:11px;color:#997c88}
+.quick-checkout-help{font-size:13px;line-height:1.8;color:#8c7480;max-width:380px;margin:24px 0 0}
+.quick-checkout-form{border:1px solid #ecd2dc;border-radius:26px;background:#fffdfbf5;box-shadow:0 20px 55px #9a587422;padding:clamp(23px,4vw,35px);display:flex;flex-direction:column;gap:0}
+.quick-checkout-form h2{font:400 clamp(39px,5vw,54px)/.95 "Instrument Serif",Georgia,serif;margin:13px 0 9px;color:#4c3442}
+.quick-checkout-form h2 em{color:#bf3e74}
+.quick-checkout-form>p:first-of-type{font-size:13px;color:#8d7482;margin:0 0 19px;line-height:1.6}
+.quick-checkout-form label{display:flex;flex-direction:column;gap:7px;color:#624656;font-size:12px;font-weight:800;margin:0 0 15px}
+.quick-checkout-form input{width:100%;height:49px;border:1px solid #e7cdd7;border-radius:12px;background:#fff;color:#46313e;padding:10px 14px;font:500 16px "DM Sans",sans-serif;outline:none;transition:border-color .2s,box-shadow .2s}
+.quick-checkout-form input:focus{border-color:#bf6e95;box-shadow:0 0 0 3px #efcbdc88}
+.quick-checkout-form input::placeholder{color:#bb9eab}
+.quick-checkout-form input:disabled{opacity:.7}
+.quick-checkout-form .quick-checkout-phonehint{color:#a68b98;font-size:10px;line-height:1.55;margin:-5px 0 16px}
+.quick-checkout-honey{position:absolute;opacity:0;pointer-events:none;left:-9999px;height:0;width:0;overflow:hidden}
+.quick-checkout-submit{min-height:55px;width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(115deg,#bf3c75,#a72962);color:#fff;border:1px solid #a72760;border-radius:100px;font:800 14px "DM Sans",sans-serif;box-shadow:0 10px 18px #ad38663a;cursor:pointer;touch-action:manipulation;transition:transform .2s,opacity .2s}
+.quick-checkout-submit:hover:not(:disabled){transform:translateY(-2px)}
+.quick-checkout-submit:disabled{opacity:.52;cursor:default;box-shadow:none}
+.quick-checkout-submit span{font-size:19px;font-weight:500}
+.quick-checkout-legal{font-size:10px;line-height:1.6;color:#99818d;margin:12px 0 0}
+.quick-checkout-trust{display:flex;justify-content:space-around;flex-wrap:wrap;gap:10px;border-top:1px solid #f2e2e7;margin-top:19px;padding-top:15px;color:#9c6d84;font-size:10px;font-weight:700}
+.quick-checkout-status{background:#fff4f5;border:1px solid #e9c3d0;padding:11px;border-radius:12px;color:#9e3f68;font-size:12px;line-height:1.6;margin-top:14px}
+.quick-checkout-status p{margin:0}.quick-checkout-status small{display:block;margin-top:6px}.quick-checkout-status a{display:inline-block;margin-top:7px;color:#9e3f68;font-weight:800}
+.quick-checkout :is(a,button):focus-visible{outline:3px solid #ad2865;outline-offset:3px}
+@media(max-width:680px){
+ .quick-checkout{padding:13px 16px 40px}
+ .quick-checkout-header{min-height:36px}
+ .quick-checkout-brand{font-size:10px;letter-spacing:.08em}
+ .quick-checkout-layout{display:flex;flex-direction:column;gap:16px;margin-top:19px;align-items:stretch}
+ .quick-checkout-kicker{font-size:9px}
+ .quick-checkout-product{gap:13px;margin:11px 0 12px}
+ .quick-checkout-product img{width:72px;height:86px;border-radius:11px}
+ .quick-checkout-product h1{font-size:34px;margin:4px 0}
+ .quick-checkout-product p{font-size:10px}
+ .quick-checkout-price{padding-bottom:0;border:0}
+ .quick-checkout-price strong{font-size:32px}
+ .quick-checkout-help{display:none}
+ .quick-checkout-form{padding:22px 20px;border-radius:22px}
+ .quick-checkout-form h2{font-size:40px;margin:8px 0}
+ .quick-checkout-form>p:first-of-type{margin-bottom:14px}
+ .quick-checkout-form label{margin-bottom:12px}
+ .quick-checkout-trust{font-size:9px}
+}
+@media(max-width:360px){
+ .quick-checkout{padding:12px 12px 32px}
+ .quick-checkout-form{padding:17px}
+ .quick-checkout-product h1{font-size:29px}
+ .quick-checkout-price strong{font-size:28px}
+ .quick-checkout-submit{font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){.quick-checkout *{transition:none!important}}

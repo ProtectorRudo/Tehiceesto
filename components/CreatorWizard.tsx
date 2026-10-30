@@ -327,11 +327,9 @@ export default function CreatorWizard() {
       </div>}
 
       {step === 0 && <CreatorExperienceGrid experiences={publicExperiences} onChoose={slug=>{
-        if(slug==="frasco365"){window.location.assign("/comprar/frasco365");return;}
-        if(slug==="siete-dias"){window.location.assign("/comprar/siete-dias");return;}
-        update("experience",slug);
-        setStep(1);
-        window.scrollTo({top:0,behavior:"smooth"});
+        // The buyer can personalize their gift after checkout. No long wizard before paying.
+        if(publicExperiences.some(experience=>experience.slug===slug))
+          window.location.assign("/comprar/"+encodeURIComponent(slug));
       }} />}
 
       {step === 1 && (

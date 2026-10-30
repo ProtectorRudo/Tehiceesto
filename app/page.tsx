@@ -47,11 +47,11 @@ export default function Home() {
       </section>
 
       <section className="boutique-how" id="como-funciona" aria-labelledby="boutique-how-title">
-        <div className="boutique-section-head"><div><span className="boutique-kicker">ASÍ DE SIMPLE, ASÍ DE PERSONAL</span><h2 id="boutique-how-title">Vos ponés la historia.<br/><em>Nosotros hacemos la magia.</em></h2></div><p>Sin tener que diseñar, editar ni aprender ninguna herramienta. Elegís la experiencia y nuestro equipo la prepara para vos.</p></div>
+        <div className="boutique-section-head"><div><span className="boutique-kicker">ASÍ DE SIMPLE, ASÍ DE PERSONAL</span><h2 id="boutique-how-title">Vos ponés la historia.<br/><em>Nosotros hacemos la magia.</em></h2></div><p>Elegís la experiencia y pagás con solo dos datos. Después preparás los detalles del regalo con tranquilidad.</p></div>
         <div className="boutique-how-grid">
           <article><span className="boutique-how-index">01 /</span><div className="boutique-how-icon">◇</div><h3>Elegí su mundo.</h3><p>Explorá y probá nuestras experiencias. Quedate con la que más se parezca a esa persona.</p></article>
-          <article><span className="boutique-how-index">02 /</span><div className="boutique-how-icon">✍</div><h3>Contanos su historia.</h3><p>Nos compartís nombres, palabras, fotos y audios. Esos detalles que solamente ustedes conocen.</p></article>
-          <article><span className="boutique-how-index">03 /</span><div className="boutique-how-icon">✦</div><h3>Nosotros lo hacemos.</h3><p>Personalizamos el recorrido elegido respetando cada escena, efecto e interacción original.</p></article>
+          <article><span className="boutique-how-index">02 /</span><div className="boutique-how-icon">✍</div><h3>Comprá en un momento.</h3><p>Solo dejás tu email y WhatsApp. Pagás con Mercado Pago, sin formularios largos.</p></article>
+          <article><span className="boutique-how-index">03 /</span><div className="boutique-how-icon">✦</div><h3>Personalizás después.</h3><p>Con el pago confirmado, agregás los recuerdos y mensajes. El diseño y sus efectos se mantienen.</p></article>
           <article><span className="boutique-how-index">04 /</span><div className="boutique-how-icon">♡</div><h3>Le mandás el enlace.</h3><p>Lo abre desde su celular. Y descubre algo que no se parecía a ningún otro regalo.</p></article>
         </div>
       </section>

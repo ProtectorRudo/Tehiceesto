@@ -28,7 +28,7 @@ export default async function ExperiencePage({
   const isEmbedded=embed==="1";
   return (
     <div className={isEmbedded?"boutique-embedded-route":undefined}>
-      {!isEmbedded&&<div className="demo-ribbon"><span>DEMO · {experience.title}</span><Link href={slug==="frasco365"?"/comprar/frasco365":slug==="siete-dias"?"/comprar/siete-dias":"/crear"}>Crear la mía →</Link></div>}
+      {!isEmbedded&&<div className="demo-ribbon"><span>DEMO · {experience.title}</span><Link href={"/comprar/"+encodeURIComponent(slug)}>Comprar esta experiencia →</Link></div>}
       <ExperienceEngine experience={experience} />
     </div>
   );

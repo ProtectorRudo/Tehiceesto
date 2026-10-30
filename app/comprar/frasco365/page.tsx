@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Jar365Checkout from "@/components/Jar365Checkout";
+import QuickCheckout from "@/components/QuickCheckout";
+import {getExperience} from "@/data/experiences";
 
 export const metadata:Metadata={
   title:"Regalá 365 papelitos · Te Hice Esto",
@@ -21,5 +22,5 @@ export default function ComprarFrasco365(){
       </section>
     </main>;
   }
-  return <Jar365Checkout/>;
+  return <QuickCheckout experience={getExperience("frasco365")!}/>;
 }

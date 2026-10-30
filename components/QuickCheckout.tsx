@@ -1,0 +1,122 @@
+"use client";
+
+import {useRef,useState,type FormEvent} from "react";
+import Link from "next/link";
+import type {Experience} from "@/data/experiences";
+import "./quick-checkout.css";
+
+const projectUrl=process.env.NEXT_PUBLIC_SUPABASE_URL||"";
+const publicKey=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY||"";
+type CheckoutResult={code?:string;priceMinor?:number;currency?:string;checkoutUrl?:string|null;checkoutReady?:boolean;error?:string};
+type Props={experience:Pick<Experience,"slug"|"title"|"short"|"eyebrow">};
+
+/** Keeps international numbers intact; accepts the simple 10-digit Argentine local format too. */
+function cleanPhone(raw:string){
+  let value=raw.trim().replace(/[\s().-]/g,"");
+  if(value.startsWith("00"))value="+"+value.slice(2);
+  if(value.startsWith("+"))value=value.slice(1);
+  if(value.startsWith("0")&&value.length===11)value=value.slice(1);
+  // National Argentine mobile: enter just the ten-digit area code + number.
+  if(/^\d{10}$/.test(value))return "549"+value;
+  // Some people paste 54 + ten-digit mobile without the 9.
+  if(/^54\d{10}$/.test(value))return "549"+value.slice(2);
+  // 54 9 + area code + number already works.
+  return value;
+}
+function photo(slug:string){return "/demo-previews/"+slug+(slug==="frasco365"||slug==="siete-dias"?".svg":".jpg");}
+
+export default function QuickCheckout({experience}:Props){
+  const [email,setEmail]=useState("");
+  const [phone,setPhone]=useState("");
+  const [busy,setBusy]=useState(false);
+  const [message,setMessage]=useState("");
+  const [order,setOrder]=useState<CheckoutResult|null>(null);
+  const [website,setWebsite]=useState("");
+  const requestRef=useRef<{id:string;key:string}|null>(null);
+  const validPhone=/^\d{8,15}$/.test(cleanPhone(phone));
+  const validEmail=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const valid=validEmail&&validPhone;
+
+  async function submit(event:FormEvent<HTMLFormElement>){
+    event.preventDefault();
+    if(busy||website||!valid)return;
+    setBusy(true);setMessage("");setOrder(null);
+    try{
+      if(!projectUrl||!publicKey)throw Error("unavailable");
+      const normalizedEmail=email.trim().toLowerCase();
+      const normalizedPhone=cleanPhone(phone);
+      const key=experience.slug+":"+normalizedEmail+":"+normalizedPhone;
+      if(requestRef.current?.key!==key)requestRef.current={id:crypto.randomUUID(),key};
+      const response=await fetch(projectUrl.replace(/\/$/,"")+"/functions/v1/order-create",{
+        method:"POST",cache:"no-store",
+        headers:{"apikey":publicKey,"content-type":"application/json"},
+        body:JSON.stringify({
+          experienceSlug:experience.slug,
+          email:normalizedEmail,whatsapp:normalizedPhone,
+          consent:true,clientRequestId:requestRef.current.id,website,
+        }),
+      });
+      const result=await response.json() as CheckoutResult;
+      if(!response.ok||result.error)throw Error(result.error||"request_failed");
+      setOrder(result);
+      if(result.checkoutReady&&typeof result.checkoutUrl==="string"&&result.checkoutUrl.startsWith("https://")){
+        window.location.assign(result.checkoutUrl);
+        return;
+      }
+      setMessage("Tu pedido está preparado, pero el enlace de Mercado Pago no está disponible ahora. Podés reintentar sin crear otro pedido o escribirnos con tu número de pedido.");
+    }catch(err){
+      const code=err instanceof Error?err.message:"";
+      if(code==="experience_coming_soon")setMessage("Esta experiencia todavía no está disponible para comprar.");
+      else if(code==="too_many_orders")setMessage("Alcanzaste el límite de intentos. Probá más tarde o escribinos.");
+      else setMessage("No pudimos abrir Mercado Pago. Revisá tu conexión y volvé a intentar; no se realizó ningún cobro.");
+    }finally{setBusy(false);}
+  }
+
+  return <main className="quick-checkout">
+    <div className="quick-checkout-container">
+      <header className="quick-checkout-header">
+        <Link className="quick-checkout-back" href="/crear">← Volver a experiencias</Link>
+        <Link className="quick-checkout-brand" href="/">TE HICE ESTO <span>♥</span></Link>
+      </header>
+      <div className="quick-checkout-layout">
+        <section className="quick-checkout-summary" aria-label="Tu experiencia elegida">
+          <span className="quick-checkout-kicker">TU REGALO ESTÁ A UN PASO</span>
+          <div className="quick-checkout-product">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img alt="" src={photo(experience.slug)} loading="eager"/>
+            <div><span>{experience.eyebrow}</span><h1>{experience.title}</h1><p>Personalizable después de comprar</p></div>
+          </div>
+          <div className="quick-checkout-price"><strong>$25.000 <small>ARS</small></strong><span>Pago único · Sin suscripción</span></div>
+          <p className="quick-checkout-help">No tenés que escribir textos, elegir fotos ni crear una cuenta ahora. Una vez acreditado el pago, vas a poder personalizar el regalo con tranquilidad.</p>
+        </section>
+        <form className="quick-checkout-form" onSubmit={submit}>
+          <span className="quick-checkout-form-kicker">COMPRA RÁPIDA · 2 DATOS</span>
+          <h2>Ya casi <em>es tuyo.</em></h2>
+          <p>¿Dónde te enviamos los datos de tu regalo?</p>
+          <label htmlFor="checkout-email">Tu email
+            <input id="checkout-email" required type="email" autoComplete="email" inputMode="email"
+              placeholder="tu@email.com" maxLength={180} value={email} onChange={event=>setEmail(event.target.value)}
+              disabled={busy}/>
+          </label>
+          <label htmlFor="checkout-phone">Tu WhatsApp
+            <input id="checkout-phone" required type="tel" autoComplete="tel" inputMode="tel"
+              placeholder="221 555 1234" value={phone} onChange={event=>setPhone(event.target.value)}
+              maxLength={40} disabled={busy}/>
+          </label>
+          <p className="quick-checkout-phonehint">Argentina: escribí tu número con característica, sin 0 ni 15. Si estás en otro país, incluí el código internacional (+).</p>
+          <div className="quick-checkout-honey" aria-hidden="true"><label>Sitio web<input tabIndex={-1} autoComplete="off" value={website} onChange={event=>setWebsite(event.target.value)}/></label></div>
+          <button className="quick-checkout-submit" type="submit" disabled={busy||!valid||Boolean(website)}>
+            {busy?"Preparando tu pago…":"Continuar a Mercado Pago"} <span aria-hidden="true">↗</span>
+          </button>
+          <p className="quick-checkout-legal">Al continuar aceptás que usemos tu email y WhatsApp para gestionar el pedido y contactarte sobre tu regalo. No se realiza ningún cobro hasta que lo confirmes en Mercado Pago.</p>
+          {message&&<div className="quick-checkout-status" role="status">
+            <p>{message}</p>
+            {order?.code&&<small>N.º de pedido: {order.code}</small>}
+            {order?.code&&!order.checkoutReady&&<a href={"https://wa.me/5492215653163?text="+encodeURIComponent("Hola, necesito ayuda para pagar mi pedido "+order.code+" de Te Hice Esto.")} target="_blank" rel="noopener noreferrer">Consultar por WhatsApp ↗</a>}
+          </div>}
+          <div className="quick-checkout-trust"><span>✳ Compra protegida</span><span>♡ Hecho para una sola persona</span></div>
+        </form>
+      </div>
+    </div>
+  </main>;
+}
