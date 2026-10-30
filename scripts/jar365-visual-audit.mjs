@@ -13,6 +13,11 @@ for (const size of [{name:"mobile-320",width:320,height:720},{name:"mobile-390",
  page.on("pageerror",e=>errors.push(e.message));
  const response=await page.goto(base+"/experiencias/frasco365",{waitUntil:"networkidle",timeout:45000});
  if(!response||response.status()!==200)throw Error(size.name+": demo route failed");
+ const visualPapers=await page.locator(".jar365-slip").count();
+ if(visualPapers!==365)throw Error(size.name+": expected 365 visible papers, got "+visualPapers);
+ if(await page.locator(".jar365-illustration").getAttribute("data-paper-count")!=="365")throw Error(size.name+": full jar should start with 365");
+ const firstCount=await page.locator(".jar365-inventory").innerText();
+ if(!firstCount.includes("365")||!firstCount.includes("0")||!firstCount.includes("papelitos que quedan"))throw Error(size.name+": initial remaining/opened count missing");
  await page.screenshot({path:path.join(dir,size.name+"-01-frasco.png"),fullPage:true});
  if(await page.getByRole("button",{name:/Sacar mi papelito/i}).count()!==1)throw Error(size.name+": draw button missing");
  const wide=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2);
@@ -20,6 +25,9 @@ for (const size of [{name:"mobile-320",width:320,height:720},{name:"mobile-390",
  await page.getByRole("button",{name:/Sacar mi papelito/i}).click();
  const modal=page.getByRole("dialog",{name:/Papelito 1/i});
  await modal.waitFor({state:"visible",timeout:5000});
+ if(await page.locator(".jar365-slip").count()!==364)throw Error(size.name+": jar must lose exactly one visual paper");
+ const count=await page.locator(".jar365-inventory").innerText();
+ if(!count.includes("364")||!count.includes("1"))throw Error(size.name+": remaining/opened figures did not update");
  const text=await modal.locator(".jar365-note-message").innerText();
  if(!text||text.length<18)throw Error(size.name+": empty opening text");
  await page.screenshot({path:path.join(dir,size.name+"-02-abierto.png"),fullPage:true});
