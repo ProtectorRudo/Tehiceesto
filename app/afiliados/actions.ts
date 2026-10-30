@@ -27,7 +27,7 @@ export async function logoutAffiliate(){
  const jar=await cookies();
  const token=jar.get(AFFILIATE_SESSION_COOKIE)?.value;
  if(token){try{await callAffiliateBackend({action:"logout"},token)}catch{}}
- jar.delete(AFFILIATE_SESSION_COOKIE);
+ jar.set(AFFILIATE_SESSION_COOKIE,"",{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax",path:"/afiliados",maxAge:0});
  redirect("/afiliados");
 }
 export async function changeAffiliatePassword(formData:FormData){
