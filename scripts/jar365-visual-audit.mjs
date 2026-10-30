@@ -41,6 +41,20 @@ for (const size of [{name:"mobile-320",width:320,height:720},{name:"mobile-390",
  report.push({viewport:size.name,status:"OK",firstNote:text,overflow:false});
  await page.close();
 }
+// Commercial wiring check: the model appears in the public catalog with a
+// working demo and purchase route; checkout stays safely closed until verified.
+const catalog=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+const home=await catalog.goto(base+"/",{waitUntil:"domcontentloaded",timeout:45000});
+if(!home||home.status()!==200)throw Error("Catalog homepage unavailable");
+const jarCard=catalog.locator("article").filter({hasText:"Un año de cosas lindas"}).first();
+await jarCard.waitFor({state:"visible",timeout:15000});
+const jarLink=jarCard.locator('a[href="/comprar/frasco365"]');
+if(await jarLink.count()!==1)throw Error("Frasco 365 catalog purchase link missing");
+await catalog.goto(base+"/comprar/frasco365",{waitUntil:"domcontentloaded"});
+if(await catalog.getByText(/todavía no habilitamos pagos/i).count()<1)throw Error("Unverified checkout must remain gated");
+if(await catalog.locator('form:has(input[type="email"])').count()>0)throw Error("Unverified checkout leaked purchase form");
+report.push({viewport:"catalog-and-editor-gate",status:"OK",catalogListed:true,purchaseGated:true});
+await catalog.close();
 await browser.close();
 await fs.writeFile(path.join(dir,"report.json"),JSON.stringify(report,null,2));
 console.log("JAR365 VISUAL AUDIT OK "+JSON.stringify(report));
