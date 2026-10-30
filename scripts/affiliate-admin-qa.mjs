@@ -8,6 +8,7 @@ const source=await Promise.all([
  fs.readFile("app/admin/affiliates/actions.ts","utf8"),
  fs.readFile("lib/affiliates/admin-backend.ts","utf8"),
  fs.readFile("supabase/functions/affiliate-admin/index.ts","utf8"),
+ fs.readFile("supabase/functions/admin-api/index.ts","utf8"),
 ]);
 assert(source[1].includes("adminAffiliateSession"),"All admin operations must validate session");
 assert(source[1].includes('transferConfirmed')&&source[1].includes("reference.length<5"),"Payout must require proof of external payment");
@@ -17,6 +18,11 @@ assert(source[3].includes("password.length<12")&&source[3].includes("initialPass
 assert(!source[3].includes("tehiceesto7"),"Insecure predictable default password must be removed");
 assert(source[3].includes("tehiceesto.com/ref/"),"Influencer URL must use referral tracking route");
 assert(!source[3].includes("return json(origin,{affiliate,initialPassword"),"Never return raw affiliate secret fields");
+assert(source[4].includes('.from("admin_access")'),"Admin login must look up the configured key in Supabase");
+assert(source[4].includes('.eq("secret_hash", secretHash)'),"Admin authentication must check the hash against the private table");
+assert(!/const\\s+expectedHash\\s*=/.test(source[4]),"Hardcoded administrator hashes are prohibited");
+assert(source[4].includes('admin_login_lookup_failed'),"Backend lookup errors must fail closed with diagnostics");
+
 
 const browser=await chromium.launch({headless:true,args:["--no-sandbox"]});
 const report=[];
