@@ -69,3 +69,18 @@ body:has(.quick-checkout)>.site-header,body:has(.quick-checkout)>.floating-whats
  .quick-checkout-submit{font-size:12px}
 }
 @media(prefers-reduced-motion:reduce){.quick-checkout *{transition:none!important}}
+
+/* Explain why the pay button is disabled without adding new purchase steps. */
+.quick-checkout-form label .quick-checkout-field-hint{
+  display:block;margin:-1px 0 1px;color:#a33964;
+  font-size:11px;font-weight:600;line-height:1.5;letter-spacing:0;
+}
+.quick-checkout-form input[aria-invalid="true"]{
+  border-color:#c36f90;
+  background:#fffafb;
+}
+.quick-checkout-form .quick-checkout-form-guidance{
+  margin:0 0 9px;padding:9px 11px;border:1px solid #f0d9e2;
+  border-radius:10px;background:#fff7fa;color:#955572;
+  font-size:11px;font-weight:600;line-height:1.5;
+}
