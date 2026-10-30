@@ -1,6 +1,5 @@
-import { getAffiliateSession } from "@/lib/affiliate-auth";
-import { createAdminSupabase } from "@/lib/supabase/admin";
-import { loginAffiliate, logoutAffiliate } from "./actions";
+import { getAffiliateDashboard } from "@/lib/affiliates/dashboard";
+import { loginAffiliate, logoutAffiliate,changeAffiliatePassword } from "./actions";
 import styles from "./afiliados.module.css";
 
 export const dynamic = "force-dynamic";
@@ -16,10 +15,11 @@ function money(minor: number | null | undefined) {
 export default async function AffiliadosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; change?: string }>;
 }) {
-  const session = await getAffiliateSession();
-  const { error } = await searchParams;
+  const dashboard = await getAffiliateDashboard();
+  const session = dashboard?.affiliate||null;
+  const { error,change } = await searchParams;
 
   if (!session) {
     return (
@@ -49,21 +49,28 @@ export default async function AffiliadosPage({
     );
   }
 
-  const supabase = createAdminSupabase();
-  const [{ data: stats }, { data: links }, { data: commissions }] = await Promise.all([
-    supabase.from("affiliate_stats").select("*").eq("id", session.id).maybeSingle(),
-    supabase
-      .from("affiliate_links")
-      .select("id,code,label,status,created_at")
-      .eq("affiliate_id", session.id)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("affiliate_commissions")
-      .select("id,gross_amount_minor,commission_amount_minor,status,approved_at,created_at")
-      .eq("affiliate_id", session.id)
-      .order("created_at", { ascending: false })
-      .limit(12),
-  ]);
+  if(change==="1"){
+    return <main className={styles.shell+" studio-page studio-affiliates-page"}>
+      <section className={styles.login}>
+        <span className={styles.kicker}>TE HICE ESTO · ACCESO SEGURO</span>
+        <h1>Protegé <em>tu cuenta.</em></h1>
+        <p>Para continuar, elegí una contraseña nueva de al menos 12 caracteres.</p>
+        <form action={changeAffiliatePassword} className={styles.form}>
+          <label><span>Contraseña nueva</span><input name="password" type="password" autoComplete="new-password" minLength={12} required/></label>
+          <label><span>Repetir contraseña</span><input name="confirm" type="password" autoComplete="new-password" minLength={12} required/></label>
+          {error&&<small className={styles.error}>Revisá que ambas contraseñas coincidan y tengan al menos 12 caracteres.</small>}
+          <button type="submit">Guardar y entrar al panel ↗</button>
+        </form>
+      </section>
+    </main>;
+  }
+  const stats=dashboard!.stats;
+  const links=dashboard!.links;
+  const commissions=dashboard!.recentSales.map(item=>({
+    id:item.id,gross_amount_minor:item.saleAmountMinor,
+    commission_amount_minor:item.commissionAmountMinor,status:item.status,
+    approved_at:item.date,created_at:item.date,
+  }));
 
   const visitors = Number(stats?.unique_visitors || 0);
   const sales = Number(stats?.approved_sales || 0);
@@ -138,7 +145,7 @@ export default async function AffiliadosPage({
             <span className={styles.sectionLabel}>ÚLTIMAS COMISIONES</span>
             <h2>Movimientos</h2>
           </div>
-          <strong>{(session.commission_bps / 100).toFixed(0)}% por venta</strong>
+          <strong>{(session.commissionBps / 100).toFixed(0)}% por venta</strong>
         </div>
 
         {!commissions?.length ? (
