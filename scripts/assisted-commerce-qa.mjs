@@ -11,7 +11,10 @@ const home=read("app/page.tsx");
 const catalog=read("app/crear/page.tsx");
 
 assert.match(order,/mode:"selfserve"/,"All new purchases must create editable gifts");
-assert.match(order,/story_data:withEditorToken\(/,"New gift stores a hashed editor token");
+assert.match(order,/story_data:selfserveStory\(/,"Checkout records self-service purchase details");
+assert.doesNotMatch(order,/editorToken|withEditorToken/,"Checkout must never issue reusable editor credentials");
+assert.match(order,/request_already_completed/,"Completed order retries must not rewrite a paid gift");
+assert.match(checkout,/request_already_completed/,"UI must show buyer the way to their existing purchase");
 assert.match(order,/affiliateAttributed/,"Referral attribution must remain intact");
 assert.match(order,/clientRequestId/,"Request idempotency must remain intact");
 assert.match(order,/status:"pending"/,"Orders are pending until verified with payment provider");
