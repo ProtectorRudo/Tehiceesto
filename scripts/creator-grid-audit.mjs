@@ -42,15 +42,17 @@ for(const viewport of viewports){
  if(!((await iframe.getAttribute("src"))||"").includes("/experiencias/"))throw Error(viewport.name+": demo is not the real experience route");
  await page.screenshot({path:path.join(dir,viewport.name+"-02-demo.png"),fullPage:false});
  await first.getByRole("button",{name:/Cerrar demo/}).click();
- await page.locator(".create-gallery-card").filter({hasText:"Nuestra historia"}).getByRole("button",{name:/Elegir esta experiencia/}).click();
- await page.getByRole("heading",{name:"¿Quién hace esto y para quién?"}).waitFor({state:"visible",timeout:5000});
+ await page.locator(".create-gallery-card").filter({hasText:"Nuestra historia"}).getByRole("button",{name:/Comprar esta experiencia/}).click();
+ await page.waitForURL("**/comprar/pareja",{timeout:6000});
+ await page.locator(".quick-checkout-form").waitFor({state:"visible",timeout:5000});
+ if(await page.locator(".quick-checkout-form input:not([tabindex='-1'])").count()!==2)throw Error(viewport.name+": checkout must request exactly 2 contact fields");
  if(errors.length)throw Error(viewport.name+": JS errors "+errors.join("; "));
- report.push({viewport:viewport.name,columns,cards:await cards.count(),demo:true,selectionContinues:true,overflow:false});
+ report.push({viewport:viewport.name,columns,cards:await cards.count(),demo:true,directCheckout:true,overflow:false});
  await page.close();
 }
 const sales=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
 await sales.goto(base+"/crear",{waitUntil:"domcontentloaded",timeout:45000});
-await sales.locator(".create-gallery-card").filter({hasText:"Un año de cosas lindas"}).getByRole("button",{name:/Elegir esta experiencia/}).click();
+await sales.locator(".create-gallery-card").filter({hasText:"Un año de cosas lindas"}).getByRole("button",{name:/Comprar esta experiencia/}).click();
 await sales.waitForURL("**/comprar/frasco365",{timeout:7500});
 if(await sales.getByText(/todavía no habilitamos pagos/i).count()<1)throw Error("Unverified Frasco365 checkout was enabled");
 report.push({viewport:"specialized-checkout",jarProtected:true});
