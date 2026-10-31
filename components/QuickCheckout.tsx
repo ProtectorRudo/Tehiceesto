@@ -1,6 +1,6 @@
 "use client";
 
-import {useRef,useState,type FormEvent} from "react";
+import {useEffect,useRef,useState,type FormEvent} from "react";
 import Link from "next/link";
 import type {Experience} from "@/data/experiences";
 import "./quick-checkout.css";
@@ -49,6 +49,8 @@ export default function QuickCheckout({experience}:Props){
   const [email,setEmail]=useState("");
   const [phone,setPhone]=useState("");
   const [busy,setBusy]=useState(false);
+  const [hydrated,setHydrated]=useState(false);
+  useEffect(()=>setHydrated(true),[]);
   const [message,setMessage]=useState("");
   const [order,setOrder]=useState<CheckoutResult|null>(null);
   const [website,setWebsite]=useState("");
@@ -146,7 +148,7 @@ export default function QuickCheckout({experience}:Props){
               <div className="quick-checkout-addon-price"><del>$25.000</del><b>$10.000</b><span>Ahorrás $15.000</span></div>
               <p>Trazo Cómplice, Entre Dos y Cómplices completos. Salas de escape no incluidas.</p>
               <button className="quick-checkout-addon-choice" type="button"
-                aria-pressed={addGamesPack} disabled={busy}
+                aria-pressed={addGamesPack} disabled={busy||!hydrated}
                 onClick={()=>setAddGamesPack(value=>!value)}>
                 {addGamesPack?"✓ Pack agregado · Quitar":"＋ Agregar pack por $10.000"}
               </button>
@@ -160,13 +162,13 @@ export default function QuickCheckout({experience}:Props){
               <div className="quick-checkout-addon-price"><del>$25.000</del><b>$10.000</b><span>Ahorrás $15.000</span></div>
               <p>Elegí la experiencia que querés regalar. Después de pagar, personalizás los nombres, recuerdos, fotos y audios desde «Mis regalos».</p>
               <label className="quick-checkout-addon-select-label" htmlFor="checkout-experience-choice">Elegí tu experiencia
-                <select id="checkout-experience-choice" value={experienceChoice} disabled={busy}
+                <select id="checkout-experience-choice" value={experienceChoice} disabled={busy||!hydrated}
                   onChange={event=>setExperienceChoice(event.target.value)}>
                   {experienceAddOnChoices.map(choice=><option key={choice.slug} value={choice.slug}>{choice.name}</option>)}
                 </select>
               </label>
               <button className="quick-checkout-addon-choice" type="button"
-                aria-pressed={addExperience} disabled={busy}
+                aria-pressed={addExperience} disabled={busy||!hydrated}
                 onClick={()=>setAddExperience(value=>!value)}>
                 {addExperience?"✓ Experiencia agregada · Quitar":"＋ Agregar experiencia por $10.000"}
               </button>
