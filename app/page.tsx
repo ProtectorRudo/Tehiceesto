@@ -58,40 +58,19 @@ export default function Home() {
 
       <section className="boutique-escapes" id="escapes"><div><span className="boutique-kicker">PARA REGALOS INESPERADOS</span><h2>¿Y si su sorpresa<br/><em>fuera una aventura?</em></h2><p>Tres misterios para jugar. Al final del recorrido, una invitación personal que sólo ustedes entienden.</p><Link className="boutique-button boutique-button-light" href="/escapes">Explorar salas de escape <span aria-hidden="true">↗</span></Link></div><div className="boutique-escapes-card"><span>COLECCIÓN · MUNDOS SECRETOS</span><div className="boutique-escapes-orbit">✳</div><strong>TRES MISTERIOS.<br/>UNA HISTORIA<br/>PARA RECORDAR.</strong></div></section>
 
-      <section className="boutique-escapes" id="juegos" aria-labelledby="trazo-home-title">
+      <section className="boutique-escapes" id="juegos" aria-labelledby="pack-games-home-title">
         <div>
-          <span className="boutique-kicker">NUEVO · JUEGOS PARA COMPARTIR</span>
-          <h2 id="trazo-home-title">Dibujá lo imposible.<br/><em>Adiviná entre risas.</em></h2>
-          <p>Trazo Cómplice: dos personas, un solo celular y una palabra secreta. Probá dos rondas gratis; desbloqueá el juego completo con 1.274 palabras cuando quieras.</p>
-          <Link className="boutique-button boutique-button-light" href="/juegos/trazo-complice">Probar juego gratis <span aria-hidden="true">↗</span></Link>
+          <span className="boutique-kicker">PACK DE JUEGOS · TRES EXPERIENCIAS, UNA SOLA COMPRA</span>
+          <h2 id="pack-games-home-title">Tres juegos.<br/><em>Mil maneras de conectar.</em></h2>
+          <p><strong>CÓMPLICES + ENTRE DOS + TRAZO CÓMPLICE</strong>. Aventura cooperativa, preguntas para descubrirse y risas dibujando. Los tres completos en un mismo pack por <strong>$25.000 ARS</strong>, pago único. Probá gratis la demo de cada uno antes de comprar.</p>
+          <Link className="boutique-button boutique-button-light" href="/juegos/pack">Ver el pack, sus demos y comprar ↗</Link>
+          <p><small>Las salas de escape se venden por separado.</small></p>
         </div>
-        <div className="boutique-escapes-card"><span>TRA ZO CÓMPLICE · UN CELULAR</span>
-          <div className="boutique-escapes-orbit" aria-hidden="true">✎</div>
-          <strong>1.274 IDEAS.<br/>MILES DE<br/>CARCAJADAS.</strong>
+        <div className="boutique-escapes-card">
+          <span>PACK PARA JUGAR JUNTOS · UN SOLO CELULAR</span>
+          <div className="boutique-escapes-orbit" aria-hidden="true">✳</div>
+          <strong>3 JUEGOS.<br/>1 COMPRA.<br/>$25.000 ARS.</strong>
         </div>
-      </section>
-
-      <section className="boutique-escapes" aria-labelledby="entre-dos-home-title">
-        <div>
-          <span className="boutique-kicker">NUEVO · JUEGO PARA PAREJAS</span>
-          <h2 id="entre-dos-home-title">Dos personas.<br/><em>Una elección secreta.</em></h2>
-          <p>ENTRE DOS: nueve cartas de muestra, tres etapas y una revelación. Probá gratis el recorrido; las preguntas de la demo son siempre las mismas. La versión completa tiene 90 cartas para descubrir.</p>
-          <Link className="boutique-button boutique-button-light" href="/juegos/entre-dos">Jugar demo gratis <span aria-hidden="true">↗</span></Link>
-        </div>
-        <div className="boutique-escapes-card"><span>ENTRE DOS · DEMO GRATIS</span>
-          <div className="boutique-escapes-orbit" aria-hidden="true">♥</div>
-          <strong>9 CARTAS.<br/>DOS MIRADAS.<br/>UNA SORPRESA.</strong>
-        </div>
-      </section>
-
-      <section className="boutique-escapes" id="complices" aria-labelledby="complices-home-title">
-        <div>
-          <span className="boutique-kicker">NUEVO · AVENTURA COOPERATIVA PARA PAREJAS</span>
-          <h2 id="complices-home-title">Una bóveda.<br/><em>Dos personas. Siete secretos.</em></h2>
-          <p>CÓMPLICES: no es otro juego de preguntas. Es una aventura para dos con pistas, memoria, coordinación y sorpresas. Probá gratis la primera cerradura, siempre con el mismo código. Los otros seis desafíos se reservan para la edición completa.</p>
-          <Link className="boutique-button boutique-button-light" href="/juegos/complices">Jugar primera cerradura gratis <span aria-hidden="true">↗</span></Link>
-        </div>
-        <div className="boutique-escapes-card"><span>CÓMPLICES · UN SOLO CELULAR</span><div className="boutique-escapes-orbit" aria-hidden="true">♡</div><strong>UNA LLAVE.<br/>DOS CÓMPLICES.<br/>SIETE SECRETOS.</strong></div>
       </section>
 
       <section className="boutique-ending"><span className="boutique-kicker">SEGURO QUE YA SABÉS PARA QUIÉN</span><h2>Hay alguien que merece<br/><em>algo que sólo sea suyo.</em></h2><Link className="boutique-button boutique-button-dark" href="/crear">Hacer un regalo inolvidable <span aria-hidden="true">↗</span></Link><small>PERSONALIZADO POR VOS · ACCESO PRIVADO POR EMAIL · PENSADO PARA CELULAR</small></section>
