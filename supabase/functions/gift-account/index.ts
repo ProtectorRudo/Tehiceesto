@@ -79,6 +79,7 @@ const EXPERIENCE_NAMES:Record<string,string>={
   pareja:"para tu pareja",mama:"para mamá",papa:"para papá",abuelos:"para tus abuelos",
   cumpleanos:"de cumpleaños",cumple:"de cumpleaños",amistad:"para una amistad",
   "club-amigos":"del Club de Amigos de Toda la Vida",
+  "trazo-complice":"del juego Trazo Cómplice (versión completa)",
   propuesta:"para una propuesta especial",aniversario:"de aniversario",
 };
 function safeHtml(value:unknown){
