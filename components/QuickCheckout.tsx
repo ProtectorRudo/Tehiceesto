@@ -23,10 +23,11 @@ function cleanPhone(raw:string){
   // 54 9 + area code + number already works.
   return value;
 }
-function photo(slug:string){return "/demo-previews/"+slug+(slug==="frasco365"||slug==="siete-dias"||slug==="club-amigos"||slug==="trazo-complice"?".svg":".jpg");}
+function photo(slug:string){if(slug==="pack-juegos")return "/demo-previews/trazo-complice.svg";return "/demo-previews/"+slug+(slug==="frasco365"||slug==="siete-dias"||slug==="club-amigos"||slug==="trazo-complice"?".svg":".jpg");}
 
 export default function QuickCheckout({experience}:Props){
-  const isGame=experience.slug==="trazo-complice";
+  const isPack=experience.slug==="pack-juegos";
+  const isGame=isPack||experience.slug==="trazo-complice";
   const [email,setEmail]=useState("");
   const [phone,setPhone]=useState("");
   const [busy,setBusy]=useState(false);
@@ -71,7 +72,7 @@ export default function QuickCheckout({experience}:Props){
       const code=err instanceof Error?err.message:"";
       if(code==="experience_coming_soon")setMessage("Esta experiencia todavía no está disponible para comprar.");
       else if(code==="too_many_orders")setMessage("Alcanzaste el límite de intentos. Probá más tarde o escribinos.");
-      else if(code==="request_already_completed")setMessage(isGame?"Esa compra ya se completó. Entrá a «Mis regalos» con tu correo y elegí «Jugar versión completa».":"Esa compra ya se completó. Entrá a «Mis regalos» con tu correo para editar tu experiencia.");
+      else if(code==="request_already_completed")setMessage(isPack?"Esa compra ya se completó. Entrá a «Mis juegos» con tu correo para abrir los tres juegos.":isGame?"Esa compra ya se completó. Entrá a «Mis regalos» con tu correo y elegí «Jugar versión completa».":"Esa compra ya se completó. Entrá a «Mis regalos» con tu correo para editar tu experiencia.");
       else setMessage("No pudimos abrir Mercado Pago. Revisá tu conexión y volvé a intentar; no se realizó ningún cobro.");
     }finally{setBusy(false);}
   }
@@ -79,24 +80,24 @@ export default function QuickCheckout({experience}:Props){
   return <main className="quick-checkout">
     <div className="quick-checkout-container">
       <header className="quick-checkout-header">
-        <Link className="quick-checkout-back" href={isGame?"/juegos/trazo-complice":"/crear"}>← {isGame?"Volver al juego":"Volver a experiencias"}</Link>
+        <Link className="quick-checkout-back" href={isPack?"/juegos/pack":isGame?"/juegos/trazo-complice":"/crear"}>← {isPack?"Volver al pack":isGame?"Volver al juego":"Volver a experiencias"}</Link>
         <Link className="quick-checkout-brand" href="/">TE HICE ESTO <span>♥</span></Link>
       </header>
       <div className="quick-checkout-layout">
         <section className="quick-checkout-summary" aria-label="Tu experiencia elegida">
-          <span className="quick-checkout-kicker">{isGame?"UN JUEGO SIN LÍMITES":"TU REGALO ESTÁ A UN PASO"}</span>
+          <span className="quick-checkout-kicker">{isPack?"3 JUEGOS · UNA SOLA COMPRA":isGame?"UN JUEGO SIN LÍMITES":"TU REGALO ESTÁ A UN PASO"}</span>
           <div className="quick-checkout-product">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img alt="" src={photo(experience.slug)} loading="eager"/>
-            <div><span>{experience.eyebrow}</span><h1>{experience.title}</h1><p>{isGame?"1.274 palabras · 11 categorías · Acceso completo":"Personalizable después de comprar"}</p></div>
+            <div><span>{experience.eyebrow}</span><h1>{experience.title}</h1><p>{isPack?"Trazo Cómplice + Entre Dos + Cómplices":" " .trim()|| (isGame?"1.274 palabras · 11 categorías · Acceso completo":"Personalizable después de comprar")}</p></div>
           </div>
           <div className="quick-checkout-price"><strong>$25.000 <small>ARS</small></strong><span>Pago único · Sin suscripción</span></div>
-          <p className="quick-checkout-help">{isGame?"Desbloqueá Trazo Cómplice para jugar todas las rondas con 1.274 palabras. Después de pagar, recibirás un email para entrar a «Mis regalos» y abrir tu juego completo. No necesitás instalar nada.":"Elegí tu experiencia y pagá de forma segura. Cuando se confirme el pago, vas a recibir un email con acceso a «Mis regalos», donde podés personalizar nombres, mensajes, fotos y audios. El diseño, las escenas y los efectos ya están preparados."}</p>
+          <p className="quick-checkout-help">{isPack?"El pack incluye Trazo Cómplice (1.274 palabras), Entre Dos (90 preguntas) y Cómplices (7 desafíos). Una sola compra de $25.000 ARS. Después de pagar vas a recibir un email para entrar a tus tres juegos. Las salas de escape no están incluidas.":isGame?"Desbloqueá Trazo Cómplice para jugar todas las rondas con 1.274 palabras. Después de pagar, recibirás un email para entrar a «Mis regalos» y abrir tu juego completo. No necesitás instalar nada.":"Elegí tu experiencia y pagá de forma segura. Cuando se confirme el pago, vas a recibir un email con acceso a «Mis regalos», donde podés personalizar nombres, mensajes, fotos y audios. El diseño, las escenas y los efectos ya están preparados."}</p>
         </section>
         <form className="quick-checkout-form" onSubmit={submit}>
           <span className="quick-checkout-form-kicker">COMPRA RÁPIDA · 2 DATOS</span>
           <h2>Ya casi <em>es tuyo.</em></h2>
-          <p>{isGame?"¿A qué correo enviamos tu acceso al juego completo?":"¿A qué correo enviamos el acceso para editar tu regalo?"}</p>
+          <p>{isPack?"¿A qué correo enviamos el acceso a tus tres juegos?":isGame?"¿A qué correo enviamos tu acceso al juego completo?":"¿A qué correo enviamos el acceso para editar tu regalo?"}</p>
           <label htmlFor="checkout-email">Tu email
             <input id="checkout-email" required type="email" autoComplete="email" inputMode="email"
               placeholder="tu@email.com" maxLength={180} value={email} onChange={event=>setEmail(event.target.value)}
@@ -115,7 +116,7 @@ export default function QuickCheckout({experience}:Props){
           <button className="quick-checkout-submit" type="submit" disabled={busy||!valid||Boolean(website)}>
             {busy?"Preparando tu pago…":"Continuar a Mercado Pago"} <span aria-hidden="true">↗</span>
           </button>
-          <p className="quick-checkout-legal">Al continuar aceptás que usemos tu email y WhatsApp para gestionar el pedido y contactarte sobre tu {isGame?"juego":"regalo"}. No se realiza ningún cobro hasta que lo confirmes en Mercado Pago.</p>
+          <p className="quick-checkout-legal">Al continuar aceptás que usemos tu email y WhatsApp para gestionar el pedido y contactarte sobre tu {isPack?"pack de juegos":isGame?"juego":"regalo"}. No se realiza ningún cobro hasta que lo confirmes en Mercado Pago.</p>
           {message&&<div className="quick-checkout-status" role="status">
             <p>{message}</p>
             {order?.code&&<small>N.º de pedido: {order.code}</small>}
