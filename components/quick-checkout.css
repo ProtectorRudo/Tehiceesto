@@ -84,3 +84,39 @@ body:has(.quick-checkout)>.site-header,body:has(.quick-checkout)>.floating-whats
   border-radius:10px;background:#fff7fa;color:#955572;
   font-size:11px;font-weight:600;line-height:1.5;
 }
+
+/* Soft pre-checkout opportunity: no modal, default off, clear combined total. */
+.quick-checkout-addon{
+  display:grid;grid-template-columns:39px minmax(0,1fr);gap:12px;
+  padding:15px 14px 14px;border:1px solid #efd9d7;
+  border-radius:16px;background:linear-gradient(130deg,#fffaf4,#fff2f5);
+  margin:0 0 14px;
+}
+.quick-checkout-addon-symbol{
+  display:grid;place-items:center;width:39px;height:39px;
+  border-radius:12px;background:#f7dfe5;color:#a83c6e;font-size:21px;
+}
+.quick-checkout-addon-copy{min-width:0}
+.quick-checkout-addon-copy>span{display:block;color:#a86c84;font-size:9px;
+  letter-spacing:.11em;font-weight:850;line-height:1.4;margin-bottom:3px}
+.quick-checkout-addon-copy>strong{display:block;color:#59394c;font-size:13px;line-height:1.4}
+.quick-checkout-addon-copy>p{font-size:11px;line-height:1.55;color:#907783;margin:5px 0 11px}
+.quick-checkout-addon-choice{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:37px;border-radius:100px;border:1px solid #daabc1;
+  background:#fffafc;color:#a23a6c;font:800 11px "DM Sans",sans-serif;
+  padding:8px 15px;cursor:pointer;touch-action:manipulation;
+}
+.quick-checkout-addon-choice[aria-pressed="true"]{
+  border-color:#bd8da5;background:#f5e5ed;color:#8e3360;
+}
+.quick-checkout-addon-choice:disabled{opacity:.55;cursor:wait}
+.quick-checkout-total{display:flex;align-items:center;justify-content:space-between;
+  gap:12px;border-top:1px solid #eee0e3;padding:12px 0 14px;font-size:12px;
+  color:#8a6a7d;font-weight:700}
+.quick-checkout-total strong{color:#913960;font-size:16px;white-space:nowrap}
+@media(max-width:360px){
+  .quick-checkout-addon{padding:12px 11px;gap:9px;grid-template-columns:33px minmax(0,1fr)}
+  .quick-checkout-addon-symbol{width:33px;height:33px}
+}
+@media(prefers-reduced-motion:reduce){.quick-checkout-addon-choice{transition:none}}
