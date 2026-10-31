@@ -15,13 +15,19 @@ export async function generateMetadata({params}:Props):Promise<Metadata>{
 function previewPath(slug:string){
  return "/demo-previews/"+slug+(["club-amigos","frasco365","siete-dias"].includes(slug)?".svg":".jpg");
 }
+const games = [
+ {slug:"trazo-complice",title:"Trazo Cómplice",eyebrow:"DIBUJAR Y ADIVINAR",label:"DIVERSIÓN · UN SOLO CELULAR",description:"Dibujen sin hablar, adivinen lo imposible y terminen riéndose de sus propias obras de arte. Dos palabras fijas en la demo; 1.274 en el juego completo.",preview:"/demo-previews/trazo-complice.svg",alt:"Cartas ilustradas de Trazo Cómplice",demo:"/juegos/trazo-complice",accent:"#9a426d"},
+ {slug:"entre-dos",title:"Entre Dos",eyebrow:"PREGUNTAS PARA DESCUBRIRSE",label:"CONEXIÓN · UN SOLO CELULAR",description:"Dos personas eligen en secreto entre dos opciones y descubren si coinciden. Nueve preguntas fijas en la demo; 90 en la edición completa.",preview:"/demo-previews/entre-dos.svg",alt:"Dos cartas románticas del juego Entre Dos",demo:"/juegos/entre-dos",accent:"#a43b66"},
+ {slug:"complices",title:"Cómplices",eyebrow:"AVENTURA COOPERATIVA",label:"ADRENALINA · DOS PERSONAS",description:"Resuelvan pistas, coordinen decisiones y rescaten a Lía contrarreloj. Una misión fija en la demo; siete desafíos en el juego completo.",preview:"/demo-previews/complices.svg",alt:"Escena de rescate del juego cooperativo Cómplices",demo:"/juegos/complices",accent:"#48637b"}
+] as const;
+
 export default async function RecipientCollection({params}:Props){
  const {categoria}=await params;
  const option=recipientCategory(categoria);
  if(!option)notFound();
  const selected=categoria==="todos"?publicExperiences:publicExperiences.filter(item=>option.slugs.includes(item.slug));
  const withGames=categoria==="juegos"||categoria==="todos";
- const itemCount=selected.length+(withGames?2:0);
+ const itemCount=selected.length+(withGames?games.length:0);
  return <main className="studio-page recipient-catalog" id="coleccion">
    <div className="recipient-catalog-ambient" aria-hidden="true"/>
    <div className="recipient-catalog-inner">
@@ -69,31 +75,31 @@ export default async function RecipientCollection({params}:Props){
           </div>
          </div>
        </article>)}
-       {withGames&&<article className="recipient-catalog-card recipient-catalog-card--game">
+       {withGames&&games.map((game,index)=><article key={game.slug} className="recipient-catalog-card recipient-catalog-card--game" style={{"--recipient-card-accent":game.accent} as React.CSSProperties}>
          <div className="recipient-catalog-card-photo">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/demo-previews/trazo-complice.svg" alt="Cartas de Trazo Cómplice" loading="eager"/>
-          <span className="recipient-catalog-card-label">JUEGO · UN SOLO CELULAR</span>
+          <img src={game.preview} alt={game.alt} loading={index===0?"eager":"lazy"}/>
+          <span className="recipient-catalog-card-label">{game.label}</span>
          </div>
          <div className="recipient-catalog-card-copy">
-          <span className="recipient-catalog-card-category">DOS PERSONAS · MUCHAS RISAS</span>
-          <h3>Trazo Cómplice</h3><p>Dibujá, adiviná y pasale el celular a la otra persona. Dos palabras gratis y 1.274 en el juego completo.</p>
+          <span className="recipient-catalog-card-category">{game.eyebrow}</span>
+          <h3>{game.title}</h3><p>{game.description}</p>
           <div className="recipient-catalog-card-buttons">
-           <Link href="/juegos/trazo-complice" className="recipient-catalog-card-view">Jugar demo <span aria-hidden="true">↗</span></Link>
-           <Link href="/comprar/trazo-complice" className="recipient-catalog-card-buy">Juego completo <span aria-hidden="true">→</span></Link>
+           <Link href={game.demo} className="recipient-catalog-card-view">Probar demo gratis <span aria-hidden="true">↗</span></Link>
+           <Link href="/juegos/pack" className="recipient-catalog-card-buy">Ver pack de 3 juegos <span aria-hidden="true">→</span></Link>
           </div>
          </div>
-       </article>}
-       {withGames&&<article className="recipient-catalog-card recipient-catalog-card--escape">
-         <div className="recipient-catalog-card-photo recipient-catalog-escape-visual"><div className="recipient-catalog-escape-mark" aria-hidden="true">⌖</div><strong>Mundos<br/>secretos</strong><span className="recipient-catalog-card-label">SALAS DE ESCAPE</span></div>
-         <div className="recipient-catalog-card-copy">
-          <span className="recipient-catalog-card-category">AVENTURAS INMERSIVAS</span>
-          <h3>Salas de escape</h3><p>Misterios interactivos y desafíos para compartir, donde cada detalle puede ser una pista.</p>
-          <div className="recipient-catalog-card-buttons"><Link href="/escapes" className="recipient-catalog-card-view">Explorar juegos <span aria-hidden="true">↗</span></Link></div>
-         </div>
-       </article>}
+       </article>)}
       </div>
+      {withGames&&<div className="recipient-games-pack">
+        <div><span className="recipient-catalog-eyebrow">PACK COMPLETO · PAGO ÚNICO</span><h3>Tres juegos. <em>Una sola compra.</em></h3><p>Trazo Cómplice + Entre Dos + Cómplices. Todos completos por <strong>$25.000 ARS</strong>. Probá sus demos gratis antes de elegir.</p></div>
+        <Link href="/juegos/pack" className="recipient-catalog-cta">Conocer el pack de $25.000 <span aria-hidden="true">↗</span></Link>
+      </div>}
     </section>
+    {withGames&&<aside className="recipient-escapes-apart" aria-labelledby="recipient-escapes-title">
+      <div><span className="recipient-catalog-eyebrow">UNA COLECCIÓN DISTINTA · NO INCLUIDA EN EL PACK</span><h2 id="recipient-escapes-title">¿Preferís un misterio?</h2><p>Las salas de escape son aventuras independientes que se venden por separado. Explorá sus historias y demos sin confundirlas con el pack de juegos.</p></div>
+      <Link href="/escapes" className="recipient-catalog-other">Explorar salas de escape <span aria-hidden="true">→</span></Link>
+    </aside>}
     <footer className="recipient-catalog-footer"><span>✳ TE HICE ESTO</span><p>Los regalos más lindos empiezan pensando en alguien.</p><Link href="/coleccion/todos">Todas las experiencias →</Link></footer>
    </div>
   </main>;
