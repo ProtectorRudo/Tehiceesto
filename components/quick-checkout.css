@@ -120,3 +120,19 @@ body:has(.quick-checkout)>.site-header,body:has(.quick-checkout)>.floating-whats
   .quick-checkout-addon-symbol{width:33px;height:33px}
 }
 @media(prefers-reduced-motion:reduce){.quick-checkout-addon-choice{transition:none}}
+
+/* Gift checkout: a quiet, genuine 60%-off opportunity, never a modal. */
+.quick-checkout-discount{
+  display:inline-flex;vertical-align:middle;align-items:center;
+  font:800 9px "DM Sans",sans-serif;letter-spacing:.05em;
+  border:1px solid #c080a3;background:#f3e0eb;color:#8a3061;
+  border-radius:100px;padding:4px 7px;margin-left:5px;white-space:nowrap;
+}
+.quick-checkout-addon-price{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:6px 0 2px}
+.quick-checkout-addon-price del{color:#a88f9b;font-size:12px}
+.quick-checkout-addon-price b{color:#9d366a;font-size:17px}
+.quick-checkout-addon-price span{color:#927585;font-size:10px;font-weight:750}
+@media(max-width:350px){
+ .quick-checkout-discount{margin:4px 0 0;padding:3px 6px}
+ .quick-checkout-addon-price{gap:6px}
+}
