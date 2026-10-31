@@ -84,6 +84,16 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="boutique-escapes" id="complices" aria-labelledby="complices-home-title">
+        <div>
+          <span className="boutique-kicker">NUEVO · AVENTURA COOPERATIVA PARA PAREJAS</span>
+          <h2 id="complices-home-title">Una bóveda.<br/><em>Dos personas. Siete secretos.</em></h2>
+          <p>CÓMPLICES: no es otro juego de preguntas. Es una aventura para dos con pistas, memoria, coordinación y sorpresas. Probá gratis la primera cerradura, siempre con el mismo código. Los otros seis desafíos se reservan para la edición completa.</p>
+          <Link className="boutique-button boutique-button-light" href="/juegos/complices">Jugar primera cerradura gratis <span aria-hidden="true">↗</span></Link>
+        </div>
+        <div className="boutique-escapes-card"><span>CÓMPLICES · UN SOLO CELULAR</span><div className="boutique-escapes-orbit" aria-hidden="true">♡</div><strong>UNA LLAVE.<br/>DOS CÓMPLICES.<br/>SIETE SECRETOS.</strong></div>
+      </section>
+
       <section className="boutique-ending"><span className="boutique-kicker">SEGURO QUE YA SABÉS PARA QUIÉN</span><h2>Hay alguien que merece<br/><em>algo que sólo sea suyo.</em></h2><Link className="boutique-button boutique-button-dark" href="/crear">Hacer un regalo inolvidable <span aria-hidden="true">↗</span></Link><small>PERSONALIZADO POR VOS · ACCESO PRIVADO POR EMAIL · PENSADO PARA CELULAR</small></section>
       <footer className="boutique-footer"><Link href="/" className="boutique-footer-brand">TE HICE ESTO <span>♥</span></Link><p>Regalos digitales que se sienten de verdad.</p><div><Link href="/mis-regalos">Mis regalos</Link><Link href="/crear">Crear un regalo</Link></div><span>ARGENTINA · 2026</span></footer>
     </main>
