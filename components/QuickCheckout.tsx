@@ -23,7 +23,7 @@ function cleanPhone(raw:string){
   // 54 9 + area code + number already works.
   return value;
 }
-function photo(slug:string){if(slug==="pack-juegos")return "/demo-previews/trazo-complice.svg";return "/demo-previews/"+slug+(slug==="frasco365"||slug==="siete-dias"||slug==="club-amigos"||slug==="trazo-complice"?".svg":".jpg");}
+function photo(slug:string){if(slug==="pack-juegos")return "/demo-previews/trazo-complice.svg";return "/demo-previews/"+slug+(slug==="frasco365"||slug==="siete-dias"||slug==="club-amigos"||slug==="sticker-bomb-amistad"||slug==="trazo-complice"?".svg":".jpg");}
 
 export default function QuickCheckout({experience}:Props){
   const isPack=experience.slug==="pack-juegos";
