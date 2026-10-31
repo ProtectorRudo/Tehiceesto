@@ -136,3 +136,25 @@ body:has(.quick-checkout)>.site-header,body:has(.quick-checkout)>.floating-whats
  .quick-checkout-discount{margin:4px 0 0;padding:3px 6px}
  .quick-checkout-addon-price{gap:6px}
 }
+
+/* Reverse cross-sell: games -> one personalized gift, no interruption. */
+.quick-checkout-addon--experience{
+  background:linear-gradient(129deg,#fffaf6,#fbf0f7);
+}
+.quick-checkout-addon-select-label{
+  display:block!important;margin:10px 0!important;
+  color:#69495e!important;font-size:11px!important;font-weight:750!important;
+  line-height:1.5;
+}
+.quick-checkout-addon-select-label select{
+  appearance:none;width:100%;min-height:43px;display:block;margin-top:6px;
+  padding:10px 31px 10px 12px;border-radius:10px;
+  background:#fffdfb;color:#523a49;border:1px solid #e5cbd4;
+  font:650 12px/1.3 "DM Sans",sans-serif;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6' fill='none' stroke='%238d5874' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 11px center;
+}
+.quick-checkout-addon-select-label select:focus-visible{
+  outline:2px solid #b55c84;outline-offset:2px;
+}
+.quick-checkout-addon-select-label select:disabled{opacity:.6}
