@@ -1,0 +1,40 @@
+name: Casi Telepatía — private build and play QA
+on:
+  push:
+    branches: [feature/casi-telepatia-600-20261031]
+    paths:
+      - "app/juegos/casi-telepatia/**"
+      - "public/juegos/casi-telepatia/**"
+      - "public/demo-previews/casi-telepatia.svg"
+      - "scripts/casi-telepatia-qa.mjs"
+      - ".github/workflows/casi-telepatia-qa.yml"
+  workflow_dispatch:
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - name: Install and prepare browser
+        run: |
+          npm install
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Build Next.js
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-dummy
+      - name: Start server
+        run: |
+          npm start -- -H 127.0.0.1 -p 3000 >/tmp/casi-qa.log 2>&1 &
+          for i in {1..45}; do
+            if curl -fsS http://127.0.0.1:3000/juegos/casi-telepatia >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/casi-qa.log
+          exit 1
+      - name: Audit 600 questions and mobile game flow
+        run: node scripts/casi-telepatia-qa.mjs
