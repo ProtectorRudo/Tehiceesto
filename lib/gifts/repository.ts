@@ -182,7 +182,7 @@ export async function getPublishedGiftByCode(
     ?dragonBallCopy as Record<string,unknown>:null;
   const pickedPhotos=Array.isArray(dragonBallConfig?.photoMediaIds)?dragonBallConfig.photoMediaIds.slice(0,3):[];
   const pickedVoice=typeof dragonBallConfig?.voiceMediaId==="string"?dragonBallConfig.voiceMediaId:"";
-  const dragonBallPhotos=pickedPhotos.map(id=>orderedMedia.find(m=>m.id===id&&m.kind==="image")?.url||"").filter(Boolean) as string[];
+  const dragonBallPhotos=pickedPhotos.map(id=>orderedMedia.find(m=>m.id===id&&m.kind==="image")?.url||"") as string[];
   const dragonBallVoice=orderedMedia.find(m=>m.id===pickedVoice&&m.kind==="audio")?.url||null;
 
   return {
