@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import FloatingWhatsApp from "@/components/FloatingWhatsApp";
+import RecipientMenu from "@/components/RecipientMenu";
 import "./globals.css";
 import "./studio-system.css";
 
@@ -49,6 +50,7 @@ export default function RootLayout({
             <Link href="/mis-regalos">Mis regalos</Link>
             <Link className="header-create" href="/crear">Crear una →</Link>
           </nav>
+          <RecipientMenu />
         </header>
         {children}
         <FloatingWhatsApp />
