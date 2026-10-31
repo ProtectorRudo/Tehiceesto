@@ -61,8 +61,9 @@ export default function PostPurchase({code}:{code:string}){
   }finally{setActionBusy(false);}
  };
  const purchased=order?.order?.status==="approved";
+ const isPack=order?.experienceSlug==="pack-juegos";
  const completed=offer?.status==="approved";
- const shouldOffer=purchased&&offer?.canOffer&&offer?.status!=="declined"&&!hidden&&!completed;
+ const shouldOffer=!isPack&&purchased&&offer?.canOffer&&offer?.status!=="declined"&&!hidden&&!completed;
  return <main className="postpurchase-shell">
   <header><Link href="/" className="postpurchase-brand">TE HICE ESTO <b>♥</b></Link><span>UN REGALO PARA RECORDAR</span></header>
   <div className="postpurchase-inner">
@@ -70,8 +71,8 @@ export default function PostPurchase({code}:{code:string}){
    purchased?<section className="postpurchase-panel">
      <span className="postpurchase-check" aria-hidden="true">✓</span>
      <span className="postpurchase-kicker">PAGO CONFIRMADO</span>
-     <h1>¡Ya es <em>tuya!</em></h1>
-     <p>Tu pago está confirmado. Te enviamos un email para que entres a «Mis regalos» y personalices tu experiencia con nombres, mensajes, fotografías y audios. El recorrido y los efectos del modelo permanecen intactos.</p>
+     <h1>{isPack?<>¡Tus tres juegos <em>ya son tuyos!</em></>:<>¡Ya es <em>tuya!</em></>}</h1>
+     <p>{isPack?"Tu pago del Pack de 3 Juegos está confirmado. Te enviamos un email con el enlace privado para entrar a Trazo Cómplice, Entre Dos y Cómplices completos. No necesitás instalar nada.":"Tu pago está confirmado. Te enviamos un email para que entres a «Mis regalos» y personalices tu experiencia con nombres, mensajes, fotografías y audios. El recorrido y los efectos del modelo permanecen intactos."}</p>
      {shouldOffer&&<div className="postpurchase-offer" aria-label="Oferta opcional después de la compra">
        <span className="postpurchase-offer-kicker">ANTES DE TERMINAR · UNA SORPRESA MÁS</span>
        <div className="postpurchase-offer-head">
@@ -90,8 +91,8 @@ export default function PostPurchase({code}:{code:string}){
        <a className="postpurchase-yes postpurchase-link" href={offer.checkoutUrl}>Continuar el pago de $10.000</a>
      </div>}
      {completed&&<div className="postpurchase-thanks"><strong>♡ Tu carta extra también está confirmada.</strong><p>Si elegís agregarla, vas a encontrarla dentro de «Mis regalos» una vez acreditado el pago adicional.</p></div>}
-     <Link href="/mis-regalos" className="postpurchase-my">Ir a Mis regalos y personalizar <span aria-hidden="true">↗</span></Link>
-     <p className="postpurchase-assistance">El enlace de acceso privado llega al correo de tu compra. Desde «Mis regalos» podés editar el contenido, publicar tu experiencia y compartirla. Si no encontrás el mensaje, revisá spam o pedí otro acceso.</p>
+     <Link href={isPack?"/juegos/pack/completo":"/mis-regalos"} className="postpurchase-my">{isPack?"Abrir mis tres juegos":"Ir a Mis regalos y personalizar"} <span aria-hidden="true">↗</span></Link>
+     <p className="postpurchase-assistance">{isPack?"El acceso privado llega al correo de compra. Usá ese mismo correo para entrar a tus juegos. Las salas de escape se venden por separado.":"El enlace de acceso privado llega al correo de tu compra. Desde «Mis regalos» podés editar el contenido, publicar tu experiencia y compartirla. Si no encontrás el mensaje, revisá spam o pedí otro acceso."}</p>
    </section>:
    <section className="postpurchase-panel">
      <span className="postpurchase-kicker">TU COMPRA ESTÁ EN PROCESO</span>
