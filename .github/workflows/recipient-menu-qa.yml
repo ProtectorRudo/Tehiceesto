@@ -1,0 +1,57 @@
+name: Recipient menu · mobile category navigation
+on:
+  push:
+    branches: [main]
+    paths:
+      - "components/RecipientMenu.*"
+      - "app/layout.tsx"
+      - "app/coleccion/**"
+      - "data/recipient-categories.ts"
+      - "scripts/recipient-menu-qa.mjs"
+      - ".github/workflows/recipient-menu-qa.yml"
+  pull_request:
+    paths:
+      - "components/RecipientMenu.*"
+      - "app/layout.tsx"
+      - "app/coleccion/**"
+      - "scripts/recipient-menu-qa.mjs"
+      - ".github/workflows/recipient-menu-qa.yml"
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - name: Install app and browser
+        run: |
+          npm install
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Build app
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-dummy-public-key
+      - name: Serve local
+        run: |
+          npm start -- -H 127.0.0.1 -p 3000 >/tmp/recipient-menu.log 2>&1 &
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:3000/coleccion/mama >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/recipient-menu.log
+          exit 1
+      - name: Check categories, gestures, a11y and mobile
+        run: node scripts/recipient-menu-qa.mjs
+      - name: Save mobile and desktop menu previews
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: recipient-menu-screenshots
+          path: |
+            /tmp/menu-*.png
+            /tmp/categoria-mama-*.png
+          retention-days: 5
+          if-no-files-found: ignore
