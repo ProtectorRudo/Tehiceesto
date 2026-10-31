@@ -91,24 +91,25 @@ function premiumMail(name:string,experience:string,actionLink:string,isPurchase:
   const firstName=safeHtml(name.trim().split(/\s+/)[0]||"");
   const experienceName=safeHtml(EXPERIENCE_NAMES[experience]||"personalizada");
   const link=safeHtml(actionLink);
-  const title=isPurchase?"Tu regalo ya está listo para personalizar.":"Tus recuerdos siguen esperándote.";
-  const intro=isPurchase
+  const game=experience==="trazo-complice";
+  const title=game?"¡Trazo Cómplice completo es tuyo!":isPurchase?"Tu regalo ya está listo para personalizar.":"Tus recuerdos siguen esperándote.";
+  const intro=game?"Tu compra está confirmada. Entrá a Mis regalos con este enlace privado y tocá «Jugar versión completa» para disfrutar las 1.274 palabras, 11 categorías y tres dificultades. Un solo celular para dos personas.":isPurchase
     ?"Tu pago está confirmado. Ingresá a Mis regalos para personalizar tu experiencia "+experienceName+" con tus palabras, nombres, fotos y audios. El diseño, las escenas y los efectos ya están preparados. Después podés publicar y compartir el regalo desde tu cuenta."
     :"Este acceso privado te permite continuar editando y compartiendo tus experiencias desde Mis regalos.";
   const greeting=firstName?"Hola, "+firstName+".":"Hola.";
-  const button=isPurchase?"Entrar a Mis regalos y editar":"Entrar a Mis regalos";
+  const button=game?"Entrar y jugar completo":isPurchase?"Entrar a Mis regalos y editar":"Entrar a Mis regalos";
   const html=[
     '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>',
     '<body style="margin:0;background:#f5f1ec;color:#292321;font-family:Arial,Helvetica,sans-serif;">',
     '<div style="display:none;font-size:1px;max-height:0;overflow:hidden;opacity:0;">',
-    isPurchase?'Tu compra está confirmada: entrá a Mis regalos para editar y compartir.':'Tu acceso privado a Te Hice Esto está listo.',
+    game?'Compraste Trazo Cómplice completo. Entrá a Mis regalos para jugar.':isPurchase?'Tu compra está confirmada: entrá a Mis regalos para editar y compartir.':'Tu acceso privado a Te Hice Esto está listo.',
     '</div><div style="padding:34px 12px;"><table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:580px;margin:auto;border:1px solid #e9e0d7;background:#fffdf9;border-radius:20px;overflow:hidden;">',
     '<tr><td style="padding:36px 32px 22px;text-align:center;"><div style="font-size:12px;font-weight:700;letter-spacing:3px;color:#7d5853;">TE HICE ESTO</div>',
     '<div style="width:44px;height:1px;background:#d8a79d;margin:22px auto 0;"></div></td></tr>',
     '<tr><td style="padding:8px 38px 30px;"><div style="font-size:14px;color:#966e69;margin-bottom:14px;">',greeting,'</div>',
     '<h1 style="font-size:31px;line-height:1.18;letter-spacing:-.8px;font-family:Georgia,serif;font-weight:400;margin:0 0 22px;color:#302522;">',title,'</h1>',
     '<p style="font-size:15px;line-height:1.85;color:#685d57;margin:0 0 17px;">',intro,'</p>',
-    isPurchase?'<p style="font-size:14px;color:#88685e;margin:0 0 22px;">Tu experiencia '+experienceName+' ya tiene su espacio reservado. Podés agregar palabras, fotografías y audios a tu ritmo.</p>':'',
+    game?'<p style="font-size:14px;color:#88685e;margin:0 0 22px;">Tus cartas ya están listas. Una vez dentro de Mis regalos, seleccioná «Jugar versión completa».</p>':isPurchase?'<p style="font-size:14px;color:#88685e;margin:0 0 22px;">Tu experiencia '+experienceName+' ya tiene su espacio reservado. Podés agregar palabras, fotografías y audios a tu ritmo.</p>':'',
     '<div style="text-align:center;padding:14px 0 26px;"><a href="',link,'" style="background:#382a29;border-radius:40px;color:#ffffff;display:inline-block;font-weight:700;text-decoration:none;padding:17px 30px;font-size:14px;">',button,' &nbsp;→</a></div>',
     '<p style="color:#817772;font-size:13px;line-height:1.75;margin:0;">El acceso es personal. Por seguridad, no compartas este correo. No necesitás instalar nada ni recordar una contraseña.</p>',
     '</td></tr><tr><td style="padding:26px 32px;background:#f9f4ee;text-align:center;">',
@@ -117,12 +118,12 @@ function premiumMail(name:string,experience:string,actionLink:string,isPurchase:
     '</td></tr></table></div></body></html>'
   ].join("");
   const text=[greeting,title,intro,
-    isPurchase?"Tu experiencia "+(EXPERIENCE_NAMES[experience]||"personalizada")+" está lista para personalizar desde Mis regalos.":"",
+    game?"Trazo Cómplice está listo. Elegí Jugar versión completa desde Mis regalos.":isPurchase?"Tu experiencia "+(EXPERIENCE_NAMES[experience]||"personalizada")+" está lista para personalizar desde Mis regalos.":"",
     button+": "+actionLink,
     "Este enlace es privado. No lo compartas.",
     "¿Necesitás ayuda? WhatsApp: +54 9 221 565-3163.",
     "Con cariño, Te Hice Esto."].filter(Boolean).join("\n\n");
-  return {html,text,subject:isPurchase?"Gracias por elegir Te Hice Esto ♥ Tu regalo te espera":"Tu acceso privado a Te Hice Esto ♥"};
+  return {html,text,subject:game?"Trazo Cómplice completo ♥ Tus cartas ya te esperan":isPurchase?"Gracias por elegir Te Hice Esto ♥ Tu regalo te espera":"Tu acceso privado a Te Hice Esto ♥"};
 }
 async function sendCustomAccessEmail(email:string,redirect:string,code:string,orderGiftId:string,portalBase="https://tehiceesto.com/mis-regalos"){
   let apiKey=(Deno.env.get("RESEND_API_KEY")||"").trim();
