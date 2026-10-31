@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 640" role="img" aria-labelledby="title desc">
+<title id="title">Cómplices — aventura cooperativa</title><desc id="desc">Una estación de rescate, luz de emergencia y dos señales que se conectan, en tonos azul profundo y dorado.</desc>
+<defs>
+<radialGradient id="back"><stop stop-color="#42677d"/><stop offset=".62" stop-color="#203b54"/><stop offset="1" stop-color="#111b32"/></radialGradient>
+<linearGradient id="gold"><stop stop-color="#fff2d4"/><stop offset=".48" stop-color="#e5b780"/><stop offset="1" stop-color="#ba8362"/></linearGradient>
+<linearGradient id="glass" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#6c9caf" stop-opacity=".9"/><stop offset="1" stop-color="#17253a" stop-opacity=".98"/></linearGradient>
+<filter id="glow"><feGaussianBlur stdDeviation="12"/></filter>
+<filter id="shadow"><feDropShadow dx="0" dy="20" stdDeviation="18" flood-opacity=".6"/></filter>
+</defs>
+<rect width="720" height="640" fill="url(#back)"/><circle cx="360" cy="310" r="240" fill="none" stroke="#c9e5ed" stroke-width="2" opacity=".12"/><circle cx="360" cy="310" r="195" fill="none" stroke="#c9e5ed" stroke-width="2" opacity=".17"/>
+<g stroke="#bbd8e0" stroke-width="2" opacity=".2"><path d="M0 470 720 470M0 520 720 520M0 570 720 570M140 0 0 450M580 0 720 450"/></g>
+<g filter="url(#shadow)">
+<path d="M205 149 515 149 538 448 183 448z" fill="#142238" stroke="url(#gold)" stroke-width="8"/>
+<path d="M222 167 498 167 515 426 204 426z" fill="url(#glass)" stroke="#89acb6" stroke-width="3"/>
+<path d="M250 192h220M255 216h210M260 241h200" stroke="#bddeea" stroke-opacity=".15" stroke-width="2"/>
+<path d="M360 178v238" stroke="#8bc4d7" stroke-opacity=".4" stroke-width="3"/>
+<rect x="313" y="260" width="94" height="102" rx="18" fill="#10283c" stroke="#c0d9dc" stroke-width="4"/>
+<circle cx="360" cy="296" r="19" fill="#f1d8b8"/><path d="M325 345q35-51 70 0" fill="#e8bd8d"/>
+<path d="M325 226h70" stroke="#f9c68d" stroke-width="7" stroke-linecap="round"/><circle cx="360" cy="223" r="7" fill="#ee7f63"/>
+</g>
+<g filter="url(#shadow)"><path d="M233 84l16 22h223l16-22-17-21H251z" fill="#d8b08e" stroke="#fee6c3" stroke-width="2"/><rect x="270" y="70" width="182" height="42" rx="8" fill="#152a39" stroke="#deb58c" stroke-width="3"/><text x="360" y="97" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" letter-spacing="3" font-weight="700" fill="#f9d4a8">RESCATE EN CURSO</text></g>
+<g fill="none" stroke="#88dfeb" stroke-width="6" stroke-linecap="round"><path d="M97 318c26-44 64-68 102-74"/><path d="M625 318c-26-44-64-68-102-74"/></g><g fill="#c9f8ff"><circle cx="88" cy="329" r="12"/><circle cx="632" cy="329" r="12"/></g>
+<g fill="#fce2b6"><path d="M80 220 92 180 102 220z"/><path d="M618 220 628 180 640 220z"/></g>
+<g stroke="#e7b685" stroke-width="2" opacity=".6"><path d="M120 535h480"/><path d="M165 548h390"/></g>
+<text x="360" y="601" text-anchor="middle" font-size="16" font-weight="700" letter-spacing="5" fill="#fbe5c9" font-family="Arial,sans-serif">CÓMPLICES</text>
+</svg>
