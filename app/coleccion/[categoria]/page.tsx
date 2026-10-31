@@ -21,7 +21,7 @@ export default async function RecipientCollection({params}:Props){
  if(!option)notFound();
  const selected=categoria==="todos"?publicExperiences:publicExperiences.filter(item=>option.slugs.includes(item.slug));
  const withGames=categoria==="juegos"||categoria==="todos";
- const itemCount=selected.length+(withGames?2:0);
+ const itemCount=selected.length+(withGames?3:0);
  return <main className="studio-page recipient-catalog" id="coleccion">
    <div className="recipient-catalog-ambient" aria-hidden="true"/>
    <div className="recipient-catalog-inner">
@@ -69,6 +69,21 @@ export default async function RecipientCollection({params}:Props){
           </div>
          </div>
        </article>)}
+       {withGames&&<article className="recipient-catalog-card recipient-catalog-card--game">
+         <div className="recipient-catalog-card-photo">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/demo-previews/casi-telepatia.svg" alt="Dos cartas originales de Casi Telepatía" loading="eager"/>
+          <span className="recipient-catalog-card-label">JUEGO · DOS PERSONAS · UN CELULAR</span>
+         </div>
+         <div className="recipient-catalog-card-copy">
+          <span className="recipient-catalog-card-category">600 PREGUNTAS · 20 TEMAS</span>
+          <h3>Casi Telepatía</h3>
+          <p>Una persona responde en secreto. La otra intenta adivinar. Rondas alternadas, revelaciones y una competencia para descubrir cuánto se conocen.</p>
+          <div className="recipient-catalog-card-buttons">
+           <Link href="/juegos/casi-telepatia" className="recipient-catalog-card-view">Jugar ahora <span aria-hidden="true">↗</span></Link>
+          </div>
+         </div>
+       </article>}
        {withGames&&<article className="recipient-catalog-card recipient-catalog-card--game">
          <div className="recipient-catalog-card-photo">
           {/* eslint-disable-next-line @next/next/no-img-element */}
