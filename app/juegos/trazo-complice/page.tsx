@@ -1,0 +1,3 @@
+import type {Metadata} from "next";
+export const metadata:Metadata={title:"Trazo Cómplice · Demo gratis de 2 palabras · Te Hice Esto",description:"Dibujá y adiviná en un solo celular. Jugá dos palabras de muestra y desbloqueá el juego completo."};
+export default function TrazoCompliceDemo(){return <main style={{margin:0,padding:0,width:"100%",height:"100dvh",overflow:"hidden",background:"#231523"}}><iframe title="Trazo Cómplice — demo de dos palabras" src="/juegos/trazo-complice/demo.html" style={{width:"100%",height:"100%",border:0,display:"block"}} loading="eager" allow="fullscreen" /></main>}
