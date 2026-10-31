@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 640" role="img" aria-labelledby="title desc">
+<title id="title">Entre Dos — cartas de juego para parejas</title><desc id="desc">Dos cartas elegantes entrelazadas y un corazón, con fondo borgoña y reflejos rosados.</desc>
+<defs>
+<radialGradient id="bg"><stop stop-color="#773d61"/><stop offset=".6" stop-color="#36182f"/><stop offset="1" stop-color="#1b1227"/></radialGradient>
+<linearGradient id="card" x1=".1" x2=".9" y1="0" y2="1"><stop stop-color="#fff6ea"/><stop offset="1" stop-color="#eac5ca"/></linearGradient>
+<linearGradient id="card2" x1=".1" x2=".9" y1="0" y2="1"><stop stop-color="#e9d7ef"/><stop offset="1" stop-color="#b78fbb"/></linearGradient>
+<filter id="shadow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="25" stdDeviation="18" flood-color="#08050f" flood-opacity=".5"/></filter>
+</defs>
+<rect width="720" height="640" fill="url(#bg)"/>
+<circle cx="580" cy="115" r="250" fill="#f2b4b0" opacity=".11"/><circle cx="112" cy="520" r="260" fill="#d18bcf" opacity=".11"/>
+<g opacity=".3" fill="#f5d5cc"><circle cx="99" cy="110" r="3"/><circle cx="588" cy="463" r="3"/><circle cx="640" cy="190" r="2"/><circle cx="125" cy="355" r="2"/><circle cx="500" cy="580" r="2"/></g>
+<g filter="url(#shadow)">
+<g transform="translate(96 118) rotate(-13 248 238)">
+<rect x="65" y="26" width="322" height="430" rx="23" fill="url(#card2)" stroke="#f6e6f5" stroke-width="7"/>
+<rect x="78" y="39" width="296" height="403" rx="16" fill="none" stroke="#774c77" opacity=".43"/>
+<text x="98" y="86" fill="#6b3d70" font-size="36" font-family="Georgia,serif">A</text><text x="349" y="422" fill="#6b3d70" text-anchor="end" font-size="36" font-family="Georgia,serif">A</text>
+<path d="M220 188c-62-63-116 23-8 108l13 11 13-11c108-85 54-171-8-108l-5 6z" fill="#9c507e" opacity=".65"/>
+</g>
+<g transform="translate(170 99) rotate(11 248 238)">
+<rect x="65" y="26" width="322" height="430" rx="23" fill="url(#card)" stroke="#fff9f2" stroke-width="7"/>
+<rect x="78" y="39" width="296" height="403" rx="16" fill="none" stroke="#cf7c98" opacity=".49"/>
+<text x="96" y="87" fill="#b54d70" font-size="37" font-family="Georgia,serif">B</text><text x="350" y="422" fill="#b54d70" text-anchor="end" font-size="37" font-family="Georgia,serif">B</text>
+<path d="M224 288C107 206 156 153 201 180c14 8 23 21 23 21s9-13 23-21c45-27 94 26-23 108z" fill="#bd376b"/>
+<path d="M224 294V345" stroke="#c8838e" stroke-width="1" opacity=".7"/>
+</g>
+</g>
+<text x="360" y="608" text-anchor="middle" font-size="16" font-weight="700" letter-spacing="5" fill="#fff0e8" font-family="Arial,sans-serif">ENTRE DOS</text>
+</svg>
