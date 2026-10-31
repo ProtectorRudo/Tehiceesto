@@ -1,0 +1,32 @@
+name: Auditoría web publicada · móvil y enlaces
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/live-production-audit.mjs
+      - .github/workflows/live-production-audit.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Audit live TeHiceEsto from mobile
+        run: node scripts/live-production-audit.mjs
+      - name: Save results and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-production-audit
+          path: audit-live/
+          retention-days: 7
