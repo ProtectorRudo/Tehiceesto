@@ -128,7 +128,7 @@ export default function DragonBallEditor({access,gift,media,onError,onNotice}:Pr
    <label style={labelStyle}>Audio de la cápsula
     <select style={inputStyle} value={draft.voiceMediaId} onChange={e=>change("voiceMediaId",e.target.value)}>
       <option value="">Sin audio · narración de muestra</option>
-      {audios.map((item,index)=><option key={item.id} value={item.id}>Audio {index+1} · {item.caption||item.originalName||item.id.slice(0,7)}</option>)}
+      {audios.map((item,index)=><option key={item.id} value={item.id}>Audio {index+1} · {item.caption||item.metadata?.originalName||item.id.slice(0,7)}</option>)}
     </select>
    </label>
   </div>
