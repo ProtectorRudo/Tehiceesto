@@ -49,7 +49,8 @@ try{
   assert.equal(await add.getAttribute("aria-pressed"),"false","unselected by default");
   assert.match(await section.innerText(),/60% OFF/);
   assert.match(await section.innerText(),/10\.000/);
-  assert.equal(await page.locator("#checkout-experience-choice option").count(),9);
+  assert.equal(await page.locator("#checkout-experience-choice option").count(),10);
+   assert.equal(await page.locator("#checkout-experience-choice option[value=\"dragon-ball-pareja\"]").count(),1,"Dragon Ball must be selectable as the additional experience");
   await page.locator("#checkout-experience-choice").selectOption("sticker-bomb-amistad");
   await add.click();
   assert.match(await page.locator(".quick-checkout-total").innerText(),/35\.000/);
