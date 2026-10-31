@@ -9,7 +9,7 @@ try{
   const page=await browser.newPage({viewport:{width,height:850},isMobile:width<700,hasTouch:width<700});
   const errors=[];page.on("pageerror",e=>errors.push(e.message));
   await page.goto(base+"/comprar/pareja",{waitUntil:"domcontentloaded"});
-  const option=page.getByRole("button",{name:/Agregar por \$10\.000/});
+  const option=page.locator(".quick-checkout-addon-choice");
   assert.equal(await option.count(),1,"offer should be shown unobtrusively");
   assert.equal(await option.getAttribute("aria-pressed"),"false","default is opt-out");
   assert.match(await page.locator(".quick-checkout-total").innerText(),/25\.000/);
