@@ -51,6 +51,7 @@ export type SceneType =
   | "reveal"
   | "keepsake"
   | "club"
+  | "dragon-ball"
   | "day1" | "day2" | "day3" | "day4" | "day5" | "day6" | "day7" | "jar365";
 
 export type Experience = {
@@ -280,6 +281,21 @@ export const experiences: Experience[] = [
     closing: "Siete días. Infinitas maneras de amarte.",
     tags: ["Pareja", "Siete días", "Romántico", "Edición personalizable"],
     recipe: ["day1", "day2", "day3", "day4", "day5", "day6", "day7"],
+  },
+  {
+    slug: "dragon-ball-pareja",
+    eyebrow: "NUEVO · Edición Dragon Ball",
+    title: "Dragon Ball · Nuestra Saga",
+    short: "Una aventura épica para tu pareja: Goku, Vegeta, 9 stickers y las 7 esferas con sus recuerdos.",
+    description: "Nueve escenas anime y un álbum coleccionable. Después de comprar, personalizás los nombres, todos los textos, los stickers, las esferas, los recuerdos, las fotos y el audio desde Mis regalos.",
+    icon: "★",
+    accent: "#ff9a24",
+    demoRecipient: "Nico",
+    demoGiver: "Luna",
+    opening: "Esta aventura es para vos, el protagonista de nuestra historia.",
+    closing: "La mejor aventura es la que vivimos juntos.",
+    tags: ["Pareja", "Anime", "Dragon Ball", "Stickers", "Personalizable"],
+    recipe: ["dragon-ball"],
   },
 ];
 
