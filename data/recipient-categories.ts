@@ -18,7 +18,7 @@ export const recipientCategories: readonly RecipientCategory[] = [
     titleLong: "Para tu pareja",
     heading: "Para esa persona que hace todo distinto.",
     subheading: "Historias, pequeños rituales y sorpresas para celebrar lo que tienen entre ustedes.",
-    slugs: ["pareja", "frasco365", "siete-dias"],
+    slugs: ["dragon-ball-pareja", "pareja", "frasco365", "siete-dias"],
   },
   {
     id: "mama",
