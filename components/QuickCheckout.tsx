@@ -28,10 +28,10 @@ function photo(slug:string){if(slug==="pack-juegos")return "/demo-previews/trazo
 export default function QuickCheckout({experience}:Props){
   const isPack=experience.slug==="pack-juegos";
   const isGame=isPack||experience.slug==="trazo-complice";
-  const canOfferLetter=["pareja","cumpleanos","hijos","mama","papa","amistad",
+  const canOfferPack=["pareja","cumpleanos","hijos","mama","papa","amistad",
     "club-amigos","sticker-bomb-amistad","frasco365","siete-dias"].includes(experience.slug);
-  const [addSecretLetter,setAddSecretLetter]=useState(false);
-  const totalMinor=2500000+(canOfferLetter&&addSecretLetter?1000000:0);
+  const [addGamesPack,setAddGamesPack]=useState(false);
+  const totalMinor=2500000+(canOfferPack&&addGamesPack?1000000:0);
   const totalFormatted=new Intl.NumberFormat("es-AR").format(totalMinor/100);
   const [email,setEmail]=useState("");
   const [phone,setPhone]=useState("");
@@ -54,7 +54,7 @@ export default function QuickCheckout({experience}:Props){
       if(!projectUrl||!publicKey)throw Error("unavailable");
       const normalizedEmail=email.trim().toLowerCase();
       const normalizedPhone=cleanPhone(phone);
-      const key=experience.slug+":"+normalizedEmail+":"+normalizedPhone+":"+(addSecretLetter?"with-letter":"base");
+      const key=experience.slug+":"+normalizedEmail+":"+normalizedPhone+":"+(addGamesPack?"with-pack":"base");
       if(requestRef.current?.key!==key)requestRef.current={id:crypto.randomUUID(),key};
       const response=await fetch("/api/checkout",{
         method:"POST",cache:"no-store",
@@ -63,7 +63,7 @@ export default function QuickCheckout({experience}:Props){
           experienceSlug:experience.slug,
           email:normalizedEmail,whatsapp:normalizedPhone,
           consent:true,clientRequestId:requestRef.current.id,website,
-          addSecretLetter:canOfferLetter&&addSecretLetter,
+          addGamesPack:canOfferPack&&addGamesPack,
         }),
       });
       const result=await response.json() as CheckoutResult;
@@ -83,7 +83,7 @@ export default function QuickCheckout({experience}:Props){
       else if(code==="too_many_orders")setMessage("Alcanzaste el límite de intentos. Probá más tarde o escribinos.");
       else if(code==="price_mismatch")setMessage("Por seguridad no iniciamos el cobro: el servidor devolvió un importe distinto al elegido. Intentá nuevamente o escribinos.");
       else if(code==="request_selection_conflict")setMessage("Cambiaste la selección de tu pedido. Actualizá los datos y volvé a continuar.");
-      else if(code==="addon_unavailable")setMessage("La carta secreta no está disponible por el momento. Podés quitarla y continuar con tu regalo.");
+      else if(code==="addon_unavailable")setMessage("El pack de 3 Juegos no está disponible por el momento. Podés quitarlo y continuar con tu regalo.");
       else if(code==="request_already_completed")setMessage(isPack?"Esa compra ya se completó. Entrá a «Mis juegos» con tu correo para abrir los tres juegos.":isGame?"Esa compra ya se completó. Entrá a «Mis regalos» con tu correo y elegí «Jugar versión completa».":"Esa compra ya se completó. Entrá a «Mis regalos» con tu correo para editar tu experiencia.");
       else setMessage("No pudimos abrir Mercado Pago. Revisá tu conexión y volvé a intentar; no se realizó ningún cobro.");
     }finally{setBusy(false);}
@@ -123,20 +123,21 @@ export default function QuickCheckout({experience}:Props){
             {showPhoneHint&&<span id="checkout-phone-hint" className="quick-checkout-field-hint" role="status">Revisá el número. Incluí característica y teléfono, sin 0 ni 15.</span>}
           </label>
           <p className="quick-checkout-phonehint">Argentina: escribí tu número con característica, sin 0 ni 15. Si estás en otro país, incluí el código internacional (+).</p>
-          {canOfferLetter&&<section className="quick-checkout-addon" aria-label="Complemento opcional">
-            <div className="quick-checkout-addon-symbol" aria-hidden="true">✉</div>
+          {canOfferPack&&<section className="quick-checkout-addon" aria-label="Complemento opcional">
+            <div className="quick-checkout-addon-symbol" aria-hidden="true">✦</div>
             <div className="quick-checkout-addon-copy">
-              <span>POR SI QUERÉS SORPRENDER UN POCO MÁS</span>
-              <strong>Una carta secreta para esa persona</strong>
-              <p>Un mensaje adicional, personalizado y con su propio enlace para descubrir después.</p>
+              <span>EXCLUSIVO CON TU REGALO · 60% OFF</span>
+              <strong>Pack de 3 Juegos <span className="quick-checkout-discount">60% OFF</span></strong>
+              <div className="quick-checkout-addon-price"><del>$25.000</del><b>$10.000</b><span>Ahorrás $15.000</span></div>
+              <p>Trazo Cómplice, Entre Dos y Cómplices completos. Salas de escape no incluidas.</p>
               <button className="quick-checkout-addon-choice" type="button"
-                aria-pressed={addSecretLetter} disabled={busy}
-                onClick={()=>setAddSecretLetter(value=>!value)}>
-                {addSecretLetter?"✓ Agregada · Quitar":"＋ Agregar por $10.000"}
+                aria-pressed={addGamesPack} disabled={busy}
+                onClick={()=>setAddGamesPack(value=>!value)}>
+                {addGamesPack?"✓ Pack agregado · Quitar":"＋ Agregar pack por $10.000"}
               </button>
             </div>
           </section>}
-          {canOfferLetter&&<div className="quick-checkout-total" aria-live="polite">
+          {canOfferPack&&<div className="quick-checkout-total" aria-live="polite">
              <span>Total a pagar</span><strong>$ {totalFormatted} ARS</strong>
           </div>}
           <div className="quick-checkout-honey" aria-hidden="true"><label>Sitio web<input tabIndex={-1} autoComplete="off" value={website} onChange={event=>setWebsite(event.target.value)}/></label></div>
