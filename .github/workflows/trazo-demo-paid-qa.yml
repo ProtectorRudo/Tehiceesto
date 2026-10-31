@@ -1,0 +1,46 @@
+name: Trazo Cómplice · demo fija y acceso pago
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/juegos/trazo-complice/**"
+      - "public/juegos/trazo-complice/**"
+      - "app/comprar/trazo-complice/**"
+      - "supabase/functions/trazo-complice-words/**"
+      - "scripts/trazo-demo-paid-qa.mjs"
+      - ".github/workflows/trazo-demo-paid-qa.yml"
+  pull_request:
+    paths:
+      - "app/juegos/trazo-complice/**"
+      - "public/juegos/trazo-complice/**"
+      - "scripts/trazo-demo-paid-qa.mjs"
+      - ".github/workflows/trazo-demo-paid-qa.yml"
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - name: Install app and browser
+        run: |
+          npm install
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Build app
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-dummy-public-key
+      - name: Serve local
+        run: |
+          npm start -- -H 127.0.0.1 -p 3000 >/tmp/trazo-demo.log 2>&1 &
+          for i in {1..35}; do
+            if curl -fsS http://127.0.0.1:3000/juegos/trazo-complice >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/trazo-demo.log
+          exit 1
+      - name: Verify fixed demo words and secure paid path
+        run: node scripts/trazo-demo-paid-qa.mjs
