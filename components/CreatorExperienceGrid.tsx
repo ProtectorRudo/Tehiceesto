@@ -13,12 +13,13 @@ const highlights: Record<string,string> = {
   papa:"Lo que aprendiste a su lado",
   amistad:"Sus códigos, sus recuerdos",
   "club-amigos":"16 capítulos. Una banda de stickers que habla, juega y emociona",
+  "sticker-bomb-amistad":"12 stickers, risas y una carta final inolvidable",
   "siete-dias":"Siete sorpresas, una por día",
   frasco365:"365 papelitos. Uno cada día",
 };
-const order=["club-amigos","frasco365","siete-dias","pareja","cumpleanos","mama","papa","amistad"];
+const order=["sticker-bomb-amistad","club-amigos","frasco365","siete-dias","pareja","cumpleanos","mama","papa","amistad"];
 function previewPath(slug:string) {
-  if (slug==="frasco365"||slug==="siete-dias"||slug==="club-amigos") return "/demo-previews/"+slug+".svg";
+  if (slug==="frasco365"||slug==="siete-dias"||slug==="club-amigos"||slug==="sticker-bomb-amistad") return "/demo-previews/"+slug+".svg";
   return "/demo-previews/"+slug+".jpg";
 }
 
