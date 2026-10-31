@@ -12,6 +12,10 @@ try{
   const option=page.locator(".quick-checkout-addon-choice");
   assert.equal(await option.count(),1,"offer should be shown unobtrusively");
   assert.equal(await option.getAttribute("aria-pressed"),"false","default is opt-out");
+  assert.match(await page.locator(".quick-checkout-discount").innerText(),/60% OFF/);
+  assert.match(await page.locator(".quick-checkout-addon-price").innerText(),/25\.000/);
+  assert.match(await page.locator(".quick-checkout-addon-price").innerText(),/10\.000/);
+
   assert.match(await page.locator(".quick-checkout-total").innerText(),/25\.000/);
   await option.click();assert.equal(await option.getAttribute("aria-pressed"),"true");
   assert.match(await page.locator(".quick-checkout-total").innerText(),/35\.000/);
@@ -31,7 +35,7 @@ try{
   await page.getByRole("button",{name:/Continuar a Mercado Pago/}).click();
   await page.waitForURL("**/checkout/v1/addon-test",{timeout:10000});
   assert.equal(calls,1,"one checkout request not two");
-  assert.equal(sent.addSecretLetter,true,"server choice");
+  assert.equal(sent.addGamesPack,true,"server choice");
   assert.equal(sent.experienceSlug,"pareja");
   assert.deepEqual(errors,[],"no JS error");
   await page.close();
@@ -45,5 +49,5 @@ try{
  assert.equal(await page.locator(".quick-checkout-addon").count(),1,"friendship gift should allow letter");
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2),false,"no horizontal overflow");
  await page.close();
- console.log("PRECHECKOUT_BUNDLE_QA_PASS: optional, single order, price changes, excludes games, mobile responsive");
+ console.log("PRECHECKOUT_BUNDLE_QA_PASS: pack 60% OFF, single order, price changes, excludes standalone games, mobile responsive");
 }finally{await browser.close()}
