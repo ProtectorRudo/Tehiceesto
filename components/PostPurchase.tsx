@@ -3,7 +3,7 @@ import {useCallback,useEffect,useState} from "react";
 import Link from "next/link";
 import "./postpurchase.css";
 
-type OrderState={stage:string;order?:{status:string;checkoutUrl:string|null};experienceSlug?:string};
+type OrderState={stage:string;order?:{status:string;checkoutUrl:string|null};experienceSlug?:string;hasPackAddOn?:boolean};
 type Offer={mainPaid:boolean;mainStatus:string;title:string;status:string;canOffer:boolean;checkoutUrl?:string|null;letterReady:boolean;oneClick:boolean};
 const backend=process.env.NEXT_PUBLIC_SUPABASE_URL||"";
 const key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY||"";
@@ -63,7 +63,7 @@ export default function PostPurchase({code}:{code:string}){
  const purchased=order?.order?.status==="approved";
  const isPack=order?.experienceSlug==="pack-juegos";
  const completed=offer?.status==="approved";
- const shouldOffer=!isPack&&purchased&&offer?.canOffer&&offer?.status!=="declined"&&!hidden&&!completed;
+ const shouldOffer=!isPack&&!order?.hasPackAddOn&&purchased&&offer?.canOffer&&offer?.status!=="declined"&&!hidden&&!completed;
  return <main className="postpurchase-shell">
   <header><Link href="/" className="postpurchase-brand">TE HICE ESTO <b>♥</b></Link><span>UN REGALO PARA RECORDAR</span></header>
   <div className="postpurchase-inner">
@@ -73,6 +73,11 @@ export default function PostPurchase({code}:{code:string}){
      <span className="postpurchase-kicker">PAGO CONFIRMADO</span>
      <h1>{isPack?<>¡Tus tres juegos <em>ya son tuyos!</em></>:<>¡Ya es <em>tuya!</em></>}</h1>
      <p>{isPack?"Tu pago del Pack de 3 Juegos está confirmado. Te enviamos un email con el enlace privado para entrar a Trazo Cómplice, Entre Dos y Cómplices completos. No necesitás instalar nada.":"Tu pago está confirmado. Te enviamos un email para que entres a «Mis regalos» y personalices tu experiencia con nombres, mensajes, fotografías y audios. El recorrido y los efectos del modelo permanecen intactos."}</p>
+     {order?.hasPackAddOn&&!isPack&&<div className="postpurchase-thanks" aria-label="Juegos incluidos en tu compra">
+       <strong>✓ También tenés el Pack de 3 Juegos con 60% OFF.</strong>
+       <p>Trazo Cómplice, Entre Dos y Cómplices ya están disponibles con el correo de esta compra. Los sumaste por $10.000 en un solo pago.</p>
+       <Link href="/juegos/pack/completo">Abrir mis tres juegos →</Link>
+     </div>}
      {shouldOffer&&<div className="postpurchase-offer" aria-label="Oferta opcional después de la compra">
        <span className="postpurchase-offer-kicker">ANTES DE TERMINAR · UNA SORPRESA MÁS</span>
        <div className="postpurchase-offer-head">
