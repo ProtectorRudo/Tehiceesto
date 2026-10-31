@@ -7,6 +7,7 @@ import type { Experience } from "@/data/experiences";
 
 type Props = { experiences: Experience[]; onChoose: (slug: string) => void };
 const highlights: Record<string,string> = {
+  "dragon-ball-pareja":"Goku, Vegeta, nueve stickers y una saga de pareja",
   pareja:"Una historia solo de ustedes",
   cumpleanos:"Un cumpleaños para recordar",
   mama:"Un gracias que se siente",
@@ -17,9 +18,9 @@ const highlights: Record<string,string> = {
   "siete-dias":"Siete sorpresas, una por día",
   frasco365:"365 papelitos. Uno cada día",
 };
-const order=["sticker-bomb-amistad","club-amigos","frasco365","siete-dias","pareja","cumpleanos","mama","papa","amistad"];
+const order=["dragon-ball-pareja","sticker-bomb-amistad","club-amigos","frasco365","siete-dias","pareja","cumpleanos","mama","papa","amistad"];
 function previewPath(slug:string) {
-  if (slug==="frasco365"||slug==="siete-dias"||slug==="club-amigos"||slug==="sticker-bomb-amistad") return "/demo-previews/"+slug+".svg";
+  if (slug==="frasco365"||slug==="siete-dias"||slug==="club-amigos"||slug==="sticker-bomb-amistad"||slug==="dragon-ball-pareja") return "/demo-previews/"+slug+".svg";
   return "/demo-previews/"+slug+".jpg";
 }
 
