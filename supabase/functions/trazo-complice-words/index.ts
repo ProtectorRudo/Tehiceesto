@@ -122,7 +122,7 @@ Deno.serve(async(req:Request)=>{
  if(giftError)return new Response(JSON.stringify({error:"verification_unavailable"}),{status:503,headers:h});
  const giftIds=(gifts||[]).map(g=>g.id);
  if(!giftIds.length)return new Response(JSON.stringify({error:"purchase_required"}),{status:403,headers:h});
- const {data:orders,error:ordersError}=await db.from("orders").select("id").eq("status","approved").eq("buyer_email",email).in("gift_id",giftIds).limit(1);
+ const {data:orders,error:ordersError}=await db.from("orders").select("id").eq("status","approved").eq("provider","mercadopago").not("paid_at","is",null).gt("amount_minor",0).eq("buyer_email",email).in("gift_id",giftIds).limit(1);
  if(ordersError)return new Response(JSON.stringify({error:"verification_unavailable"}),{status:503,headers:h});
  if(!orders?.length)return new Response(JSON.stringify({error:"purchase_required"}),{status:403,headers:h});
  return new Response(JSON.stringify({words:full.words,categories:full.categories,version:"trazo-v1"}),{status:200,headers:h});
