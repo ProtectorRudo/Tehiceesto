@@ -41,6 +41,7 @@ const labels: Record<string, string> = {
   "escape-ultima-funcion": "Escape · Última función",
   "escape-ultima-campanada": "Escape · Última campanada",
   "trazo-complice": "Trazo Cómplice · Juego completo",
+  "pack-juegos": "Pack para jugar juntos · Tres juegos completos",
 };
 
 function errorText(error: string) {
@@ -450,14 +451,14 @@ export default function AccountPortal() {
                   <div className={styles.empty}><h2>Todavía no hay historias acá.</h2><p>Si compraste un regalo, asegurate de ingresar con el mismo correo de compra.</p><a className={styles.primary} href="/#experiencias">Explorar experiencias →</a></div> :
                   <div className={styles.giftGrid}>{gifts.map((gift, index) =>
                     <article className={styles.giftCard} key={gift.code}>
-                      <div className={styles.giftTop}><span>{String(index + 1).padStart(2, "0")} / TE HICE ESTO</span><span className={styles.giftState}>{gift.experienceSlug==="trazo-complice"?"JUEGO COMPLETO":gift.status === "published" ? "PUBLICADO" : "PARA PERSONALIZAR"}</span></div>
+                      <div className={styles.giftTop}><span>{String(index + 1).padStart(2, "0")} / TE HICE ESTO</span><span className={styles.giftState}>{gift.experienceSlug==="pack-juegos"?"PACK DE 3 JUEGOS":gift.experienceSlug==="trazo-complice"?"JUEGO COMPLETO":gift.status === "published" ? "PUBLICADO" : "PARA PERSONALIZAR"}</span></div>
                       <div className={styles.giftArt} aria-hidden="true"><span>♡</span></div>
                       <span className={styles.eyebrow}>{labels[gift.experienceSlug] || gift.experienceSlug.replaceAll("-", " ")}</span>
-                      <h2>{gift.experienceSlug==="trazo-complice"?"1.274 palabras por descubrir":gift.recipientName || "Una persona especial"}</h2>
-                      <p>{gift.experienceSlug==="trazo-complice"?"Un celular · dos personas · acceso completo":"De "+(gift.giverName || "alguien especial")}</p>
+                      <h2>{gift.experienceSlug==="pack-juegos"?"CÓMPLICES · ENTRE DOS · TRAZO CÓMPLICE":gift.experienceSlug==="trazo-complice"?"1.274 palabras por descubrir":gift.recipientName || "Una persona especial"}</h2>
+                      <p>{gift.experienceSlug==="pack-juegos"?"Tres experiencias · un solo pago · acceso completo":gift.experienceSlug==="trazo-complice"?"Un celular · dos personas · acceso completo":"De "+(gift.giverName || "alguien especial")}</p>
                       <div className={styles.giftActions}>
-                        {gift.experienceSlug==="trazo-complice"?<a href="/juegos/trazo-complice/completo">Jugar versión completa →</a>:<button disabled={Boolean(openingCode)} onClick={() => void openGift(gift)}>{openingCode === gift.code ? "Abriendo…" : "Editar mi experiencia →"}</button>}
-                        {gift.experienceSlug!=="trazo-complice" && gift.status === "published" && <a href={(gift.experienceSlug.startsWith("escape-") ? "/escape-r/" : "/r/") + gift.code} target="_blank" rel="noopener noreferrer">Ver regalo ↗</a>}
+                        {gift.experienceSlug==="pack-juegos"?<a href="/juegos/pack/completo">Abrir mis tres juegos →</a>:gift.experienceSlug==="trazo-complice"?<a href="/juegos/trazo-complice/completo">Jugar versión completa →</a>:<button disabled={Boolean(openingCode)} onClick={() => void openGift(gift)}>{openingCode === gift.code ? "Abriendo…" : "Editar mi experiencia →"}</button>}
+                        {gift.experienceSlug!=="trazo-complice" && gift.experienceSlug!=="pack-juegos" && gift.status === "published" && <a href={(gift.experienceSlug.startsWith("escape-") ? "/escape-r/" : "/r/") + gift.code} target="_blank" rel="noopener noreferrer">Ver regalo ↗</a>}
                       </div>
                     </article>
                   )}</div>}
