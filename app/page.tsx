@@ -71,6 +71,19 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="boutique-escapes" aria-labelledby="entre-dos-home-title">
+        <div>
+          <span className="boutique-kicker">NUEVO · JUEGO PARA PAREJAS</span>
+          <h2 id="entre-dos-home-title">Dos personas.<br/><em>Una elección secreta.</em></h2>
+          <p>ENTRE DOS: nueve cartas de muestra, tres etapas y una revelación. Probá gratis el recorrido; las preguntas de la demo son siempre las mismas. La versión completa tiene 90 cartas para descubrir.</p>
+          <Link className="boutique-button boutique-button-light" href="/juegos/entre-dos">Jugar demo gratis <span aria-hidden="true">↗</span></Link>
+        </div>
+        <div className="boutique-escapes-card"><span>ENTRE DOS · DEMO GRATIS</span>
+          <div className="boutique-escapes-orbit" aria-hidden="true">♥</div>
+          <strong>9 CARTAS.<br/>DOS MIRADAS.<br/>UNA SORPRESA.</strong>
+        </div>
+      </section>
+
       <section className="boutique-ending"><span className="boutique-kicker">SEGURO QUE YA SABÉS PARA QUIÉN</span><h2>Hay alguien que merece<br/><em>algo que sólo sea suyo.</em></h2><Link className="boutique-button boutique-button-dark" href="/crear">Hacer un regalo inolvidable <span aria-hidden="true">↗</span></Link><small>PERSONALIZADO POR VOS · ACCESO PRIVADO POR EMAIL · PENSADO PARA CELULAR</small></section>
       <footer className="boutique-footer"><Link href="/" className="boutique-footer-brand">TE HICE ESTO <span>♥</span></Link><p>Regalos digitales que se sienten de verdad.</p><div><Link href="/mis-regalos">Mis regalos</Link><Link href="/crear">Crear un regalo</Link></div><span>ARGENTINA · 2026</span></footer>
     </main>
