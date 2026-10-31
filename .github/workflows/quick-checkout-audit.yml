@@ -1,6 +1,13 @@
 name: Checkout two-field mobile audit
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "components/QuickCheckout.tsx"
+      - "components/quick-checkout.css"
+      - "scripts/precheckout-addon-qa.mjs"
+      - ".github/workflows/quick-checkout-audit.yml"
   pull_request:
     paths:
       - "components/QuickCheckout.tsx"
@@ -41,6 +48,8 @@ jobs:
           exit 1
       - name: Verify two-field checkout, mocked payment and catalog links
         run: node scripts/quick-checkout-audit.mjs
+      - name: Verify optional precheckout letter and one consolidated payment
+        run: node scripts/precheckout-addon-qa.mjs
       - name: Save audit screenshots
         if: always()
         uses: actions/upload-artifact@v4
