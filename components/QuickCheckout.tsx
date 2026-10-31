@@ -28,6 +28,11 @@ function photo(slug:string){if(slug==="pack-juegos")return "/demo-previews/trazo
 export default function QuickCheckout({experience}:Props){
   const isPack=experience.slug==="pack-juegos";
   const isGame=isPack||experience.slug==="trazo-complice";
+  const canOfferLetter=["pareja","cumpleanos","hijos","mama","papa","amistad",
+    "club-amigos","sticker-bomb-amistad","frasco365","siete-dias"].includes(experience.slug);
+  const [addSecretLetter,setAddSecretLetter]=useState(false);
+  const totalMinor=2500000+(canOfferLetter&&addSecretLetter?1000000:0);
+  const totalFormatted=new Intl.NumberFormat("es-AR").format(totalMinor/100);
   const [email,setEmail]=useState("");
   const [phone,setPhone]=useState("");
   const [busy,setBusy]=useState(false);
@@ -49,7 +54,7 @@ export default function QuickCheckout({experience}:Props){
       if(!projectUrl||!publicKey)throw Error("unavailable");
       const normalizedEmail=email.trim().toLowerCase();
       const normalizedPhone=cleanPhone(phone);
-      const key=experience.slug+":"+normalizedEmail+":"+normalizedPhone;
+      const key=experience.slug+":"+normalizedEmail+":"+normalizedPhone+":"+(addSecretLetter?"with-letter":"base");
       if(requestRef.current?.key!==key)requestRef.current={id:crypto.randomUUID(),key};
       const response=await fetch("/api/checkout",{
         method:"POST",cache:"no-store",
@@ -58,10 +63,14 @@ export default function QuickCheckout({experience}:Props){
           experienceSlug:experience.slug,
           email:normalizedEmail,whatsapp:normalizedPhone,
           consent:true,clientRequestId:requestRef.current.id,website,
+          addSecretLetter:canOfferLetter&&addSecretLetter,
         }),
       });
       const result=await response.json() as CheckoutResult;
       if(!response.ok||result.error)throw Error(result.error||"request_failed");
+      if(Number(result.priceMinor)!==totalMinor||result.currency!=="ARS"){
+        throw Error("price_mismatch");
+      }
       setOrder(result);
       if(result.checkoutReady&&typeof result.checkoutUrl==="string"&&result.checkoutUrl.startsWith("https://")){
         window.location.assign(result.checkoutUrl);
@@ -72,6 +81,9 @@ export default function QuickCheckout({experience}:Props){
       const code=err instanceof Error?err.message:"";
       if(code==="experience_coming_soon")setMessage("Esta experiencia todavía no está disponible para comprar.");
       else if(code==="too_many_orders")setMessage("Alcanzaste el límite de intentos. Probá más tarde o escribinos.");
+      else if(code==="price_mismatch")setMessage("Por seguridad no iniciamos el cobro: el servidor devolvió un importe distinto al elegido. Intentá nuevamente o escribinos.");
+      else if(code==="request_selection_conflict")setMessage("Cambiaste la selección de tu pedido. Actualizá los datos y volvé a continuar.");
+      else if(code==="addon_unavailable")setMessage("La carta secreta no está disponible por el momento. Podés quitarla y continuar con tu regalo.");
       else if(code==="request_already_completed")setMessage(isPack?"Esa compra ya se completó. Entrá a «Mis juegos» con tu correo para abrir los tres juegos.":isGame?"Esa compra ya se completó. Entrá a «Mis regalos» con tu correo y elegí «Jugar versión completa».":"Esa compra ya se completó. Entrá a «Mis regalos» con tu correo para editar tu experiencia.");
       else setMessage("No pudimos abrir Mercado Pago. Revisá tu conexión y volvé a intentar; no se realizó ningún cobro.");
     }finally{setBusy(false);}
@@ -91,7 +103,7 @@ export default function QuickCheckout({experience}:Props){
             <img alt="" src={photo(experience.slug)} loading="eager"/>
             <div><span>{experience.eyebrow}</span><h1>{experience.title}</h1><p>{isPack?"Trazo Cómplice + Entre Dos + Cómplices":isGame?"1.274 palabras · 11 categorías · Acceso completo":"Personalizable después de comprar"}</p></div>
           </div>
-          <div className="quick-checkout-price"><strong>$25.000 <small>ARS</small></strong><span>Pago único · Sin suscripción</span></div>
+          <div className="quick-checkout-price"><strong>${totalFormatted} <small>ARS</small></strong><span>Pago único · Sin suscripción</span></div>
           <p className="quick-checkout-help">{isPack?"El pack incluye Trazo Cómplice (1.274 palabras), Entre Dos (90 preguntas) y Cómplices (7 desafíos). Una sola compra de $25.000 ARS. Después de pagar vas a recibir un email para entrar a tus tres juegos. Las salas de escape no están incluidas.":isGame?"Desbloqueá Trazo Cómplice para jugar todas las rondas con 1.274 palabras. Después de pagar, recibirás un email para entrar a «Mis regalos» y abrir tu juego completo. No necesitás instalar nada.":"Elegí tu experiencia y pagá de forma segura. Cuando se confirme el pago, vas a recibir un email con acceso a «Mis regalos», donde podés personalizar nombres, mensajes, fotos y audios. El diseño, las escenas y los efectos ya están preparados."}</p>
         </section>
         <form className="quick-checkout-form" onSubmit={submit}>
@@ -111,6 +123,22 @@ export default function QuickCheckout({experience}:Props){
             {showPhoneHint&&<span id="checkout-phone-hint" className="quick-checkout-field-hint" role="status">Revisá el número. Incluí característica y teléfono, sin 0 ni 15.</span>}
           </label>
           <p className="quick-checkout-phonehint">Argentina: escribí tu número con característica, sin 0 ni 15. Si estás en otro país, incluí el código internacional (+).</p>
+          {canOfferLetter&&<section className="quick-checkout-addon" aria-label="Complemento opcional">
+            <div className="quick-checkout-addon-symbol" aria-hidden="true">✉</div>
+            <div className="quick-checkout-addon-copy">
+              <span>POR SI QUERÉS SORPRENDER UN POCO MÁS</span>
+              <strong>Una carta secreta para esa persona</strong>
+              <p>Un mensaje adicional, personalizado y con su propio enlace para descubrir después.</p>
+              <button className="quick-checkout-addon-choice" type="button"
+                aria-pressed={addSecretLetter} disabled={busy}
+                onClick={()=>setAddSecretLetter(value=>!value)}>
+                {addSecretLetter?"✓ Agregada · Quitar":"＋ Agregar por $10.000"}
+              </button>
+            </div>
+          </section>}
+          {canOfferLetter&&<div className="quick-checkout-total" aria-live="polite">
+             <span>Total a pagar</span><strong>$ {totalFormatted} ARS</strong>
+          </div>}
           <div className="quick-checkout-honey" aria-hidden="true"><label>Sitio web<input tabIndex={-1} autoComplete="off" value={website} onChange={event=>setWebsite(event.target.value)}/></label></div>
           {!busy&&!valid&&(email.trim()||phone.trim())&&<p className="quick-checkout-form-guidance" role="status">Para continuar, completá correctamente {showEmailHint||!email.trim()?"tu email": "tu WhatsApp"}.</p>}
           <button className="quick-checkout-submit" type="submit" disabled={busy||!valid||Boolean(website)}>
