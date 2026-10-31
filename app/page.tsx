@@ -58,6 +58,19 @@ export default function Home() {
 
       <section className="boutique-escapes" id="escapes"><div><span className="boutique-kicker">PARA REGALOS INESPERADOS</span><h2>¿Y si su sorpresa<br/><em>fuera una aventura?</em></h2><p>Tres misterios para jugar. Al final del recorrido, una invitación personal que sólo ustedes entienden.</p><Link className="boutique-button boutique-button-light" href="/escapes">Explorar salas de escape <span aria-hidden="true">↗</span></Link></div><div className="boutique-escapes-card"><span>COLECCIÓN · MUNDOS SECRETOS</span><div className="boutique-escapes-orbit">✳</div><strong>TRES MISTERIOS.<br/>UNA HISTORIA<br/>PARA RECORDAR.</strong></div></section>
 
+      <section className="boutique-escapes" id="juegos" aria-labelledby="trazo-home-title">
+        <div>
+          <span className="boutique-kicker">NUEVO · JUEGOS PARA COMPARTIR</span>
+          <h2 id="trazo-home-title">Dibujá lo imposible.<br/><em>Adiviná entre risas.</em></h2>
+          <p>Trazo Cómplice: dos personas, un solo celular y una palabra secreta. Probá dos rondas gratis; desbloqueá el juego completo con 1.274 palabras cuando quieras.</p>
+          <Link className="boutique-button boutique-button-light" href="/juegos/trazo-complice">Probar juego gratis <span aria-hidden="true">↗</span></Link>
+        </div>
+        <div className="boutique-escapes-card"><span>TRA ZO CÓMPLICE · UN CELULAR</span>
+          <div className="boutique-escapes-orbit" aria-hidden="true">✎</div>
+          <strong>1.274 IDEAS.<br/>MILES DE<br/>CARCAJADAS.</strong>
+        </div>
+      </section>
+
       <section className="boutique-ending"><span className="boutique-kicker">SEGURO QUE YA SABÉS PARA QUIÉN</span><h2>Hay alguien que merece<br/><em>algo que sólo sea suyo.</em></h2><Link className="boutique-button boutique-button-dark" href="/crear">Hacer un regalo inolvidable <span aria-hidden="true">↗</span></Link><small>PERSONALIZADO POR VOS · ACCESO PRIVADO POR EMAIL · PENSADO PARA CELULAR</small></section>
       <footer className="boutique-footer"><Link href="/" className="boutique-footer-brand">TE HICE ESTO <span>♥</span></Link><p>Regalos digitales que se sienten de verdad.</p><div><Link href="/mis-regalos">Mis regalos</Link><Link href="/crear">Crear un regalo</Link></div><span>ARGENTINA · 2026</span></footer>
     </main>
