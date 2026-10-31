@@ -5,6 +5,7 @@ import ExperienceEngine from "@/components/ExperienceEngine";
 import SevenDaysExperience from "@/components/SevenDaysExperience";
 import SevenDaysSharePanel from "@/components/SevenDaysSharePanel";
 import Jar365Editor from "@/components/Jar365Editor";
+import StickerBombEditor from "@/components/StickerBombEditor";
 import ExtraLetterEditor from "@/components/ExtraLetterEditor";
 import Jar365Experience from "@/components/Jar365Experience";
 import type { Jar365Note } from "@/data/jar365-notes";
@@ -281,6 +282,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
   return (
     <div className={styles.enhancement}>
       <ExtraLetterEditor code={access.code} editorToken={access.editorToken} />
+      {gift.experience_slug==="sticker-bomb-amistad" && <StickerBombEditor key={access.code} access={access} gift={gift} media={media} onError={onError} onNotice={onNotice}/>}
       {gift.experience_slug==="siete-dias" && <SevenDaysSharePanel code={access.code} editorToken={access.editorToken} />}
       {gift.experience_slug==="frasco365" && <Jar365Editor code={access.code} editorToken={access.editorToken} onNotesChange={(notes)=>{setJarNotes(notes);setJarPreviewVersion(version=>version+1);}} />}
       {gift.experience_slug!=="frasco365" && <section className={styles.studioSection}>
@@ -345,7 +347,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
           </article>
         )}</div>}
       </section>}
-      <section className={styles.studioSection}>
+      {gift.experience_slug!=="sticker-bomb-amistad" && <section className={styles.studioSection}>
         <div className={styles.studioHeading}>
           <span className={styles.eyebrow}>VISTA PREVIA DEL MODELO ORIGINAL</span>
           <h2>Viví tu experiencia</h2>
@@ -396,7 +398,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
             </div>
           </div>
         </div>}
-      </section>
+      </section>}
       <section className={styles.studioSection}>
         <div className={styles.studioHeading}><span className={styles.eyebrow}>ÚLTIMO PASO</span><h2>Tu regalo está listo para compartir</h2><p>Cuando termines de revisar los textos y recuerdos, publicalo. El recorrido se mantiene idéntico al modelo original, con tus datos personales.</p></div>
         <label className={styles.publishConfirm}><input type="checkbox" checked={confirmPublish} onChange={e=>setConfirmPublish(e.target.checked)} /> Revisé nombres, fotos, audios y mensajes y quiero publicar esta experiencia.</label>
