@@ -32,13 +32,14 @@ try{
   await page.keyboard.press("Enter");
   await panel.waitFor({state:"visible"});
   await panel.getByRole("link",{name:/Mamá/}).click();
-  assert.ok(page.url().endsWith("/coleccion/mama"));
+  await page.waitForURL("**/coleccion/mama",{timeout:15000});
   await page.getByRole("heading",{name:/Hay un amor que merece/}).waitFor();
   assert.equal(await page.locator(".recipient-catalog-card").count(),1,"Mother category should not mix others");
   await page.screenshot({path:"/tmp/categoria-mama-"+viewport.width+".png",fullPage:false});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2),false,"No horizontal page overflow");
   await page.getByRole("button",{name:"Abrir menú de categorías"}).click();
   await page.getByRole("link",{name:/Juegos.*Momentos para compartir/}).click();
+  await page.waitForURL("**/coleccion/juegos",{timeout:15000});
   await page.getByText("Trazo Cómplice").first().waitFor();
   assert.equal(await page.locator(".recipient-catalog-card").count(),2);
   response=await page.goto(base+"/coleccion/todos",{waitUntil:"domcontentloaded"});
