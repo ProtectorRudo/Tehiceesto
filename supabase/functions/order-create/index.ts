@@ -176,7 +176,7 @@ Deno.serve(async(req:Request)=>{
   const website=clean(body.website,120);
   const clientRequestId=clean(body.clientRequestId,64).toLowerCase();
   const addonEligible=new Set(["pareja","cumpleanos","hijos","mama","papa","amistad",
-    "club-amigos","sticker-bomb-amistad","frasco365","siete-dias","dragon-ball-pareja","dragon-ball-pareja"]);
+    "club-amigos","sticker-bomb-amistad","frasco365","siete-dias","dragon-ball-pareja"]);
   if(body.addSecretLetter!==undefined&&typeof body.addSecretLetter!=="boolean"){
     return reply(origin,{error:"invalid_addon"},400);
   }
@@ -188,7 +188,7 @@ Deno.serve(async(req:Request)=>{
   }
   const optionalGiftSlugs=new Set([
     "pareja","cumpleanos","mama","papa","amistad",
-    "club-amigos","sticker-bomb-amistad","frasco365","siete-dias",
+    "club-amigos","sticker-bomb-amistad","frasco365","siete-dias","dragon-ball-pareja",
   ]);
   // A customer buying games can choose ONE complete editable gift experience.
   // The selected slug is whitelisted server-side and frozen into the checkout.
