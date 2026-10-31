@@ -54,6 +54,7 @@ try{
   await add.click();
   assert.match(await page.locator(".quick-checkout-total").innerText(),/35\.000/);
   assert.equal(await add.getAttribute("aria-pressed"),"true");
+  await page.screenshot({path:"visual-fast-checkout/reverse-"+slug+"-390.png",fullPage:true});
   await add.click();
   assert.match(await page.locator(".quick-checkout-total").innerText(),/25\.000/);
   await add.click();
