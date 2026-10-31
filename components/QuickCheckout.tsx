@@ -9,6 +9,17 @@ const projectUrl=process.env.NEXT_PUBLIC_SUPABASE_URL||"";
 const publicKey=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY||"";
 type CheckoutResult={code?:string;priceMinor?:number;currency?:string;checkoutUrl?:string|null;checkoutReady?:boolean;error?:string};
 type Props={experience:Pick<Experience,"slug"|"title"|"short"|"eyebrow">};
+const experienceAddOnChoices=[
+ {slug:"pareja",name:"Nuestra historia · Pareja"},
+ {slug:"cumpleanos",name:"Tu día · Cumpleaños"},
+ {slug:"mama",name:"Para mamá"},
+ {slug:"papa",name:"Para papá"},
+ {slug:"amistad",name:"Expediente de amistad"},
+ {slug:"club-amigos",name:"Club de Amigos"},
+ {slug:"sticker-bomb-amistad",name:"Sticker Bomb Amistad"},
+ {slug:"frasco365",name:"Un año de cosas lindas"},
+ {slug:"siete-dias",name:"Un poquito de mí, cada día"},
+] as const;
 
 /** Keeps international numbers intact; accepts the simple 10-digit Argentine local format too. */
 function cleanPhone(raw:string){
@@ -31,7 +42,9 @@ export default function QuickCheckout({experience}:Props){
   const canOfferPack=["pareja","cumpleanos","hijos","mama","papa","amistad",
     "club-amigos","sticker-bomb-amistad","frasco365","siete-dias"].includes(experience.slug);
   const [addGamesPack,setAddGamesPack]=useState(false);
-  const totalMinor=2500000+(canOfferPack&&addGamesPack?1000000:0);
+  const [addExperience,setAddExperience]=useState(false);
+  const [experienceChoice,setExperienceChoice]=useState("pareja");
+  const totalMinor=2500000+((canOfferPack&&addGamesPack)||(isGame&&addExperience)?1000000:0);
   const totalFormatted=new Intl.NumberFormat("es-AR").format(totalMinor/100);
   const [email,setEmail]=useState("");
   const [phone,setPhone]=useState("");
@@ -54,7 +67,8 @@ export default function QuickCheckout({experience}:Props){
       if(!projectUrl||!publicKey)throw Error("unavailable");
       const normalizedEmail=email.trim().toLowerCase();
       const normalizedPhone=cleanPhone(phone);
-      const key=experience.slug+":"+normalizedEmail+":"+normalizedPhone+":"+(addGamesPack?"with-pack":"base");
+      const key=experience.slug+":"+normalizedEmail+":"+normalizedPhone+":"+
+        (canOfferPack&&addGamesPack?"with-pack":isGame&&addExperience?"gift-"+experienceChoice:"base");
       if(requestRef.current?.key!==key)requestRef.current={id:crypto.randomUUID(),key};
       const response=await fetch("/api/checkout",{
         method:"POST",cache:"no-store",
@@ -64,6 +78,7 @@ export default function QuickCheckout({experience}:Props){
           email:normalizedEmail,whatsapp:normalizedPhone,
           consent:true,clientRequestId:requestRef.current.id,website,
           addGamesPack:canOfferPack&&addGamesPack,
+          addonExperienceSlug:isGame&&addExperience?experienceChoice:"",
         }),
       });
       const result=await response.json() as CheckoutResult;
@@ -83,7 +98,7 @@ export default function QuickCheckout({experience}:Props){
       else if(code==="too_many_orders")setMessage("Alcanzaste el límite de intentos. Probá más tarde o escribinos.");
       else if(code==="price_mismatch")setMessage("Por seguridad no iniciamos el cobro: el servidor devolvió un importe distinto al elegido. Intentá nuevamente o escribinos.");
       else if(code==="request_selection_conflict")setMessage("Cambiaste la selección de tu pedido. Actualizá los datos y volvé a continuar.");
-      else if(code==="addon_unavailable")setMessage("El pack de 3 Juegos no está disponible por el momento. Podés quitarlo y continuar con tu regalo.");
+      else if(code==="addon_unavailable"||code==="addon_not_available")setMessage(isGame?"La experiencia adicional no está disponible por el momento. Podés quitarla y continuar con los juegos.":"El pack de 3 Juegos no está disponible por el momento. Podés quitarlo y continuar con tu regalo.");
       else if(code==="request_already_completed")setMessage(isPack?"Esa compra ya se completó. Entrá a «Mis juegos» con tu correo para abrir los tres juegos.":isGame?"Esa compra ya se completó. Entrá a «Mis regalos» con tu correo y elegí «Jugar versión completa».":"Esa compra ya se completó. Entrá a «Mis regalos» con tu correo para editar tu experiencia.");
       else setMessage("No pudimos abrir Mercado Pago. Revisá tu conexión y volvé a intentar; no se realizó ningún cobro.");
     }finally{setBusy(false);}
@@ -137,7 +152,27 @@ export default function QuickCheckout({experience}:Props){
               </button>
             </div>
           </section>}
-          {canOfferPack&&<div className="quick-checkout-total" aria-live="polite">
+          {isGame&&<section className="quick-checkout-addon quick-checkout-addon--experience" aria-label="Oportunidad de agregar una experiencia">
+            <div className="quick-checkout-addon-symbol" aria-hidden="true">♡</div>
+            <div className="quick-checkout-addon-copy">
+              <span>OPORTUNIDAD EXCLUSIVA CON TUS JUEGOS · 60% OFF</span>
+              <strong>Agregá una experiencia personalizada <span className="quick-checkout-discount">60% OFF</span></strong>
+              <div className="quick-checkout-addon-price"><del>$25.000</del><b>$10.000</b><span>Ahorrás $15.000</span></div>
+              <p>Elegí la experiencia que querés regalar. Después de pagar, personalizás los nombres, recuerdos, fotos y audios desde «Mis regalos».</p>
+              <label className="quick-checkout-addon-select-label" htmlFor="checkout-experience-choice">Elegí tu experiencia
+                <select id="checkout-experience-choice" value={experienceChoice} disabled={busy}
+                  onChange={event=>setExperienceChoice(event.target.value)}>
+                  {experienceAddOnChoices.map(choice=><option key={choice.slug} value={choice.slug}>{choice.name}</option>)}
+                </select>
+              </label>
+              <button className="quick-checkout-addon-choice" type="button"
+                aria-pressed={addExperience} disabled={busy}
+                onClick={()=>setAddExperience(value=>!value)}>
+                {addExperience?"✓ Experiencia agregada · Quitar":"＋ Agregar experiencia por $10.000"}
+              </button>
+            </div>
+          </section>}
+          {(canOfferPack||isGame)&&<div className="quick-checkout-total" aria-live="polite">
              <span>Total a pagar</span><strong>$ {totalFormatted} ARS</strong>
           </div>}
           <div className="quick-checkout-honey" aria-hidden="true"><label>Sitio web<input tabIndex={-1} autoComplete="off" value={website} onChange={event=>setWebsite(event.target.value)}/></label></div>
