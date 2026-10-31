@@ -89,7 +89,7 @@ export default function QuickCheckout({experience}:Props){
           <div className="quick-checkout-product">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img alt="" src={photo(experience.slug)} loading="eager"/>
-            <div><span>{experience.eyebrow}</span><h1>{experience.title}</h1><p>{isPack?"Trazo Cómplice + Entre Dos + Cómplices":" " .trim()|| (isGame?"1.274 palabras · 11 categorías · Acceso completo":"Personalizable después de comprar")}</p></div>
+            <div><span>{experience.eyebrow}</span><h1>{experience.title}</h1><p>{isPack?"Trazo Cómplice + Entre Dos + Cómplices":isGame?"1.274 palabras · 11 categorías · Acceso completo":"Personalizable después de comprar"}</p></div>
           </div>
           <div className="quick-checkout-price"><strong>$25.000 <small>ARS</small></strong><span>Pago único · Sin suscripción</span></div>
           <p className="quick-checkout-help">{isPack?"El pack incluye Trazo Cómplice (1.274 palabras), Entre Dos (90 preguntas) y Cómplices (7 desafíos). Una sola compra de $25.000 ARS. Después de pagar vas a recibir un email para entrar a tus tres juegos. Las salas de escape no están incluidas.":isGame?"Desbloqueá Trazo Cómplice para jugar todas las rondas con 1.274 palabras. Después de pagar, recibirás un email para entrar a «Mis regalos» y abrir tu juego completo. No necesitás instalar nada.":"Elegí tu experiencia y pagá de forma segura. Cuando se confirme el pago, vas a recibir un email con acceso a «Mis regalos», donde podés personalizar nombres, mensajes, fotos y audios. El diseño, las escenas y los efectos ya están preparados."}</p>
