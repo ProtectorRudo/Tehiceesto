@@ -68,7 +68,7 @@ export default function DragonBallEditor({access,gift,media,onError,onNotice}:Pr
  const audios=useMemo(()=>media.filter(item=>item.kind==="audio"),[media]);
  const change=(key:keyof DragonCopy,v:string)=>setDraft(p=>({...p,[key]:v}));
  const changeRow=(key:"stickers"|"memories"|"rivals"|"orbs",index:number,field:string,value:string)=>setDraft(p=>{
-   const arr=[...p[key]] as Record<string,string>[];
+   const arr=[...p[key]] as unknown as Record<string,string>[];
    arr[index]={...arr[index],[field]:value};
    return {...p,[key]:arr};
  });
@@ -122,7 +122,7 @@ export default function DragonBallEditor({access,gift,media,onError,onNotice}:Pr
    {[0,1,2].map(i=><label key={i} style={labelStyle}>Foto del recuerdo {i+1}
      <select style={inputStyle} value={draft.photoMediaIds[i]||""} onChange={e=>setDraft(p=>({...p,photoMediaIds:p.photoMediaIds.map((v,index)=>index===i?e.target.value:v)}))}>
        <option value="">Sin foto · mostrar ilustración</option>
-       {images.map((item,index)=><option key={item.id} value={item.id}>Foto {index+1} · {item.caption||item.originalName||item.id.slice(0,7)}</option>)}
+       {images.map((item,index)=><option key={item.id} value={item.id}>Foto {index+1} · {item.caption||item.metadata?.originalName||item.id.slice(0,7)}</option>)}
      </select>
    </label>)}
    <label style={labelStyle}>Audio de la cápsula
