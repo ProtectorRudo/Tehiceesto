@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import ExperienceEngine from "@/components/ExperienceEngine";
 import SevenDaysExperience from "@/components/SevenDaysExperience";
 import Jar365Experience from "@/components/Jar365Experience";
@@ -26,6 +26,7 @@ export default async function GiftPage({
     try {
       const storedGift = await getPublishedGiftByCode(code);
 
+      if (storedGift.experience.slug==="sticker-bomb-amistad") redirect("/experiencias/sticker-bomb-amistad?gift="+encodeURIComponent(code));
       if (storedGift.experience.slug==="frasco365") return <><Jar365Experience experience={storedGift.experience} giftCode={code} /><ExtraLetterLink code={code}/></>;
       if (storedGift.experience.slug==="siete-dias") return <><SevenDaysExperience experience={storedGift.experience} singleDay={1} sceneTextOverrides={storedGift.sceneTextOverrides} photoMedia={storedGift.photoMedia} audioMedia={storedGift.audioMedia} /><ExtraLetterLink code={code}/></>;
 
