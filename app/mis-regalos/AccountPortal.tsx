@@ -37,6 +37,7 @@ const labels: Record<string, string> = {
   pareja: "Para tu pareja", cumpleanos: "Cumpleaños", hijos: "Para tus hijos",
   abuelos: "Para tus abuelos", aniversario: "Aniversario", propuesta: "Una propuesta",
   mama: "Para mamá", papa: "Para papá", amistad: "Amistad",
+  "sticker-bomb-amistad":"Expediente de nuestra amistad · Sticker Bomb",
   secreto: "Un secreto", "siete-dias": "Un poquito de mí, cada día", "frasco365": "Un año de cosas lindas", "escape-caso-m": "Escape · Caso M",
   "escape-ultima-funcion": "Escape · Última función",
   "escape-ultima-campanada": "Escape · Última campanada",
