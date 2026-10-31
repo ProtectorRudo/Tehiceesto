@@ -12,10 +12,11 @@ function envDefault(name:string){
 const SECRET=envDefault("SUPABASE_SECRET_KEYS");
 // SYNCHRONIZED with frozen premium-v3 demo snapshot. Tests guard all nine journeys.
 function versionForNewGift(slug:string){
-  return slug==="trazo-complice"?"trazo-v1":slug==="club-amigos"?"club-v1":slug==="frasco365"?"jar365-v1":slug==="siete-dias"?"seven-days-v1":slug.startsWith("escape-")?"escape-v1":["pareja","mama","amistad"].includes(slug)?"premium-v5":"premium-v3";
+  return slug==="dragon-ball-pareja"?"dragon-ball-v1":slug==="pack-juegos"?"pack-v1":slug==="trazo-complice"?"trazo-v1":slug==="sticker-bomb-amistad"?"sticker-bomb-v2":slug==="club-amigos"?"club-v1":slug==="frasco365"?"jar365-v1":slug==="siete-dias"?"seven-days-v1":slug.startsWith("escape-")?"escape-v1":["pareja","mama","amistad"].includes(slug)?"premium-v5":"premium-v3";
 }
 
 const recipes:Record<string,string[]>={
+  "dragon-ball-pareja":["dragon-ball"],
   "frasco365":["jar365"],
   "siete-dias":["day1","day2","day3","day4","day5","day6","day7"],
   pareja: ["intro","door","memories","voices","light","stars","everyday","scratch","hold","letter","finale"],
@@ -28,7 +29,9 @@ const recipes:Record<string,string[]>={
   papa: ["intro","memories","lessons","presence","inheritance","voices","letter","lookback","finale"],
   amistad: ["intro","door","casefile","memories","insidejokes","incidents","proof","puzzle","letter","pact","finale"],
   "club-amigos": ["club"],
+  "sticker-bomb-amistad": ["club"],
   "trazo-complice": ["game"],
+  "pack-juegos": ["game"],
   "escape-caso-m": ["intro","letter","finale"],
   "escape-ultima-funcion": ["intro","letter","finale"],
   "escape-ultima-campanada": ["intro","letter","finale"],
@@ -172,6 +175,33 @@ Deno.serve(async(req:Request)=>{
   const consent=body.consent===true;
   const website=clean(body.website,120);
   const clientRequestId=clean(body.clientRequestId,64).toLowerCase();
+  const addonEligible=new Set(["pareja","cumpleanos","hijos","mama","papa","amistad",
+    "club-amigos","sticker-bomb-amistad","frasco365","siete-dias","dragon-ball-pareja"]);
+  if(body.addSecretLetter!==undefined&&typeof body.addSecretLetter!=="boolean"){
+    return reply(origin,{error:"invalid_addon"},400);
+  }
+  const addSecretLetter=body.addSecretLetter===true;
+  if(body.addGamesPack!==undefined&&typeof body.addGamesPack!=="boolean")return reply(origin,{error:"invalid_addon"},400);
+  const addGamesPack=body.addGamesPack===true;
+  if((addSecretLetter&&addGamesPack)||((addSecretLetter||addGamesPack)&&!addonEligible.has(experienceSlug))){
+    return reply(origin,{error:"addon_not_available"},409);
+  }
+  const optionalGiftSlugs=new Set([
+    "pareja","cumpleanos","mama","papa","amistad",
+    "club-amigos","sticker-bomb-amistad","frasco365","siete-dias","dragon-ball-pareja",
+  ]);
+  // A customer buying games can choose ONE complete editable gift experience.
+  // The selected slug is whitelisted server-side and frozen into the checkout.
+  const addonExperienceSlug=clean(body.addonExperienceSlug,60);
+  if(addonExperienceSlug&&(!["pack-juegos","trazo-complice"].includes(experienceSlug)||
+      !optionalGiftSlugs.has(addonExperienceSlug))){
+    return reply(origin,{error:"addon_not_available"},409);
+  }
+  if(addonExperienceSlug&&(addGamesPack||addSecretLetter)){
+    return reply(origin,{error:"addon_conflict"},409);
+  }
+  const addOnCode=addonExperienceSlug?"personalized_experience_v1":
+    addGamesPack?"pack_juegos_v1":addSecretLetter?"secret_letter_v1":null;
 
   if(website)return reply(origin,{error:"invalid_input"},400);
   if(clientRequestId&&!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(clientRequestId)){
@@ -192,8 +222,11 @@ Deno.serve(async(req:Request)=>{
     .eq("id","default")
     .maybeSingle();
 
-  const priceMinor=Number(commerce?.default_price_minor);
-  if(!Number.isInteger(priceMinor)||priceMinor<=0)return reply(origin,{error:"price_not_configured"},503);
+  // Pack price is independent of future personalized-gift pricing.
+  const basePriceMinor=experienceSlug==="pack-juegos"?2500000:Number(commerce?.default_price_minor);
+  if(!Number.isInteger(basePriceMinor)||basePriceMinor<=0)return reply(origin,{error:"price_not_configured"},503);
+  // The standalone pack remains ARS 25,000; only a main gift can add it for ARS 10,000 (60% off).
+  const priceMinor=basePriceMinor+(addOnCode?1000000:0);
 
   const now=new Date().toISOString();
   const fingerprint=await requestFingerprint(req);
@@ -222,6 +255,13 @@ Deno.serve(async(req:Request)=>{
 
       // Completed purchases are edited only after authenticated email access.
       if(existingOrder.status!=="pending")return reply(origin,{error:"request_already_completed"},409);
+      const existingCheckout=objectValue(objectValue(existingGift.story_data).checkout);
+      const existingAddonCode=String(existingCheckout.addonCode||"");
+      if(Number(existingOrder.amount_minor)!==priceMinor||
+         existingAddonCode!==(addOnCode||"")||
+         String(existingCheckout.addonExperienceSlug||"")!==addonExperienceSlug){
+        return reply(origin,{error:"request_selection_conflict"},409);
+      }
       // Checkout retries never rotate editor tokens or rewrite gift contents.
 
       const checkoutUrl=await ensureCheckout(existingOrder,commerce?.auto_checkout_enabled===true);
@@ -262,6 +302,7 @@ Deno.serve(async(req:Request)=>{
         .in("gift_id",giftIds)
         .eq("buyer_email",email)
         .eq("status","pending")
+        .eq("amount_minor",priceMinor)
         .gte("created_at",retrySince)
         .order("created_at",{ascending:false})
         .limit(1);
@@ -272,6 +313,12 @@ Deno.serve(async(req:Request)=>{
         :null;
 
       if(existingOrder&&existingGift){
+        const previousCheckout=objectValue(objectValue(existingGift.story_data).checkout);
+        const previousAddon=String(previousCheckout.addonCode||"");
+        if(previousAddon!==(addOnCode||"")||
+           String(previousCheckout.addonExperienceSlug||"")!==addonExperienceSlug){
+          return reply(origin,{error:"request_selection_conflict"},409);
+        }
         // A pending retry does not modify the gift or grant editing rights.
         const checkoutUrl=await ensureCheckout(existingOrder,commerce?.auto_checkout_enabled===true);
         const {count:attributionCount}=await db
@@ -312,8 +359,13 @@ Deno.serve(async(req:Request)=>{
       giver_name:customerName,
       recipient_name:"A definir",
       scene_recipe:recipes[experienceSlug],
-      story_data:selfserveStory({name:customerName,email,whatsapp},now,
-        fingerprint,recipes[experienceSlug],versionForNewGift(experienceSlug)),
+      story_data:{
+        ...selfserveStory({name:customerName,email,whatsapp},now,
+          fingerprint,recipes[experienceSlug],versionForNewGift(experienceSlug)),
+        ...(addOnCode?{checkout:{baseAmountMinor:basePriceMinor,
+          addonCode:addOnCode,addonAmountMinor:1000000,totalAmountMinor:priceMinor,
+          ...(addonExperienceSlug?{addonExperienceSlug}:{})}}:{}),
+      },
       theme_data:{},
     })
     .select("id,public_code")
@@ -338,6 +390,46 @@ Deno.serve(async(req:Request)=>{
   if(orderError||!order){
     await db.from("gifts").delete().eq("id",gift.id);
     return reply(origin,{error:"order_create_failed"},500);
+  }
+
+  if(addOnCode){
+    // Create a distinct, editable gift for the games -> experience offer.
+    // Its status remains awaiting_payment until the provider confirms the combined charge.
+    let secondGiftId:string|null=null;
+    if(addonExperienceSlug){
+      const addonVersion=versionForNewGift(addonExperienceSlug);
+      const {data:secondGift,error:secondError}=await db.from("gifts").insert({
+        status:"awaiting_payment",experience_slug:addonExperienceSlug,
+        template_version:addonVersion,
+        giver_name:customerName,recipient_name:"A definir",
+        scene_recipe:recipes[addonExperienceSlug],
+        story_data:{
+          ...selfserveStory({name:customerName,email,whatsapp},now,
+            fingerprint,recipes[addonExperienceSlug],addonVersion),
+          creatorAddOn:{source:"games-checkout",orderId:order.id},
+        },
+        theme_data:{},
+      }).select("id").single();
+      if(secondError||!secondGift){
+        console.error("experience_addon_create_failed",secondError?.code);
+        await db.from("gifts").delete().eq("id",gift.id);
+        return reply(origin,{error:"addon_unavailable"},503);
+      }
+      secondGiftId=secondGift.id;
+    }
+    // Reserve the addon as a line item within this ONE order, never a second payment.
+    // The child gift has no order and cannot be edited by an unpaid customer.
+    const {error:addonError}=await db.from("gift_upsells").insert({
+      gift_id:gift.id,order_id:order.id,product_code:addOnCode,
+      ...(secondGiftId?{addon_gift_id:secondGiftId}:{}),
+      amount_minor:1000000,currency:"ARS",status:"pending",
+    });
+    if(addonError){
+      console.error("checkout_bundle_reservation_failed",addonError.code);
+      if(secondGiftId)await db.from("gifts").delete().eq("id",secondGiftId);
+      await db.from("gifts").delete().eq("id",gift.id);
+      return reply(origin,{error:"addon_unavailable"},503);
+    }
   }
 
   const affiliateAttributed=await resolveAffiliateAttribution(db,body.affiliateToken,order.id);

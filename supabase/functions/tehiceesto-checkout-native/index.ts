@@ -204,6 +204,34 @@ Deno.serve(async(req:Request)=>{
   }
 
   const amount=(amountMinor/100).toFixed(2);
+  const itemTitle=config.experienceSlug==="pack-juegos"?"Te Hice Esto · Pack de 3 juegos":"Te Hice Esto · experiencia personalizada";
+  const bundledExtra=config.bundledExtra===true;
+  const addonCode=String(config.bundleCode||"");
+  const addonMinor=Number(config.bundleAmountMinor||0);
+  if(bundledExtra&&(!["secret_letter_v1","pack_juegos_v1","personalized_experience_v1"].includes(addonCode)||
+     !Number.isInteger(addonMinor)||addonMinor!==1000000||amountMinor<=addonMinor||
+     config.experienceSlug==="pack-juegos"||String(config.experienceSlug||"").startsWith("escape-"))){
+    return reply({error:"invalid_bundle_config"},409);
+  }
+  const selectedExperience=String(config.bundleExperienceSlug||"");
+  const allowedGiftSlugs=["pareja","cumpleanos","mama","papa","amistad",
+    "club-amigos","sticker-bomb-amistad","frasco365","siete-dias","dragon-ball-pareja"];
+  if(addonCode==="personalized_experience_v1"&&
+    (!["pack-juegos","trazo-complice"].includes(String(config.experienceSlug))||
+      !allowedGiftSlugs.includes(selectedExperience))){
+    return reply({error:"invalid_bundle_experience"},409);
+  }
+  const bundledTitle=addonCode==="pack_juegos_v1"
+    ?"Pack de 3 Juegos · 60% de descuento":
+    addonCode==="personalized_experience_v1"
+      ?"Experiencia personalizada · "+selectedExperience+" · 60% de descuento":
+      "Carta secreta adicional";
+  const items=bundledExtra?[
+    {external_code:code,title:itemTitle,quantity:1,unit_price:((amountMinor-addonMinor)/100).toFixed(2)},
+    {external_code:code+"-"+addonCode,title:bundledTitle,quantity:1,unit_price:(addonMinor/100).toFixed(2)},
+  ]:[{external_code:code,title:itemTitle,quantity:1,unit_price:amount}];
+  const isPack=config.experienceSlug==="pack-juegos";
+  const receiptBase=isPack?`https://tehiceesto.com/juegos/pack/pedido?code=${code}&pago=`:`https://tehiceesto.com/pedido/${code}?pago=`;
   const orderResponse=await fetch("https://api.mercadopago.com/v1/orders",{
     method:"POST",
     headers:{
@@ -217,18 +245,13 @@ Deno.serve(async(req:Request)=>{
       processing_mode:"manual",
       total_amount:amount,
       external_reference:`thi_${token}`,
-      description:"Te Hice Esto · experiencia personalizada",
-      items:[{
-        external_code:code,
-        title:"Te Hice Esto · experiencia personalizada",
-        quantity:1,
-        unit_price:amount,
-      }],
+      description:bundledExtra?"Te Hice Esto · Experiencia + "+bundledTitle:itemTitle,
+      items,
       config:{
         online:{
-          success_url:`https://tehiceesto.com/pedido/${code}?pago=exitoso`,
-          pending_url:`https://tehiceesto.com/pedido/${code}?pago=pendiente`,
-          failure_url:`https://tehiceesto.com/pedido/${code}?pago=fallido`,
+          success_url:receiptBase+"exitoso",
+          pending_url:receiptBase+"pendiente",
+          failure_url:receiptBase+"fallido",
           auto_return:"approved",
         },
         // Cuotas configuradas mediante parámetros admitidos por Checkout Pro Orders.

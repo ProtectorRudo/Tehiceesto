@@ -26,6 +26,12 @@ export default async function ExperiencePage({
   const experience = getExperience(slug);
   if (!experience) notFound();
   const isEmbedded=embed==="1";
+  if(slug==="dragon-ball-pareja")return (
+    <div style={{position:"fixed",inset:0,background:"#10245b"}}>
+      {!isEmbedded&&<div className="demo-ribbon" style={{position:"absolute",top:0,left:0,right:0,zIndex:10}}><span>DEMO · {experience.title}</span><Link href="/comprar/dragon-ball-pareja">Comprar esta experiencia →</Link></div>}
+      <iframe src="/dragon-ball-pareja.html" title="Dragon Ball · Nuestra Saga — Demo" style={{display:"block",width:"100%",height:"100%",border:0}} allow="autoplay"/>
+    </div>
+  );
   return (
     <div className={isEmbedded?"boutique-embedded-route":undefined}>
       {!isEmbedded&&<div className="demo-ribbon"><span>DEMO · {experience.title}</span><Link href={"/comprar/"+encodeURIComponent(slug)}>Comprar esta experiencia →</Link></div>}

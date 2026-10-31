@@ -18,6 +18,7 @@ const pages=[
   ["/experiencias/amistad",0.75],
   ["/experiencias/club-amigos",0.75],
   ["/experiencias/sticker-bomb-amistad",0.85],
+  ["/experiencias/dragon-ball-pareja",0.85],
   ["/experiencias/frasco365",0.75],
   ["/experiencias/siete-dias",0.75],
   ["/juegos/trazo-complice",0.65],

@@ -21,6 +21,7 @@ type EdgeGift = {
 };
 
 type EdgeMedia = {
+  id: string;
   kind: "image" | "video" | "audio";
   caption: string | null;
   sort_order: number;
@@ -90,6 +91,7 @@ export async function getPublishedGiftByCode(
     anecdote?: string;
   };
   sceneTextOverrides?: SceneTextOverrides;
+  dragonBall?: {config:Record<string,unknown>;photoUrls:string[];voiceUrl:string|null};
 }> {
   const env = publicCredentials();
   if (!env) {
@@ -175,6 +177,14 @@ export async function getPublishedGiftByCode(
       caption: item.caption || undefined,
     }));
 
+  const dragonBallCopy=row.story_data?.dragonBall;
+  const dragonBallConfig=dragonBallCopy&&typeof dragonBallCopy==="object"&&!Array.isArray(dragonBallCopy)
+    ?dragonBallCopy as Record<string,unknown>:null;
+  const pickedPhotos=Array.isArray(dragonBallConfig?.photoMediaIds)?dragonBallConfig.photoMediaIds.slice(0,3):[];
+  const pickedVoice=typeof dragonBallConfig?.voiceMediaId==="string"?dragonBallConfig.voiceMediaId:"";
+  const dragonBallPhotos=pickedPhotos.map(id=>orderedMedia.find(m=>m.id===id&&m.kind==="image")?.url||"") as string[];
+  const dragonBallVoice=orderedMedia.find(m=>m.id===pickedVoice&&m.kind==="audio")?.url||null;
+
   return {
     experience: {
       ...base,
@@ -208,6 +218,7 @@ export async function getPublishedGiftByCode(
     sceneTextOverrides: normalizeSceneTextOverrides(
       row.story_data?.sceneContent,
     ),
+    dragonBall:dragonBallConfig?{config:dragonBallConfig,photoUrls:dragonBallPhotos,voiceUrl:dragonBallVoice}:undefined,
   };
 }
 

@@ -71,6 +71,8 @@ const recipes:Record<string,string[]>={
   papa: ["intro","memories","lessons","presence","inheritance","voices","letter","lookback","finale"],
   amistad: ["intro","door","casefile","memories","insidejokes","incidents","proof","puzzle","letter","pact","finale"],
   "club-amigos": ["club"],
+  "sticker-bomb-amistad": ["club"],
+  "dragon-ball-pareja": ["dragon-ball"],
 };
 
 function cleanText(value: unknown, max: number) {
@@ -156,9 +158,38 @@ async function assertStudioAccess(
     .maybeSingle();
 
   if (orderError) throw new Error("studio_order_lookup_failed");
-  if (order?.status !== "approved") throw new Error("payment_required");
+  if (order?.status === "approved") return { gift, order, story };
 
-  return { gift, order, story };
+  // An experience added during a game purchase has no separate order.
+  // Require a fully paid, non-refunded original order AND matching, paid addon.
+  const {data:link,error:linkError}=await supabase.from("gift_upsells")
+    .select("gift_id,order_id,amount_minor,paid_at,status,provider_order_id,checkout_url")
+    .eq("addon_gift_id",gift.id).eq("product_code","personalized_experience_v1")
+    .eq("status","approved").not("paid_at","is",null)
+    .is("provider_order_id",null).is("checkout_url",null).maybeSingle();
+  if(linkError)throw new Error("studio_order_lookup_failed");
+  if(!link||Number(link.amount_minor)!==1000000)throw new Error("payment_required");
+  const {data:parentOrder,error:parentOrderError}=await supabase.from("orders")
+    .select("id,provider,status,provider_reference,amount_minor,currency,paid_at,refunded_amount_minor,updated_at")
+    .eq("id",link.order_id).eq("gift_id",link.gift_id).eq("provider","mercadopago")
+    .eq("status","approved").eq("refunded_amount_minor",0)
+    .not("paid_at","is",null).maybeSingle();
+  if(parentOrderError)throw new Error("studio_order_lookup_failed");
+  if(!parentOrder)throw new Error("payment_required");
+  const {data:parentGift,error:parentGiftError}=await supabase.from("gifts")
+    .select("experience_slug,story_data").eq("id",link.gift_id).maybeSingle();
+  if(parentGiftError)throw new Error("studio_order_lookup_failed");
+  const c=parentGift?.story_data?.checkout||{};
+  const base=Number(c.baseAmountMinor),total=Number(parentOrder.amount_minor);
+  if(!["pack-juegos","trazo-complice"].includes(String(parentGift?.experience_slug))||
+     c.addonCode!=="personalized_experience_v1"||
+     String(c.addonExperienceSlug)!==gift.experience_slug||
+     !Number.isInteger(base)||base<=0||
+     Number(c.addonAmountMinor)!==1000000||
+     Number(c.totalAmountMinor)!==total||base+1000000!==total){
+    throw new Error("payment_required");
+  }
+  return {gift,order:parentOrder,story};
 }
 
 async function signedStudioMedia(
@@ -401,6 +432,66 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+
+  // Whitelisted content-only edit: buyer owns a paid gift and holds the editor token.
+  // The original Dragon Ball visuals, mechanics, scene order and artwork are never client-editable.
+  if (action === "saveDragonBall") {
+    let code: string;
+    try { code=cleanCode(body.code); } catch { return json(origin,{error:"invalid_code"},400); }
+    try {
+      const {gift,story}=await assertStudioAccess(supabase,code,body.editorToken);
+      if(gift.experience_slug!=="dragon-ball-pareja")return json(origin,{error:"invalid_experience"},409);
+      const raw=storyObject(body.dragonBall);
+      const stringField=(k:string,max:number)=>cleanText(raw[k],max);
+      const rowFields=(key:string,length:number,keys:string[])=>{
+        if(!Array.isArray(raw[key])||raw[key].length!==length)return null;
+        return raw[key].map((item:unknown)=>{
+          const obj=storyObject(item);
+          const out:Record<string,string>={};
+          for(const name of keys)out[name]=cleanText(obj[name],name==="quote"?1200:500);
+          return out;
+        });
+      };
+      const stickers=rowFields("stickers",9,["head","quote","tag"]);
+      const orbs=rowFields("orbs",7,["title","message"]);
+      const rivals=rowFields("rivals",3,["title","message"]);
+      const memories=rowFields("memories",3,["title","message"]);
+      if(!stickers||!orbs||!rivals||!memories)return json(origin,{error:"invalid_dragon_ball_content"},400);
+      const ids=Array.isArray(raw.photoMediaIds)?raw.photoMediaIds.slice(0,3):[];
+      if(ids.length!==3||ids.some((id:unknown)=>typeof id!=="string"||String(id).length>80))return json(origin,{error:"invalid_photo_selection"},400);
+      const voiceMediaId=cleanText(raw.voiceMediaId,80);
+      const chosen=[...ids,voiceMediaId].filter(Boolean);
+      if(chosen.length){
+        const {data:records,error:mediaError}=await supabase.from("gift_media")
+          .select("id,kind").eq("gift_id",gift.id).in("id",chosen);
+        if(mediaError)return json(origin,{error:"media_verification_failed"},503);
+        const known=new Map((records||[]).map((row:{id:string;kind:string})=>[row.id,row.kind]));
+        for(const id of ids)if(id&&known.get(id)!=="image")return json(origin,{error:"invalid_photo_selection"},400);
+        if(voiceMediaId&&known.get(voiceMediaId)!=="audio")return json(origin,{error:"invalid_voice_selection"},400);
+      }
+      const copy={
+        date:stringField("date",80),
+        heroBlurb:stringField("heroBlurb",1600),
+        originSpeech:stringField("originSpeech",1600),
+        powerMessage:stringField("powerMessage",1600),
+        wish:stringField("wish",1600),
+        audioNarration:stringField("audioNarration",1600),
+        posterLine:stringField("posterLine",160),
+        stickers,orbs,rivals,memories,
+        photoMediaIds:ids,
+        voiceMediaId,
+      };
+      const {error}=await supabase.from("gifts").update({
+        story_data:{...story,dragonBall:copy,creator:{...storyObject(story.creator),lastEditedAt:new Date().toISOString()}}
+      }).eq("id",gift.id);
+      if(error)return json(origin,{error:"studio_save_failed"},500);
+      return json(origin,{ok:true});
+    }catch(error){
+      const reason=error instanceof Error?error.message:"studio_save_failed";
+      return json(origin,{error:reason},reason==="payment_required"?409:401);
+    }
+  }
+
   if (action === "saveStudioBasics") {
     let code: string;
     try { code = cleanCode(body.code); } catch { return json(origin, { error: "invalid_code" }, 400); }
@@ -485,6 +576,50 @@ Deno.serve(async (req: Request) => {
     }catch(error){
       const reason=error instanceof Error?error.message:"photo_slot_save_failed";
       return json(origin,{error:reason},reason==="payment_required"?409:401);
+    }
+  }
+
+  if (action === "saveStickerBomb") {
+    let code:string;
+    try{code=cleanCode(body.code)}catch{return json(origin,{error:"invalid_code"},400)}
+    try{
+      const {gift,story}=await assertStudioAccess(supabase,code,body.editorToken);
+      if(gift.experience_slug!=="sticker-bomb-amistad")return json(origin,{error:"wrong_template"},409);
+      const payload=body.content;
+      if(!payload||typeof payload!=="object"||Array.isArray(payload))return json(origin,{error:"invalid_content"},400);
+      const obj=payload as Record<string,unknown>;
+      const names=["confidente","familia","memes","audios","plans","rescue","chaos","moments","code","time"];
+      const lengths=[4,3,3,4,4,3,4,3,4,3];
+      const rawNotes=obj.notes;
+      if(!rawNotes||typeof rawNotes!=="object"||Array.isArray(rawNotes))return json(origin,{error:"invalid_notes"},400);
+      const cleanArr=(value:unknown,n:number,max:number)=>{
+        if(!Array.isArray(value)||value.length!==n||value.some(x=>typeof x!=="string"||x.length>max))return null;
+        return value.map((x:string)=>x.trim());
+      };
+      const notes:Record<string,string[]>={};
+      for(let i=0;i<names.length;i++){
+        const clean=cleanArr((rawNotes as Record<string,unknown>)[names[i]],lengths[i],1800);
+        if(!clean)return json(origin,{error:"invalid_notes"},400);
+        notes[names[i]]=clean;
+      }
+      const future=cleanArr(obj.future,4,1800),finalLetter=cleanArr(obj.finalLetter,4,4500);
+      if(!future||!finalLetter)return json(origin,{error:"invalid_content"},400);
+      const content={
+        relationship:cleanText(obj.relationship,180),
+        date:cleanText(obj.date,180),
+        coverText:cleanText(obj.coverText,1200),
+        notes,future,finalLetter
+      };
+      if(JSON.stringify(content).length>36000)return json(origin,{error:"content_too_large"},400);
+      const {error}=await supabase.from("gifts").update({
+        story_data:{...story,stickerBomb:content,
+          creator:{...(story.creator||{}),lastEditedAt:new Date().toISOString()}}
+      }).eq("id",gift.id);
+      if(error){console.error("sticker_bomb_save_failed",error.code);return json(origin,{error:"studio_save_failed"},500)}
+      return json(origin,{ok:true});
+    }catch(error){
+      const reason=error instanceof Error?error.message:"studio_failed";
+      return json(origin,{error:reason},reason==="payment_required"?409:reason==="studio_not_found"?404:401);
     }
   }
 

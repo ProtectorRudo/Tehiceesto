@@ -18,6 +18,7 @@ const experienceAddOnChoices=[
  {slug:"club-amigos",name:"Club de Amigos"},
  {slug:"sticker-bomb-amistad",name:"Sticker Bomb Amistad"},
  {slug:"frasco365",name:"Un año de cosas lindas"},
+ {slug:"dragon-ball-pareja",name:"Dragon Ball · Nuestra Saga"},
  {slug:"siete-dias",name:"Un poquito de mí, cada día"},
 ] as const;
 
@@ -34,13 +35,13 @@ function cleanPhone(raw:string){
   // 54 9 + area code + number already works.
   return value;
 }
-function photo(slug:string){if(slug==="pack-juegos")return "/demo-previews/trazo-complice.svg";return "/demo-previews/"+slug+(slug==="frasco365"||slug==="siete-dias"||slug==="club-amigos"||slug==="sticker-bomb-amistad"||slug==="trazo-complice"?".svg":".jpg");}
+function photo(slug:string){if(slug==="pack-juegos")return "/demo-previews/trazo-complice.svg";return "/demo-previews/"+slug+(slug==="frasco365"||slug==="siete-dias"||slug==="club-amigos"||slug==="sticker-bomb-amistad"||slug==="trazo-complice"||slug==="dragon-ball-pareja"?".svg":".jpg");}
 
 export default function QuickCheckout({experience}:Props){
   const isPack=experience.slug==="pack-juegos";
   const isGame=isPack||experience.slug==="trazo-complice";
   const canOfferPack=["pareja","cumpleanos","hijos","mama","papa","amistad",
-    "club-amigos","sticker-bomb-amistad","frasco365","siete-dias"].includes(experience.slug);
+    "club-amigos","sticker-bomb-amistad","frasco365","siete-dias","dragon-ball-pareja"].includes(experience.slug);
   const [addGamesPack,setAddGamesPack]=useState(false);
   const [addExperience,setAddExperience]=useState(false);
   const [experienceChoice,setExperienceChoice]=useState("pareja");
