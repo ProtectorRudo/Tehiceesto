@@ -91,7 +91,7 @@ export default function PostPurchase({code}:{code:string}){
        <a className="postpurchase-yes postpurchase-link" href={offer.checkoutUrl}>Continuar el pago de $10.000</a>
      </div>}
      {completed&&<div className="postpurchase-thanks"><strong>♡ Tu carta extra también está confirmada.</strong><p>Si elegís agregarla, vas a encontrarla dentro de «Mis regalos» una vez acreditado el pago adicional.</p></div>}
-     <Link href={isPack?"/juegos/pack/completo":"/mis-regalos"} className="postpurchase-my">{isPack?"Abrir mis tres juegos":"Ir a Mis regalos y personalizar"} <span aria-hidden="true">↗</span></Link>
+     {isPack?<Link href="/juegos/pack/completo" className="postpurchase-my">Abrir mis tres juegos <span aria-hidden="true">↗</span></Link>:<Link href="/mis-regalos" className="postpurchase-my">Ir a Mis regalos y personalizar <span aria-hidden="true">↗</span></Link>}
      <p className="postpurchase-assistance">{isPack?"El acceso privado llega al correo de compra. Usá ese mismo correo para entrar a tus juegos. Las salas de escape se venden por separado.":"El enlace de acceso privado llega al correo de tu compra. Desde «Mis regalos» podés editar el contenido, publicar tu experiencia y compartirla. Si no encontrás el mensaje, revisá spam o pedí otro acceso."}</p>
    </section>:
    <section className="postpurchase-panel">
