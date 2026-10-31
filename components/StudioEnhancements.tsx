@@ -6,6 +6,7 @@ import SevenDaysExperience from "@/components/SevenDaysExperience";
 import SevenDaysSharePanel from "@/components/SevenDaysSharePanel";
 import Jar365Editor from "@/components/Jar365Editor";
 import StickerBombEditor from "@/components/StickerBombEditor";
+import DragonBallEditor from "@/components/DragonBallEditor";
 import ExtraLetterEditor from "@/components/ExtraLetterEditor";
 import Jar365Experience from "@/components/Jar365Experience";
 import type { Jar365Note } from "@/data/jar365-notes";
@@ -282,6 +283,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
   return (
     <div className={styles.enhancement}>
       <ExtraLetterEditor code={access.code} editorToken={access.editorToken} />
+      {gift.experience_slug==="dragon-ball-pareja" && <DragonBallEditor access={access} gift={gift} media={media} onError={onError} onNotice={onNotice}/>}
       {gift.experience_slug==="sticker-bomb-amistad" && <StickerBombEditor key={access.code} access={access} gift={gift} media={media} onError={onError} onNotice={onNotice}/>}
       {gift.experience_slug==="siete-dias" && <SevenDaysSharePanel code={access.code} editorToken={access.editorToken} />}
       {gift.experience_slug==="frasco365" && <Jar365Editor code={access.code} editorToken={access.editorToken} onNotesChange={(notes)=>{setJarNotes(notes);setJarPreviewVersion(version=>version+1);}} />}
