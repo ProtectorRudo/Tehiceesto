@@ -59,3 +59,22 @@
 @media(max-width:680px){.recipient-catalog{padding:103px 15px 24px}.recipient-catalog-hero{display:block;min-height:0;padding:38px 0 32px}.recipient-catalog-hero h1{font-size:clamp(56px,13vw,77px);margin:17px 0}.recipient-catalog-hero p{font-size:13px;max-width:470px}.recipient-catalog-hero-art{display:none}.recipient-catalog-hero-actions{margin-top:23px;gap:16px}.recipient-catalog-selection{padding-top:16px;scroll-margin-top:80px}.recipient-catalog-selection-head{align-items:flex-end}.recipient-catalog-selection-head h2{font-size:48px}.recipient-catalog-count{font-size:41px}.recipient-catalog-count small{display:none}.recipient-catalog-grid{grid-template-columns:1fr;gap:16px}.recipient-catalog-card-photo{height:310px;min-height:310px}.recipient-catalog-card-copy h3{font-size:39px}.recipient-catalog-card-copy{padding:20px}.recipient-catalog-footer{flex-wrap:wrap;gap:10px}.recipient-catalog-footer p{order:3;flex-basis:100%}}
 @media(max-width:360px){.recipient-catalog-hero h1{font-size:55px}.recipient-catalog-selection-head h2{font-size:40px}.recipient-catalog-card-photo{height:282px;min-height:282px}}
 @media(prefers-reduced-motion:reduce){.recipient-catalog *{transition:none!important}}
+
+/* Juegos independientes, un único pack comercial. Las salas de escape quedan fuera. */
+.recipient-catalog-card--game .recipient-catalog-card-photo{background:radial-gradient(circle at 50% 35%,#69465e,#281a2d 72%);height:308px;min-height:308px}
+.recipient-catalog-card--game .recipient-catalog-card-photo img{object-fit:cover;object-position:center}
+.recipient-catalog-card--game .recipient-catalog-card-copy>p{min-height:72px}
+.recipient-games-pack{margin-top:31px;border-radius:28px;border:1px solid #daa9aa;background:linear-gradient(113deg,#3c2338,#5a2e46 52%,#362137);color:#ffefe8;display:flex;align-items:center;justify-content:space-between;gap:30px;padding:31px 37px;box-shadow:0 19px 42px #6a254c22}
+.recipient-games-pack .recipient-catalog-eyebrow{color:#f7c4b9}
+.recipient-games-pack h3{font:400 clamp(34px,4vw,49px)/1.03 "Instrument Serif",Georgia,serif;margin:11px 0;color:#fff4ec}
+.recipient-games-pack h3 em{color:#f7b8bd}
+.recipient-games-pack p{max-width:585px;font-size:13px;line-height:1.7;color:#f1d5db;margin-bottom:0}
+.recipient-games-pack strong{color:#fff}
+.recipient-games-pack .recipient-catalog-cta{flex-shrink:0;background:#f4d7c1;color:#462638!important;box-shadow:none}
+.recipient-games-pack .recipient-catalog-cta:hover{background:#fff0df}
+.recipient-escapes-apart{display:flex;align-items:center;justify-content:space-between;gap:30px;padding:31px 0 49px;border-top:1px solid #e5d3d3}
+.recipient-escapes-apart>div{max-width:680px}
+.recipient-escapes-apart h2{font:400 42px/1.06 "Instrument Serif",Georgia,serif;color:#49313d;margin:12px 0}
+.recipient-escapes-apart p{font-size:13px;line-height:1.7;color:#8a717e;margin:0}
+.recipient-escapes-apart>a{flex-shrink:0}
+@media(max-width:740px){.recipient-games-pack,.recipient-escapes-apart{flex-direction:column;align-items:stretch;gap:17px}.recipient-games-pack{padding:28px 24px}.recipient-games-pack .recipient-catalog-cta{justify-content:center;width:100%}.recipient-escapes-apart{padding:29px 0 40px}.recipient-escapes-apart h2{font-size:39px}}
