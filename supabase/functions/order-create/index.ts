@@ -222,11 +222,14 @@ Deno.serve(async(req:Request)=>{
     .eq("id","default")
     .maybeSingle();
 
-  // Pack price is independent of future personalized-gift pricing.
-  const basePriceMinor=experienceSlug==="pack-juegos"?2500000:Number(commerce?.default_price_minor);
+  // Price trials are controlled by commerce_settings. Keep historical checkout
+  // pricing intact when the normal ARS 25,000 price is restored.
+  const commercePriceMinor=Number(commerce?.default_price_minor);
+  const trialPricing=commercePriceMinor===100000; // ARS 1,000 in minor units.
+  const basePriceMinor=experienceSlug==="pack-juegos"&&!trialPricing?2500000:commercePriceMinor;
   if(!Number.isInteger(basePriceMinor)||basePriceMinor<=0)return reply(origin,{error:"price_not_configured"},503);
-  // The standalone pack remains ARS 25,000; only a main gift can add it for ARS 10,000 (60% off).
-  const priceMinor=basePriceMinor+(addOnCode?1000000:0);
+  const addonPriceMinor=trialPricing?100000:1000000;
+  const priceMinor=basePriceMinor+(addOnCode?addonPriceMinor:0);
 
   const now=new Date().toISOString();
   const fingerprint=await requestFingerprint(req);
@@ -363,7 +366,7 @@ Deno.serve(async(req:Request)=>{
         ...selfserveStory({name:customerName,email,whatsapp},now,
           fingerprint,recipes[experienceSlug],versionForNewGift(experienceSlug)),
         ...(addOnCode?{checkout:{baseAmountMinor:basePriceMinor,
-          addonCode:addOnCode,addonAmountMinor:1000000,totalAmountMinor:priceMinor,
+          addonCode:addOnCode,addonAmountMinor:addonPriceMinor,totalAmountMinor:priceMinor,
           ...(addonExperienceSlug?{addonExperienceSlug}:{})}}:{}),
       },
       theme_data:{},
@@ -422,7 +425,7 @@ Deno.serve(async(req:Request)=>{
     const {error:addonError}=await db.from("gift_upsells").insert({
       gift_id:gift.id,order_id:order.id,product_code:addOnCode,
       ...(secondGiftId?{addon_gift_id:secondGiftId}:{}),
-      amount_minor:1000000,currency:"ARS",status:"pending",
+      amount_minor:addonPriceMinor,currency:"ARS",status:"pending",
     });
     if(addonError){
       console.error("checkout_bundle_reservation_failed",addonError.code);

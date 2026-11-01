@@ -18,22 +18,22 @@ try{
   assert.equal(await option.count(),1,"offer should be shown unobtrusively");
   assert.match(await page.locator(".quick-checkout-addon-copy strong").first().innerText(),/Pack de 4 juegos/);
   assert.equal(await option.getAttribute("aria-pressed"),"false","default is opt-out");
-  assert.match(await page.locator(".quick-checkout-discount").innerText(),/60% OFF/);
-  assert.match(await page.locator(".quick-checkout-addon-price").innerText(),/25\.000/);
-  assert.match(await page.locator(".quick-checkout-addon-price").innerText(),/10\.000/);
+  assert.match(await page.locator(".quick-checkout-discount").innerText(),/PRUEBA/);
+  assert.match(await page.locator(".quick-checkout-addon-price").innerText(),/1\.000/);
+  assert.match(await page.locator(".quick-checkout-addon-price").innerText(),/1\.000/);
 
-  assert.match(await page.locator(".quick-checkout-total").innerText(),/25\.000/);
+  assert.match(await page.locator(".quick-checkout-total").innerText(),/1\.000/);
   await option.click();assert.equal(await option.getAttribute("aria-pressed"),"true");
-  assert.match(await page.locator(".quick-checkout-total").innerText(),/35\.000/);
+  assert.match(await page.locator(".quick-checkout-total").innerText(),/2\.000/);
   await page.screenshot({path:"visual-fast-checkout/precheckout-addon-"+width+".png",fullPage:true});
   await option.click();assert.equal(await option.getAttribute("aria-pressed"),"false");
-  assert.match(await page.locator(".quick-checkout-total").innerText(),/25\.000/);
+  assert.match(await page.locator(".quick-checkout-total").innerText(),/1\.000/);
   await option.click();
   let sent=null,calls=0;
   await page.route("**/api/checkout",async route=>{
    calls++;sent=JSON.parse(route.request().postData()||"{}");
    await route.fulfill({status:200,contentType:"application/json",
-     body:JSON.stringify({code:"0123456789abcdefab",priceMinor:3500000,currency:"ARS",checkoutReady:true,checkoutUrl:"https://www.mercadopago.com.ar/checkout/v1/addon-test"})});
+     body:JSON.stringify({code:"0123456789abcdefab",priceMinor:200000,currency:"ARS",checkoutReady:true,checkoutUrl:"https://www.mercadopago.com.ar/checkout/v1/addon-test"})});
   });
   await page.route("**/checkout/v1/addon-test",route=>route.fulfill({status:200,contentType:"text/html",body:"<html><body>NO CHARGE TEST</body></html>"}));
   await page.locator("#checkout-email").fill("ci@example.com");
@@ -54,24 +54,24 @@ try{
   assert.equal(await section.count(),1,slug+" should offer one editable experience");
   const add=section.locator(".quick-checkout-addon-choice");
   assert.equal(await add.getAttribute("aria-pressed"),"false","unselected by default");
-  assert.match(await section.innerText(),/60% OFF/);
-  assert.match(await section.innerText(),/10\.000/);
+  assert.match(await section.innerText(),/PRUEBA/);
+  assert.match(await section.innerText(),/1\.000/);
   assert.equal(await page.locator("#checkout-experience-choice option").count(),9,"Club de Amigos ya no debe aparecer en opciones del regalo extra");
    assert.equal(await page.locator('#checkout-experience-choice option[value="club-amigos"]').count(),0,"No se ofrece el producto retirado");
    assert.equal(await page.locator("#checkout-experience-choice option[value=\"dragon-ball-pareja\"]").count(),1,"Dragon Ball must be selectable as the additional experience");
   await page.locator("#checkout-experience-choice").selectOption("sticker-bomb-amistad");
   await add.click();
-  assert.match(await page.locator(".quick-checkout-total").innerText(),/35\.000/);
+  assert.match(await page.locator(".quick-checkout-total").innerText(),/2\.000/);
   assert.equal(await add.getAttribute("aria-pressed"),"true");
   await page.screenshot({path:"visual-fast-checkout/reverse-"+slug+"-390.png",fullPage:true});
   await add.click();
-  assert.match(await page.locator(".quick-checkout-total").innerText(),/25\.000/);
+  assert.match(await page.locator(".quick-checkout-total").innerText(),/1\.000/);
   await add.click();
   let payload=null,calls=0;
   await page.route("**/api/checkout",async route=>{
     calls++;payload=JSON.parse(route.request().postData()||"{}");
     await route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({
-      code:"0123456789abcdefab",priceMinor:3500000,currency:"ARS",checkoutReady:false
+      code:"0123456789abcdefab",priceMinor:200000,currency:"ARS",checkoutReady:false
     })});
   });
   await page.locator("#checkout-email").fill("ci@example.com");
@@ -86,5 +86,5 @@ try{
  assert.equal(await page.locator(".quick-checkout-addon").count(),1,"friendship gift should offer discounted pack");
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2),false,"no horizontal overflow");
  await page.close();
- console.log("PRECHECKOUT_BUNDLE_QA_PASS: pack 60% OFF, single order, price changes, reciprocal experience selector, mobile responsive");
+ console.log("PRECHECKOUT_BUNDLE_QA_PASS: pack PRUEBA, single order, price changes, reciprocal experience selector, mobile responsive");
 }finally{await browser.close()}
