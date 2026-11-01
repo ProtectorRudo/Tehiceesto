@@ -204,7 +204,7 @@ Deno.serve(async(req:Request)=>{
   }
 
   const amount=(amountMinor/100).toFixed(2);
-  const itemTitle=config.experienceSlug==="pack-juegos"?"Te Hice Esto · Pack de 3 juegos":"Te Hice Esto · experiencia personalizada";
+  const itemTitle=config.experienceSlug==="pack-juegos"?"Te Hice Esto · Pack de 4 juegos":"Te Hice Esto · experiencia personalizada";
   const bundledExtra=config.bundledExtra===true;
   const addonCode=String(config.bundleCode||"");
   const addonMinor=Number(config.bundleAmountMinor||0);
@@ -222,7 +222,7 @@ Deno.serve(async(req:Request)=>{
     return reply({error:"invalid_bundle_experience"},409);
   }
   const bundledTitle=addonCode==="pack_juegos_v1"
-    ?"Pack de 3 Juegos · 60% de descuento":
+    ?"Pack de 4 Juegos · 60% de descuento":
     addonCode==="personalized_experience_v1"
       ?"Experiencia personalizada · "+selectedExperience+" · 60% de descuento":
       "Carta secreta adicional";
