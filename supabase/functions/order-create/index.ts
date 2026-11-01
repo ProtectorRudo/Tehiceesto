@@ -165,7 +165,7 @@ Deno.serve(async(req:Request)=>{
 
   const experienceSlug=clean(body.experienceSlug,40);
   // Preserve the existing production release gate for unfinished templates.
-  if(["abuelos","aniversario","propuesta"].includes(experienceSlug)){
+  if(["abuelos","aniversario","propuesta","club-amigos"].includes(experienceSlug)){
     return reply(origin,{error:"experience_coming_soon",message:"Esta experiencia estará disponible próximamente."},409);
   }
   // Buyer only provides email and WhatsApp. The giver name is customized after payment.
@@ -176,7 +176,7 @@ Deno.serve(async(req:Request)=>{
   const website=clean(body.website,120);
   const clientRequestId=clean(body.clientRequestId,64).toLowerCase();
   const addonEligible=new Set(["pareja","cumpleanos","hijos","mama","papa","amistad",
-    "club-amigos","sticker-bomb-amistad","frasco365","siete-dias","dragon-ball-pareja"]);
+    "sticker-bomb-amistad","frasco365","siete-dias","dragon-ball-pareja"]);
   if(body.addSecretLetter!==undefined&&typeof body.addSecretLetter!=="boolean"){
     return reply(origin,{error:"invalid_addon"},400);
   }
