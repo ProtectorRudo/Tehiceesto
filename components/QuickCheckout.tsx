@@ -101,7 +101,7 @@ export default function QuickCheckout({experience}:Props){
       else if(code==="too_many_orders")setMessage("Alcanzaste el límite de intentos. Probá más tarde o escribinos.");
       else if(code==="price_mismatch")setMessage("Por seguridad no iniciamos el cobro: el servidor devolvió un importe distinto al elegido. Intentá nuevamente o escribinos.");
       else if(code==="request_selection_conflict")setMessage("Cambiaste la selección de tu pedido. Actualizá los datos y volvé a continuar.");
-      else if(code==="addon_unavailable"||code==="addon_not_available")setMessage(isGame?"La experiencia adicional no está disponible por el momento. Podés quitarla y continuar con los juegos.":"El pack de 3 Juegos no está disponible por el momento. Podés quitarlo y continuar con tu regalo.");
+      else if(code==="addon_unavailable"||code==="addon_not_available")setMessage(isGame?"La experiencia adicional no está disponible por el momento. Podés quitarla y continuar con los juegos.":"El pack de 4 juegos no está disponible por el momento. Podés quitarlo y continuar con tu regalo.");
       else if(code==="request_already_completed")setMessage(isPack?"Esa compra ya se completó. Entrá a «Mis juegos» con tu correo para abrir los cuatro juegos.":isGame?"Esa compra ya se completó. Entrá a «Mis regalos» con tu correo y elegí «Jugar versión completa».":"Esa compra ya se completó. Entrá a «Mis regalos» con tu correo para editar tu experiencia.");
       else setMessage("No pudimos abrir Mercado Pago. Revisá tu conexión y volvé a intentar; no se realizó ningún cobro.");
     }finally{setBusy(false);}
@@ -115,7 +115,7 @@ export default function QuickCheckout({experience}:Props){
       </header>
       <div className="quick-checkout-layout">
         <section className="quick-checkout-summary" aria-label="Tu experiencia elegida">
-          <span className="quick-checkout-kicker">{isPack?"3 JUEGOS · UNA SOLA COMPRA":isGame?"UN JUEGO SIN LÍMITES":"TU REGALO ESTÁ A UN PASO"}</span>
+          <span className="quick-checkout-kicker">{isPack?"4 JUEGOS · UNA SOLA COMPRA":isGame?"UN JUEGO SIN LÍMITES":"TU REGALO ESTÁ A UN PASO"}</span>
           <div className="quick-checkout-product">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img alt="" src={photo(experience.slug)} loading="eager"/>
@@ -145,7 +145,7 @@ export default function QuickCheckout({experience}:Props){
             <div className="quick-checkout-addon-symbol" aria-hidden="true">✦</div>
             <div className="quick-checkout-addon-copy">
               <span>EXCLUSIVO CON TU REGALO · 60% OFF</span>
-              <strong>Pack de 3 Juegos <span className="quick-checkout-discount">60% OFF</span></strong>
+              <strong>Pack de 4 juegos <span className="quick-checkout-discount">60% OFF</span></strong>
               <div className="quick-checkout-addon-price"><del>$25.000</del><b>$10.000</b><span>Ahorrás $15.000</span></div>
               <p>Trazo Cómplice, Entre Dos, Cómplices y Meme Match completos (48 parejas). Salas de escape no incluidas.</p>
               <button className="quick-checkout-addon-choice" type="button"
