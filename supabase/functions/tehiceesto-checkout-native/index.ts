@@ -215,7 +215,7 @@ Deno.serve(async(req:Request)=>{
   }
   const selectedExperience=String(config.bundleExperienceSlug||"");
   const allowedGiftSlugs=["pareja","cumpleanos","mama","papa","amistad",
-    "club-amigos","sticker-bomb-amistad","frasco365","siete-dias","dragon-ball-pareja"];
+    "sticker-bomb-amistad","frasco365","siete-dias","dragon-ball-pareja"];
   if(addonCode==="personalized_experience_v1"&&
     (!["pack-juegos","trazo-complice"].includes(String(config.experienceSlug))||
       !allowedGiftSlugs.includes(selectedExperience))){
