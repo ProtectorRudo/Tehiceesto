@@ -1,6 +1,11 @@
 import {chromium} from "playwright";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
+// Contract guard: the Next.js proxy must forward optional extras to order-create.
+// UI-only request interception cannot detect a dropped field in the server proxy.
+const proxy=await fs.readFile(new URL("../app/api/checkout/route.ts",import.meta.url),"utf8");
+assert.match(proxy,/addGamesPack\\s*:\\s*addGamesPack\\s*===\\s*true/,"proxy must forward the pack selection");
+assert.match(proxy,/addonExperienceSlug\\s*:\\s*typeof addonExperienceSlug/,"proxy must forward the chosen experience");
 const base=process.env.AUDIT_BASE_URL||"http://127.0.0.1:3000";
 const browser=await chromium.launch({headless:true,args:["--no-sandbox"]});
 await fs.mkdir("visual-fast-checkout",{recursive:true});
@@ -11,6 +16,7 @@ try{
   await page.goto(base+"/comprar/pareja",{waitUntil:"domcontentloaded"});
   const option=page.locator(".quick-checkout-addon-choice");
   assert.equal(await option.count(),1,"offer should be shown unobtrusively");
+  assert.match(await page.locator(".quick-checkout-addon-copy strong").first().innerText(),/Pack de 4 juegos/);
   assert.equal(await option.getAttribute("aria-pressed"),"false","default is opt-out");
   assert.match(await page.locator(".quick-checkout-discount").innerText(),/60% OFF/);
   assert.match(await page.locator(".quick-checkout-addon-price").innerText(),/25\.000/);
@@ -43,6 +49,7 @@ try{
  const page=await browser.newPage({viewport:{width:390,height:850},isMobile:true,hasTouch:true});
  for(const slug of ["pack-juegos","trazo-complice"]){
   await page.goto(base+"/comprar/"+slug,{waitUntil:"domcontentloaded"});
+  if(slug==="pack-juegos")assert.match(await page.locator(".quick-checkout-kicker").innerText(),/4 JUEGOS/);
   const section=page.locator(".quick-checkout-addon--experience");
   assert.equal(await section.count(),1,slug+" should offer one editable experience");
   const add=section.locator(".quick-checkout-addon-choice");
