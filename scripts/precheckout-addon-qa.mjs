@@ -4,8 +4,8 @@ import fs from "node:fs/promises";
 // Contract guard: the Next.js proxy must forward optional extras to order-create.
 // UI-only request interception cannot detect a dropped field in the server proxy.
 const proxy=await fs.readFile(new URL("../app/api/checkout/route.ts",import.meta.url),"utf8");
-assert.match(proxy,/addGamesPack\\s*:\\s*addGamesPack\\s*===\\s*true/,"proxy must forward the pack selection");
-assert.match(proxy,/addonExperienceSlug\\s*:\\s*typeof addonExperienceSlug/,"proxy must forward the chosen experience");
+assert.match(proxy,/addGamesPack\s*:\s*addGamesPack\s*===\s*true/,"proxy must forward the pack selection");
+assert.match(proxy,/addonExperienceSlug\s*:\s*typeof addonExperienceSlug/,"proxy must forward the chosen experience");
 const base=process.env.AUDIT_BASE_URL||"http://127.0.0.1:3000";
 const browser=await chromium.launch({headless:true,args:["--no-sandbox"]});
 await fs.mkdir("visual-fast-checkout",{recursive:true});
