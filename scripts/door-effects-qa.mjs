@@ -13,7 +13,6 @@ try{
     {slug:"pareja",width:390,height:844},
     {slug:"pareja",width:1440,height:900},
     {slug:"amistad",width:390,height:844},
-    {slug:"club-amigos",width:390,height:844},
   ]){
     const page=await browser.newPage({viewport:{width:entry.width,height:entry.height},isMobile:entry.width<600,hasTouch:entry.width<600,deviceScaleFactor:1});
     const errors=[];
@@ -33,18 +32,8 @@ try{
       await box.locator(".couple-gift-unseal").click();
       await box.locator(".couple-gift-continue:not([disabled])").waitFor({state:"visible",timeout:7000});
       await box.locator(".couple-gift-continue").click();
-    }else{
-      await page.locator(".club-door-scene").waitFor({state:"visible",timeout:10000});
-      assert.equal(await page.locator(".club-door .thi-door-atmosphere").count(),1);
-      await page.screenshot({path:path.join(dir,name+"-initial.png")});
-      await page.locator(".club-door").click();
-      assert.equal(await page.locator(".club-door-scene.is-entering").count(),1);
-      await page.screenshot({path:path.join(dir,name+"-opening.png")});
-      await page.locator(".club-chapter h2").filter({hasText:"La banda"}).waitFor({state:"visible",timeout:5000});
-      assert.deepEqual(errors,[],"Club browser errors");
-      report.push({slug:entry.slug,width:entry.width,result:"PASS"});
-      await page.close();continue;
     }
+
     const door=page.locator(".pair-cinematic-umbral").first();
     await door.waitFor({state:"visible",timeout:13000});
     assert.equal(await door.locator(".thi-door-atmosphere").count(),1,"Shared light component used");
@@ -69,11 +58,11 @@ try{
     report.push({slug:entry.slug,width:entry.width,result:"PASS"});
     await page.close();
   }
-  const reduced=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:"reduce"});
-  await reduced.goto(base+"/experiencias/club-amigos?embed=1",{waitUntil:"domcontentloaded",timeout:45000});
-  await reduced.locator(".club-door").click();
-  await reduced.locator(".club-chapter h2").filter({hasText:"La banda"}).waitFor({state:"visible",timeout:4000});
-  await reduced.close();
+  // Club de Amigos fue retirado del catálogo; conservar 404 y no reabrir la demo.
+  const retired=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:"reduce"});
+  const retiredResponse=await retired.goto(base+"/experiencias/club-amigos?embed=1",{waitUntil:"domcontentloaded",timeout:45000});
+  assert.equal(retiredResponse?.status(),404,"Club de Amigos retirado debe responder 404");
+  await retired.close();
   const tsx=await fs.readFile("components/legacy-v5/PairCinematicUmbral.tsx","utf8");
   const css=await fs.readFile("components/legacy-v5/PairCinematicUmbral.css","utf8");
   const arch=await fs.readFile("components/legacy-v5/ExperienceEngine.tsx","utf8");
