@@ -13,7 +13,7 @@ export async function generateMetadata({params}:Props):Promise<Metadata>{
   return {title:option?option.titleLong+" · Te Hice Esto":"Colección · Te Hice Esto",description:option?.subheading||"Explorá las experiencias de Te Hice Esto."};
 }
 function previewPath(slug:string){
- return "/demo-previews/"+slug+(["club-amigos","frasco365","siete-dias","sticker-bomb-amistad","dragon-ball-pareja"].includes(slug)?".svg":".jpg");
+ return "/demo-previews/"+slug+(["frasco365","siete-dias","sticker-bomb-amistad","dragon-ball-pareja"].includes(slug)?".svg":".jpg");
 }
 const games = [
  {slug:"trazo-complice",title:"Trazo Cómplice",eyebrow:"DIBUJAR Y ADIVINAR",label:"DIVERSIÓN · UN SOLO CELULAR",description:"Dibujen sin hablar, adivinen lo imposible y terminen riéndose de sus propias obras de arte. Dos palabras fijas en la demo; 1.274 en el juego completo.",preview:"/demo-previews/trazo-complice.svg",alt:"Cartas ilustradas de Trazo Cómplice",demo:"/juegos/trazo-complice",accent:"#9a426d"},

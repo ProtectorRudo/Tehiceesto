@@ -13,14 +13,14 @@ const highlights: Record<string,string> = {
   mama:"Un gracias que se siente",
   papa:"Lo que aprendiste a su lado",
   amistad:"Sus códigos, sus recuerdos",
-  "club-amigos":"16 capítulos. Una banda de stickers que habla, juega y emociona",
+
   "sticker-bomb-amistad":"12 stickers, risas y una carta final inolvidable",
   "siete-dias":"Siete sorpresas, una por día",
   frasco365:"365 papelitos. Uno cada día",
 };
-const order=["dragon-ball-pareja","sticker-bomb-amistad","club-amigos","frasco365","siete-dias","pareja","cumpleanos","mama","papa","amistad"];
+const order=["dragon-ball-pareja","sticker-bomb-amistad","frasco365","siete-dias","pareja","cumpleanos","mama","papa","amistad"];
 function previewPath(slug:string) {
-  if (slug==="frasco365"||slug==="siete-dias"||slug==="club-amigos"||slug==="sticker-bomb-amistad"||slug==="dragon-ball-pareja") return "/demo-previews/"+slug+".svg";
+  if (slug==="frasco365"||slug==="siete-dias"||slug==="sticker-bomb-amistad"||slug==="dragon-ball-pareja") return "/demo-previews/"+slug+".svg";
   return "/demo-previews/"+slug+".jpg";
 }
 

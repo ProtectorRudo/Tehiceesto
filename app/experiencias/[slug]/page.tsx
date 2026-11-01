@@ -7,6 +7,7 @@ import { getExperience } from "@/data/experiences";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
+  if (slug==="club-amigos") notFound();
   const experience = getExperience(slug);
   if (!experience) return {};
   return {
@@ -24,7 +25,7 @@ export default async function ExperiencePage({
   const { slug } = await params;
   const { embed } = await searchParams;
   const experience = getExperience(slug);
-  if (!experience) notFound();
+  if (!experience || slug==="club-amigos") notFound();
   const isEmbedded=embed==="1";
   if(slug==="dragon-ball-pareja")return (
     <div style={{position:"fixed",inset:0,background:"#10245b"}}>

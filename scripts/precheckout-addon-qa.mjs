@@ -49,7 +49,8 @@ try{
   assert.equal(await add.getAttribute("aria-pressed"),"false","unselected by default");
   assert.match(await section.innerText(),/60% OFF/);
   assert.match(await section.innerText(),/10\.000/);
-  assert.equal(await page.locator("#checkout-experience-choice option").count(),10);
+  assert.equal(await page.locator("#checkout-experience-choice option").count(),9,"Club de Amigos ya no debe aparecer en opciones del regalo extra");
+   assert.equal(await page.locator('#checkout-experience-choice option[value="club-amigos"]').count(),0,"No se ofrece el producto retirado");
    assert.equal(await page.locator("#checkout-experience-choice option[value=\"dragon-ball-pareja\"]").count(),1,"Dragon Ball must be selectable as the additional experience");
   await page.locator("#checkout-experience-choice").selectOption("sticker-bomb-amistad");
   await add.click();

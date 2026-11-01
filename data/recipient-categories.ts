@@ -45,7 +45,7 @@ export const recipientCategories: readonly RecipientCategory[] = [
     titleLong: "Para tus amigos",
     heading: "Para quienes se volvieron familia elegida.",
     subheading: "Anécdotas, risas, códigos secretos y emociones en experiencias para la amistad.",
-    slugs: ["sticker-bomb-amistad", "club-amigos", "amistad", "cumpleanos"],
+    slugs: ["sticker-bomb-amistad", "amistad", "cumpleanos"],
   },
   {
     id: "juegos",
