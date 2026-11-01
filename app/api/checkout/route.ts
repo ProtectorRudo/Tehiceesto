@@ -11,9 +11,11 @@ export async function POST(req:NextRequest){
  if(fetchSite&&fetchSite!=="same-origin"&&fetchSite!=="none")return NextResponse.json({error:"forbidden_site"},{status:403});
  let body:Record<string,unknown>;
  try{body=await req.json()}catch{return NextResponse.json({error:"invalid_json"},{status:400})}
- const {experienceSlug,email,whatsapp,consent,clientRequestId,website}=body;
+ const {experienceSlug,email,whatsapp,consent,clientRequestId,website,addGamesPack,addonExperienceSlug}=body;
  if(typeof experienceSlug!=="string"||typeof email!=="string"||typeof whatsapp!=="string"||
-    consent!==true||typeof clientRequestId!=="string"||clientRequestId.length>64){
+    consent!==true||typeof clientRequestId!=="string"||clientRequestId.length>64||
+    (addGamesPack!==undefined&&typeof addGamesPack!=="boolean")||
+    (addonExperienceSlug!==undefined&&(typeof addonExperienceSlug!=="string"||addonExperienceSlug.length>60))){
    return NextResponse.json({error:"invalid_input"},{status:400});
  }
  try{
@@ -28,6 +30,8 @@ export async function POST(req:NextRequest){
       ...(req.headers.get("user-agent")?{"user-agent":req.headers.get("user-agent")!}:{})},
     body:JSON.stringify({experienceSlug,email,whatsapp,consent,clientRequestId,
       website:typeof website==="string"?website:"",
+      addGamesPack:addGamesPack===true,
+      addonExperienceSlug:typeof addonExperienceSlug==="string"?addonExperienceSlug:"",
       // Never trust a body-supplied affiliate ID or token; use our HttpOnly cookie only.
       affiliateToken:token&&/^[A-Za-z0-9_-]{30,90}$/.test(token)?token:undefined
     }),
