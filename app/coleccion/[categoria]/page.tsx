@@ -18,7 +18,8 @@ function previewPath(slug:string){
 const games = [
  {slug:"trazo-complice",title:"Trazo Cómplice",eyebrow:"DIBUJAR Y ADIVINAR",label:"DIVERSIÓN · UN SOLO CELULAR",description:"Dibujen sin hablar, adivinen lo imposible y terminen riéndose de sus propias obras de arte. Dos palabras fijas en la demo; 1.274 en el juego completo.",preview:"/demo-previews/trazo-complice.svg",alt:"Cartas ilustradas de Trazo Cómplice",demo:"/juegos/trazo-complice",accent:"#9a426d"},
  {slug:"entre-dos",title:"Entre Dos",eyebrow:"PREGUNTAS PARA DESCUBRIRSE",label:"CONEXIÓN · UN SOLO CELULAR",description:"Dos personas eligen en secreto entre dos opciones y descubren si coinciden. Nueve preguntas fijas en la demo; 90 en la edición completa.",preview:"/demo-previews/entre-dos.svg",alt:"Dos cartas románticas del juego Entre Dos",demo:"/juegos/entre-dos",accent:"#a43b66"},
- {slug:"complices",title:"Cómplices",eyebrow:"AVENTURA COOPERATIVA",label:"ADRENALINA · DOS PERSONAS",description:"Resuelvan pistas, coordinen decisiones y rescaten a Lía contrarreloj. Una misión fija en la demo; siete desafíos en el juego completo.",preview:"/demo-previews/complices.svg",alt:"Escena de rescate del juego cooperativo Cómplices",demo:"/juegos/complices",accent:"#48637b"}
+ {slug:"complices",title:"Cómplices",eyebrow:"AVENTURA COOPERATIVA",label:"ADRENALINA · DOS PERSONAS",description:"Resuelvan pistas, coordinen decisiones y rescaten a Lía contrarreloj. Una misión fija en la demo; siete desafíos en el juego completo.",preview:"/demo-previews/complices.svg",alt:"Escena de rescate del juego cooperativo Cómplices",demo:"/juegos/complices",accent:"#48637b"},
+ {slug:"meme-match",title:"Meme Match",eyebrow:"MEMORIA DE MEMES",label:"COMPETENCIA · DOS PERSONAS",description:"Desafíense en un mismo celular. La demo tiene solo 8 parejas; comprando el pack desbloqueás 48 parejas diferentes de memes y tableros de hasta 96 cartas.",preview:"/demo-previews/meme-match.svg",alt:"Tarjetas de Meme Match y sus memes legendarios",demo:"/juegos/meme-match",accent:"#ad66d9"}
 ] as const;
 
 export default async function RecipientCollection({params}:Props){
@@ -86,13 +87,13 @@ export default async function RecipientCollection({params}:Props){
           <h3>{game.title}</h3><p>{game.description}</p>
           <div className="recipient-catalog-card-buttons">
            <Link href={game.demo} className="recipient-catalog-card-view">Probar demo gratis <span aria-hidden="true">↗</span></Link>
-           <Link href="/juegos/pack" className="recipient-catalog-card-buy">Ver pack de 3 juegos <span aria-hidden="true">→</span></Link>
+           <Link href="/juegos/pack" className="recipient-catalog-card-buy">Ver pack de 4 juegos <span aria-hidden="true">→</span></Link>
           </div>
          </div>
        </article>)}
       </div>
       {withGames&&<div className="recipient-games-pack">
-        <div><span className="recipient-catalog-eyebrow">PACK COMPLETO · PAGO ÚNICO</span><h3>Tres juegos. <em>Una sola compra.</em></h3><p>Trazo Cómplice + Entre Dos + Cómplices. Todos completos por <strong>$25.000 ARS</strong>. Probá sus demos gratis antes de elegir.</p></div>
+        <div><span className="recipient-catalog-eyebrow">PACK COMPLETO · PAGO ÚNICO</span><h3>Cuatro juegos. <em>Una sola compra.</em></h3><p>Trazo Cómplice + Entre Dos + Cómplices + Meme Match (48 parejas). Los cuatro completos por <strong>$25.000 ARS</strong>. Probá sus demos gratis antes de elegir.</p></div>
         <Link href="/juegos/pack" className="recipient-catalog-cta">Conocer el pack de $25.000 <span aria-hidden="true">↗</span></Link>
       </div>}
     </section>
