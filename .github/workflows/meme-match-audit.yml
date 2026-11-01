@@ -1,0 +1,35 @@
+name: Meme Match · parejas siempre visibles
+on:
+  pull_request:
+    paths:
+      - "public/juegos/meme-match/demo.html"
+      - "scripts/meme-match-qa.mjs"
+      - ".github/workflows/meme-match-audit.yml"
+  push:
+    branches: [main]
+    paths:
+      - "public/juegos/meme-match/demo.html"
+      - "scripts/meme-match-qa.mjs"
+      - ".github/workflows/meme-match-audit.yml"
+jobs:
+  meme-match:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install browser
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Verify matched cards remain face-up in three viewports
+        run: node scripts/meme-match-qa.mjs
+      - name: Preserve screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: meme-match-pairs-visible
+          path: visual-meme-match/
+          retention-days: 7
