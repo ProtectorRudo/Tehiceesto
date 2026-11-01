@@ -24,7 +24,7 @@ export default async function ExperiencePage({
   const { slug } = await params;
   const { embed } = await searchParams;
   const experience = getExperience(slug);
-  if (!experience) notFound();
+  if (!experience || slug==="club-amigos") notFound();
   const isEmbedded=embed==="1";
   if(slug==="dragon-ball-pareja")return (
     <div style={{position:"fixed",inset:0,background:"#10245b"}}>
