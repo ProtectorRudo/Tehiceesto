@@ -22,15 +22,13 @@ for(const size of [{label:"mobile-320",width:320,height:700},{label:"mobile-390"
  await page.goto(base+"/pedido/"+validCode,{waitUntil:"domcontentloaded"});
  await page.getByText("¡Ya es tuya!").waitFor({timeout:7000});
  const button=page.getByRole("button",{name:/Sí, agregar mi carta extra/});
- if(await button.count()!==1)throw Error("offer missing "+size.label);
- if(!await page.getByText(/Mercado Pago te pedirá confirmar/).count())throw Error("missing payment disclosure");
- await page.screenshot({path:path.join(dir,size.label+"-offer.png"),fullPage:true});
+ if(await button.count()!==0)throw Error("legacy paid upsell must be hidden during trial "+size.label);
+ if(await page.getByText(/Mercado Pago te pedirá confirmar/).count())throw Error("legacy upsell still visible");
+ await page.screenshot({path:path.join(dir,size.label+"-trial.png"),fullPage:true});
  if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2))throw Error("horizontal overflow "+size.label);
- await page.getByRole("button",{name:/No, gracias/}).click();
- if(!offerCalls.includes("decline"))throw Error("decline request not sent");
- if(await page.getByRole("button",{name:/Sí, agregar mi carta extra/}).count())throw Error("decline did not hide offer");
+ if(offerCalls.includes("accept")||offerCalls.includes("decline"))throw Error("unexpected paid upsell request");
  if(errors.length)throw Error("browser errors "+errors.join(";"));
- cases.push({viewport:size.label,offer:true,decline:true,overflow:false});
+ cases.push({viewport:size.label,offerHidden:true,overflow:false});
  await page.close();
 }
 const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});

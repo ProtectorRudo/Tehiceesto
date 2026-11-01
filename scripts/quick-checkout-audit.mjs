@@ -33,7 +33,7 @@ for(const size of [{name:"mobile-320",width:320,height:720},{name:"mobile-390",w
  await page.route("**/api/checkout",async route=>{
    captured=JSON.parse(route.request().postData()||"{}");
    await route.fulfill({status:200,contentType:"application/json",headers:{"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"apikey,content-type"},
-     body:JSON.stringify({code:"test123",priceMinor:2500000,currency:"ARS",checkoutReady:true,checkoutUrl:"https://www.mercadopago.com.ar/checkout/v1/redirect-test"})});
+     body:JSON.stringify({code:"test123",priceMinor:100000,currency:"ARS",checkoutReady:true,checkoutUrl:"https://www.mercadopago.com.ar/checkout/v1/redirect-test"})});
  });
  await page.route("https://www.mercadopago.com.ar/checkout/v1/redirect-test",async route=>await route.fulfill({status:200,contentType:"text/html",body:"<html><body>PAYMENT TEST - NO CHARGE</body></html>"}));
  await form.getByLabel("Tu email").fill("prueba@example.com");

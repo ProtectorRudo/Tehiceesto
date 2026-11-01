@@ -93,8 +93,8 @@ export default async function RecipientCollection({params}:Props){
        </article>)}
       </div>
       {withGames&&<div className="recipient-games-pack">
-        <div><span className="recipient-catalog-eyebrow">PACK COMPLETO · PAGO ÚNICO</span><h3>Cuatro juegos. <em>Una sola compra.</em></h3><p>Trazo Cómplice + Entre Dos + Cómplices + Meme Match (48 parejas). Los cuatro completos por <strong>$25.000 ARS</strong>. Probá sus demos gratis antes de elegir.</p></div>
-        <Link href="/juegos/pack" className="recipient-catalog-cta">Conocer el pack de $25.000 <span aria-hidden="true">↗</span></Link>
+        <div><span className="recipient-catalog-eyebrow">PACK COMPLETO · PAGO ÚNICO</span><h3>Cuatro juegos. <em>Una sola compra.</em></h3><p>Trazo Cómplice + Entre Dos + Cómplices + Meme Match (48 parejas). Los cuatro completos por <strong>$1.000 ARS</strong>. Probá sus demos gratis antes de elegir.</p></div>
+        <Link href="/juegos/pack" className="recipient-catalog-cta">Conocer el pack de $1.000 <span aria-hidden="true">↗</span></Link>
       </div>}
     </section>
     {withGames&&<aside className="recipient-escapes-apart" aria-labelledby="recipient-escapes-title">

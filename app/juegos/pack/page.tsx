@@ -1,6 +1,6 @@
 import type {Metadata} from "next";
 import Link from "next/link";
-export const metadata:Metadata={title:"Pack de 4 Juegos · $25.000 ARS | Te Hice Esto",description:"Trazo Cómplice, Entre Dos, Cómplices y Meme Match completos en un solo pack. Probá una demo de cada juego y desbloqueá 48 parejas de memes."};
+export const metadata:Metadata={title:"Pack de 4 Juegos · $1.000 ARS | Te Hice Esto",description:"Trazo Cómplice, Entre Dos, Cómplices y Meme Match completos en un solo pack. Probá una demo de cada juego y desbloqueá 48 parejas de memes."};
 const cards=[
  {emoji:"🎨",title:"Trazo Cómplice",desc:"Dibujá, adiviná y reíte con 1.274 palabras y categorías.",demo:"/juegos/trazo-complice",badge:"1.274 PALABRAS",shade:"#ffc5d9"},
  {emoji:"💌",title:"Entre Dos",desc:"90 preguntas para descubrir cuánto se conocen.",demo:"/juegos/entre-dos",badge:"90 PREGUNTAS",shade:"#dab8ff"},
@@ -14,7 +14,7 @@ export default function PackLanding(){return <main style={{minHeight:"100dvh",ba
 <div style={{letterSpacing:3,fontSize:12,fontWeight:900,color:"#f6c77d"}}>✦ UN CELULAR · DOS PERSONAS · CUATRO JUEGOS</div>
 <h1 style={{fontSize:"clamp(42px,8vw,76px)",fontWeight:950,lineHeight:1.03,letterSpacing:"-.055em",margin:"15px 0"}}>El pack para <span style={{color:"#ffce72"}}>jugar juntos.</span></h1>
 <p style={{color:"#d1bfdb",fontSize:"clamp(15px,2vw,20px)",lineHeight:1.7,margin:"0 auto 25px"}}>Cuatro mundos, una sola compra. Para reírse, competir y descubrir quién tiene la peor memoria.</p>
-<div style={{fontSize:32,fontWeight:900,color:"#ffce7d"}}>$25.000 <span style={{fontSize:14,color:"#cfb9d6"}}>ARS · pago único</span></div>
+<div style={{fontSize:32,fontWeight:900,color:"#ffce7d"}}>$1.000 <span style={{fontSize:14,color:"#cfb9d6"}}>ARS · pago único</span></div>
 <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap",margin:"24px 0 50px"}}>
 <Link href="/comprar/pack-juegos" style={{background:"linear-gradient(120deg,#ffe58b,#f4a34d)",padding:"17px 24px",borderRadius:15,color:"#24122d",fontWeight:900,textDecoration:"none"}}>Quiero los cuatro juegos →</Link>
 <a href="#juegos" style={{border:"1px solid #ffffff50",padding:"17px 24px",borderRadius:15,color:"white",textDecoration:"none"}}>Probar demos gratis ↓</a>

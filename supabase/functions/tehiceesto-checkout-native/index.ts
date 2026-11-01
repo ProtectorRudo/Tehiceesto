@@ -209,7 +209,7 @@ Deno.serve(async(req:Request)=>{
   const addonCode=String(config.bundleCode||"");
   const addonMinor=Number(config.bundleAmountMinor||0);
   if(bundledExtra&&(!["secret_letter_v1","pack_juegos_v1","personalized_experience_v1"].includes(addonCode)||
-     !Number.isInteger(addonMinor)||addonMinor!==1000000||amountMinor<=addonMinor||
+     !Number.isInteger(addonMinor)||![100000,1000000].includes(addonMinor)||amountMinor<=addonMinor||
      config.experienceSlug==="pack-juegos"||String(config.experienceSlug||"").startsWith("escape-"))){
     return reply({error:"invalid_bundle_config"},409);
   }

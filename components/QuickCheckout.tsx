@@ -45,7 +45,10 @@ export default function QuickCheckout({experience}:Props){
   const [addGamesPack,setAddGamesPack]=useState(false);
   const [addExperience,setAddExperience]=useState(false);
   const [experienceChoice,setExperienceChoice]=useState("pareja");
-  const totalMinor=2500000+((canOfferPack&&addGamesPack)||(isGame&&addExperience)?1000000:0);
+  // Temporarily reduced checkout prices for end-to-end purchase and affiliate attribution tests.
+  const basePriceMinor=100000;
+  const addonPriceMinor=100000;
+  const totalMinor=basePriceMinor+((canOfferPack&&addGamesPack)||(isGame&&addExperience)?addonPriceMinor:0);
   const totalFormatted=new Intl.NumberFormat("es-AR").format(totalMinor/100);
   const [email,setEmail]=useState("");
   const [phone,setPhone]=useState("");
@@ -122,7 +125,7 @@ export default function QuickCheckout({experience}:Props){
             <div><span>{experience.eyebrow}</span><h1>{experience.title}</h1><p>{isPack?"Trazo Cómplice + Entre Dos + Cómplices + Meme Match":isGame?"1.274 palabras · 11 categorías · Acceso completo":"Personalizable después de comprar"}</p></div>
           </div>
           <div className="quick-checkout-price"><strong>${totalFormatted} <small>ARS</small></strong><span>Pago único · Sin suscripción</span></div>
-          <p className="quick-checkout-help">{isPack?"El pack incluye Trazo Cómplice (1.274 palabras), Entre Dos (90 preguntas), Cómplices (7 desafíos) y Meme Match (48 parejas de memes). Una sola compra de $25.000 ARS. Después de pagar vas a recibir un email para entrar a tus cuatro juegos. Las salas de escape no están incluidas.":isGame?"Desbloqueá Trazo Cómplice para jugar todas las rondas con 1.274 palabras. Después de pagar, recibirás un email para entrar a «Mis regalos» y abrir tu juego completo. No necesitás instalar nada.":"Elegí tu experiencia y pagá de forma segura. Cuando se confirme el pago, vas a recibir un email con acceso a «Mis regalos», donde podés personalizar nombres, mensajes, fotos y audios. El diseño, las escenas y los efectos ya están preparados."}</p>
+          <p className="quick-checkout-help">{isPack?"El pack incluye Trazo Cómplice (1.274 palabras), Entre Dos (90 preguntas), Cómplices (7 desafíos) y Meme Match (48 parejas de memes). Una sola compra de $1.000 ARS (precio de prueba). Después de pagar vas a recibir un email para entrar a tus cuatro juegos. Las salas de escape no están incluidas.":isGame?"Desbloqueá Trazo Cómplice para jugar todas las rondas con 1.274 palabras. Después de pagar, recibirás un email para entrar a «Mis regalos» y abrir tu juego completo. No necesitás instalar nada.":"Elegí tu experiencia y pagá de forma segura. Cuando se confirme el pago, vas a recibir un email con acceso a «Mis regalos», donde podés personalizar nombres, mensajes, fotos y audios. El diseño, las escenas y los efectos ya están preparados."}</p>
         </section>
         <form className="quick-checkout-form" onSubmit={submit}>
           <span className="quick-checkout-form-kicker">COMPRA RÁPIDA · 2 DATOS</span>
@@ -144,23 +147,23 @@ export default function QuickCheckout({experience}:Props){
           {canOfferPack&&<section className="quick-checkout-addon" aria-label="Complemento opcional">
             <div className="quick-checkout-addon-symbol" aria-hidden="true">✦</div>
             <div className="quick-checkout-addon-copy">
-              <span>EXCLUSIVO CON TU REGALO · 60% OFF</span>
-              <strong>Pack de 4 juegos <span className="quick-checkout-discount">60% OFF</span></strong>
-              <div className="quick-checkout-addon-price"><del>$25.000</del><b>$10.000</b><span>Ahorrás $15.000</span></div>
+              <span>COMPLEMENTO · PRECIO DE PRUEBA</span>
+              <strong>Pack de 4 juegos <span className="quick-checkout-discount">PRUEBA</span></strong>
+              <div className="quick-checkout-addon-price"><b>$1.000 ARS</b><span>Precio de prueba</span></div>
               <p>Trazo Cómplice, Entre Dos, Cómplices y Meme Match completos (48 parejas). Salas de escape no incluidas.</p>
               <button className="quick-checkout-addon-choice" type="button"
                 aria-pressed={addGamesPack} disabled={busy||!hydrated}
                 onClick={()=>setAddGamesPack(value=>!value)}>
-                {addGamesPack?"✓ Pack agregado · Quitar":"＋ Agregar pack por $10.000"}
+                {addGamesPack?"✓ Pack agregado · Quitar":"＋ Agregar pack por $1.000"}
               </button>
             </div>
           </section>}
           {isGame&&<section className="quick-checkout-addon quick-checkout-addon--experience" aria-label="Oportunidad de agregar una experiencia">
             <div className="quick-checkout-addon-symbol" aria-hidden="true">♡</div>
             <div className="quick-checkout-addon-copy">
-              <span>OPORTUNIDAD EXCLUSIVA CON TUS JUEGOS · 60% OFF</span>
-              <strong>Agregá una experiencia personalizada <span className="quick-checkout-discount">60% OFF</span></strong>
-              <div className="quick-checkout-addon-price"><del>$25.000</del><b>$10.000</b><span>Ahorrás $15.000</span></div>
+              <span>COMPLEMENTO · PRECIO DE PRUEBA</span>
+              <strong>Agregá una experiencia personalizada <span className="quick-checkout-discount">PRUEBA</span></strong>
+              <div className="quick-checkout-addon-price"><b>$1.000 ARS</b><span>Precio de prueba</span></div>
               <p>Elegí la experiencia que querés regalar. Después de pagar, personalizás los nombres, recuerdos, fotos y audios desde «Mis regalos».</p>
               <label className="quick-checkout-addon-select-label" htmlFor="checkout-experience-choice">Elegí tu experiencia
                 <select id="checkout-experience-choice" value={experienceChoice} disabled={busy||!hydrated}
@@ -171,7 +174,7 @@ export default function QuickCheckout({experience}:Props){
               <button className="quick-checkout-addon-choice" type="button"
                 aria-pressed={addExperience} disabled={busy||!hydrated}
                 onClick={()=>setAddExperience(value=>!value)}>
-                {addExperience?"✓ Experiencia agregada · Quitar":"＋ Agregar experiencia por $10.000"}
+                {addExperience?"✓ Experiencia agregada · Quitar":"＋ Agregar experiencia por $1.000"}
               </button>
             </div>
           </section>}
