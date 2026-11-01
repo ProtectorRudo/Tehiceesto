@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { Experience } from "@/data/experiences";
+import { getRecipientLabel } from "@/data/recipient-categories";
 import DemoFullscreen from "@/components/DemoFullscreen";
 
 type Props = { experiences: Experience[] };
@@ -178,7 +179,7 @@ export default function BoutiqueGallery({ experiences }: Props) {
             const isActive=active===experience.slug;
             return <article className={"ethos-like-card ethos-like-card--"+experience.slug+(isActive?" ethos-like-card--playing":"")} key={experience.slug}>
               <div className="ethos-card-showcase">
-                <div className="ethos-card-topline"><span className="ethos-card-tag">EXPERIENCIA REAL</span><span className="ethos-card-count">{String(i+1).padStart(2,"0")}</span></div>
+                <div className="ethos-card-topline"><span className="ethos-card-tag">{getRecipientLabel(experience.slug)}</span><span className="ethos-card-count">{String(i+1).padStart(2,"0")}</span></div>
                 <div className="ethos-phone-wrap">
                   <div className="ethos-phone" aria-label={"Celular interactivo: "+demo.title}>
                     <div className="ethos-phone-camera" aria-hidden="true" />

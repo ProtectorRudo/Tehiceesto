@@ -2,7 +2,7 @@ import type {Metadata} from "next";
 import Link from "next/link";
 import {notFound} from "next/navigation";
 import {publicExperiences} from "@/data/experiences";
-import {recipientCategories,recipientCategory} from "@/data/recipient-categories";
+import {recipientCategories,recipientCategory,getRecipientLabel} from "@/data/recipient-categories";
 import "./recipient-collection.css";
 
 type Props={params:Promise<{categoria:string}>};
@@ -16,10 +16,10 @@ function previewPath(slug:string){
  return "/demo-previews/"+slug+(["frasco365","siete-dias","sticker-bomb-amistad","dragon-ball-pareja"].includes(slug)?".svg":".jpg");
 }
 const games = [
- {slug:"trazo-complice",title:"Trazo Cómplice",eyebrow:"DIBUJAR Y ADIVINAR",label:"DIVERSIÓN · UN SOLO CELULAR",description:"Dibujen sin hablar, adivinen lo imposible y terminen riéndose de sus propias obras de arte. Dos palabras fijas en la demo; 1.274 en el juego completo.",preview:"/demo-previews/trazo-complice.svg",alt:"Cartas ilustradas de Trazo Cómplice",demo:"/juegos/trazo-complice",accent:"#9a426d"},
- {slug:"entre-dos",title:"Entre Dos",eyebrow:"PREGUNTAS PARA DESCUBRIRSE",label:"CONEXIÓN · UN SOLO CELULAR",description:"Dos personas eligen en secreto entre dos opciones y descubren si coinciden. Nueve preguntas fijas en la demo; 90 en la edición completa.",preview:"/demo-previews/entre-dos.svg",alt:"Dos cartas románticas del juego Entre Dos",demo:"/juegos/entre-dos",accent:"#a43b66"},
- {slug:"complices",title:"Cómplices",eyebrow:"AVENTURA COOPERATIVA",label:"ADRENALINA · DOS PERSONAS",description:"Resuelvan pistas, coordinen decisiones y rescaten a Lía contrarreloj. Una misión fija en la demo; siete desafíos en el juego completo.",preview:"/demo-previews/complices.svg",alt:"Escena de rescate del juego cooperativo Cómplices",demo:"/juegos/complices",accent:"#48637b"},
- {slug:"meme-match",title:"Meme Match",eyebrow:"MEMORIA DE MEMES",label:"COMPETENCIA · DOS PERSONAS",description:"Desafíense en un mismo celular. La demo tiene solo 8 parejas; comprando el pack desbloqueás 48 parejas diferentes de memes y tableros de hasta 96 cartas.",preview:"/demo-previews/meme-match.svg",alt:"Tarjetas de Meme Match y sus memes legendarios",demo:"/juegos/meme-match",accent:"#ad66d9"}
+ {slug:"trazo-complice",title:"Trazo Cómplice",eyebrow:"DIBUJAR Y ADIVINAR",label:"PARA JUGAR",description:"Dibujen sin hablar, adivinen lo imposible y terminen riéndose de sus propias obras de arte. Dos palabras fijas en la demo; 1.274 en el juego completo.",preview:"/demo-previews/trazo-complice.svg",alt:"Cartas ilustradas de Trazo Cómplice",demo:"/juegos/trazo-complice",accent:"#9a426d"},
+ {slug:"entre-dos",title:"Entre Dos",eyebrow:"PREGUNTAS PARA DESCUBRIRSE",label:"PARA JUGAR",description:"Dos personas eligen en secreto entre dos opciones y descubren si coinciden. Nueve preguntas fijas en la demo; 90 en la edición completa.",preview:"/demo-previews/entre-dos.svg",alt:"Dos cartas románticas del juego Entre Dos",demo:"/juegos/entre-dos",accent:"#a43b66"},
+ {slug:"complices",title:"Cómplices",eyebrow:"AVENTURA COOPERATIVA",label:"PARA JUGAR",description:"Resuelvan pistas, coordinen decisiones y rescaten a Lía contrarreloj. Una misión fija en la demo; siete desafíos en el juego completo.",preview:"/demo-previews/complices.svg",alt:"Escena de rescate del juego cooperativo Cómplices",demo:"/juegos/complices",accent:"#48637b"},
+ {slug:"meme-match",title:"Meme Match",eyebrow:"MEMORIA DE MEMES",label:"PARA JUGAR",description:"Desafíense en un mismo celular. La demo tiene solo 8 parejas; comprando el pack desbloqueás 48 parejas diferentes de memes y tableros de hasta 96 cartas.",preview:"/demo-previews/meme-match.svg",alt:"Tarjetas de Meme Match y sus memes legendarios",demo:"/juegos/meme-match",accent:"#ad66d9"}
 ] as const;
 
 export default async function RecipientCollection({params}:Props){
@@ -64,7 +64,7 @@ export default async function RecipientCollection({params}:Props){
          <div className="recipient-catalog-card-photo">
            {/* eslint-disable-next-line @next/next/no-img-element */}
            <img src={previewPath(item.slug)} alt={"Vista previa de "+item.title} loading={index<3?"eager":"lazy"}/>
-           <span className="recipient-catalog-card-label">EXPERIENCIA INTERACTIVA</span>
+           <span className="recipient-catalog-card-label">{getRecipientLabel(item.slug)}</span>
          </div>
          <div className="recipient-catalog-card-copy">
           <span className="recipient-catalog-card-category">{item.eyebrow}</span>

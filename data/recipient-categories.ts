@@ -70,3 +70,27 @@ export const recipientCategories: readonly RecipientCategory[] = [
 export function recipientCategory(id: string) {
   return recipientCategories.find((item) => item.id === id);
 }
+// One destination label per model. Keep this independent of collection membership:
+// an experience can appear in several collections, but must always say who it's for.
+const experienceRecipientLabels: Readonly<Record<string,string>> = {
+  pareja: "PARA TU PAREJA",
+  cumpleanos: "PARA QUIEN CUMPLE AÑOS",
+  hijos: "PARA TU HIJO/A",
+  abuelos: "PARA TUS ABUELOS",
+  aniversario: "PARA TU PAREJA",
+  propuesta: "PARA TU PAREJA",
+  mama: "PARA TU MAMÁ",
+  papa: "PARA TU PAPÁ",
+  amistad: "PARA TU AMIGO/A",
+  "sticker-bomb-amistad": "PARA TU AMIGO/A",
+  "club-amigos": "PARA TUS AMIGOS",
+  secreto: "PARA ALGUIEN ESPECIAL",
+  frasco365: "PARA TU PAREJA",
+  "siete-dias": "PARA TU PAREJA",
+  "dragon-ball-pareja": "PARA TU PAREJA",
+};
+
+export function getRecipientLabel(slug: string): string {
+  return experienceRecipientLabels[slug] ?? "PARA ALGUIEN ESPECIAL";
+}
+
