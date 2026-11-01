@@ -41,8 +41,8 @@ try{
   await page.getByRole("link",{name:/Juegos.*Momentos para compartir/}).click();
   await page.waitForURL("**/coleccion/juegos",{timeout:15000});
   await page.getByText("Trazo Cómplice").first().waitFor();
-  assert.equal(await page.locator(".recipient-catalog-card").count(),3,"The games category must show all three games, no escape room card");
-  for(const slug of ["trazo-complice","entre-dos","complices"]){
+  assert.equal(await page.locator(".recipient-catalog-card").count(),4,"The games category must show four games, no escape room card");
+  for(const slug of ["trazo-complice","entre-dos","complices","meme-match"]){
     assert.equal(await page.locator('.recipient-catalog-card a[href="/juegos/'+slug+'"]').count(),1,"Each game needs its own demo");
   }
   assert.equal(await page.locator('.recipient-games-pack a[href="/juegos/pack"]').count(),1,"Single pack checkout must be prominent");
@@ -54,7 +54,7 @@ try{
   assert.equal(response?.status(),200);
   await page.getByRole("button",{name:"Abrir menú de categorías"}).waitFor({state:"visible"});
   assert.deepEqual(errors,[],"No JavaScript errors");
-  details.push({width:viewport.width,categories:paths.length,mama:1,games:3});
+  details.push({width:viewport.width,categories:paths.length,mama:1,games:4});
   await page.close();
  }
  console.log("RECIPIENT_MENU_MOBILE_DESKTOP_PASS",JSON.stringify(details));
