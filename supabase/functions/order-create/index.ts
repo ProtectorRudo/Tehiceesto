@@ -165,7 +165,7 @@ Deno.serve(async(req:Request)=>{
 
   const experienceSlug=clean(body.experienceSlug,40);
   // Preserve the existing production release gate for unfinished templates.
-  if(["abuelos","aniversario","propuesta","club-amigos"].includes(experienceSlug)){
+  if(["abuelos","aniversario","propuesta","club-amigos","sticker-bomb-amistad"].includes(experienceSlug)){
     return reply(origin,{error:"experience_coming_soon",message:"Esta experiencia estará disponible próximamente."},409);
   }
   // Buyer only provides email and WhatsApp. The giver name is customized after payment.
@@ -188,7 +188,7 @@ Deno.serve(async(req:Request)=>{
   }
   const optionalGiftSlugs=new Set([
     "pareja","cumpleanos","mama","papa","amistad",
-    "club-amigos","sticker-bomb-amistad","frasco365","siete-dias","dragon-ball-pareja",
+    "club-amigos","frasco365","siete-dias","dragon-ball-pareja",
   ]);
   // A customer buying games can choose ONE complete editable gift experience.
   // The selected slug is whitelisted server-side and frozen into the checkout.
