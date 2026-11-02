@@ -219,6 +219,27 @@ async function sendCustomAccessEmail(email:string,redirect:string,code:string,or
   }
 }
 
+// A manual license is not payment approval. Always bind it to the verified
+// buyer's email and the exact order/gift; a gift code alone never authorizes it.
+async function complimentaryGrantsForEmail(db:any,email:string){
+  const {data:orders,error:orderError}=await db.from("orders")
+    .select("id,gift_id,paid_at,created_at")
+    .eq("buyer_email",email).order("created_at",{ascending:false}).limit(100);
+  if(orderError)throw Error("complimentary_order_lookup_failed");
+  if(!orders?.length)return [];
+  const byOrder=new Map(orders.map((o:any)=>[o.id,o]));
+  const {data:grants,error}=await db.from("complimentary_access_grants")
+    .select("order_id,gift_id,product_code,expires_at")
+    .in("order_id",orders.map((o:any)=>o.id)).is("revoked_at",null);
+  if(error)throw Error("complimentary_access_unavailable");
+  const now=Date.now();
+  return (grants||[]).filter((g:any)=>{
+    const owner=byOrder.get(g.order_id);
+    return owner&&owner.gift_id===g.gift_id&&
+      (!g.expires_at||Date.parse(g.expires_at)>now);
+  }).map((g:any)=>({...g,purchasedAt:byOrder.get(g.order_id).paid_at||byOrder.get(g.order_id).created_at}));
+}
+
 /** Only verified paid and non-refunded orders can confer the discounted pack. */
 async function discountedPacksForEmail(db:any,email:string){
   const {data:orders,error:orderError}=await db.from("orders")
@@ -391,7 +412,13 @@ Deno.serve(async(req:Request)=>{
       .limit(50);
     if(ordersError)return json(origin,{error:"account_list_failed"},500);
 
-    const ids=[...new Set((orders||[]).map(item=>item.gift_id).filter(Boolean))];
+    let complimentary:any[]=[];
+    try{complimentary=await complimentaryGrantsForEmail(db,email)}
+    catch{return json(origin,{error:"account_list_failed"},503)}
+    const ids=[...new Set([
+      ...(orders||[]).map(item=>item.gift_id),
+      ...complimentary.filter(g=>g.product_code==="dragon-ball-pareja").map(g=>g.gift_id)
+    ].filter(Boolean))];
     if(!ids.length)return json(origin,{email,gifts:[]});
 
     const {data:gifts,error:giftsError}=await db
@@ -416,6 +443,21 @@ Deno.serve(async(req:Request)=>{
       };
     }).filter(Boolean);
 
+    // Manual, documented support licenses for test orders are distinct from
+    // the Mercado Pago ledger and never treated as paid transactions.
+    for(const grant of complimentary.filter(g=>g.product_code==="dragon-ball-pareja")){
+      const gift=byId.get(grant.gift_id);
+      if(!gift||gift.experience_slug!=="dragon-ball-pareja")continue;
+      if(result.some((x:any)=>x.code===gift.public_code))continue;
+      result.push({
+        code:gift.public_code,status:gift.status,experienceSlug:gift.experience_slug,
+        templateVersion:gift.template_version||"dragon-ball-v1",
+        giverName:gift.giver_name,recipientName:gift.recipient_name,
+        publishedAt:gift.published_at,purchasedAt:grant.purchasedAt,
+        complimentary:true
+      });
+    }
+
     // Add one synthetic library card for the discounted 4-game pack.
     // This is not a fake order and never unlocks another gift's editor.
     if(!result.some((g:any)=>g.experienceSlug==="pack-juegos")){
@@ -426,6 +468,17 @@ Deno.serve(async(req:Request)=>{
           templateVersion:"pack-v1",giverName:"",recipientName:"Mis cuatro juegos",
           publishedAt:null,purchasedAt:extras[0].purchasedAt
         });
+        else {
+          const grant=complimentary.find(g=>g.product_code==="pack_juegos_v1");
+          const originalGift=grant&&byId.get(grant.gift_id);
+          if(grant&&originalGift&&originalGift.story_data?.checkout?.addonCode==="pack_juegos_v1")
+            result.push({
+              code:"pack-addon-"+originalGift.public_code,status:"complimentary",
+              experienceSlug:"pack-juegos",templateVersion:"pack-v1",
+              giverName:"",recipientName:"Mis cuatro juegos",
+              publishedAt:null,purchasedAt:grant.purchasedAt,complimentary:true
+            });
+        }
       }catch{return json(origin,{error:"account_list_failed"},503)}
     }
     // Add purchased secondary experiences, each with its own genuine gift ID,
@@ -467,8 +520,14 @@ Deno.serve(async(req:Request)=>{
       .maybeSingle();
     if(!order){
       try{
-        const authorized=await approvedExperienceExtras(db,email);
-        if(!authorized.some((x:any)=>x.gift.id===gift.id))return json(origin,{error:"gift_not_found"},404);
+        const grants=await complimentaryGrantsForEmail(db,email);
+        const authorized=grants.some((g:any)=>g.gift_id===gift.id&&
+          g.product_code==="dragon-ball-pareja"&&gift.experience_slug==="dragon-ball-pareja");
+        if(!authorized){
+          const addons=await approvedExperienceExtras(db,email);
+          if(!addons.some((x:any)=>x.gift.id===gift.id))
+            return json(origin,{error:"gift_not_found"},404);
+        }
       }catch{return json(origin,{error:"account_open_failed"},503)}
     }
 
