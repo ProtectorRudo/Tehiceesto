@@ -29,7 +29,7 @@ test("All shared gift uploads use a signed upload token and only register after 
   assert.match(studio, /try \{await uploadResumable\(\);\}\s*catch \{setProgress\(0\);await uploadSigned\(\);\}/);
   assert.ok(studio.indexOf('await uploadSigned();') < studio.indexOf('await action(access, "registerStudioMedia"'));
   assert.match(studio, /await refreshMedia\(\)/);
-  assert.match(studio, /media\.length/);
+  assert.match(studio, /orderedMedia\.length/);
 });
 
 test("Special preview types are routed explicitly instead of silently falling into a generic model", () => {
