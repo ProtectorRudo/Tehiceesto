@@ -60,7 +60,7 @@ export default async function Operations({searchParams}:{searchParams:Promise<{e
           <div><dt>Personalización</dt><dd>{paid?"Desde Mis regalos":"Disponible después del pago"}</dd></div>
           <div><dt>Seguimiento interno</dt><dd>{s.contactedAt?date(s.contactedAt):paid?"Aún sin registrar":"—"}</dd></div></dl>
           {paid&&<div className="ops-actions">
-            {s.whatsapp&&/^\\+?[0-9\\s().-]{8,25}$/.test(s.whatsapp)&&<a href={"https://wa.me/"+s.whatsapp.replace(/\\D/g,"")} target="_blank" rel="noopener noreferrer">WhatsApp del comprador ↗</a>}
+            {s.whatsapp&&/^\+?[0-9\s().-]{8,25}$/.test(s.whatsapp)&&<a href={"https://wa.me/"+s.whatsapp.replace(/\D/g,"")} target="_blank" rel="noopener noreferrer">WhatsApp del comprador ↗</a>}
             {s.buyerEmail&&<a href={"mailto:"+encodeURIComponent(s.buyerEmail)}>Escribir por email ↗</a>}
             {!s.contactedAt&&<form action={markContacted}>
               <input type="hidden" name="orderId" value={s.orderId}/>
