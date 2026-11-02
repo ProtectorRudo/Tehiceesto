@@ -12,7 +12,7 @@ type Config={
  relationship:string;date:string;coverText:string;
  notes:Record<string,string[]>;future:string[];finalLetter:string[];
 };
-type Props={access:Access;gift:Gift;media:Media[];onError:(text:string)=>void;onNotice:(text:string)=>void};
+type Props={access:Access;gift:Gift;media:Media[];onError:(text:string)=>void;onNotice:(text:string)=>void;onRefreshMedia?:()=>Promise<void>};
 const endpoint=(process.env.NEXT_PUBLIC_SUPABASE_URL||"")+"/functions/v1/creator-api";
 const apiKey=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY||"";
 const originalNotes=stickerBombDefaults.notes as Record<string,readonly string[]>;
@@ -39,9 +39,17 @@ const sceneName:Record<string,string>={
  plans:"Plan B oficial",rescue:"Rescatista emocional",chaos:"Partner del caos",
  moments:"Momentos épicos",code:"Nuestro idioma",time:"A prueba de tiempo",
 };
-export default function StickerBombEditor({access,gift,media,onError,onNotice}:Props){
+export default function StickerBombEditor({access,gift,media,onError,onNotice,onRefreshMedia}:Props){
  const [content,setContent]=useState<Config>(()=>initialConfig(gift));
- const [saving,setSaving]=useState(false),[preview,setPreview]=useState(false);
+ const [saving,setSaving]=useState(false),[preview,setPreview]=useState(false),[loadingPreview,setLoadingPreview]=useState(false);
+ const togglePreview=async()=>{
+  if(preview){setPreview(false);return;}
+  if(loadingPreview)return;
+  setLoadingPreview(true);
+  try{await onRefreshMedia?.();setPreview(true);}
+  catch{onError("No pudimos actualizar las fotos del regalo. Intentá abrir la vista previa nuevamente.");}
+  finally{setLoadingPreview(false);}
+ };
 
  const setField=(key:"coverText"|"relationship"|"date",v:string)=>setContent(old=>({...old,[key]:v}));
  const setNote=(key:string,index:number,value:string)=>setContent(old=>({...old,notes:{...old.notes,[key]:old.notes[key].map((text,i)=>i===index?value:text)}}));
@@ -86,7 +94,7 @@ export default function StickerBombEditor({access,gift,media,onError,onNotice}:P
       <div className={styles.lines}>{content.finalLetter.map((line,i)=><label key={i}>Párrafo {i+1}<textarea rows={5} maxLength={4500} value={line} onChange={e=>setArray("finalLetter",i,e.target.value)}/></label>)}</div>
     </details>
     <div className={styles.actions}><button className={styles.save} type="submit" disabled={saving}>{saving?"Guardando recuerdos…":"Guardar mis stickers y la carta →"}</button>
-      <button className={styles.previewButton} type="button" onClick={()=>setPreview(!preview)}>{preview?"Cerrar vista previa":"Ver cómo queda en el celular"}</button>
+      <button className={styles.previewButton} type="button" disabled={loadingPreview} onClick={()=>void togglePreview()}>{loadingPreview?"Actualizando fotos…":preview?"Cerrar vista previa":"Ver cómo queda en el celular"}</button>
     </div>
    </form>
    {preview&&<div className={styles.preview}>
