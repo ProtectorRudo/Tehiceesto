@@ -1547,7 +1547,7 @@ function StandardExperienceEngine({
 
 // All private and demo renders share the same immutable model; only the content changes.
 export default function ExperienceEngine(props: Props) {
-  if (props.experience.slug === "sticker-bomb-amistad") return <StickerBombExperience recipient={props.experience.demoRecipient} sender={props.experience.demoGiver} photos={props.photoMedia} audios={props.audioMedia} />;
+  if (props.experience.slug === "sticker-bomb-amistad") return <StickerBombExperience recipient={props.experience.demoRecipient} sender={props.experience.demoGiver} photos={props.photoMedia} audios={props.audioMedia} demoMode={!props.customerGift} />;
   if (props.experience.slug === "club-amigos") return <ClubAmigosExperience {...props} />;
   if (restoredPremiumSlugs.has(props.experience.slug)) return <LegacyPremiumExperience {...props} />;
   if (props.experience.slug === "frasco365") return <Jar365Experience experience={props.experience} />;
