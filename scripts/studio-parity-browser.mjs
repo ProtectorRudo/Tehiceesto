@@ -11,9 +11,11 @@ const gifts=Object.entries(codes).map(([code,experienceSlug])=>({
  purchasedAt:"2026-11-01T00:00:00Z",publishedAt:null
 }));
 const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+nxs8AAAAASUVORK5CYII=","base64");
+const opus=Buffer.from([79,103,103,83,0,2,0,0,0,0,0,0,0,0,0,0]);
 const api="https://mock.supabase.co";
 const ops=[];
 const stored=new Map();
+const savedGifts=new Map();
 const b64=v=>Buffer.from(JSON.stringify(v)).toString("base64url");
 const auth=b64({alg:"HS256",typ:"JWT"})+"."+b64({sub:"11111111-1111-4111-8111-111111111111",aud:"authenticated",role:"authenticated",exp:Math.floor(Date.now()/1000)+3600})+".fake";
 const user={id:"11111111-1111-4111-8111-111111111111",email:"qa-studio@example.com",aud:"authenticated",role:"authenticated",app_metadata:{provider:"email",providers:["email"]},user_metadata:{},identities:[],created_at:"2026-11-01T00:00:00Z"};
@@ -62,14 +64,36 @@ try{
   if(data.action==="openStudio")return ok(r,{gift:{
    experience_slug:slug,giver_name:"Remitente QA",recipient_name:"Destinataria QA",
    status:"paid",story_data:{},scene_recipe:[],theme_data:{},
+   ...(savedGifts.get(code)||{})
   },media:stored.get(code)||[]});
+  if(data.action==="saveStudioBasics"){
+   const old=savedGifts.get(code)||{};
+   savedGifts.set(code,{...old,
+    giver_name:data.giverName,recipient_name:data.recipientName,
+    opening_text:data.openingText,letter_text:data.letterText,closing_text:data.closingText,
+    story_data:{...(old.story_data||{}),keyDate:data.keyDate,relationship:data.relationship}});
+   return ok(r,{ok:true});
+  }
+  if(data.action==="saveDragonBall"||data.action==="saveStickerBomb"){
+   const key=data.action==="saveDragonBall"?"dragonBall":"stickerBomb";
+   const old=savedGifts.get(code)||{};
+   savedGifts.set(code,{...old,story_data:{...(old.story_data||{}),[key]:data.action==="saveDragonBall"?data.dragonBall:data.content}});
+   return ok(r,{ok:true});
+  }
   if(data.action==="prepareStudioUpload") {
-   assert.equal(data.mimeType,"image/jpeg","JPG generic MIME must be normalized");
-   return ok(r,{path:code+"/studio-photo-qa.jpg",token:"mock-signed-token",kind:"image"});
+   const isVoice=data.fileName==="mensaje-whatsapp.opus";
+   assert.equal(data.mimeType,isVoice?"audio/opus":"image/jpeg","Generic MIME must be normalized for photo and WhatsApp audio");
+   return ok(r,{path:code+(isVoice?"/studio-voice-qa.opus":"/studio-photo-qa.jpg"),token:"mock-signed-token",kind:isVoice?"audio":"image"});
   }
   if(data.action==="registerStudioMedia") {
    assert.ok(data.storagePath.startsWith(code+"/studio-"));
-   stored.set(code,[{id:"media-"+code,kind:"image",url:api+"/storage/v1/object/sign/gift-media/"+code+"/studio-photo-qa.jpg",sort_order:0,caption:"Foto de prueba",metadata:{originalName:"qa-photo.jpg",scene:data.scene||"intro",fit:"cover"}}]);
+   const items=stored.get(code)||[];
+   const isVoice=data.kind==="audio";
+   assert.ok(!items.some(item=>item.kind===data.kind),"Duplicate media registration: "+data.kind);
+   stored.set(code,[...items,{id:"media-"+data.kind+"-"+code,kind:data.kind,
+    url:api+"/storage/v1/object/sign/gift-media/"+data.storagePath,sort_order:items.length,
+    caption:isVoice?"Audio de prueba":"Foto de prueba",
+    metadata:{originalName:data.originalName,scene:data.scene||"intro",fit:"cover",role:isVoice?"voice":undefined}}]);
    return ok(r,{ok:true});
   }
   return ok(r,{ok:true});
@@ -78,7 +102,7 @@ try{
  await page.route("**/storage/v1/**",r=>{
   const req=r.request();
   ops.push("storage:"+req.method());
-  if(req.method()==="GET")return r.fulfill({status:200,contentType:"image/png",body:png});
+  if(req.method()==="GET")return r.fulfill({status:200,contentType:req.url().includes(".opus")?"audio/ogg":"image/png",body:req.url().includes(".opus")?opus:png});
   return ok(r,{Key:"gift-media/test/studio-photo-qa.jpg"});
  });
  const response=await page.goto(base+"/mis-regalos",{waitUntil:"domcontentloaded",timeout:30000});
@@ -93,17 +117,44 @@ try{
   // All 9 cards share a name; locate by each slug's position in the API list.
   await page.locator("article").filter({has:page.getByRole("button",{name:"Editar mi experiencia →"})}).nth(Object.keys(codes).indexOf(code)).getByRole("button",{name:"Editar mi experiencia →"}).click();
   await page.getByRole("heading",{name:"Tu historia, a tu manera."}).waitFor({timeout:15000});
+  await page.getByLabel("Para",{exact:true}).fill("Destinataria QA "+slug);
+  await page.getByLabel("Mensaje de bienvenida",{exact:true}).first().fill("Bienvenida QA "+slug);
+  await page.getByRole("button",{name:"Guardar cambios →"}).click();
+  await page.getByText("Cambios guardados.",{exact:false}).waitFor({timeout:15000});
+  assert.equal(savedGifts.get(code)?.recipient_name,"Destinataria QA "+slug,"Basic recipient was not saved: "+slug);
   if(slug!=="frasco365"){
    const input=page.getByLabel("Seleccionar archivos");
    await input.setInputFiles({name:"qa-photo.jpg",mimeType:"application/octet-stream",buffer:png});
    await page.getByText("Archivo incorporado a tu regalo.").waitFor({timeout:18000});
-   assert.ok((stored.get(code)||[]).length===1,"Photo not registered: "+slug);
+   assert.equal((stored.get(code)||[]).filter(x=>x.kind==="image").length,1,"Photo not registered: "+slug);
+   await input.setInputFiles({name:"mensaje-whatsapp.opus",mimeType:"application/octet-stream",buffer:opus});
+   // The previous image upload notice may still be visible. Wait for a NEW
+   // audio media card, not that stale notice, before checking backend state.
+   await page.locator(".mediaGrid audio[controls], audio[controls]").first().waitFor({timeout:18000});
+   assert.equal((stored.get(code)||[]).filter(x=>x.kind==="audio").length,1,"WhatsApp audio not registered: "+slug);
+   assert.ok(await page.locator("audio[controls]").count()>=1,"Uploaded audio player missing: "+slug);
+   if(slug==="dragon-ball-pareja"){
+    await page.getByLabel("Foto del recuerdo 1").selectOption("media-image-"+code);
+    await page.getByLabel("Audio de la cápsula").selectOption("media-audio-"+code);
+    await page.getByLabel("Texto de portada").fill("Una saga QA única");
+    await page.getByRole("button",{name:"Guardar toda la saga"}).click();
+    await page.getByText("¡Saga guardada!",{exact:false}).waitFor();
+    assert.equal(savedGifts.get(code)?.story_data?.dragonBall?.voiceMediaId,"media-audio-"+code);
+   }
+   if(slug==="sticker-bomb-amistad"){
+    await page.getByLabel("La frase que presenta la amistad").fill("Amistad QA para siempre");
+    await page.getByRole("button",{name:/Guardar mis stickers y la carta/}).click();
+    await page.getByText("Los recuerdos y la carta se guardaron.",{exact:false}).waitFor();
+    assert.equal(savedGifts.get(code)?.story_data?.stickerBomb?.relationship,"Amistad QA para siempre");
+   }
    if(slug==="sticker-bomb-amistad"){
     await page.getByRole("button",{name:"Ver cómo queda en el celular"}).click();
     await page.getByText("VISTA PREVIA CON TUS DATOS",{exact:false}).waitFor({timeout:15000});
     await page.getByRole("main",{name:"Sticker Bomb · Expediente de nuestra amistad"}).getByRole("button",{name:/Abrir nuestro expediente/}).click();
     await page.getByRole("main",{name:"Sticker Bomb · Expediente de nuestra amistad"}).getByRole("button",{name:"Ir al capítulo 8"}).click();
     await page.getByRole("img",{name:"Foto de prueba"}).first().waitFor();
+    await page.getByRole("button",{name:"Ir al capítulo 4"}).click();
+    await page.getByRole("main",{name:"Sticker Bomb · Expediente de nuestra amistad"}).locator("audio").first().waitFor();
    }else{
     await page.getByRole("button",{name:"Abrir vista previa →"}).click();
     if(slug==="dragon-ball-pareja"){
@@ -115,10 +166,29 @@ try{
     }
    }
   }else{
+   assert.equal(await page.getByLabel("Seleccionar archivos").count(),0,"Frasco365 is a text-only model and must not promise media slots");
    await page.getByRole("button",{name:"Abrir vista previa →"}).click();
    await page.locator(".jar365-experience").waitFor({timeout:8000}).catch(()=>{});
   }
   console.log("STUDIO_PASS",slug);
+  await page.getByRole("button",{name:"← Volver a mis regalos"}).click();
+  await page.getByRole("heading",{name:"Los recuerdos tienen casa."}).waitFor();
+  await page.locator("article").filter({has:page.getByRole("button",{name:"Editar mi experiencia →"})}).nth(Object.keys(codes).indexOf(code)).getByRole("button",{name:"Editar mi experiencia →"}).click();
+  await page.getByRole("heading",{name:"Tu historia, a tu manera."}).waitFor();
+  assert.equal(await page.getByLabel("Para",{exact:true}).inputValue(),"Destinataria QA "+slug,"Saved recipient was lost after reopening: "+slug);
+  assert.equal(await page.locator('textarea[maxlength="5000"]').first().inputValue(),"Bienvenida QA "+slug,"Saved welcome text was lost after reopening: "+slug);
+  if(slug!=="frasco365"){
+   assert.equal(await page.locator('input[aria-label="Seleccionar archivos"]').count(),1);
+   assert.ok(await page.locator("audio[controls]").count()>=1,"Audio vanished after reopening: "+slug);
+   assert.ok((stored.get(code)||[]).some(item=>item.kind==="image"),"Photo vanished after reopening: "+slug);
+   if(slug==="dragon-ball-pareja"){
+    assert.equal(await page.getByLabel("Foto del recuerdo 1").inputValue(),"media-image-"+code);
+    assert.equal(await page.getByLabel("Audio de la cápsula").inputValue(),"media-audio-"+code);
+    assert.equal(await page.getByLabel("Texto de portada").inputValue(),"Una saga QA única");
+   }
+   if(slug==="sticker-bomb-amistad")assert.equal(await page.getByLabel("La frase que presenta la amistad").inputValue(),"Amistad QA para siempre");
+  }
+  console.log("REOPEN_PASS",slug);
   await page.getByRole("button",{name:"← Volver a mis regalos"}).click();
   await page.getByRole("heading",{name:"Los recuerdos tienen casa."}).waitFor();
  }
@@ -127,5 +197,6 @@ try{
  assert.deepEqual(errs,[],"Authenticated studio JavaScript errors");
  await page.screenshot({path:"visual-smoke/studio-parity/account.png",fullPage:true});
  await page.close();
- console.log("STUDIO_PARITY_BROWSER_QA_PASS",JSON.stringify({demos:slugs.length*2,studio:slugs.length,photos:slugs.length-1}));
+ assert.equal(ops.filter(x=>x==="registerStudioMedia").length,(slugs.length-1)*2,"Expected mock Storage upload registration for each photo and WhatsApp audio");
+ console.log("STUDIO_PARITY_BROWSER_QA_PASS",JSON.stringify({demos:slugs.length*2,studio:slugs.length,photos:slugs.length-1,audios:slugs.length-1}));
 }finally{await browser.close()}
