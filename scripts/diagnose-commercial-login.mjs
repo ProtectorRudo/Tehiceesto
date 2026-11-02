@@ -22,6 +22,10 @@ try{
    const authElements=await page.locator('input[type="email"],input[type="password"],button:has-text("Ingresar"),button:has-text("Enviar enlace")').count();
    const nextData=await page.locator("script#__NEXT_DATA__").count();
    console.log("URL_RESULT",JSON.stringify({request:url,status:res?.status(),finalUrl:page.url(),title,body:body.slice(0,350),authElements,nextData}));
+   if(url.includes("tehiceesto.com")){
+    if(page.url().startsWith("https://vercel.com/login"))throw new Error("Canonical domain still redirects to Vercel SSO: "+url);
+    if(url.endsWith("/mis-regalos")&&url.includes("https://tehiceesto.com/")&&!body.includes("Bienvenido de nuevo"))throw new Error("Login portal not accessible from canonical domain");
+   }
   }catch(e){console.log("URL_ERROR",JSON.stringify({url,error:String(e).slice(0,500)}));}
  }
 }finally{await browser.close();}
