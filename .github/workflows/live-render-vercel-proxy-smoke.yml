@@ -27,6 +27,8 @@ jobs:
         run: node scripts/external-deployment-smoke.mjs
       - name: Diagnose canonical commercial login routes
         run: node scripts/diagnose-commercial-login.mjs
+      - name: Verify canonical-home staging route and old customer access
+        run: node scripts/qa-canonical-new-home.mjs
       - name: Save evidence
         if: always()
         uses: actions/upload-artifact@v4
