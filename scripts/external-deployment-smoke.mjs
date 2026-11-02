@@ -64,11 +64,11 @@ try{
     const preflight=await page.evaluate(async ({endpoint})=>{
      try{
       const res=await fetch(endpoint,{method:"OPTIONS",headers:{"apikey":"qa-public-request","content-type":"application/json"}});
-      return {status:res.status,origin:res.headers.get("access-control-allow-origin")};
+      return {status:res.status,type:res.type};
      }catch(error){return {error:String(error)};}
     },{endpoint:"https://efvvadfxuyieswdqnsjg.supabase.co/functions/v1/"+edgeFunction});
     assert.equal(preflight.status,204,"Supabase preflight blocked on "+edgeFunction+": "+JSON.stringify(preflight));
-    assert.equal(preflight.origin,target.origin,"Supabase CORS origin mismatch on "+edgeFunction);
+    assert.equal(preflight.type,"cors","Supabase CORS request failed on "+edgeFunction);
     console.log("CORS_OK",edgeFunction,target.label);
    }
   }
