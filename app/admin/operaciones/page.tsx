@@ -9,7 +9,7 @@ type Sale={
  orderId:string;code:string;status:string;priceMinor:number|null;currency:string;
  experienceSlug:string;giftStatus:string;giverName:string;recipientName:string;
  buyerEmail:string;whatsapp:string;createdAt:string;paidAt:string|null;
- contactedAt:string|null;accessEmailAccepted:boolean;assisted:boolean;
+ contactedAt:string|null;accessEmailAccepted:boolean;opsNoticeAccepted:boolean;opsNoticeAttempted:boolean;opsNoticeError:string|null;assisted:boolean;
 };
 function date(raw:string|null){return raw?new Intl.DateTimeFormat("es-AR",{dateStyle:"short",timeStyle:"short",timeZone:"America/Argentina/Buenos_Aires"}).format(new Date(raw)):"—";}
 const peso=(n:number|null)=>n===null?"—":new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n/100);
@@ -57,6 +57,7 @@ export default async function Operations({searchParams}:{searchParams:Promise<{e
           <div><dt>Creado</dt><dd>{date(s.createdAt)}</dd></div>
           <div><dt>Pago acreditado</dt><dd>{date(s.paidAt)}</dd></div>
           <div><dt>Confirmación por correo</dt><dd>{s.accessEmailAccepted?"Aceptada por proveedor":"Sin confirmación de envío"}</dd></div>
+          <div><dt>Aviso al equipo</dt><dd>{s.opsNoticeAccepted?"Enviado al equipo":!paid?"—":s.opsNoticeError==="ops_recipient_not_configured"?"Falta configurar correo del equipo":s.opsNoticeAttempted?"En espera de reintento":"Aún no se intentó"}</dd></div>
           <div><dt>Personalización</dt><dd>{paid?"Desde Mis regalos":"Disponible después del pago"}</dd></div>
           <div><dt>Seguimiento interno</dt><dd>{s.contactedAt?date(s.contactedAt):paid?"Aún sin registrar":"—"}</dd></div></dl>
           {paid&&<div className="ops-actions">

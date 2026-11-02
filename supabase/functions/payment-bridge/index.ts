@@ -73,6 +73,52 @@ async function sendAccessEmail(email:string,code:string){
   }
 }
 
+// Operational notices are an independent, best-effort transport. They never
+// confer gift access and must not affect verified Mercado Pago state.
+function escapeHtml(value:unknown){
+  return String(value??"").replace(/[&<>"']/g,(c)=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;",
+  })[c]||c);
+}
+async function sendOpsNotice(orderId:string,email:string,slug:string,amountMinor:number){
+  const destination=String(Deno.env.get("TEHICEESTO_OPS_EMAIL")||"").trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(destination)||destination.length>254){
+    return {ok:false,error:"ops_recipient_not_configured"};
+  }
+  let apiKey=String(Deno.env.get("RESEND_API_KEY")||"").trim();
+  if(!apiKey){
+    const {data,error}=await client().rpc("tehiceesto_private_resend_key");
+    if(error||!data)return {ok:false,error:"email_transport_not_configured"};
+    apiKey=String(data).trim();
+  }
+  if(!apiKey)return {ok:false,error:"email_transport_not_configured"};
+  const from=String(Deno.env.get("TEHICEESTO_EMAIL_FROM")||"Te Hice Esto <hola@tehiceesto.com>").trim();
+  const displayedAmount=new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(amountMinor/100);
+  const safeOrder=escapeHtml(orderId),safeEmail=escapeHtml(email),safeExperience=escapeHtml(slug),safeAmount=escapeHtml(displayedAmount);
+  const heading="Nueva compra acreditada · Te Hice Esto";
+  const textBody=[
+    "Mercado Pago confirmó una nueva compra.",
+    "Experiencia: "+slug,
+    "Importe: "+displayedAmount,
+    "Comprador: "+email,
+    "Pedido: "+orderId,
+    "Revisá el pedido desde el panel privado de operaciones.",
+    "https://tehiceesto.vercel.app/admin/operaciones",
+  ].join("\n");
+  const htmlBody=`<main style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;color:#352b36"><h1>${heading}</h1><p>Mercado Pago confirmó una nueva compra.</p><p><strong>Experiencia:</strong> ${safeExperience}</p><p><strong>Importe:</strong> ${safeAmount}</p><p><strong>Comprador:</strong> ${safeEmail}</p><p><strong>Pedido:</strong> ${safeOrder}</p><p><a href="https://tehiceesto.vercel.app/admin/operaciones">Abrir panel privado de operaciones</a></p></main>`;
+  try{
+    const response=await fetch("https://api.resend.com/emails",{
+      method:"POST",
+      headers:{authorization:"Bearer "+apiKey,"content-type":"application/json","Idempotency-Key":"thi-ops-"+orderId},
+      body:JSON.stringify({from,to:[destination],subject:heading,html:htmlBody,text:textBody,
+        tags:[{name:"product",value:"tehiceesto"},{name:"flow",value:"paid_order_ops"}]}),
+      signal:AbortSignal.timeout(12000),
+    });
+    if(!response.ok)return {ok:false,error:response.status===429?"email_rate_limited":"ops_delivery_unavailable"};
+    return {ok:true,error:null};
+  }catch{return {ok:false,error:"ops_delivery_unavailable"};}
+}
+
 // A signed request is not proof of payment: the purchase reference can appear
 // in provider metadata. Reconcile every non-pending state against Mercado Pago.
 function verifiedProviderStatus(raw:string,detail:string){
@@ -141,7 +187,7 @@ Deno.serve(async(req:Request)=>{
   const supabase=client();
   const {data:order,error:orderError}=await supabase
     .from("orders")
-    .select("id,gift_id,status,provider_reference,checkout_url,amount_minor,refunded_amount_minor,currency,payment_token,paid_at,buyer_email,access_email_sent_at,access_email_last_attempt_at,access_email_error")
+    .select("id,gift_id,status,provider_reference,checkout_url,amount_minor,refunded_amount_minor,currency,payment_token,paid_at,buyer_email,access_email_sent_at,access_email_last_attempt_at,access_email_error,ops_notice_sent_at,ops_notice_last_attempt_at,ops_notice_error")
     .eq("payment_token",token)
     .maybeSingle();
 
@@ -247,7 +293,7 @@ Deno.serve(async(req:Request)=>{
 
     const {data:gift}=await supabase
       .from("gifts")
-      .select("status,public_code")
+      .select("status,public_code,experience_slug")
       .eq("id",order.gift_id)
       .maybeSingle();
 
@@ -297,7 +343,38 @@ Deno.serve(async(req:Request)=>{
       }
     }
 
-    return reply({ok:true,status:next,refundedAmountMinor,accessEmailQueued});
+    // Resend delivery is reserved atomically, independently from the buyer mail.
+    // Retry only for orders that have already attempted their first ops notice;
+    // old historic purchases are not backfilled or emailed unexpectedly.
+    let opsNoticeQueued=Boolean(order.ops_notice_sent_at);
+    const opsLastAttemptMs=Date.parse(String(order.ops_notice_last_attempt_at||""));
+    const opsCanAttempt=!Number.isFinite(opsLastAttemptMs)||Date.now()-opsLastAttemptMs>=30*60*1000;
+    if(next==="approved"&&!order.ops_notice_sent_at&&opsCanAttempt){
+      const attemptedAt=new Date().toISOString();
+      const retryCutoff=new Date(Date.now()-30*60*1000).toISOString();
+      const {data:reserved,error:reserveError}=await supabase.from("orders")
+        .update({ops_notice_last_attempt_at:attemptedAt,ops_notice_error:null})
+        .eq("id",order.id).eq("provider","mercadopago").eq("status","approved")
+        .is("ops_notice_sent_at",null)
+        .or("ops_notice_last_attempt_at.is.null,ops_notice_last_attempt_at.lt."+retryCutoff)
+        .select("id").maybeSingle();
+      if(reserveError)console.error("ops_notice_reservation_failed",reserveError.code||"database_error");
+      else if(reserved){
+        const delivered=await sendOpsNotice(
+          String(order.id),String(order.buyer_email||""),String(gift?.experience_slug||"experiencia"),
+          amountMinor,
+        );
+        opsNoticeQueued=delivered.ok;
+        const patch=delivered.ok?
+          {ops_notice_sent_at:new Date().toISOString(),ops_notice_error:null}:
+          {ops_notice_error:delivered.error};
+        const {error:stampError}=await supabase.from("orders").update(patch)
+          .eq("id",order.id).eq("ops_notice_last_attempt_at",attemptedAt);
+        if(stampError)console.error("ops_notice_stamp_failed",stampError.code||"database_error");
+      }
+    }
+
+    return reply({ok:true,status:next,refundedAmountMinor,accessEmailQueued,opsNoticeQueued});
   }
   return reply({error:"unknown_action"},400);
 });
