@@ -1,6 +1,5 @@
 "use client";
 
-import {useState} from "react";
 import styles from "./sticker-bomb-experience.module.css";
 
 /**
@@ -65,7 +64,7 @@ export default function StickerBombStickers({chapter,personalLine,collected,onCo
      style={{"--stickerAccent":character.accent} as React.CSSProperties}
      type="button"
      aria-pressed={collected}
-     aria-label={(collected?"Volver a ver":"Despegar")+" el sticker de "+character.name+": "+item.title}
+     aria-label={(collected?"Volver a pegar":"Despegar")+" el sticker de "+character.name+": "+item.title}
      onClick={onCollect}>
       <span className={styles.realStickerDieCut}>
        <span className={styles.realStickerExtra} aria-hidden="true">{item.extra}</span>
