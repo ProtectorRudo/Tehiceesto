@@ -6,7 +6,10 @@ try{
  const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true});
  page.on("pageerror",e=>errors.push("pageerror:"+e.message.slice(0,350)));
  const failed=[];page.on("response",res=>{if(res.status()>=400)failed.push({status:res.status(),url:res.url().slice(0,200)});});
- const prefix="https://tehiceesto-live-preview.onrender.com/_next/static/";
+ const prefix="https://tehiceesto.com/_next/static/";
+ const jsErrors=[];const cspErrors=[];
+ page.on("pageerror",e=>jsErrors.push(e.message));
+ page.on("console",m=>{if(m.type()==="error" && m.text().includes("Content Security Policy"))cspErrors.push(m.text())});
  const res=await page.goto("https://tehiceesto.com/__qa-portada-nueva-tehiceesto",{waitUntil:"networkidle",timeout:120000});
  assert.equal(res?.status(),200,"Temporary new-home preview route");
  const body=(await page.locator("body").innerText()).replace(/\\s+/g," ").trim();
@@ -14,11 +17,13 @@ try{
  assert.ok(body.includes("Y otros que")&&body.includes("se sienten"),"New design hero missing");
  const resources=await page.evaluate(()=>({scripts:[...document.scripts].map(x=>x.src).filter(Boolean),styles:[...document.querySelectorAll('link[rel="stylesheet"]')].map(x=>x.href),width:document.documentElement.scrollWidth,viewport:innerWidth}));
  console.log("QA_ASSETS",JSON.stringify({scripts:resources.scripts.length,styles:resources.styles.length,remoteScripts:resources.scripts.filter(x=>x.startsWith(prefix)).length,remoteStyles:resources.styles.filter(x=>x.startsWith(prefix)).length}));
- assert.ok(resources.scripts.some(x=>x.startsWith(prefix)),"Scripts not isolated to Render");
- assert.ok(resources.styles.some(x=>x.startsWith(prefix)),"Styles not isolated to Render");
+ assert.ok(resources.scripts.some(x=>x.startsWith(prefix)),"Scripts not resolved from canonical domain");
+ assert.ok(resources.styles.some(x=>x.startsWith(prefix)),"Styles not resolved from canonical domain");
  assert.ok(resources.width-resources.viewport<=4,"Horizontal overflow");
  await page.getByRole("link",{name:/Quiero hacer un regalo/i}).waitFor({timeout:12000});
  assert.deepEqual(errors,[],"Javascript errors on new home");
+ assert.deepEqual(jsErrors,[],"Browser runtime JS errors");
+ assert.deepEqual(cspErrors,[],"CSP must allow styles and scripts from own origin");
  const critical=failed.filter(x=>x.url.includes("_next/static")||x.url.includes("demo-previews")||x.url.includes("/tehiceesto/"));
  console.log("QA_FAILED_RESOURCES",JSON.stringify(critical));
  assert.equal(critical.length,0,"Missing critical JS/CSS/gallery assets on new home");
