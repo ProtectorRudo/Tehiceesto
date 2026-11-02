@@ -448,7 +448,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
   return (
     <div className={styles.enhancement}>
       <ExtraLetterEditor code={access.code} editorToken={access.editorToken} />
-      {gift.experience_slug==="dragon-ball-pareja" && <DragonBallEditor access={access} gift={gift} media={media} onError={onError} onNotice={onNotice} onDraftChange={setDragonDraft}/>}
+      {gift.experience_slug==="dragon-ball-pareja" && <DragonBallEditor access={access} gift={gift} media={media} onError={onError} onNotice={onNotice} onDraftChange={setDragonDraft} photoAssignment={photoAssignment}/>}
       {gift.experience_slug==="sticker-bomb-amistad" && <StickerBombEditor key={access.code} access={access} gift={gift} media={media} onError={onError} onNotice={onNotice} onRefreshMedia={refreshMedia}/>}
       {gift.experience_slug==="siete-dias" && <SevenDaysSharePanel code={access.code} editorToken={access.editorToken} />}
       {gift.experience_slug==="frasco365" && <Jar365Editor code={access.code} editorToken={access.editorToken} onNotesChange={(notes)=>{setJarNotes(notes);setJarPreviewVersion(version=>version+1);}} />}
@@ -523,17 +523,18 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
         <div className={styles.studioHeading}>
           <span className={styles.eyebrow}>VISTA PREVIA DEL MODELO ORIGINAL</span>
           <h2>Viví tu experiencia</h2>
-          <p>{gift.experience_slug==="frasco365"?"Abrí una demo de tu frasco con tus frases guardadas. Probá los papelitos sin consumir las aperturas de la persona que lo recibe.":gift.experience_slug==="dragon-ball-pareja"?"Revisá las nueve escenas originales de Dragon Ball con tus textos y fotos. Los cambios se muestran aquí; guardá la saga antes de publicar.":"Revisá el recorrido con tus datos. Podés seleccionar textos en la vista previa y cambiarlos sin alterar los efectos ni las animaciones."}</p>
+          <p>{gift.experience_slug==="frasco365"?"Abrí una demo de tu frasco con tus frases guardadas. Probá los papelitos sin consumir las aperturas de la persona que lo recibe.":gift.experience_slug==="dragon-ball-pareja"?"Revisá las nueve escenas originales de Dragon Ball. Tocá cualquiera de los tres recuerdos para elegir o cambiar su foto, sin salir de la escena.":"Revisá el recorrido con tus datos. Tocá una foto para reemplazarla; también podés personalizar textos sin alterar el modelo original."}</p>
         </div>
         <div className={styles.previewActions}>
           <button className={styles.ghost} type="button" disabled={previewLoading || Boolean(uploading)} onClick={()=>void togglePreview()}>{previewLoading?"Actualizando fotos…":preview?"Cerrar vista previa":"Abrir vista previa →"}</button>
           {preview && gift.experience_slug!=="frasco365" && gift.experience_slug!=="dragon-ball-pareja" && <button className={styles.ghost} type="button" onClick={()=>{setEditingCopy(!editingCopy);setSelected(null)}}>{editingCopy?"Terminar edición de textos":"Personalizar textos de las escenas"}</button>}
         </div>
-        {preview && model && <div className={styles.previewWindow} onClickCapture={gift.experience_slug==="dragon-ball-pareja"?undefined:chooseText}>
+        {preview && model && <div className={styles.previewWindow} onClickCapture={gift.experience_slug==="dragon-ball-pareja"?undefined:choosePreviewPhoto}>
           {editingCopy && gift.experience_slug!=="dragon-ball-pareja" && <p className={styles.editModeLabel} role="status">MODO EDICIÓN · Tocá una frase del recorrido para cambiarla</p>}
           {gift.experience_slug==="dragon-ball-pareja" ?
             <DragonBallPreview code={access.code} recipientName={gift.recipient_name} giverName={gift.giver_name}
-              config={dragonConfig} photoUrls={dragonPhotoUrls} voiceUrl={dragonVoiceUrl} /> : gift.experience_slug==="frasco365" ?
+              config={dragonConfig} photoUrls={dragonPhotoUrls} voiceUrl={dragonVoiceUrl}
+              onPhotoClick={slot=>{setPhotoPicker({kind:"dragon",slot});setSelected(null);}} /> : gift.experience_slug==="frasco365" ?
             <Jar365Experience key={access.code+"-"+jarPreviewVersion} experience={{...model,demoGiver:gift.giver_name,demoRecipient:gift.recipient_name}} previewNotes={jarNotes} /> : gift.experience_slug==="siete-dias" ?
             <SevenDaysExperience
               experience={{...model,demoGiver:gift.giver_name,demoRecipient:gift.recipient_name}}
@@ -559,6 +560,38 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
             storyContext={{keyDate:String(gift.story_data?.keyDate||""),anecdote:String(gift.story_data?.anecdote||"")}}
             sceneTextOverrides={sceneContent}
           />}
+        </div>}
+        {photoPicker && <div className={styles.copyModal} role="dialog" aria-modal="true" aria-label="Cambiar fotografía">
+          <div className={styles.copyPanel} style={{maxWidth:530,maxHeight:"88dvh",overflowY:"auto"}}>
+            <span className={styles.eyebrow}>EDITAR FOTOGRAFÍA</span>
+            <h3>{photoPicker.kind==="dragon"?"Elegí la foto para este recuerdo":"Cambiar la foto del recorrido"}</h3>
+            <p>Solo se modifica la imagen que elegís. Las escenas, animaciones y efectos permanecen intactos.</p>
+            <label className={styles.primary} style={{display:"block",textAlign:"center",cursor:busy||Boolean(uploading)?"wait":"pointer",margin:"14px 0"}}>
+              {uploading?"Subiendo foto…":"Elegir una foto de mi teléfono"}
+              <input aria-label="Subir una foto de reemplazo" type="file" accept="image/*,.heic,.heif"
+                style={{position:"absolute",width:1,height:1,opacity:0}}
+                disabled={busy||Boolean(uploading)||(photoPicker.kind==="dragon"&&orderedMedia.length>=30)}
+                onChange={e=>{const file=e.currentTarget.files?.[0];if(file)void uploadReplacement(file);e.currentTarget.value="";}}/>
+            </label>
+            {orderedMedia.some(item=>item.kind==="image") && <>
+              <p style={{fontWeight:700}}>O elegí una foto que ya subiste</p>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:10,margin:"12px 0"}}>
+                {orderedMedia.filter(item=>item.kind==="image"&&item.url).map((item,i)=>
+                  <button type="button" key={item.id} disabled={busy||Boolean(uploading)}
+                    onClick={()=>void chooseExistingPhoto(item.id)}
+                    aria-label={"Usar foto "+(i+1)}
+                    style={{background:"#f8f1e8",border:"2px solid #c8b6a9",borderRadius:12,padding:5,cursor:"pointer"}}>
+                    <img src={item.url||""} alt={"Foto guardada "+(i+1)} style={{display:"block",width:"100%",aspectRatio:"1",objectFit:"cover",borderRadius:8}}/>
+                    <span style={{display:"block",fontSize:12,fontWeight:800,marginTop:5,color:"#251928"}}>Foto {i+1}</span>
+                  </button>)}
+              </div>
+            </>}
+            {photoPicker.kind==="dragon" && <button type="button" className={styles.ghost} disabled={busy}
+              onClick={()=>void assignDragonPhoto(photoPicker.slot,"")}>Mostrar ilustración original</button>}
+            <div className={styles.previewActions} style={{marginTop:18}}>
+              <button className={styles.ghost} type="button" disabled={busy||Boolean(uploading)} onClick={()=>setPhotoPicker(null)}>Cancelar</button>
+            </div>
+          </div>
         </div>}
         {selected && <div className={styles.copyModal} role="dialog" aria-modal="true" aria-label="Editar texto de escena">
           <div className={styles.copyPanel}>
