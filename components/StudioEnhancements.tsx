@@ -226,7 +226,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
       };
       const uploadResumable = async () => {
         const tus = await import("tus-js-client");
-        const endpoint = projectUrl.replace(/\\.supabase\\.co\\/?$/, ".storage.supabase.co").replace(/\\/$/, "") + "/storage/v1/upload/resumable";
+        const endpoint = new URL("/storage/v1/upload/resumable",projectUrl).toString().replace(".supabase.co/",".storage.supabase.co/");
         await new Promise<void>((resolve,reject) => {
           const upload = new tus.Upload(file,{
             endpoint,retryDelays:[0,1000,3000,5000],chunkSize:6*1024*1024,
