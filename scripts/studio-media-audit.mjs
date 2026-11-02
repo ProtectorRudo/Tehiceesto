@@ -37,7 +37,19 @@ test("Special preview types are routed explicitly instead of silently falling in
   assert.match(studio, /<SevenDaysExperience/);
   assert.match(studio, /<DragonBallPreview/);
   assert.match(studio, /<ExperienceEngine/);
-  assert.match(sticker, /tehiceesto-sticker-preview/);
+  assert.match(sticker, /<StickerBombExperience/);
+  assert.doesNotMatch(sticker, /<iframe|tehiceesto\\.com\\/experiencias\\/sticker-bomb/);
+  const stickerModel = read("components/StickerBombExperience.tsx");
+  const engine = read("components/ExperienceEngine.tsx");
+  const giftRepo = read("lib/gifts/repository.ts");
+  assert.match(stickerModel, /stickerBombChapters/);
+  assert.match(stickerModel, /normalizeStickerBomb\\(copy\\)/);
+  assert.match(engine, /props\\.experience\\.slug === "sticker-bomb-amistad"/);
+  assert.match(published, /slug==="sticker-bomb-amistad"\\) return <><StickerBombExperience/);
+  assert.match(giftRepo, /stickerBomb:row\\.story_data\\?\\.stickerBomb/);
+  assert.match(studio, /browserJpegFromHeic/);
+  assert.match(studio, /await refreshMedia\\(\\);setPreview\\(true\\)/);
+
   const slugs = Array.from(recipe.matchAll(/\bslug:\s*"([^"]+)"/g), match => match[1]);
   assert.ok(slugs.length >= 12, "Catalog unexpectedly shrank; audit changed experience routes");
   for (const slug of ["dragon-ball-pareja", "sticker-bomb-amistad", "frasco365", "siete-dias"]) {
