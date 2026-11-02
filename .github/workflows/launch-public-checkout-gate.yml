@@ -1,0 +1,21 @@
+name: Checkout gate on native and commercial hosts
+on:
+  push:
+    branches: [qa/render-public-smoke-20261102]
+    paths:
+      - "scripts/launch-public-checkout-gate.mjs"
+      - ".github/workflows/launch-public-checkout-gate.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  checkout-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify checkout endpoint without creating a real order
+        run: node scripts/launch-public-checkout-gate.mjs
