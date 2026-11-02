@@ -41,7 +41,7 @@ export function normalizeStickerBomb(value:unknown):StickerBombCopy {
   relationship:typeof raw.relationship==="string"?raw.relationship:defaults.relationship,
   date:typeof raw.date==="string"?raw.date:defaults.date,
   coverText:typeof raw.coverText==="string"?raw.coverText:defaults.coverText,
-  notes,future:list(raw.future,defaults.future),finalLetter:list(raw.finalLetter)
+  notes,future:list(raw.future,defaults.future),finalLetter:list(raw.finalLetter,defaults.finalLetter)
  };
 }
 
