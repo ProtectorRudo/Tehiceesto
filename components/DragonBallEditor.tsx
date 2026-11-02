@@ -60,9 +60,10 @@ const merge=(v:unknown):DragonCopy=>{
   voiceMediaId:typeof d.voiceMediaId==="string"?d.voiceMediaId:""
  };
 };
-type Props={access:StudioAccess;gift:StudioGift;media:StudioMedia[];onError:(v:string)=>void;onNotice:(v:string)=>void;onDraftChange?:(copy:DragonCopy)=>void};
-export default function DragonBallEditor({access,gift,media,onError,onNotice,onDraftChange}:Props){
+type Props={access:StudioAccess;gift:StudioGift;media:StudioMedia[];onError:(v:string)=>void;onNotice:(v:string)=>void;onDraftChange?:(copy:DragonCopy)=>void;photoAssignment?:{slot:number;mediaId:string;revision:number}|null};
+export default function DragonBallEditor({access,gift,media,onError,onNotice,onDraftChange,photoAssignment}:Props){
  const [draft,setDraft]=useState<DragonCopy>(()=>merge(gift.story_data?.dragonBall));
+ useEffect(()=>{if(photoAssignment&&photoAssignment.slot>=0&&photoAssignment.slot<3)setDraft(p=>({...p,photoMediaIds:[0,1,2].map(i=>i===photoAssignment.slot?photoAssignment.mediaId:p.photoMediaIds[i]||"")}));},[photoAssignment]);
  useEffect(()=>{onDraftChange?.(draft);},[draft,onDraftChange]);
  const [busy,setBusy]=useState(false);
  const images=useMemo(()=>media.filter(item=>item.kind==="image"),[media]);

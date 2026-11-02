@@ -142,6 +142,9 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
   const [progress, setProgress] = useState(0);
   const [busy, setBusy] = useState(false);
   const [confirmPublish, setConfirmPublish] = useState(false);
+  const [photoPicker,setPhotoPicker]=useState<{kind:"dragon";slot:number}|{kind:"media";mediaId:string}|null>(null);
+  const [photoAssignment,setPhotoAssignment]=useState<{slot:number;mediaId:string;revision:number}|null>(null);
+  const [photoRevision,setPhotoRevision]=useState(0);
 
   const model = getExperience(gift.experience_slug);
   const orderedMedia = useMemo(() => [...media].sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0)), [media]);
@@ -167,9 +170,10 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
     : ["","",""];
   const dragonVoiceUrl = orderedMedia.find(m=>m.id===dragonConfig.voiceMediaId && m.kind==="audio")?.url || null;
 
-  async function refreshMedia() {
+  async function refreshMedia():Promise<void> {
     const response = await action(access, "openStudio");
-    setMedia(Array.isArray(response.media) ? response.media : []);
+    const rows:StudioMedia[]=Array.isArray(response.media) ? response.media : [];
+    setMedia(rows);
   }
 
   async function togglePreview() {
@@ -226,7 +230,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
     finally { setBusy(false); }
   }
 
-  async function uploadFile(source: File, scene: string): Promise<boolean> {
+  async function uploadFile(source: File, scene: string, replacing?:StudioMedia): Promise<boolean> {
     if (source.size <= 0 || source.size > 50*1024*1024) { onError("Máximo 50 MB por archivo."); return false; }
     // WhatsApp often exports .opus/.ogg with a missing or generic MIME type.
     const ext = source.name.toLowerCase().split(".").pop() || "";
@@ -288,17 +292,102 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
         try {await uploadResumable();}
         catch {setProgress(0);await uploadSigned();}
       }
-      await action(access, "registerStudioMedia", {
-        storagePath:prepared.path,kind:prepared.kind,originalName:file.name,
-        mimeType:file.type,size:file.size,scene,
-      });
+      if(replacing) {
+        if(prepared.kind!=="image"||replacing.kind!=="image")throw Error("invalid_image_replacement");
+        await action(access,"replaceStudioMedia",{
+          mediaId:replacing.id,storagePath:prepared.path,kind:"image",
+          originalName:file.name,mimeType:file.type,size:file.size,
+        });
+      }else{
+        await action(access, "registerStudioMedia", {
+          storagePath:prepared.path,kind:prepared.kind,originalName:file.name,
+          mimeType:file.type,size:file.size,scene,
+        });
+      }
       await refreshMedia();
-      onNotice("Archivo incorporado a tu regalo.");
+      onNotice(replacing?"La foto se cambió en tu experiencia.":"Archivo incorporado a tu regalo.");
       return true;
     } catch (error) { onError(error instanceof Error&&error.message==="heic_decode_failed"
         ? "Tu teléfono no pudo convertir esta foto HEIC. Guardala como JPG o PNG y volvé a seleccionarla."
         : displayError(error)); return false; }
     finally { setUploading(""); setProgress(0); }
+  }
+
+  function choosePreviewPhoto(event:MouseEvent<HTMLDivElement>){
+    const target=event.target;
+    if(target instanceof Element){
+      const img=target.closest("img");
+      if(img){
+        const clickedUrl=img.getAttribute("src")||"";
+        const existing=orderedMedia.find(item=>item.kind==="image"&&item.url&&
+          (item.url===clickedUrl||item.url===img.currentSrc));
+        if(existing){
+          event.preventDefault();event.stopPropagation();
+          setSelected(null);setPhotoPicker({kind:"media",mediaId:existing.id});
+          return;
+        }
+      }
+    }
+    chooseText(event);
+  }
+
+  async function assignDragonPhoto(slot:number,mediaId:string){
+    if(busy)return;
+    if(!dragonDraft){onError("Abrí nuevamente la vista previa para terminar de cargar el editor.");return;}
+    const ids=[0,1,2].map(i=>i===slot?mediaId:dragonDraft.photoMediaIds[i]||"");
+    const next={...dragonDraft,photoMediaIds:ids};
+    setBusy(true);
+    try{
+      await action(access,"saveDragonBall",{dragonBall:next});
+      setDragonDraft(next);setPhotoRevision(v=>v+1);
+      setPhotoAssignment({slot,mediaId,revision:photoRevision+1});
+      setPhotoPicker(null);
+      onNotice("Foto del recuerdo actualizada y guardada en tu saga.");
+    }catch(error){onError(displayError(error));}
+    finally{setBusy(false);}
+  }
+
+  async function chooseExistingPhoto(mediaId:string){
+    if(!photoPicker||busy)return;
+    if(photoPicker.kind==="dragon"){await assignDragonPhoto(photoPicker.slot,mediaId);return;}
+    const ids=orderedMedia.map(m=>m.id);
+    const from=ids.indexOf(photoPicker.mediaId),to=ids.indexOf(mediaId);
+    if(from<0||to<0){onError("No encontramos la foto seleccionada.");return;}
+    if(from===to){setPhotoPicker(null);return;}
+    [ids[from],ids[to]]=[ids[to],ids[from]];
+    setBusy(true);
+    try{
+      await action(access,"reorderStudioMedia",{mediaIds:ids});
+      await refreshMedia();setPhotoPicker(null);
+      onNotice("Foto cambiada en el recorrido.");
+    }catch(error){onError(displayError(error))}
+    finally{setBusy(false)}
+  }
+
+  async function uploadReplacement(file:File){
+    if(!photoPicker||busy||uploading)return;
+    if(!file.type.startsWith("image/")&&!/\.(jpe?g|png|webp|heic|heif)$/i.test(file.name)){
+      onError("Seleccioná una fotografía JPG, PNG, WebP o HEIC.");return;
+    }
+    if(photoPicker.kind==="media"){
+      const old=orderedMedia.find(item=>item.id===photoPicker.mediaId&&item.kind==="image");
+      if(!old){onError("La foto ya no está disponible.");return;}
+      const ok=await uploadFile(file,old.metadata?.scene||scenes[0]||"intro",old);
+      if(ok)setPhotoPicker(null);
+      return;
+    }
+    if(orderedMedia.length>=30){onError("Alcanzaste el máximo de archivos. Eliminá una foto que no uses antes de subir otra.");return;}
+    const before=new Set(orderedMedia.map(item=>item.id));
+    const ok=await uploadFile(file,scenes[0]||"intro");
+    if(!ok)return;
+    try{
+      await refreshMedia();
+      const response=await action(access,"openStudio");
+      const rows:StudioMedia[]=Array.isArray(response.media)?response.media:[];
+      const newPhoto=rows.find(item=>item.kind==="image"&&!before.has(item.id));
+      if(!newPhoto){onError("La foto se subió, pero no pudimos seleccionarla automáticamente. Elegila desde esta galería.");return;}
+      await assignDragonPhoto(photoPicker.slot,newPhoto.id);
+    }catch(error){onError(displayError(error));}
   }
 
   async function updateMedia(item: StudioMedia, event: FormEvent<HTMLFormElement>) {
@@ -360,7 +449,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
   return (
     <div className={styles.enhancement}>
       <ExtraLetterEditor code={access.code} editorToken={access.editorToken} />
-      {gift.experience_slug==="dragon-ball-pareja" && <DragonBallEditor access={access} gift={gift} media={media} onError={onError} onNotice={onNotice} onDraftChange={setDragonDraft}/>}
+      {gift.experience_slug==="dragon-ball-pareja" && <DragonBallEditor access={access} gift={gift} media={media} onError={onError} onNotice={onNotice} onDraftChange={setDragonDraft} photoAssignment={photoAssignment}/>}
       {gift.experience_slug==="sticker-bomb-amistad" && <StickerBombEditor key={access.code} access={access} gift={gift} media={media} onError={onError} onNotice={onNotice} onRefreshMedia={refreshMedia}/>}
       {gift.experience_slug==="siete-dias" && <SevenDaysSharePanel code={access.code} editorToken={access.editorToken} />}
       {gift.experience_slug==="frasco365" && <Jar365Editor code={access.code} editorToken={access.editorToken} onNotesChange={(notes)=>{setJarNotes(notes);setJarPreviewVersion(version=>version+1);}} />}
@@ -435,17 +524,18 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
         <div className={styles.studioHeading}>
           <span className={styles.eyebrow}>VISTA PREVIA DEL MODELO ORIGINAL</span>
           <h2>Viví tu experiencia</h2>
-          <p>{gift.experience_slug==="frasco365"?"Abrí una demo de tu frasco con tus frases guardadas. Probá los papelitos sin consumir las aperturas de la persona que lo recibe.":gift.experience_slug==="dragon-ball-pareja"?"Revisá las nueve escenas originales de Dragon Ball con tus textos y fotos. Los cambios se muestran aquí; guardá la saga antes de publicar.":"Revisá el recorrido con tus datos. Podés seleccionar textos en la vista previa y cambiarlos sin alterar los efectos ni las animaciones."}</p>
+          <p>{gift.experience_slug==="frasco365"?"Abrí una demo de tu frasco con tus frases guardadas. Probá los papelitos sin consumir las aperturas de la persona que lo recibe.":gift.experience_slug==="dragon-ball-pareja"?"Revisá las nueve escenas originales de Dragon Ball. Tocá cualquiera de los tres recuerdos para elegir o cambiar su foto, sin salir de la escena.":"Revisá el recorrido con tus datos. Tocá una foto para reemplazarla; también podés personalizar textos sin alterar el modelo original."}</p>
         </div>
         <div className={styles.previewActions}>
           <button className={styles.ghost} type="button" disabled={previewLoading || Boolean(uploading)} onClick={()=>void togglePreview()}>{previewLoading?"Actualizando fotos…":preview?"Cerrar vista previa":"Abrir vista previa →"}</button>
           {preview && gift.experience_slug!=="frasco365" && gift.experience_slug!=="dragon-ball-pareja" && <button className={styles.ghost} type="button" onClick={()=>{setEditingCopy(!editingCopy);setSelected(null)}}>{editingCopy?"Terminar edición de textos":"Personalizar textos de las escenas"}</button>}
         </div>
-        {preview && model && <div className={styles.previewWindow} onClickCapture={gift.experience_slug==="dragon-ball-pareja"?undefined:chooseText}>
+        {preview && model && <div className={styles.previewWindow} onClickCapture={gift.experience_slug==="dragon-ball-pareja"?undefined:choosePreviewPhoto}>
           {editingCopy && gift.experience_slug!=="dragon-ball-pareja" && <p className={styles.editModeLabel} role="status">MODO EDICIÓN · Tocá una frase del recorrido para cambiarla</p>}
           {gift.experience_slug==="dragon-ball-pareja" ?
             <DragonBallPreview code={access.code} recipientName={gift.recipient_name} giverName={gift.giver_name}
-              config={dragonConfig} photoUrls={dragonPhotoUrls} voiceUrl={dragonVoiceUrl} /> : gift.experience_slug==="frasco365" ?
+              config={dragonConfig} photoUrls={dragonPhotoUrls} voiceUrl={dragonVoiceUrl}
+              onPhotoClick={slot=>{setPhotoPicker({kind:"dragon",slot});setSelected(null);}} /> : gift.experience_slug==="frasco365" ?
             <Jar365Experience key={access.code+"-"+jarPreviewVersion} experience={{...model,demoGiver:gift.giver_name,demoRecipient:gift.recipient_name}} previewNotes={jarNotes} /> : gift.experience_slug==="siete-dias" ?
             <SevenDaysExperience
               experience={{...model,demoGiver:gift.giver_name,demoRecipient:gift.recipient_name}}
@@ -471,6 +561,38 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
             storyContext={{keyDate:String(gift.story_data?.keyDate||""),anecdote:String(gift.story_data?.anecdote||"")}}
             sceneTextOverrides={sceneContent}
           />}
+        </div>}
+        {photoPicker && <div className={styles.copyModal} role="dialog" aria-modal="true" aria-label="Cambiar fotografía">
+          <div className={styles.copyPanel} style={{maxWidth:530,maxHeight:"88dvh",overflowY:"auto"}}>
+            <span className={styles.eyebrow}>EDITAR FOTOGRAFÍA</span>
+            <h3>{photoPicker.kind==="dragon"?"Elegí la foto para este recuerdo":"Cambiar la foto del recorrido"}</h3>
+            <p>Solo se modifica la imagen que elegís. Las escenas, animaciones y efectos permanecen intactos.</p>
+            <label className={styles.primary} style={{display:"block",textAlign:"center",cursor:busy||Boolean(uploading)?"wait":"pointer",margin:"14px 0"}}>
+              {uploading?"Subiendo foto…":"Elegir una foto de mi teléfono"}
+              <input aria-label="Subir una foto de reemplazo" type="file" accept="image/*,.heic,.heif"
+                style={{position:"absolute",width:1,height:1,opacity:0}}
+                disabled={busy||Boolean(uploading)||(photoPicker.kind==="dragon"&&orderedMedia.length>=30)}
+                onChange={e=>{const file=e.currentTarget.files?.[0];if(file)void uploadReplacement(file);e.currentTarget.value="";}}/>
+            </label>
+            {orderedMedia.some(item=>item.kind==="image") && <>
+              <p style={{fontWeight:700}}>O elegí una foto que ya subiste</p>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:10,margin:"12px 0"}}>
+                {orderedMedia.filter(item=>item.kind==="image"&&item.url).map((item,i)=>
+                  <button type="button" key={item.id} disabled={busy||Boolean(uploading)}
+                    onClick={()=>void chooseExistingPhoto(item.id)}
+                    aria-label={"Usar foto "+(i+1)}
+                    style={{background:"#f8f1e8",border:"2px solid #c8b6a9",borderRadius:12,padding:5,cursor:"pointer"}}>
+                    <img src={item.url||""} alt={"Foto guardada "+(i+1)} style={{display:"block",width:"100%",aspectRatio:"1",objectFit:"cover",borderRadius:8}}/>
+                    <span style={{display:"block",fontSize:12,fontWeight:800,marginTop:5,color:"#251928"}}>Foto {i+1}</span>
+                  </button>)}
+              </div>
+            </>}
+            {photoPicker.kind==="dragon" && <button type="button" className={styles.ghost} disabled={busy}
+              onClick={()=>void assignDragonPhoto(photoPicker.slot,"")}>Mostrar ilustración original</button>}
+            <div className={styles.previewActions} style={{marginTop:18}}>
+              <button className={styles.ghost} type="button" disabled={busy||Boolean(uploading)} onClick={()=>setPhotoPicker(null)}>Cancelar</button>
+            </div>
+          </div>
         </div>}
         {selected && <div className={styles.copyModal} role="dialog" aria-modal="true" aria-label="Editar texto de escena">
           <div className={styles.copyPanel}>

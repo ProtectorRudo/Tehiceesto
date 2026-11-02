@@ -9,11 +9,14 @@ type Props = {
   config: Record<string, unknown>;
   photoUrls: string[];
   voiceUrl: string | null;
+  onPhotoClick?: (slot: number) => void;
 };
 
 /** The preview must render the same immutable Dragon Ball HTML used by a published gift. */
-export default function DragonBallPreview({code,recipientName,giverName,config,photoUrls,voiceUrl}:Props) {
+export default function DragonBallPreview({code,recipientName,giverName,config,photoUrls,voiceUrl,onPhotoClick}:Props) {
   const frame = useRef<HTMLIFrameElement>(null);
+  const photoHandler = useRef(onPhotoClick);
+  useEffect(()=>{photoHandler.current=onPhotoClick;},[onPhotoClick]);
   const send = useCallback(() => {
     frame.current?.contentWindow?.postMessage({
       type:"tehiceesto:dragon-ball:gift",
@@ -21,11 +24,29 @@ export default function DragonBallPreview({code,recipientName,giverName,config,p
     },window.location.origin);
   },[config,recipientName,giverName,photoUrls,voiceUrl]);
 
+  const handleLoad = useCallback(() => {
+    send();
+    const doc=frame.current?.contentDocument;
+    if(!doc)return;
+    // Editor-only capture: prevent the model\u0027s flipMemory handler from
+    // rebuilding the scene and scrolling the preview back to the top.
+    doc.addEventListener("click",(event:globalThis.MouseEvent)=>{
+      const target=event.target;
+      if(!target||typeof (target as Element).closest!=="function")return;
+      const card=(target as Element).closest(".origin-panels .polaroid");
+      if(!card)return;
+      const cards=Array.from(doc.querySelectorAll(".origin-panels .polaroid"));
+      const slot=cards.indexOf(card);
+      if(slot<0||slot>2)return;
+      event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+      photoHandler.current?.(slot);
+    },true);
+  },[send]);
   useEffect(()=>{send();},[send]);
 
   return <iframe
     ref={frame}
-    onLoad={send}
+    onLoad={handleLoad}
     src={"/dragon-ball-pareja.html?mode=gift&code="+encodeURIComponent("studio-preview-"+code)}
     title={"Vista previa de Dragon Ball · Nuestra Saga para "+recipientName}
     allow="autoplay"
