@@ -142,6 +142,9 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
   const [progress, setProgress] = useState(0);
   const [busy, setBusy] = useState(false);
   const [confirmPublish, setConfirmPublish] = useState(false);
+  const [photoPicker,setPhotoPicker]=useState<{kind:"dragon";slot:number}|{kind:"media";mediaId:string}|null>(null);
+  const [photoAssignment,setPhotoAssignment]=useState<{slot:number;mediaId:string;revision:number}|null>(null);
+  const [photoRevision,setPhotoRevision]=useState(0);
 
   const model = getExperience(gift.experience_slug);
   const orderedMedia = useMemo(() => [...media].sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0)), [media]);
@@ -167,9 +170,11 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
     : ["","",""];
   const dragonVoiceUrl = orderedMedia.find(m=>m.id===dragonConfig.voiceMediaId && m.kind==="audio")?.url || null;
 
-  async function refreshMedia() {
+  async function refreshMedia():Promise<StudioMedia[]> {
     const response = await action(access, "openStudio");
-    setMedia(Array.isArray(response.media) ? response.media : []);
+    const rows:StudioMedia[]=Array.isArray(response.media) ? response.media : [];
+    setMedia(rows);
+    return rows;
   }
 
   async function togglePreview() {
@@ -226,7 +231,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
     finally { setBusy(false); }
   }
 
-  async function uploadFile(source: File, scene: string): Promise<boolean> {
+  async function uploadFile(source: File, scene: string, replacing?:StudioMedia): Promise<boolean> {
     if (source.size <= 0 || source.size > 50*1024*1024) { onError("Máximo 50 MB por archivo."); return false; }
     // WhatsApp often exports .opus/.ogg with a missing or generic MIME type.
     const ext = source.name.toLowerCase().split(".").pop() || "";
@@ -288,17 +293,100 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
         try {await uploadResumable();}
         catch {setProgress(0);await uploadSigned();}
       }
-      await action(access, "registerStudioMedia", {
-        storagePath:prepared.path,kind:prepared.kind,originalName:file.name,
-        mimeType:file.type,size:file.size,scene,
-      });
+      if(replacing) {
+        if(prepared.kind!=="image"||replacing.kind!=="image")throw Error("invalid_image_replacement");
+        await action(access,"replaceStudioMedia",{
+          mediaId:replacing.id,storagePath:prepared.path,kind:"image",
+          originalName:file.name,mimeType:file.type,size:file.size,
+        });
+      }else{
+        await action(access, "registerStudioMedia", {
+          storagePath:prepared.path,kind:prepared.kind,originalName:file.name,
+          mimeType:file.type,size:file.size,scene,
+        });
+      }
       await refreshMedia();
-      onNotice("Archivo incorporado a tu regalo.");
+      onNotice(replacing?"La foto se cambió en tu experiencia.":"Archivo incorporado a tu regalo.");
       return true;
     } catch (error) { onError(error instanceof Error&&error.message==="heic_decode_failed"
         ? "Tu teléfono no pudo convertir esta foto HEIC. Guardala como JPG o PNG y volvé a seleccionarla."
         : displayError(error)); return false; }
     finally { setUploading(""); setProgress(0); }
+  }
+
+  function choosePreviewPhoto(event:MouseEvent<HTMLDivElement>){
+    const target=event.target;
+    if(target instanceof Element){
+      const img=target.closest("img");
+      if(img){
+        const clickedUrl=img.getAttribute("src")||"";
+        const existing=orderedMedia.find(item=>item.kind==="image"&&item.url&&
+          (item.url===clickedUrl||item.url===img.currentSrc));
+        if(existing){
+          event.preventDefault();event.stopPropagation();
+          setSelected(null);setPhotoPicker({kind:"media",mediaId:existing.id});
+          return;
+        }
+      }
+    }
+    chooseText(event);
+  }
+
+  async function assignDragonPhoto(slot:number,mediaId:string){
+    if(busy)return;
+    if(!dragonDraft){onError("Abrí nuevamente la vista previa para terminar de cargar el editor.");return;}
+    const ids=[0,1,2].map(i=>i===slot?mediaId:dragonDraft.photoMediaIds[i]||"");
+    const next={...dragonDraft,photoMediaIds:ids};
+    setBusy(true);
+    try{
+      await action(access,"saveDragonBall",{dragonBall:next});
+      setDragonDraft(next);setPhotoRevision(v=>v+1);
+      setPhotoAssignment({slot,mediaId,revision:photoRevision+1});
+      setPhotoPicker(null);
+      onNotice("Foto del recuerdo actualizada y guardada en tu saga.");
+    }catch(error){onError(displayError(error));}
+    finally{setBusy(false);}
+  }
+
+  async function chooseExistingPhoto(mediaId:string){
+    if(!photoPicker||busy)return;
+    if(photoPicker.kind==="dragon"){await assignDragonPhoto(photoPicker.slot,mediaId);return;}
+    const ids=orderedMedia.map(m=>m.id);
+    const from=ids.indexOf(photoPicker.mediaId),to=ids.indexOf(mediaId);
+    if(from<0||to<0){onError("No encontramos la foto seleccionada.");return;}
+    if(from===to){setPhotoPicker(null);return;}
+    [ids[from],ids[to]]=[ids[to],ids[from]];
+    setBusy(true);
+    try{
+      await action(access,"reorderStudioMedia",{mediaIds:ids});
+      await refreshMedia();setPhotoPicker(null);
+      onNotice("Foto cambiada en el recorrido.");
+    }catch(error){onError(displayError(error))}
+    finally{setBusy(false)}
+  }
+
+  async function uploadReplacement(file:File){
+    if(!photoPicker||busy||uploading)return;
+    if(!file.type.startsWith("image/")&&!/\.(jpe?g|png|webp|heic|heif)$/i.test(file.name)){
+      onError("Seleccioná una fotografía JPG, PNG, WebP o HEIC.");return;
+    }
+    if(photoPicker.kind==="media"){
+      const old=orderedMedia.find(item=>item.id===photoPicker.mediaId&&item.kind==="image");
+      if(!old){onError("La foto ya no está disponible.");return;}
+      const ok=await uploadFile(file,old.metadata?.scene||scenes[0]||"intro",old);
+      if(ok)setPhotoPicker(null);
+      return;
+    }
+    if(orderedMedia.length>=30){onError("Alcanzaste el máximo de archivos. Eliminá una foto que no uses antes de subir otra.");return;}
+    const before=new Set(orderedMedia.map(item=>item.id));
+    const ok=await uploadFile(file,scenes[0]||"intro");
+    if(!ok)return;
+    try{
+      const rows=await refreshMedia();
+      const newPhoto=rows.find(item=>item.kind==="image"&&!before.has(item.id));
+      if(!newPhoto){onError("La foto se subió, pero no pudimos seleccionarla automáticamente. Elegila desde esta galería.");return;}
+      await assignDragonPhoto(photoPicker.slot,newPhoto.id);
+    }catch(error){onError(displayError(error));}
   }
 
   async function updateMedia(item: StudioMedia, event: FormEvent<HTMLFormElement>) {
