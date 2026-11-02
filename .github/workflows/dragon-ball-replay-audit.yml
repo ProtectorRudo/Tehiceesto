@@ -1,0 +1,45 @@
+name: Dragon Ball fresh replay audit
+
+on:
+  pull_request:
+    paths:
+      - "public/dragon-ball-pareja.html"
+      - "scripts/dragon-ball-replay-audit.mjs"
+      - ".github/workflows/dragon-ball-replay-audit.yml"
+  push:
+    branches: [main]
+    paths:
+      - "public/dragon-ball-pareja.html"
+      - "scripts/dragon-ball-replay-audit.mjs"
+      - ".github/workflows/dragon-ball-replay-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  demo-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies and Chromium
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Build full application
+        run: npm run build
+      - name: Launch local production app
+        run: |
+          npm run start -- -H 127.0.0.1 -p 3000 > /tmp/dbz-replay.log 2>&1 &
+          for i in {1..35}; do
+            if curl -fsS http://127.0.0.1:3000/dragon-ball-pareja.html >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/dbz-replay.log
+          exit 1
+      - name: Two full runs, all effects reset, bought gifts retained
+        run: node scripts/dragon-ball-replay-audit.mjs
