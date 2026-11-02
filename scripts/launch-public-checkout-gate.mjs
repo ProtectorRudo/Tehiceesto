@@ -26,6 +26,23 @@ for(const target of targets){
  });
  const data=await response.text();
  console.log("CHECKOUT_GATE",JSON.stringify({host:target.name,status:response.status,body:data.slice(0,240)}));
+ // The proxy's origin transform must not turn a hostile Origin into a trusted
+ // request. No order is created in this check because the body is incomplete.
+ if(target.name==="canonical"){
+  for(const origin of ["https://evil.example","null"]){
+   const blocked=await fetch(target.url+"/api/checkout",{
+    method:"POST",redirect:"manual",
+    headers:{"content-type":"application/json","origin":origin},
+    body:JSON.stringify({experienceSlug:"pareja"}),
+    signal:AbortSignal.timeout(70000)
+   });
+   const content=await blocked.text();
+   console.log("CHECKOUT_BAD_ORIGIN_BLOCKED",JSON.stringify({origin,status:blocked.status,body:content.slice(0,80)}));
+   assert.notEqual(blocked.status,400,"Proxy incorrectly trusted hostile Origin "+origin);
+   assert.ok([401,403,404].includes(blocked.status),"Unexpected origin result "+blocked.status);
+  }
+ }
+
  assert.equal(response.status,400,target.name+" checkout API is not routed to our validation handler");
  assert.match(data,/invalid_input/,"Missing safe server-side input validation");
  results.push(target.name);
