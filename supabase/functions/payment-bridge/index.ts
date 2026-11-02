@@ -415,7 +415,16 @@ Deno.serve(async(req:Request)=>{
 
     if(gift){
       if(next==="refunded"){
-        await supabase.from("gifts").update({status:"awaiting_payment"}).eq("id",order.gift_id);
+        // A refund remains refunded in the payment ledger. Explicit admin-issued
+        // test licenses, if still valid, protect the buyer's published gift on webhook retries.
+        const {data:license,error:licenseError}=await supabase.from("complimentary_access_grants")
+          .select("expires_at").eq("order_id",order.id).eq("gift_id",order.gift_id)
+          .eq("product_code","dragon-ball-pareja").is("revoked_at",null).maybeSingle();
+        if(licenseError)console.error("complimentary_license_lookup_failed",licenseError.code);
+        const keepGift=gift.experience_slug==="dragon-ball-pareja"&&license&&
+          (!license.expires_at||Date.parse(license.expires_at)>Date.now());
+        if(!keepGift)
+          await supabase.from("gifts").update({status:"awaiting_payment"}).eq("id",order.gift_id);
       }else if(gift.status!=="published"){
         const giftStatus=next==="approved"?"paid":"awaiting_payment";
         await supabase.from("gifts").update({status:giftStatus}).eq("id",order.gift_id);
