@@ -111,7 +111,7 @@ try{
     }else if(slug==="siete-dias"){
      await page.locator('iframe[title*="Día"]').first().waitFor();
     }else{
-     await page.locator(".experience-shell").first().waitFor();
+     await page.locator(".legacy-premium-renderer, .experience-shell").first().waitFor({timeout:12000});
     }
    }
   }else{
