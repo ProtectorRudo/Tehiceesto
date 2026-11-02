@@ -6,7 +6,8 @@ import SevenDaysExperience from "@/components/SevenDaysExperience";
 import SevenDaysSharePanel from "@/components/SevenDaysSharePanel";
 import Jar365Editor from "@/components/Jar365Editor";
 import StickerBombEditor from "@/components/StickerBombEditor";
-import DragonBallEditor from "@/components/DragonBallEditor";
+import DragonBallEditor, {type DragonCopy} from "@/components/DragonBallEditor";
+import DragonBallPreview from "@/components/DragonBallPreview";
 import ExtraLetterEditor from "@/components/ExtraLetterEditor";
 import Jar365Experience from "@/components/Jar365Experience";
 import type { Jar365Note } from "@/data/jar365-notes";
@@ -99,6 +100,7 @@ type SelectedText = { scene: string; source: string; current: string };
 
 export default function StudioEnhancements({ access, ownerToken, gift, initialMedia, onError, onNotice, onPublished }: Props) {
   const [media, setMedia] = useState<StudioMedia[]>(initialMedia);
+  const [dragonDraft,setDragonDraft] = useState<DragonCopy|null>(null);
   const [sceneContent, setSceneContent] = useState(() => normalizeSceneTextOverrides(gift.story_data?.sceneContent));
   const [preview, setPreview] = useState(false);
   const [jarNotes,setJarNotes] = useState<Jar365Note[]>([]);
@@ -124,6 +126,16 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
   const soundtrack = orderedMedia.find(m => m.kind === "audio" && m.url && m.metadata?.role === "soundtrack");
   const audioMedia = orderedMedia.filter(m => m.kind === "audio" && m.url && m.metadata?.role !== "soundtrack").map(m => ({url:m.url as string,caption:m.caption || undefined}));
   const videoMedia = orderedMedia.filter(m => m.kind === "video" && m.url).map(m => ({url:m.url as string,caption:m.caption || undefined}));
+  // Never use the generic experience engine to preview a purchased Dragon Ball saga.
+  const savedDragonConfig = gift.story_data?.dragonBall;
+  const dragonConfig:Record<string,unknown> = dragonDraft || (
+    savedDragonConfig && typeof savedDragonConfig === "object" && !Array.isArray(savedDragonConfig)
+      ? savedDragonConfig as Record<string,unknown> : {}
+  );
+  const dragonPhotoUrls = Array.isArray(dragonConfig.photoMediaIds)
+    ? dragonConfig.photoMediaIds.slice(0,3).map(id=>orderedMedia.find(m=>m.id===id && m.kind==="image")?.url || "")
+    : ["","",""];
+  const dragonVoiceUrl = orderedMedia.find(m=>m.id===dragonConfig.voiceMediaId && m.kind==="audio")?.url || null;
 
   async function refreshMedia() {
     const response = await action(access, "openStudio");
@@ -197,22 +209,42 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
       const prepared = await action(access, "prepareStudioUpload", {
         fileName:file.name, mimeType:file.type, size:file.size,
       });
-      const tus = await import("tus-js-client");
-      const endpoint = projectUrl.replace(/\.supabase\.co\/?$/, ".storage.supabase.co").replace(/\/$/, "") + "/storage/v1/upload/resumable";
-      await new Promise<void>((resolve, reject) => {
-        const upload = new tus.Upload(file, {
-          endpoint,
-          retryDelays:[0,1000,3000,5000],
-          chunkSize:6*1024*1024,
-          uploadDataDuringCreation:true,
-          removeFingerprintOnSuccess:true,
-          headers:{"x-signature":prepared.token},
-          metadata:{bucketName:"gift-media",objectName:prepared.path,contentType:file.type,cacheControl:"3600"},
-          onProgress(sent,total){setProgress(Math.round(sent/total*100));},
-          onError:reject,onSuccess(){resolve();},
+      if (typeof prepared.token !== "string" || !prepared.token) throw new Error("upload_signature_missing");
+      // For mobile photos prefer the signed object upload: live TUS requests were
+      // rejected with 400/Invalid Compact JWS. Larger media retain resumability
+      // with an automatic signed-upload fallback.
+      const uploadSigned = async () => {
+        const {createClient} = await import("@supabase/supabase-js");
+        const storage = createClient(projectUrl,publicKey,{
+          auth:{persistSession:false,autoRefreshToken:false},
+        }).storage.from("gift-media");
+        const {error} = await storage.uploadToSignedUrl(prepared.path,prepared.token,file,{
+          contentType:file.type,
         });
-        upload.start();
-      });
+        if (error) throw error;
+        setProgress(100);
+      };
+      const uploadResumable = async () => {
+        const tus = await import("tus-js-client");
+        const endpoint = projectUrl.replace(/\\.supabase\\.co\\/?$/, ".storage.supabase.co").replace(/\\/$/, "") + "/storage/v1/upload/resumable";
+        await new Promise<void>((resolve,reject) => {
+          const upload = new tus.Upload(file,{
+            endpoint,retryDelays:[0,1000,3000,5000],chunkSize:6*1024*1024,
+            uploadDataDuringCreation:true,removeFingerprintOnSuccess:true,
+            headers:{"x-signature":prepared.token},
+            metadata:{bucketName:"gift-media",objectName:prepared.path,contentType:file.type,cacheControl:"3600"},
+            onProgress(sent,total){setProgress(Math.round(sent/total*100));},
+            onError:reject,onSuccess(){resolve();},
+          });
+          upload.start();
+        });
+      };
+      if (file.size <= 6*1024*1024) {
+        await uploadSigned();
+      } else {
+        try {await uploadResumable();}
+        catch {setProgress(0);await uploadSigned();}
+      }
       await action(access, "registerStudioMedia", {
         storagePath:prepared.path,kind:prepared.kind,originalName:file.name,
         mimeType:file.type,size:file.size,scene,
@@ -283,7 +315,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
   return (
     <div className={styles.enhancement}>
       <ExtraLetterEditor code={access.code} editorToken={access.editorToken} />
-      {gift.experience_slug==="dragon-ball-pareja" && <DragonBallEditor access={access} gift={gift} media={media} onError={onError} onNotice={onNotice}/>}
+      {gift.experience_slug==="dragon-ball-pareja" && <DragonBallEditor access={access} gift={gift} media={media} onError={onError} onNotice={onNotice} onDraftChange={setDragonDraft}/>}
       {gift.experience_slug==="sticker-bomb-amistad" && <StickerBombEditor key={access.code} access={access} gift={gift} media={media} onError={onError} onNotice={onNotice}/>}
       {gift.experience_slug==="siete-dias" && <SevenDaysSharePanel code={access.code} editorToken={access.editorToken} />}
       {gift.experience_slug==="frasco365" && <Jar365Editor code={access.code} editorToken={access.editorToken} onNotesChange={(notes)=>{setJarNotes(notes);setJarPreviewVersion(version=>version+1);}} />}
@@ -353,15 +385,17 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
         <div className={styles.studioHeading}>
           <span className={styles.eyebrow}>VISTA PREVIA DEL MODELO ORIGINAL</span>
           <h2>Viví tu experiencia</h2>
-          <p>{gift.experience_slug==="frasco365"?"Abrí una demo de tu frasco con tus frases guardadas. Probá los papelitos sin consumir las aperturas de la persona que lo recibe.":"Revisá el recorrido con tus datos. Podés seleccionar textos en la vista previa y cambiarlos sin alterar los efectos ni las animaciones."}</p>
+          <p>{gift.experience_slug==="frasco365"?"Abrí una demo de tu frasco con tus frases guardadas. Probá los papelitos sin consumir las aperturas de la persona que lo recibe.":gift.experience_slug==="dragon-ball-pareja"?"Revisá las nueve escenas originales de Dragon Ball con tus textos y fotos. Los cambios se muestran aquí; guardá la saga antes de publicar.":"Revisá el recorrido con tus datos. Podés seleccionar textos en la vista previa y cambiarlos sin alterar los efectos ni las animaciones."}</p>
         </div>
         <div className={styles.previewActions}>
           <button className={styles.ghost} type="button" onClick={() => setPreview(!preview)}>{preview?"Cerrar vista previa":"Abrir vista previa →"}</button>
-          {preview && gift.experience_slug!=="frasco365" && <button className={styles.ghost} type="button" onClick={()=>{setEditingCopy(!editingCopy);setSelected(null)}}>{editingCopy?"Terminar edición de textos":"Personalizar textos de las escenas"}</button>}
+          {preview && gift.experience_slug!=="frasco365" && gift.experience_slug!=="dragon-ball-pareja" && <button className={styles.ghost} type="button" onClick={()=>{setEditingCopy(!editingCopy);setSelected(null)}}>{editingCopy?"Terminar edición de textos":"Personalizar textos de las escenas"}</button>}
         </div>
-        {preview && model && <div className={styles.previewWindow} onClickCapture={chooseText}>
-          {editingCopy && <p className={styles.editModeLabel} role="status">MODO EDICIÓN · Tocá una frase del recorrido para cambiarla</p>}
-          {gift.experience_slug==="frasco365" ?
+        {preview && model && <div className={styles.previewWindow} onClickCapture={gift.experience_slug==="dragon-ball-pareja"?undefined:chooseText}>
+          {editingCopy && gift.experience_slug!=="dragon-ball-pareja" && <p className={styles.editModeLabel} role="status">MODO EDICIÓN · Tocá una frase del recorrido para cambiarla</p>}
+          {gift.experience_slug==="dragon-ball-pareja" ?
+            <DragonBallPreview code={access.code} recipientName={gift.recipient_name} giverName={gift.giver_name}
+              config={dragonConfig} photoUrls={dragonPhotoUrls} voiceUrl={dragonVoiceUrl} /> : gift.experience_slug==="frasco365" ?
             <Jar365Experience key={access.code+"-"+jarPreviewVersion} experience={{...model,demoGiver:gift.giver_name,demoRecipient:gift.recipient_name}} previewNotes={jarNotes} /> : gift.experience_slug==="siete-dias" ?
             <SevenDaysExperience
               experience={{...model,demoGiver:gift.giver_name,demoRecipient:gift.recipient_name}}
