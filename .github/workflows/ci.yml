@@ -21,5 +21,8 @@ jobs:
       - name: Install
         run: npm install
 
+      - name: Validate gift previews and media uploads
+        run: node --test scripts/studio-media-audit.mjs
+
       - name: Build
         run: npm run build
