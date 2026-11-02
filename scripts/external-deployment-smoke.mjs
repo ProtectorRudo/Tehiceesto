@@ -45,7 +45,13 @@ try{
    await page.waitForTimeout(1200);
    const html=await page.content();
    assert.ok(!html.includes("NEXT_NOT_FOUND"),target.label+path+" was not found");
-   assert.ok((await page.locator("body").innerText()).trim().length>100,target.label+path+" rendered empty page");
+   // Dragon Ball intentionally renders the immutable purchased HTML inside an
+   // iframe, so its top-level page has almost no text. Check that frame exists.
+   if(path==="/experiencias/dragon-ball-pareja"){
+    assert.ok(await page.locator('iframe[src*="dragon-ball-pareja.html"]').count()>0,target.label+path+" did not render Dragon Ball model frame");
+   }else{
+    assert.ok((await page.locator("body").innerText()).trim().length>100,target.label+path+" rendered empty page");
+   }
    const overflow=await page.evaluate(()=>Math.max(0,document.documentElement.scrollWidth-window.innerWidth));
    assert.ok(overflow<=5,target.label+path+" horizontal overflow="+overflow);
    assert.deepEqual(jsErrors.slice(before),[],target.label+path+" JavaScript errors");
