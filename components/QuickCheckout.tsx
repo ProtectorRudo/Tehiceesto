@@ -16,7 +16,6 @@ const experienceAddOnChoices=[
  {slug:"papa",name:"Para papá"},
  {slug:"amistad",name:"Expediente de amistad"},
 
- {slug:"sticker-bomb-amistad",name:"Sticker Bomb Amistad"},
  {slug:"frasco365",name:"Un año de cosas lindas"},
  {slug:"dragon-ball-pareja",name:"Dragon Ball · Nuestra Saga"},
  {slug:"siete-dias",name:"Un poquito de mí, cada día"},
@@ -41,7 +40,7 @@ export default function QuickCheckout({experience}:Props){
   const isPack=experience.slug==="pack-juegos";
   const isGame=isPack||experience.slug==="trazo-complice";
   const canOfferPack=["pareja","cumpleanos","hijos","mama","papa","amistad",
-    "sticker-bomb-amistad","frasco365","siete-dias","dragon-ball-pareja"].includes(experience.slug);
+    "frasco365","siete-dias","dragon-ball-pareja"].includes(experience.slug);
   const [addGamesPack,setAddGamesPack]=useState(false);
   const [addExperience,setAddExperience]=useState(false);
   const [experienceChoice,setExperienceChoice]=useState("pareja");

@@ -18,6 +18,11 @@ export async function POST(req:NextRequest){
     (addonExperienceSlug!==undefined&&(typeof addonExperienceSlug!=="string"||addonExperienceSlug.length>60))){
    return NextResponse.json({error:"invalid_input"},{status:400});
  }
+ // Withdrawn experiences cannot be purchased through deep links or as addons.
+ // Existing purchases and private gift links are intentionally unaffected.
+ if(experienceSlug==="sticker-bomb-amistad"||addonExperienceSlug==="sticker-bomb-amistad"){
+  return NextResponse.json({error:"experience_unavailable"},{status:404});
+ }
  try{
   const {url,key}=affiliateBackendConfig();
   const token=req.cookies.get(ATTRIBUTION_COOKIE)?.value;

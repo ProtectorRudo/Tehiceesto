@@ -17,7 +17,6 @@ const pages=[
   ["/experiencias/cumpleanos",0.75],
   ["/experiencias/amistad",0.75],
 
-  ["/experiencias/sticker-bomb-amistad",0.85],
   ["/experiencias/dragon-ball-pareja",0.85],
   ["/experiencias/frasco365",0.75],
   ["/experiencias/siete-dias",0.75],

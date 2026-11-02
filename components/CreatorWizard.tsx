@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import ExperienceEngine from "@/components/ExperienceEngine";
 import CreatorExperienceGrid from "@/components/CreatorExperienceGrid";
-import { publicExperiences, getExperience } from "@/data/experiences";
+import { publicExperiences } from "@/data/experiences";
 
 type Draft = {
   experience: string;
@@ -173,7 +173,12 @@ export default function CreatorWizard() {
       const saved = window.localStorage.getItem(STORAGE_KEY);
       const selected = new URLSearchParams(window.location.search).get("experiencia");
       const validSelected = selected && publicExperiences.some((item) => item.slug === selected);
-      if (saved) setDraft({ ...emptyDraft, ...(JSON.parse(saved) as Draft), ...(validSelected ? { experience: selected } : {}) });
+      if (saved) {
+        const stored = JSON.parse(saved) as Draft;
+        const safeExperience = publicExperiences.some(item=>item.slug===stored.experience)
+          ? stored.experience : emptyDraft.experience;
+        setDraft({ ...emptyDraft, ...stored, experience:validSelected ? selected! : safeExperience });
+      }
       else if (validSelected) setDraft({ ...emptyDraft, experience: selected });
     } catch {
       // A broken local draft should never block creation.
@@ -191,7 +196,7 @@ export default function CreatorWizard() {
     return () => photoUrls.forEach((url) => URL.revokeObjectURL(url));
   }, [photoUrls]);
 
-  const baseExperience = getExperience(draft.experience) || publicExperiences[0];
+  const baseExperience = publicExperiences.find(item=>item.slug===draft.experience) || publicExperiences[0];
   const prompts = creatorPrompts[baseExperience.slug] || creatorPrompts.pareja;
 
   const personalizedExperience = useMemo(
