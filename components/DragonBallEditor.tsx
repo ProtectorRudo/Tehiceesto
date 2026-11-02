@@ -1,9 +1,9 @@
 "use client";
-import {useMemo,useState} from "react";
+import {useEffect,useMemo,useState} from "react";
 import type {StudioGift,StudioMedia,StudioAccess} from "@/components/StudioEnhancements";
 type Part={title:string;message:string};
 type Sticker={head:string;quote:string;tag:string};
-type DragonCopy={
+export type DragonCopy={
  heroBlurb:string;originSpeech:string;powerMessage:string;wish:string;audioNarration:string;posterLine:string;
  date:string;stickers:Sticker[];memories:Part[];rivals:Part[];orbs:Part[];photoMediaIds:string[];voiceMediaId:string;
 };
@@ -60,9 +60,10 @@ const merge=(v:unknown):DragonCopy=>{
   voiceMediaId:typeof d.voiceMediaId==="string"?d.voiceMediaId:""
  };
 };
-type Props={access:StudioAccess;gift:StudioGift;media:StudioMedia[];onError:(v:string)=>void;onNotice:(v:string)=>void};
-export default function DragonBallEditor({access,gift,media,onError,onNotice}:Props){
+type Props={access:StudioAccess;gift:StudioGift;media:StudioMedia[];onError:(v:string)=>void;onNotice:(v:string)=>void;onDraftChange?:(copy:DragonCopy)=>void};
+export default function DragonBallEditor({access,gift,media,onError,onNotice,onDraftChange}:Props){
  const [draft,setDraft]=useState<DragonCopy>(()=>merge(gift.story_data?.dragonBall));
+ useEffect(()=>{onDraftChange?.(draft);},[draft,onDraftChange]);
  const [busy,setBusy]=useState(false);
  const images=useMemo(()=>media.filter(item=>item.kind==="image"),[media]);
  const audios=useMemo(()=>media.filter(item=>item.kind==="audio"),[media]);
