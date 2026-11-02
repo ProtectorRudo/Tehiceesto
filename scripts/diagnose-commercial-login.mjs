@@ -9,6 +9,7 @@ const targets=[
  "https://tehiceesto.vercel.app/mis-regalos",
  "https://tehiceesto-git-main-protector-rudo-s-projects.vercel.app/mis-regalos"
 ];
+const issues=[];
 const browser=await chromium.launch({headless:true,args:["--no-sandbox"]});
 try{
  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
@@ -26,6 +27,8 @@ try{
     if(page.url().startsWith("https://vercel.com/login"))throw new Error("Canonical domain still redirects to Vercel SSO: "+url);
     if(url.endsWith("/mis-regalos")&&url.includes("https://tehiceesto.com/")&&!body.includes("Bienvenido de nuevo"))throw new Error("Login portal not accessible from canonical domain");
    }
-  }catch(e){console.log("URL_ERROR",JSON.stringify({url,error:String(e).slice(0,500)}));}
+  }catch(e){issues.push({url,error:String(e).slice(0,500)});console.log("URL_ERROR",JSON.stringify({url,error:String(e).slice(0,500)}));}
  }
+ if(issues.length)throw new Error("Canonical customer login diagnostics failed: "+JSON.stringify(issues));
+ console.log("CANONICAL_LOGIN_PUBLIC_PASS");
 }finally{await browser.close();}
