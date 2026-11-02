@@ -170,11 +170,10 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
     : ["","",""];
   const dragonVoiceUrl = orderedMedia.find(m=>m.id===dragonConfig.voiceMediaId && m.kind==="audio")?.url || null;
 
-  async function refreshMedia():Promise<StudioMedia[]> {
+  async function refreshMedia():Promise<void> {
     const response = await action(access, "openStudio");
     const rows:StudioMedia[]=Array.isArray(response.media) ? response.media : [];
     setMedia(rows);
-    return rows;
   }
 
   async function togglePreview() {
@@ -382,7 +381,9 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
     const ok=await uploadFile(file,scenes[0]||"intro");
     if(!ok)return;
     try{
-      const rows=await refreshMedia();
+      await refreshMedia();
+      const response=await action(access,"openStudio");
+      const rows:StudioMedia[]=Array.isArray(response.media)?response.media:[];
       const newPhoto=rows.find(item=>item.kind==="image"&&!before.has(item.id));
       if(!newPhoto){onError("La foto se subió, pero no pudimos seleccionarla automáticamente. Elegila desde esta galería.");return;}
       await assignDragonPhoto(photoPicker.slot,newPhoto.id);
