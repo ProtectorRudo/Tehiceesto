@@ -182,7 +182,7 @@ Deno.serve(async (req: Request) => {
   if (action === "listSales") {
     // All buyer contact data stays behind the validated admin session.
     const {data:orders,error:orderError}=await supabase.from("orders")
-      .select("id,gift_id,status,provider,amount_minor,currency,buyer_email,paid_at,created_at,ops_contacted_at,access_email_sent_at")
+      .select("id,gift_id,status,provider,amount_minor,currency,buyer_email,paid_at,created_at,ops_contacted_at,access_email_sent_at,ops_notice_sent_at,ops_notice_last_attempt_at,ops_notice_error")
       .eq("provider","mercadopago").order("created_at",{ascending:false}).limit(100);
     if(orderError)return json(origin,{error:"sales_unavailable"},503);
     const giftIds=[...new Set((orders||[]).map(o=>o.gift_id).filter(Boolean))];
@@ -211,6 +211,9 @@ Deno.serve(async (req: Request) => {
         createdAt:order.created_at,paidAt:order.paid_at,
         contactedAt:order.ops_contacted_at,
         accessEmailAccepted:!!order.access_email_sent_at,
+        opsNoticeAccepted:!!order.ops_notice_sent_at,
+        opsNoticeAttempted:!!order.ops_notice_last_attempt_at,
+        opsNoticeError:order.ops_notice_error||null,
         assisted:creator.mode==="assisted"||
           (gift?.template_version==="premium-v5"&&gift?.experience_slug==="pareja"),
       };
