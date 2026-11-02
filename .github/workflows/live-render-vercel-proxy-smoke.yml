@@ -31,6 +31,8 @@ jobs:
         run: node scripts/qa-canonical-new-home.mjs
       - name: Verify live new design on canonical host, preserve old paid gifts
         run: node scripts/verify-new-commercial-home.mjs
+      - name: Validate nine persuasive stories and mobile card layout in production
+        run: node scripts/verify-gift-card-stories.mjs
       - name: Save evidence
         if: always()
         uses: actions/upload-artifact@v4
