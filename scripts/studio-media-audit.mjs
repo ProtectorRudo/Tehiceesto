@@ -38,18 +38,17 @@ test("Special preview types are routed explicitly instead of silently falling in
   assert.match(studio, /<DragonBallPreview/);
   assert.match(studio, /<ExperienceEngine/);
   assert.match(sticker, /<StickerBombExperience/);
-  assert.doesNotMatch(sticker, /<iframe|tehiceesto\\.com\\/experiencias\\/sticker-bomb/);
-  const stickerModel = read("components/StickerBombExperience.tsx");
-  const engine = read("components/ExperienceEngine.tsx");
-  const giftRepo = read("lib/gifts/repository.ts");
-  assert.match(stickerModel, /stickerBombChapters/);
-  assert.match(stickerModel, /normalizeStickerBomb\\(copy\\)/);
-  assert.match(engine, /props\\.experience\\.slug === "sticker-bomb-amistad"/);
-  assert.match(published, /slug==="sticker-bomb-amistad"\\) return <><StickerBombExperience/);
-  assert.match(giftRepo, /stickerBomb:row\\.story_data\\?\\.stickerBomb/);
-  assert.match(studio, /browserJpegFromHeic/);
-  assert.match(studio, /await refreshMedia\\(\\);setPreview\\(true\\)/);
-
+  assert.ok(!sticker.includes("<iframe"),"Sticker editor must not embed a foreign website");
+  const stickerModel=read("components/StickerBombExperience.tsx");
+  const engine=read("components/ExperienceEngine.tsx");
+  const giftRepo=read("lib/gifts/repository.ts");
+  assert.ok(stickerModel.includes("stickerBombChapters"));
+  assert.ok(stickerModel.includes("normalizeStickerBomb(copy)"));
+  assert.ok(engine.includes('props.experience.slug === "sticker-bomb-amistad"'));
+  assert.ok(published.includes('slug==="sticker-bomb-amistad") return <><StickerBombExperience'));
+  assert.ok(giftRepo.includes("stickerBomb:row.story_data?.stickerBomb"));
+  assert.ok(studio.includes("browserJpegFromHeic"));
+  assert.ok(studio.includes("await refreshMedia();setPreview(true)"));
   const slugs = Array.from(recipe.matchAll(/\bslug:\s*"([^"]+)"/g), match => match[1]);
   assert.ok(slugs.length >= 12, "Catalog unexpectedly shrank; audit changed experience routes");
   for (const slug of ["dragon-ball-pareja", "sticker-bomb-amistad", "frasco365", "siete-dias"]) {
