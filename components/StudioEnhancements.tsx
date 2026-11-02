@@ -192,14 +192,16 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
     // WhatsApp often exports .opus/.ogg with a missing or generic MIME type.
     const ext = source.name.toLowerCase().split(".").pop() || "";
     const inferredMime: Record<string, string> = {
+      jpg: "image/jpeg", jpeg: "image/jpeg", jpe: "image/jpeg",
+      png: "image/png", webp: "image/webp", heic: "image/heic", heif: "image/heif",
       opus: "audio/opus", oga: "audio/ogg", ogg: "audio/ogg",
       m4a: "audio/mp4", mp3: "audio/mpeg", wav: "audio/wav",
       webm: "audio/webm", aac: "audio/mp4",
     };
     const rawMime = (source.type || "").toLowerCase().split(";")[0];
-    const mimeType = (rawMime && rawMime !== "application/octet-stream" && rawMime !== "application/ogg")
-      ? (rawMime === "audio/x-wav" ? "audio/wav" : rawMime)
-      : (inferredMime[ext] || rawMime);
+    const normalizedMime = rawMime === "image/jpg" || rawMime === "image/pjpeg" ? "image/jpeg" : rawMime === "audio/x-wav" ? "audio/wav" : rawMime;
+    const mimeType = (normalizedMime && normalizedMime !== "application/octet-stream" && normalizedMime !== "application/ogg")
+      ? normalizedMime : (inferredMime[ext] || normalizedMime);
     if (!/^(image\/(jpeg|png|webp|heic|heif)|audio\/(mpeg|mp4|webm|wav|x-m4a|m4a|ogg|opus)|video\/(mp4|webm|quicktime))$/.test(mimeType)) {
       onError("Archivo no compatible. Podés usar también audios de WhatsApp (.opus y .ogg)."); return false;
     }
@@ -336,10 +338,15 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
             + Incorporar archivos
             <input aria-label="Seleccionar archivos" type="file" multiple
               accept="image/jpeg,image/png,image/webp,image/heic,image/heif,audio/mpeg,audio/mp4,audio/webm,audio/wav,audio/ogg,audio/opus,.opus,.ogg,.oga,.m4a,video/mp4,video/webm,video/quicktime"
-              disabled={Boolean(uploading)} onChange={async event => {
-                const list=Array.from(event.target.files || []).slice(0,30);
-                for (const file of list) await uploadFile(file,scenes.includes("memories" as SceneType)?"memories":scenes[0]||"intro");
-                event.target.value="";
+              disabled={Boolean(uploading)||busy||orderedMedia.length>=30} onChange={async event => {
+                const input=event.currentTarget;
+                const list=Array.from(input.files || []).slice(0,30);
+                let failed=0;
+                for (const file of list) {
+                  if (!await uploadFile(file,scenes.includes("memories" as SceneType)?"memories":scenes[0]||"intro")) failed++;
+                }
+                input.value="";
+                if (failed) onError(`${failed} de ${list.length} archivos no se pudieron subir. Revisá el formato y volvé a intentar.`);
               }} />
           </label>
           <span>{orderedMedia.length} / 30 archivos · Máximo 50 MB cada uno</span>
