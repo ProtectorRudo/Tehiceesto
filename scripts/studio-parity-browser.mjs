@@ -176,7 +176,7 @@ try{
   await page.locator("article").filter({has:page.getByRole("button",{name:"Editar mi experiencia →"})}).nth(Object.keys(codes).indexOf(code)).getByRole("button",{name:"Editar mi experiencia →"}).click();
   await page.getByRole("heading",{name:"Tu historia, a tu manera."}).waitFor();
   assert.equal(await page.getByLabel("Para",{exact:true}).inputValue(),"Destinataria QA "+slug,"Saved recipient was lost after reopening: "+slug);
-  assert.equal(await page.getByLabel("Mensaje de bienvenida",{exact:true}).first().inputValue(),"Bienvenida QA "+slug,"Saved welcome text was lost after reopening: "+slug);
+  assert.equal(await page.locator('textarea[maxlength="5000"]').first().inputValue(),"Bienvenida QA "+slug,"Saved welcome text was lost after reopening: "+slug);
   if(slug!=="frasco365"){
    assert.equal(await page.locator('input[aria-label="Seleccionar archivos"]').count(),1);
    assert.ok(await page.locator("audio[controls]").count()>=1,"Audio vanished after reopening: "+slug);
