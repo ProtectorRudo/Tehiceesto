@@ -47,4 +47,14 @@ for(const target of targets){
  assert.match(data,/invalid_input/,"Missing safe server-side input validation");
  results.push(target.name);
 }
+// The operations backend must never expose buyer emails without an authorized
+// private admin session. This sends no secret or payment and modifies nothing.
+const admin=await fetch("https://efvvadfxuyieswdqnsjg.supabase.co/functions/v1/admin-api",{
+ method:"POST",headers:{"content-type":"application/json","origin":"https://tehiceesto.com"},
+ body:JSON.stringify({action:"listSales"}),signal:AbortSignal.timeout(15000),
+});
+const adminResponse=await admin.text();
+console.log("ADMIN_ANONYMOUS_GATE",JSON.stringify({status:admin.status,body:adminResponse.slice(0,100)}));
+assert.equal(admin.status,401,"Buyer records exposed without a private admin session");
+
 console.log("BOTH_HOSTS_CHECKOUT_VALIDATION_PASS",JSON.stringify(results));
