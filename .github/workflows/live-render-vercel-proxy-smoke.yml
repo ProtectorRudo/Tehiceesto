@@ -1,0 +1,34 @@
+name: Live Render and Vercel proxy QA
+
+on:
+  push:
+    branches:
+      - qa/render-public-smoke-20261102
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  external-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright for mobile smoke
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Verify external deployment and CDN proxy without real payments
+        run: node scripts/external-deployment-smoke.mjs
+      - name: Save evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-render-vercel-proxy-qa
+          path: visual-smoke/live-proxy
+          retention-days: 7
