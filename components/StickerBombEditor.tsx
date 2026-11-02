@@ -7,7 +7,7 @@ import styles from "./sticker-bomb-editor.module.css";
 
 type Access={code:string;editorToken:string};
 type Gift={giver_name:string;recipient_name:string;story_data?:Record<string,unknown>|null};
-type Media={kind:"image"|"audio"|"video";url?:string|null;metadata?:{role?:string}|null};
+type Media={kind:"image"|"audio"|"video";url?:string|null;caption?:string|null;metadata?:{role?:string;fit?:string;position?:string}|null};
 type Config={
  relationship:string;date:string;coverText:string;
  notes:Record<string,string[]>;future:string[];finalLetter:string[];
@@ -103,8 +103,8 @@ export default function StickerBombEditor({access,gift,media,onError,onNotice,on
        recipient={gift.recipient_name||stickerBombDefaults.recipient}
        sender={gift.giver_name||stickerBombDefaults.sender}
        copy={content}
-       photos={media.filter(m=>m.kind==="image"&&m.url).map(m=>({url:m.url as string}))}
-       audios={media.filter(m=>m.kind==="audio"&&m.url&&m.metadata?.role!=="soundtrack").map(m=>({url:m.url as string}))}
+       photos={media.filter(m=>m.kind==="image"&&m.url).map(m=>({url:m.url as string,caption:m.caption||undefined,fit:m.metadata?.fit==="contain"?"contain" as const:"cover" as const,position:m.metadata?.position||"center"}))}
+       audios={media.filter(m=>m.kind==="audio"&&m.url&&m.metadata?.role!=="soundtrack").map(m=>({url:m.url as string,caption:m.caption||undefined}))}
        isPreview
      />
    </div>}
