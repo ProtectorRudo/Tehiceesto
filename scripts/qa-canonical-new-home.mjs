@@ -30,7 +30,8 @@ try{
  assert.equal(critical.length,0,"Missing critical JS/CSS/gallery assets on new home");
  const legacy=await page.goto("https://tehiceesto.com/mis-regalos",{waitUntil:"domcontentloaded",timeout:90000});
  assert.equal(legacy?.status(),200,"Existing buyer portal unavailable");
- assert.ok((await page.locator("body").innerText()).includes("Tus regalos. Tu historia."),"Old buyer portal replaced unexpectedly");
+ await page.getByText("Tus regalos. Tu historia. Tu lugar.",{exact:false}).first().waitFor({timeout:12000});
+ console.log("LEGACY_CUSTOMER_LOGIN_RENDERED");
  console.log("QA_LEGACY_BUYER_UNCHANGED");
  console.log("QA_CANONICAL_BRIDGE_PREVIEW_PASS");
 }finally{await browser.close();}
