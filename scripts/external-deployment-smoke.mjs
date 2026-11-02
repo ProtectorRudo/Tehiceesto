@@ -59,6 +59,19 @@ try{
    if(path==="/mis-regalos")await page.screenshot({path:"visual-smoke/live-proxy/"+target.label+"-mis-regalos.png"});
    console.log("PAGE_OK",target.label,path,description);
   }
+  if(target.label==="vercel-rewrite"){
+   for(const edgeFunction of ["creator-api","gift-account","order-create","affiliate-public"]){
+    const preflight=await page.evaluate(async ({endpoint})=>{
+     try{
+      const res=await fetch(endpoint,{method:"OPTIONS",headers:{"apikey":"qa-public-request","content-type":"application/json"}});
+      return {status:res.status,origin:res.headers.get("access-control-allow-origin")};
+     }catch(error){return {error:String(error)};}
+    },{endpoint:"https://efvvadfxuyieswdqnsjg.supabase.co/functions/v1/"+edgeFunction});
+    assert.equal(preflight.status,204,"Supabase preflight blocked on "+edgeFunction+": "+JSON.stringify(preflight));
+    assert.equal(preflight.origin,target.origin,"Supabase CORS origin mismatch on "+edgeFunction);
+    console.log("CORS_OK",edgeFunction,target.label);
+   }
+  }
   await page.close();
   results.push(target.label);
  }
