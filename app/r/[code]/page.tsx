@@ -1,9 +1,10 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import ExperienceEngine from "@/components/ExperienceEngine";
 import SevenDaysExperience from "@/components/SevenDaysExperience";
 import Jar365Experience from "@/components/Jar365Experience";
 import ExtraLetterLink from "@/components/ExtraLetterLink";
 import DragonBallGift from "@/components/DragonBallGift";
+import StickerBombExperience from "@/components/StickerBombExperience";
 import { getExperience } from "@/data/experiences";
 import {
   getPublishedGiftByCode,
@@ -34,7 +35,13 @@ export default async function GiftPage({
         photoUrls={storedGift.dragonBall?.photoUrls||[]}
         voiceUrl={storedGift.dragonBall?.voiceUrl||null}
       />;
-      if (storedGift.experience.slug==="sticker-bomb-amistad") redirect("/experiencias/sticker-bomb-amistad?gift="+encodeURIComponent(code));
+      if (storedGift.experience.slug==="sticker-bomb-amistad") return <><StickerBombExperience
+        recipient={storedGift.experience.demoRecipient}
+        sender={storedGift.experience.demoGiver}
+        copy={storedGift.stickerBomb}
+        photos={storedGift.photoMedia}
+        audios={storedGift.audioMedia}
+      /><ExtraLetterLink code={code}/></>;
       if (storedGift.experience.slug==="frasco365") return <><Jar365Experience experience={storedGift.experience} giftCode={code} /><ExtraLetterLink code={code}/></>;
       if (storedGift.experience.slug==="siete-dias") return <><SevenDaysExperience experience={storedGift.experience} singleDay={1} sceneTextOverrides={storedGift.sceneTextOverrides} photoMedia={storedGift.photoMedia} audioMedia={storedGift.audioMedia} /><ExtraLetterLink code={code}/></>;
 

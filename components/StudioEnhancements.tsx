@@ -96,6 +96,35 @@ function displayError(value: unknown): string {
   return "No se pudo completar la operación. Revisá tu conexión e intentá de nuevo.";
 }
 
+// HEIC previews are not supported in every recipient browser, even if Storage
+// accepts the file. Convert when the mobile browser can decode it; otherwise
+// return an explicit error rather than saving an invisible photo.
+async function browserJpegFromHeic(source:File):Promise<File>{
+  const url=URL.createObjectURL(source);
+  try {
+    const photo=await new Promise<HTMLImageElement>((resolve,reject)=>{
+      const image=new Image();
+      image.onload=()=>resolve(image);
+      image.onerror=()=>reject(new Error("heic_decode_failed"));
+      image.src=url;
+    });
+    const maxEdge=2400;
+    const ratio=Math.min(1,maxEdge/Math.max(photo.naturalWidth,photo.naturalHeight));
+    const canvas=document.createElement("canvas");
+    canvas.width=Math.max(1,Math.round(photo.naturalWidth*ratio));
+    canvas.height=Math.max(1,Math.round(photo.naturalHeight*ratio));
+    const ctx=canvas.getContext("2d");
+    if(!ctx)throw new Error("heic_decode_failed");
+    ctx.drawImage(photo,0,0,canvas.width,canvas.height);
+    const blob=await new Promise<Blob>((resolve,reject)=>
+      canvas.toBlob(blob=>blob?resolve(blob):reject(new Error("heic_decode_failed")),"image/jpeg",0.88)
+    );
+    return new File([blob],source.name.replace(/\.(heic|heif)$/i,"")+".jpg",{
+      type:"image/jpeg",lastModified:source.lastModified
+    });
+  }finally{URL.revokeObjectURL(url);}
+}
+
 type SelectedText = { scene: string; source: string; current: string };
 
 export default function StudioEnhancements({ access, ownerToken, gift, initialMedia, onError, onNotice, onPublished }: Props) {
@@ -103,6 +132,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
   const [dragonDraft,setDragonDraft] = useState<DragonCopy|null>(null);
   const [sceneContent, setSceneContent] = useState(() => normalizeSceneTextOverrides(gift.story_data?.sceneContent));
   const [preview, setPreview] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [jarNotes,setJarNotes] = useState<Jar365Note[]>([]);
   const [jarPreviewVersion,setJarPreviewVersion] = useState(0);
   const [editingCopy, setEditingCopy] = useState(false);
@@ -140,6 +170,15 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
   async function refreshMedia() {
     const response = await action(access, "openStudio");
     setMedia(Array.isArray(response.media) ? response.media : []);
+  }
+
+  async function togglePreview() {
+    if (preview) {setPreview(false);setEditingCopy(false);return;}
+    if (previewLoading || uploading) return;
+    setPreviewLoading(true);
+    try {await refreshMedia();setPreview(true);}
+    catch(error){onError(displayError(error));}
+    finally {setPreviewLoading(false);}
   }
 
   function chooseText(event: MouseEvent<HTMLDivElement>) {
@@ -205,9 +244,11 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
     if (!/^(image\/(jpeg|png|webp|heic|heif)|audio\/(mpeg|mp4|webm|wav|x-m4a|m4a|ogg|opus)|video\/(mp4|webm|quicktime))$/.test(mimeType)) {
       onError("Archivo no compatible. Podés usar también audios de WhatsApp (.opus y .ogg)."); return false;
     }
-    const file = source.type === mimeType ? source : new File([source], source.name, { type: mimeType, lastModified: source.lastModified });
-    setUploading(file.name); setProgress(0);
+    setUploading(source.name); setProgress(0);
     try {
+      const file = mimeType === "image/heic" || mimeType === "image/heif"
+        ? await browserJpegFromHeic(source)
+        : source.type === mimeType ? source : new File([source],source.name,{type:mimeType,lastModified:source.lastModified});
       const prepared = await action(access, "prepareStudioUpload", {
         fileName:file.name, mimeType:file.type, size:file.size,
       });
@@ -254,7 +295,9 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
       await refreshMedia();
       onNotice("Archivo incorporado a tu regalo.");
       return true;
-    } catch (error) { onError(displayError(error)); return false; }
+    } catch (error) { onError(error instanceof Error&&error.message==="heic_decode_failed"
+        ? "Tu teléfono no pudo convertir esta foto HEIC. Guardala como JPG o PNG y volvé a seleccionarla."
+        : displayError(error)); return false; }
     finally { setUploading(""); setProgress(0); }
   }
 
@@ -318,7 +361,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
     <div className={styles.enhancement}>
       <ExtraLetterEditor code={access.code} editorToken={access.editorToken} />
       {gift.experience_slug==="dragon-ball-pareja" && <DragonBallEditor access={access} gift={gift} media={media} onError={onError} onNotice={onNotice} onDraftChange={setDragonDraft}/>}
-      {gift.experience_slug==="sticker-bomb-amistad" && <StickerBombEditor key={access.code} access={access} gift={gift} media={media} onError={onError} onNotice={onNotice}/>}
+      {gift.experience_slug==="sticker-bomb-amistad" && <StickerBombEditor key={access.code} access={access} gift={gift} media={media} onError={onError} onNotice={onNotice} onRefreshMedia={refreshMedia}/>}
       {gift.experience_slug==="siete-dias" && <SevenDaysSharePanel code={access.code} editorToken={access.editorToken} />}
       {gift.experience_slug==="frasco365" && <Jar365Editor code={access.code} editorToken={access.editorToken} onNotesChange={(notes)=>{setJarNotes(notes);setJarPreviewVersion(version=>version+1);}} />}
       {gift.experience_slug!=="frasco365" && <section className={styles.studioSection}>
@@ -395,7 +438,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
           <p>{gift.experience_slug==="frasco365"?"Abrí una demo de tu frasco con tus frases guardadas. Probá los papelitos sin consumir las aperturas de la persona que lo recibe.":gift.experience_slug==="dragon-ball-pareja"?"Revisá las nueve escenas originales de Dragon Ball con tus textos y fotos. Los cambios se muestran aquí; guardá la saga antes de publicar.":"Revisá el recorrido con tus datos. Podés seleccionar textos en la vista previa y cambiarlos sin alterar los efectos ni las animaciones."}</p>
         </div>
         <div className={styles.previewActions}>
-          <button className={styles.ghost} type="button" onClick={() => setPreview(!preview)}>{preview?"Cerrar vista previa":"Abrir vista previa →"}</button>
+          <button className={styles.ghost} type="button" disabled={previewLoading || Boolean(uploading)} onClick={()=>void togglePreview()}>{previewLoading?"Actualizando fotos…":preview?"Cerrar vista previa":"Abrir vista previa →"}</button>
           {preview && gift.experience_slug!=="frasco365" && gift.experience_slug!=="dragon-ball-pareja" && <button className={styles.ghost} type="button" onClick={()=>{setEditingCopy(!editingCopy);setSelected(null)}}>{editingCopy?"Terminar edición de textos":"Personalizar textos de las escenas"}</button>}
         </div>
         {preview && model && <div className={styles.previewWindow} onClickCapture={gift.experience_slug==="dragon-ball-pareja"?undefined:chooseText}>

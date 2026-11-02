@@ -1,0 +1,68 @@
+name: Studio parity browser audit
+
+on:
+  pull_request:
+    paths:
+      - "components/**"
+      - "app/r/**"
+      - "app/mis-regalos/**"
+      - "app/experiencias/**"
+      - "data/experiences.ts"
+      - "data/sticker-bomb-content.ts"
+      - "lib/gifts/**"
+      - "scripts/studio-parity-browser.mjs"
+      - "scripts/studio-media-audit.mjs"
+      - ".github/workflows/studio-parity-audit.yml"
+  push:
+    branches: [main]
+    paths:
+      - "components/**"
+      - "app/r/**"
+      - "app/mis-regalos/**"
+      - "app/experiencias/**"
+      - "data/experiences.ts"
+      - "data/sticker-bomb-content.ts"
+      - "lib/gifts/**"
+      - "scripts/studio-parity-browser.mjs"
+      - "scripts/studio-media-audit.mjs"
+      - ".github/workflows/studio-parity-audit.yml"
+
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://mock.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-public-dummy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install and prepare mobile browser
+        run: |
+          npm install
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Prevent regressions
+        run: node --test scripts/studio-media-audit.mjs
+      - name: Production build
+        run: npm run build
+      - name: Start isolated test server
+        run: |
+          npm start -- -H 127.0.0.1 -p 3000 > /tmp/studio-parity.log 2>&1 &
+          for i in {1..35}; do
+            curl -fsS http://127.0.0.1:3000/mis-regalos >/dev/null && exit 0
+            sleep 2
+          done
+          cat /tmp/studio-parity.log
+          exit 1
+      - name: Browser-verify all public experiences and mocked customer studios
+        run: node scripts/studio-parity-browser.mjs
+      - name: Store mobile evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: studio-parity-artifacts
+          path: visual-smoke/studio-parity/
+          retention-days: 7

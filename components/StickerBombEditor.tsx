@@ -1,17 +1,18 @@
 "use client";
 
-import {useCallback,useEffect,useRef,useState,type FormEvent} from "react";
-import {stickerBombChapters,stickerBombDefaults,stickerBombNoteKeys} from "@/data/sticker-bomb-content";
+import {useState,type FormEvent} from "react";
+import StickerBombExperience from "./StickerBombExperience";
+import {stickerBombDefaults,stickerBombNoteKeys} from "@/data/sticker-bomb-content";
 import styles from "./sticker-bomb-editor.module.css";
 
 type Access={code:string;editorToken:string};
 type Gift={giver_name:string;recipient_name:string;story_data?:Record<string,unknown>|null};
-type Media={kind:"image"|"audio"|"video";url?:string|null;metadata?:{role?:string}|null};
+type Media={kind:"image"|"audio"|"video";url?:string|null;caption?:string|null;metadata?:{role?:string;fit?:string;position?:string}|null};
 type Config={
  relationship:string;date:string;coverText:string;
  notes:Record<string,string[]>;future:string[];finalLetter:string[];
 };
-type Props={access:Access;gift:Gift;media:Media[];onError:(text:string)=>void;onNotice:(text:string)=>void};
+type Props={access:Access;gift:Gift;media:Media[];onError:(text:string)=>void;onNotice:(text:string)=>void;onRefreshMedia?:()=>Promise<void>};
 const endpoint=(process.env.NEXT_PUBLIC_SUPABASE_URL||"")+"/functions/v1/creator-api";
 const apiKey=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY||"";
 const originalNotes=stickerBombDefaults.notes as Record<string,readonly string[]>;
@@ -38,23 +39,21 @@ const sceneName:Record<string,string>={
  plans:"Plan B oficial",rescue:"Rescatista emocional",chaos:"Partner del caos",
  moments:"Momentos épicos",code:"Nuestro idioma",time:"A prueba de tiempo",
 };
-export default function StickerBombEditor({access,gift,media,onError,onNotice}:Props){
+export default function StickerBombEditor({access,gift,media,onError,onNotice,onRefreshMedia}:Props){
  const [content,setContent]=useState<Config>(()=>initialConfig(gift));
- const [saving,setSaving]=useState(false),[preview,setPreview]=useState(false);
- const frame=useRef<HTMLIFrameElement>(null);
+ const [saving,setSaving]=useState(false),[preview,setPreview]=useState(false),[loadingPreview,setLoadingPreview]=useState(false);
+ const togglePreview=async()=>{
+  if(preview){setPreview(false);return;}
+  if(loadingPreview)return;
+  setLoadingPreview(true);
+  try{await onRefreshMedia?.();setPreview(true);}
+  catch{onError("No pudimos actualizar las fotos del regalo. Intentá abrir la vista previa nuevamente.");}
+  finally{setLoadingPreview(false);}
+ };
+
  const setField=(key:"coverText"|"relationship"|"date",v:string)=>setContent(old=>({...old,[key]:v}));
  const setNote=(key:string,index:number,value:string)=>setContent(old=>({...old,notes:{...old.notes,[key]:old.notes[key].map((text,i)=>i===index?value:text)}}));
  const setArray=(key:"future"|"finalLetter",index:number,value:string)=>setContent(old=>({...old,[key]:old[key].map((text,i)=>i===index?value:text)}));
- const deliver=useCallback(()=>{
-  if(!frame.current?.contentWindow)return;
-  const photos=media.filter(m=>m.kind==="image"&&m.url).map(m=>m.url as string).slice(0,8);
-  const audios=media.filter(m=>m.kind==="audio"&&m.url&&m.metadata?.role!=="soundtrack").map(m=>m.url as string).slice(0,8);
-  frame.current.contentWindow.postMessage({type:"tehiceesto-sticker-preview",
-   payload:{...content,recipient:gift.recipient_name||stickerBombDefaults.recipient,
-    sender:gift.giver_name||stickerBombDefaults.sender,photos,audioUrls:audios}},
-   "https://tehiceesto.com");
- },[content,media,gift.giver_name,gift.recipient_name]);
- useEffect(()=>{if(preview)deliver()},[preview,deliver]);
  const save=async(event:FormEvent<HTMLFormElement>)=>{
   event.preventDefault();if(saving)return;
   if(!apiKey||!process.env.NEXT_PUBLIC_SUPABASE_URL){onError("El editor no está configurado. Intentá nuevamente más tarde.");return;}
@@ -95,11 +94,19 @@ export default function StickerBombEditor({access,gift,media,onError,onNotice}:P
       <div className={styles.lines}>{content.finalLetter.map((line,i)=><label key={i}>Párrafo {i+1}<textarea rows={5} maxLength={4500} value={line} onChange={e=>setArray("finalLetter",i,e.target.value)}/></label>)}</div>
     </details>
     <div className={styles.actions}><button className={styles.save} type="submit" disabled={saving}>{saving?"Guardando recuerdos…":"Guardar mis stickers y la carta →"}</button>
-      <button className={styles.previewButton} type="button" onClick={()=>setPreview(!preview)}>{preview?"Cerrar vista previa":"Ver cómo queda en el celular"}</button>
+      <button className={styles.previewButton} type="button" disabled={loadingPreview} onClick={()=>void togglePreview()}>{loadingPreview?"Actualizando fotos…":preview?"Cerrar vista previa":"Ver cómo queda en el celular"}</button>
     </div>
    </form>
-   {preview&&<div className={styles.preview}><div className={styles.previewHead}><span>VISTA PREVIA CON TUS DATOS</span><button type="button" onClick={deliver}>Actualizar vista ↻</button></div>
-     <iframe ref={frame} onLoad={deliver} title="Vista previa personalizada Sticker Bomb Amistad" src="https://tehiceesto.com/experiencias/sticker-bomb-amistad?preview=1" className={styles.iframe}/>
+   {preview&&<div className={styles.preview}>
+     <div className={styles.previewHead}><span>VISTA PREVIA CON TUS DATOS · MODELO ORIGINAL</span></div>
+     <StickerBombExperience
+       recipient={gift.recipient_name||stickerBombDefaults.recipient}
+       sender={gift.giver_name||stickerBombDefaults.sender}
+       copy={content}
+       photos={media.filter(m=>m.kind==="image"&&m.url).map(m=>({url:m.url as string,caption:m.caption||undefined,fit:m.metadata?.fit==="contain"?"contain" as const:"cover" as const,position:m.metadata?.position||"center"}))}
+       audios={media.filter(m=>m.kind==="audio"&&m.url&&m.metadata?.role!=="soundtrack").map(m=>({url:m.url as string,caption:m.caption||undefined}))}
+       isPreview
+     />
    </div>}
    <p className={styles.help}>Tus fotos y audios se cargan más abajo en «Materiales personales». Se incorporan automáticamente al recorrido cuando publiques. Las ilustraciones de los stickers son parte del diseño y no se modifican.</p>
  </section>;

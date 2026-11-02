@@ -92,6 +92,7 @@ export async function getPublishedGiftByCode(
   };
   sceneTextOverrides?: SceneTextOverrides;
   dragonBall?: {config:Record<string,unknown>;photoUrls:string[];voiceUrl:string|null};
+  stickerBomb?: Record<string,unknown>;
 }> {
   const env = publicCredentials();
   if (!env) {
@@ -219,6 +220,7 @@ export async function getPublishedGiftByCode(
       row.story_data?.sceneContent,
     ),
     dragonBall:dragonBallConfig?{config:dragonBallConfig,photoUrls:dragonBallPhotos,voiceUrl:dragonBallVoice}:undefined,
+    stickerBomb:row.story_data?.stickerBomb&&typeof row.story_data.stickerBomb==="object"&&!Array.isArray(row.story_data.stickerBomb)?row.story_data.stickerBomb as Record<string,unknown>:undefined,
   };
 }
 
