@@ -115,6 +115,71 @@ const labels: Record<string, { title: string; mood: string; gesture: string }> =
   "siete-dias": { title: "Un poquito de mí, cada día", mood: "Siete sorpresas distintas. Una semana de amor.", gesture: "Probá los siete capítulos originales" },
   secreto: { title: "Te guardé un secreto", mood: "Una noticia que merece su momento.", gesture: "Seguí las pistas hasta la revelación" },
 };
+// Editorial copy describes what the recipient will feel, without promising
+// interactions that are not part of the chosen, reusable experience model.
+const giftStories: Record<string, { hook: string; promise: string }> = {
+  pareja: {
+    hook: "Su historia merece algo más que una foto juntos.",
+    promise: "Convertí sus recuerdos en un recorrido para descubrir, sentir y volver a vivir. Al final, las palabras que a veces cuesta decir encuentran su lugar.",
+  },
+  cumpleanos: {
+    hook: "Que no sea un cumpleaños más.",
+    promise: "En lugar de otro mensaje de felicitación, regalale una sorpresa que se abre paso a paso: momentos, detalles y emociones que fueron pensados solamente para esa persona.",
+  },
+  hijos: {
+    hook: "Hay recuerdos que merecen quedar para siempre.",
+    promise: "Desde las primeras fotos hasta las palabras que querés dejarle, reuní su historia en un regalo al que puedan volver hoy y dentro de muchos años.",
+  },
+  abuelos: {
+    hook: "Toda una vida de amor merece ser contada.",
+    promise: "Reuní voces, historias y recuerdos familiares para que los abuelos descubran cuánto de ellos sigue vivo en cada generación.",
+  },
+  aniversario: {
+    hook: "Volver a elegirnos también merece una celebración.",
+    promise: "Revivan el primer encuentro, las pequeñas historias y todo lo que construyeron juntos, hasta llegar a una carta escrita desde el corazón.",
+  },
+  propuesta: {
+    hook: "La gran pregunta merece un momento único.",
+    promise: "Cada pista y recuerdo prepara el camino hacia esas palabras que van a cambiar su historia. Una sorpresa hecha para vivirla de principio a fin.",
+  },
+  mama: {
+    hook: "Hay gracias que no entran en un mensaje.",
+    promise: "Hacé que mamá descubra cuánto significaron sus gestos de todos los días. Tus recuerdos, tus fotos y tu voz pueden convertirse en un abrazo que vuelva a sentir.",
+  },
+  papa: {
+    hook: "Que sepa cuánto de él vive en vos.",
+    promise: "Transformá sus enseñanzas, sus gestos y esos recuerdos que los unen en palabras que quizá nunca le dijiste, pero que merece escuchar.",
+  },
+  amistad: {
+    hook: "Nadie más entendería esos códigos. Y eso lo hace especial.",
+    promise: "Anécdotas, secretos y esas decisiones que todavía dan risa se convierten en un recorrido que empieza jugando y termina celebrando una amistad irrepetible.",
+  },
+  "sticker-bomb-amistad": {
+    hook: "Primero se van a reír. Después, quizá necesiten un abrazo.",
+    promise: "Stickers, fotos, audios y chistes que solo ustedes entienden se unen en una sorpresa que guarda lo mejor para el final: una carta de verdad.",
+  },
+  "club-amigos": {
+    hook: "Su amistad tiene demasiadas historias para un solo mensaje.",
+    promise: "Un club secreto lleno de bromas, sorpresas y recuerdos para revivir juntos lo que hace única a su banda.",
+  },
+  secreto: {
+    hook: "Algunas noticias merecen una revelación inolvidable.",
+    promise: "En vez de contarla de golpe, dejá que cada pista aumente la emoción hasta llegar al momento que esa persona jamás esperó.",
+  },
+  frasco365: {
+    hook: "Un regalo que no termina cuando lo abrís.",
+    promise: "Cada día aparece un papelito nuevo con palabras tuyas. Son 365 pequeñas razones para sonreír, sentirse querido y recordar que alguien pensó en esa persona.",
+  },
+  "siete-dias": {
+    hook: "Siete días. Siete momentos para volver a emocionarse.",
+    promise: "En lugar de una sola sorpresa, regalale una semana de pequeños descubrimientos, hasta llegar al último capítulo y una carta escrita para esa persona.",
+  },
+  "dragon-ball-pareja": {
+    hook: "Una historia de amor digna de su propia saga.",
+    promise: "Convertí sus recuerdos en una aventura anime con esferas, escenas y mensajes personalizados. Esta vez, los protagonistas de la historia son ustedes dos.",
+  },
+};
+
 const favorites = ["club-amigos","frasco365","siete-dias", "pareja", "mama", "cumpleanos", "amistad", "papa"];
 export default function BoutiqueGallery({ experiences }: Props) {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -202,6 +267,10 @@ export default function BoutiqueGallery({ experiences }: Props) {
               </div>
               <div className="ethos-card-info">
                 <div className="ethos-card-information"><span className="ethos-card-eyebrow">{experience.eyebrow}</span>{isActive&&<span className="ethos-inline-live"><i/> DEMO EN VIVO</span>}<h3>{demo.title}</h3><p>{demo.mood}</p></div>
+                <p className="ethos-card-pitch">
+                  <strong>{(giftStories[experience.slug] || {hook:experience.short}).hook}</strong>
+                  <span>{giftStories[experience.slug]?.promise || experience.description}</span>
+                </p>
                 <p className="ethos-card-gesture">{demo.gesture}</p>
                 <button type="button" className="demo-expand-trigger" onClick={()=>openFullscreen(experience.slug,demo.title)} aria-label={"Ver "+demo.title+" en pantalla completa"}>
                   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M8 3H4a1 1 0 0 0-1 1v4M16 3h4a1 1 0 0 1 1 1v4M8 21H4a1 1 0 0 1-1-1v-4M16 21h4a1 1 0 0 0 1-1v-4"/></svg>

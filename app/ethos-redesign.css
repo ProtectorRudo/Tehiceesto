@@ -113,6 +113,32 @@ body:has(.boutique-home) .site-header .header-create:hover{background:#9e1249;co
 .ethos-card-eyebrow{font-size:9px;letter-spacing:.14em;font-weight:800;color:#b83a6e;text-transform:uppercase}
 .ethos-card-info h3{font:400 36px/1 'Instrument Serif',serif;margin:9px 0;color:#392535}
 .ethos-card-information>p{font-size:12px;color:#806b74;line-height:1.5;min-height:19px;margin:0}
+
+/* Quiet editorial storytelling under each title. The hook attracts the eye;
+   the second sentence explains why the recipient will want to keep the gift. */
+.ethos-card-info .ethos-card-pitch{
+  margin:18px 0 0;
+  padding:16px 1px 1px;
+  border-top:1px solid #efdee5;
+  color:#674f5c;
+  font-size:12.5px;
+  line-height:1.65;
+  text-wrap:pretty;
+}
+.ethos-card-pitch strong{
+  display:block;
+  color:#4f3041;
+  font-size:14px;
+  font-weight:700;
+  letter-spacing:-.015em;
+  line-height:1.42;
+  margin-bottom:7px;
+}
+.ethos-card-pitch span{display:block}
+@media(max-width:760px){
+  .ethos-card-info .ethos-card-pitch{margin-top:16px;padding-top:15px;font-size:12.5px;line-height:1.62}
+  .ethos-card-pitch strong{font-size:13.5px}
+}
 .ethos-card-gesture{font-size:11px;color:#b14a79;margin:17px 0 14px;min-height:18px}
 .ethos-card-cta{display:flex;align-items:center;gap:10px;margin-top:auto;flex-wrap:wrap}
 .ethos-card-test{background:#c02c6b;color:#fff;border:0;border-radius:100px;padding:13px 14px;font-size:11px;font-weight:800;flex:1;min-width:140px;transition:background .2s}
