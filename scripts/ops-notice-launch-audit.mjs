@@ -25,6 +25,13 @@ assert(bridge.includes('if(code==="personalized_experience_v1")'),"Must keep per
 
 assert(bridge.includes('String(Deno.env.get("TEHICEESTO_OPS_EMAIL")||"").trim()'));
 assert(bridge.includes('email_transport_not_configured'));
+assert(bridge.includes('rpc("tehiceesto_private_ops_email")'),"The production operations recipient must be resolved from encrypted Vault via RPC");
+const vaultMigration=fs.readFileSync("supabase/migrations/20261102183000_tehiceesto_private_ops_email.sql","utf8");
+assert(vaultMigration.includes("FROM vault.decrypted_secrets"));
+assert(vaultMigration.includes("GRANT EXECUTE ON FUNCTION public.tehiceesto_private_ops_email() TO service_role"));
+assert(vaultMigration.includes("REVOKE ALL ON FUNCTION public.tehiceesto_private_ops_email() FROM PUBLIC"));
+assert(!vaultMigration.includes("@gmail.com"),"Do not commit the operator's personal email");
+
 assert(admin.includes("opsNoticeAccepted:!!order.ops_notice_sent_at"));
 assert(panel.includes("Falta configurar correo del equipo"));
 assert(migration.includes("ops_notice_last_attempt_at is not null"));
@@ -42,11 +49,11 @@ const isolated=ts.transpileModule(bridge.slice(start,end),{
  reportDiagnostics:true,
 });
 assert.equal((isolated.diagnostics||[]).filter(d=>d.category===ts.DiagnosticCategory.Error).length,0);
-const calls=[],state={opsEmail:"",apiKey:"fake",providerStatus:200};
+const calls=[],rpcCalls=[],state={opsEmail:"",vaultEmail:"",apiKey:"fake",providerStatus:200};
 const sandbox={
  Deno:{env:{get:k=>k==="TEHICEESTO_OPS_EMAIL"?state.opsEmail:
    k==="RESEND_API_KEY"?state.apiKey:k==="TEHICEESTO_EMAIL_FROM"?"Te Hice Esto <hola@tehiceesto.com>":""}},
- client:()=>({rpc:async()=>({data:"rpc-fake-key",error:null})}),
+ client:()=>({rpc:async(name)=>{rpcCalls.push(name);return {data:name==="tehiceesto_private_ops_email"?state.vaultEmail:"rpc-fake-key",error:null}}}),
  fetch:async (url,options)=>{calls.push({url,options});return{ok:state.providerStatus===200,status:state.providerStatus}},
  AbortSignal,Intl,Date,console,
 };
@@ -57,10 +64,11 @@ let result=await send("11111111-2222-3333-4444-555555555555","buyer@example.test
 assert.equal(result.ok,false);
 assert.equal(result.error,"ops_recipient_not_configured");
 assert.equal(calls.length,0,"Never send to an undeclared recipient");
-state.opsEmail="ops@tehiceesto.example";
+state.vaultEmail="ops@tehiceesto.example";
 result=await send("11111111-2222-3333-4444-555555555555","buyer@example.test","pareja",2500000);
 assert.equal(result.ok,true);
 assert.equal(calls.length,1);
+assert(rpcCalls.includes("tehiceesto_private_ops_email"),"Must read the service-only vault recipient");
 assert.equal(calls[0].url,"https://api.resend.com/emails");
 assert.equal(calls[0].options.headers["Idempotency-Key"],"thi-ops-11111111-2222-3333-4444-555555555555");
 const sent=JSON.parse(calls[0].options.body);
