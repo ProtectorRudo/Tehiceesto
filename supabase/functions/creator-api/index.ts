@@ -153,12 +153,25 @@ async function assertStudioAccess(
 
   const { data: order, error: orderError } = await supabase
     .from("orders")
-    .select("status,provider,provider_reference,amount_minor,currency,paid_at,updated_at")
+    .select("id,status,provider,provider_reference,amount_minor,currency,paid_at,updated_at")
     .eq("gift_id", gift.id)
     .maybeSingle();
 
   if (orderError) throw new Error("studio_order_lookup_failed");
   if (order?.status === "approved") return { gift, order, story };
+
+  // Explicit support license for this exact refunded test order. This does NOT
+  // overwrite provider payment status; editor token validation above stays mandatory.
+  if(order?.id && gift.experience_slug==="dragon-ball-pareja"){
+    const {data:license,error:licenseError}=await supabase.from("complimentary_access_grants")
+      .select("order_id,gift_id,expires_at")
+      .eq("order_id",order.id).eq("gift_id",gift.id)
+      .eq("product_code","dragon-ball-pareja")
+      .is("revoked_at",null).maybeSingle();
+    if(licenseError)throw new Error("studio_order_lookup_failed");
+    if(license&&(!license.expires_at||Date.parse(license.expires_at)>Date.now()))
+      return {gift,order,story};
+  }
 
   // An experience added during a game purchase has no separate order.
   // Require a fully paid, non-refunded original order AND matching, paid addon.
