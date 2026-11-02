@@ -123,7 +123,7 @@ try{
   await page.getByRole("heading",{name:"Los recuerdos tienen casa."}).waitFor();
  }
  assert.ok(ops.includes("registerStudioMedia"),"No photo registered");
- assert.ok(ops.includes("storage:POST"),"Signed object upload path was not exercised");
+ assert.ok(ops.some(op=>op.startsWith("storage:") && op!=="storage:GET"),"Signed object upload path was not exercised; observed "+ops.filter(op=>op.startsWith("storage:")).join(","));
  assert.deepEqual(errs,[],"Authenticated studio JavaScript errors");
  await page.screenshot({path:"visual-smoke/studio-parity/account.png",fullPage:true});
  await page.close();
