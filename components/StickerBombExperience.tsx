@@ -3,6 +3,7 @@
 import {useMemo,useRef,useState,type TouchEvent} from "react";
 import {stickerBombChapters,stickerBombDefaults,stickerBombNoteKeys} from "@/data/sticker-bomb-content";
 import styles from "./sticker-bomb-experience.module.css";
+import StickerBombStickers from "./StickerBombStickers";
 
 type ChapterKey=typeof stickerBombNoteKeys[number];
 export type StickerBombCopy={
@@ -51,6 +52,7 @@ export default function StickerBombExperience({recipient,sender,copy,photos=[],a
  const [step,setStep]=useState(-1);
  const [openNote,setOpenNote]=useState(0);
  const [openedLetter,setOpenedLetter]=useState(false);
+ const [collectedStickers,setCollectedStickers]=useState<string[]>([]);
  const touch=useRef<{x:number;y:number}|null>(null);
  const total=stickerBombChapters.length;
  const active=step>=0?stickerBombChapters[step]:null;
@@ -58,6 +60,7 @@ export default function StickerBombExperience({recipient,sender,copy,photos=[],a
   ?content.notes[active.id]||[]:[];
  const visiblePhotos=demoMode&&photos.length===0?demoPhotos:photos;
  const go=(next:number)=>{
+  if(next===-1)setCollectedStickers([]);
   setStep(Math.min(Math.max(next,-1),total-1));
   setOpenNote(0);
   setOpenedLetter(false);
@@ -113,6 +116,7 @@ export default function StickerBombExperience({recipient,sender,copy,photos=[],a
      <div className={styles.stickerPanel}>
       <span className={styles.tape} aria-hidden="true"/>
       <div className={styles.panelOverline}><span>ARCHIVO DE {recipient.toUpperCase()}</span><span>OBJETO {String(step+1).padStart(2,"0")}</span></div>
+      <StickerBombStickers chapter={active?.id||""} personalLine={lines[0]||undefined} collected={!!active&&collectedStickers.includes(active.id)} onCollect={()=>{if(active)setCollectedStickers(previous=>previous.includes(active.id)?previous.filter(id=>id!==active.id):[...previous,active.id]);}}/>
       {active?.id==="moments"&&visiblePhotos.length>0&&
        <div className={styles.photos}>{visiblePhotos.slice(0,6).map((photo,i)=>
         <figure key={photo.url+"-"+i} className={styles.polaroid}>
