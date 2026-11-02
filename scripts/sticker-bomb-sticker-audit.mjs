@@ -17,7 +17,7 @@ try{
   for(let i=0;i<12;i++){
    const part=page.locator("section[aria-label^='Capítulo']");
    const title=await part.locator("h1").innerText();
-   const sticker=part.getByRole("button",{name:/Despegar el sticker/});
+   const sticker=part.locator("button[aria-pressed]");
    if(await sticker.count()!==1)throw Error("Missing original-inspired sticker "+title);
    const aria=await sticker.getAttribute("aria-label");stickers.add(aria);
    if(await sticker.locator("svg").count()!==1)throw Error("Missing sticker illustration at "+i);
