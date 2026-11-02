@@ -119,7 +119,7 @@ async function browserJpegFromHeic(source:File):Promise<File>{
     const blob=await new Promise<Blob>((resolve,reject)=>
       canvas.toBlob(blob=>blob?resolve(blob):reject(new Error("heic_decode_failed")),"image/jpeg",0.88)
     );
-    return new File([blob],source.name.replace(/\\.(heic|heif)$/i,"")+".jpg",{
+    return new File([blob],source.name.replace(/\.(heic|heif)$/i,"")+".jpg",{
       type:"image/jpeg",lastModified:source.lastModified
     });
   }finally{URL.revokeObjectURL(url);}
