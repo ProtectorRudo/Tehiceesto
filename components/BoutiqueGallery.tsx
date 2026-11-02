@@ -38,6 +38,9 @@ export function ScaledDemoFrame({ slug, epoch, title, onReady, onSwipe }: {
   useEffect(() => () => detachSwipeRef.current(), []);
   const onFrameLoaded = () => {
     detachSwipeRef.current();
+    // Sticker Bomb owns horizontal gestures for its chapter navigation.
+    // Do not let the parent gallery steal swipes from that interactive demo.
+    if (slug === "sticker-bomb-amistad") { onReady(); return; }
     const documentInFrame = frameRef.current?.contentDocument;
     if (documentInFrame) {
       let initial: { x: number; y: number } | null = null;
@@ -254,7 +257,7 @@ export default function BoutiqueGallery({ experiences }: Props) {
                         <ScaledDemoFrame slug={experience.slug} epoch={epoch} title={demo.title} onReady={()=>setLoaded(true)} onSwipe={move}/>
                       </> : <>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={experience.slug==="frasco365"?"/demo-previews/frasco365.svg":(experience.slug==="siete-dias"||experience.slug==="club-amigos"||experience.slug==="dragon-ball-pareja")?"/demo-previews/"+experience.slug+".svg":"/demo-previews/"+experience.slug+".jpg"} alt={"Vista previa real de "+demo.title} loading={i<3?"eager":"lazy"} />
+                        <img src={experience.slug==="frasco365"?"/demo-previews/frasco365.svg":(experience.slug==="siete-dias"||experience.slug==="club-amigos"||experience.slug==="dragon-ball-pareja"||experience.slug==="sticker-bomb-amistad")?"/demo-previews/"+experience.slug+".svg":"/demo-previews/"+experience.slug+".jpg"} alt={"Vista previa real de "+demo.title} loading={i<3?"eager":"lazy"} />
                         <div className="ethos-phone-screen-shade" aria-hidden="true"/>
                         <button className="ethos-phone-start" onClick={()=>start(experience.slug)} type="button" aria-label={"Iniciar demo de "+demo.title}><span className="ethos-phone-start-icon">▶</span><span>PROBAR EN VIVO</span></button>
                       </>}
