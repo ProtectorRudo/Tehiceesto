@@ -35,7 +35,7 @@ try{
  }
  const acc=await page.goto(origin+"/mis-regalos",{waitUntil:"domcontentloaded",timeout:90000});
  assert.equal(acc?.status(),200,"Customer account blocked");
- assert.ok((await page.locator("body").innerText()).includes("Tus regalos. Tu historia. Tu lugar."),"Existing buyers were migrated unexpectedly");
+ await page.getByText("Tus regalos. Tu historia. Tu lugar.",{exact:false}).first().waitFor({timeout:12000});
  console.log("LEGACY_CUSTOMER_ACCESS_PRESERVED");
  const buy=await page.goto(origin+"/comprar/pareja",{waitUntil:"domcontentloaded",timeout:90000});
  assert.equal(buy?.status(),200,"Existing checkout route blocked");
