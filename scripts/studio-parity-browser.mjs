@@ -15,6 +15,7 @@ const opus=Buffer.from([79,103,103,83,0,2,0,0,0,0,0,0,0,0,0,0]);
 const api="https://mock.supabase.co";
 const ops=[];
 const stored=new Map();
+const savedGifts=new Map();
 const b64=v=>Buffer.from(JSON.stringify(v)).toString("base64url");
 const auth=b64({alg:"HS256",typ:"JWT"})+"."+b64({sub:"11111111-1111-4111-8111-111111111111",aud:"authenticated",role:"authenticated",exp:Math.floor(Date.now()/1000)+3600})+".fake";
 const user={id:"11111111-1111-4111-8111-111111111111",email:"qa-studio@example.com",aud:"authenticated",role:"authenticated",app_metadata:{provider:"email",providers:["email"]},user_metadata:{},identities:[],created_at:"2026-11-01T00:00:00Z"};
@@ -63,7 +64,22 @@ try{
   if(data.action==="openStudio")return ok(r,{gift:{
    experience_slug:slug,giver_name:"Remitente QA",recipient_name:"Destinataria QA",
    status:"paid",story_data:{},scene_recipe:[],theme_data:{},
+   ...(savedGifts.get(code)||{})
   },media:stored.get(code)||[]});
+  if(data.action==="saveStudioBasics"){
+   const old=savedGifts.get(code)||{};
+   savedGifts.set(code,{...old,
+    giver_name:data.giverName,recipient_name:data.recipientName,
+    opening_text:data.openingText,letter_text:data.letterText,closing_text:data.closingText,
+    story_data:{...(old.story_data||{}),keyDate:data.keyDate,relationship:data.relationship}});
+   return ok(r,{ok:true});
+  }
+  if(data.action==="saveDragonBall"||data.action==="saveStickerBomb"){
+   const key=data.action==="saveDragonBall"?"dragonBall":"stickerBomb";
+   const old=savedGifts.get(code)||{};
+   savedGifts.set(code,{...old,story_data:{...(old.story_data||{}),[key]:data.action==="saveDragonBall"?data.dragonBall:data.content}});
+   return ok(r,{ok:true});
+  }
   if(data.action==="prepareStudioUpload") {
    const isVoice=data.fileName==="mensaje-whatsapp.opus";
    assert.equal(data.mimeType,isVoice?"audio/opus":"image/jpeg","Generic MIME must be normalized for photo and WhatsApp audio");
@@ -101,6 +117,11 @@ try{
   // All 9 cards share a name; locate by each slug's position in the API list.
   await page.locator("article").filter({has:page.getByRole("button",{name:"Editar mi experiencia →"})}).nth(Object.keys(codes).indexOf(code)).getByRole("button",{name:"Editar mi experiencia →"}).click();
   await page.getByRole("heading",{name:"Tu historia, a tu manera."}).waitFor({timeout:15000});
+  await page.getByLabel("Para",{exact:true}).fill("Destinataria QA "+slug);
+  await page.getByLabel("Mensaje de bienvenida",{exact:true}).first().fill("Bienvenida QA "+slug);
+  await page.getByRole("button",{name:"Guardar cambios →"}).click();
+  await page.getByText("Cambios guardados.",{exact:false}).waitFor({timeout:15000});
+  assert.equal(savedGifts.get(code)?.recipient_name,"Destinataria QA "+slug,"Basic recipient was not saved: "+slug);
   if(slug!=="frasco365"){
    const input=page.getByLabel("Seleccionar archivos");
    await input.setInputFiles({name:"qa-photo.jpg",mimeType:"application/octet-stream",buffer:png});
@@ -110,6 +131,20 @@ try{
    await page.getByText("Archivo incorporado a tu regalo.").waitFor({timeout:18000});
    assert.equal((stored.get(code)||[]).filter(x=>x.kind==="audio").length,1,"WhatsApp audio not registered: "+slug);
    assert.ok(await page.locator("audio[controls]").count()>=1,"Uploaded audio player missing: "+slug);
+   if(slug==="dragon-ball-pareja"){
+    await page.getByLabel("Foto del recuerdo 1").selectOption("media-image-"+code);
+    await page.getByLabel("Audio de la cápsula").selectOption("media-audio-"+code);
+    await page.getByLabel("Texto de portada").fill("Una saga QA única");
+    await page.getByRole("button",{name:"Guardar toda la saga"}).click();
+    await page.getByText("¡Saga guardada!",{exact:false}).waitFor();
+    assert.equal(savedGifts.get(code)?.story_data?.dragonBall?.voiceMediaId,"media-audio-"+code);
+   }
+   if(slug==="sticker-bomb-amistad"){
+    await page.getByLabel("La frase que presenta la amistad").fill("Amistad QA para siempre");
+    await page.getByRole("button",{name:/Guardar mis stickers y la carta/}).click();
+    await page.getByText("Los recuerdos y la carta se guardaron.",{exact:false}).waitFor();
+    assert.equal(savedGifts.get(code)?.story_data?.stickerBomb?.relationship,"Amistad QA para siempre");
+   }
    if(slug==="sticker-bomb-amistad"){
     await page.getByRole("button",{name:"Ver cómo queda en el celular"}).click();
     await page.getByText("VISTA PREVIA CON TUS DATOS",{exact:false}).waitFor({timeout:15000});
@@ -129,10 +164,29 @@ try{
     }
    }
   }else{
+   assert.equal(await page.getByLabel("Seleccionar archivos").count(),0,"Frasco365 is a text-only model and must not promise media slots");
    await page.getByRole("button",{name:"Abrir vista previa →"}).click();
    await page.locator(".jar365-experience").waitFor({timeout:8000}).catch(()=>{});
   }
   console.log("STUDIO_PASS",slug);
+  await page.getByRole("button",{name:"← Volver a mis regalos"}).click();
+  await page.getByRole("heading",{name:"Los recuerdos tienen casa."}).waitFor();
+  await page.locator("article").filter({has:page.getByRole("button",{name:"Editar mi experiencia →"})}).nth(Object.keys(codes).indexOf(code)).getByRole("button",{name:"Editar mi experiencia →"}).click();
+  await page.getByRole("heading",{name:"Tu historia, a tu manera."}).waitFor();
+  assert.equal(await page.getByLabel("Para",{exact:true}).inputValue(),"Destinataria QA "+slug,"Saved recipient was lost after reopening: "+slug);
+  assert.equal(await page.getByLabel("Mensaje de bienvenida",{exact:true}).first().inputValue(),"Bienvenida QA "+slug,"Saved welcome text was lost after reopening: "+slug);
+  if(slug!=="frasco365"){
+   assert.equal(await page.locator('input[aria-label="Seleccionar archivos"]').count(),1);
+   assert.ok(await page.locator("audio[controls]").count()>=1,"Audio vanished after reopening: "+slug);
+   assert.ok((stored.get(code)||[]).some(item=>item.kind==="image"),"Photo vanished after reopening: "+slug);
+   if(slug==="dragon-ball-pareja"){
+    assert.equal(await page.getByLabel("Foto del recuerdo 1").inputValue(),"media-image-"+code);
+    assert.equal(await page.getByLabel("Audio de la cápsula").inputValue(),"media-audio-"+code);
+    assert.equal(await page.getByLabel("Texto de portada").inputValue(),"Una saga QA única");
+   }
+   if(slug==="sticker-bomb-amistad")assert.equal(await page.getByLabel("La frase que presenta la amistad").inputValue(),"Amistad QA para siempre");
+  }
+  console.log("REOPEN_PASS",slug);
   await page.getByRole("button",{name:"← Volver a mis regalos"}).click();
   await page.getByRole("heading",{name:"Los recuerdos tienen casa."}).waitFor();
  }
