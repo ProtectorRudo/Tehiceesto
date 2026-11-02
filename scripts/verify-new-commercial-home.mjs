@@ -16,7 +16,7 @@ try{
  assert.ok(home.includes("Y otros que"),"Expected boutique heading missing");
  assert.equal(page.url(),origin+"/");
  const homeAssets=await page.evaluate(()=>({styles:[...document.querySelectorAll('link[rel=stylesheet]')].map(x=>x.href),scripts:[...document.scripts].map(x=>x.src).filter(Boolean)}));
- assert.ok(homeAssets.styles.some(x=>x.startsWith("https://tehiceesto-live-preview.onrender.com/_next/static/")),"Bridge CSS origin incorrect");
+ assert.ok(homeAssets.styles.some(x=>x.startsWith("https://tehiceesto.com/_next/static/chunks/")),"Canonical-host CSS origin incorrect");
  console.log("LIVE_NEW_HOME_PASS",JSON.stringify({head:home.slice(0,200),styles:homeAssets.styles.length,scripts:homeAssets.scripts.length}));
  // Click through the actual hydrated CTA rather than only requesting a URL.
  const cta=page.getByRole("link",{name:/Quiero hacer un regalo/i}).first();
