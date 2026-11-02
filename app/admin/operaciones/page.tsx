@@ -1,6 +1,6 @@
 import type {Metadata} from "next";
 import {adminRequest,isAdminAuthenticated} from "@/lib/admin-auth";
-import {operationsLogin,operationsLogout} from "./actions";
+import {operationsLogin,operationsLogout,markContacted} from "./actions";
 import "./operations.css";
 
 export const dynamic="force-dynamic";
@@ -31,17 +31,25 @@ export default async function Operations({searchParams}:{searchParams:Promise<{e
  const sales=Array.isArray(result?.sales)?result.sales as Sale[]:[];
  const approved=sales.filter(s=>s.status==="approved");
  const pending=sales.filter(s=>s.status==="pending");
+ const needsFollowup=approved.filter(s=>!s.contactedAt);
+ const sortedSales=[...sales].sort((a,b)=>Number(b.status==="approved"&&!b.contactedAt)-Number(a.status==="approved"&&!a.contactedAt)||Date.parse(b.createdAt)-Date.parse(a.createdAt));
  return <main className="ops-page"><div className="ops-wrapper">
    <header className="ops-header"><div><div className="ops-eyebrow">TE HICE ESTO · OPERACIONES</div><h1>Ventas en <em>tiempo real.</em></h1><p>El comprador personaliza su regalo desde su cuenta.</p></div>
    <form action={operationsLogout}><button type="submit" className="ops-out">Cerrar sesión</button></form></header>
-   <div className="ops-metrics"><article><span>Ventas aprobadas</span><strong>{approved.length}</strong></article><article><span>Pendientes de pago</span><strong>{pending.length}</strong></article><article><span>Pedidos recientes</span><strong>{sales.length}</strong></article></div>
+   <div className="ops-metrics">
+    <article><span>Ventas aprobadas</span><strong>{approved.length}</strong></article>
+    <article className={needsFollowup.length?"ops-metric-attention":""}><span>Esperando seguimiento</span><strong>{needsFollowup.length}</strong></article>
+    <article><span>Pendientes de pago</span><strong>{pending.length}</strong></article>
+    <article><span>Pedidos registrados</span><strong>{sales.length}</strong></article>
+   </div>
+   {needsFollowup.length>0&&<p className="ops-followup-notice" role="status"><strong>{needsFollowup.length} compra{needsFollowup.length===1?"":"s"} aprobada{needsFollowup.length===1?"":"s"} requiere{needsFollowup.length===1?"":"n"} seguimiento.</strong> Los correos automáticos de acceso funcionan por separado; marcar «Contactado» solo actualiza tu control interno.</p>}
    {!result?.sales&&<p className="ops-error" role="alert">No pudimos consultar las ventas. Revisá la conexión antes de operar.</p>}
    <section className="ops-section"><h2>Historial de compras</h2><p>Los pagos solo se acreditan mediante el proveedor. Después, el comprador recibe el acceso a «Mis regalos» para editar, publicar y compartir.</p>
      {!sales.length?<p className="ops-empty">Todavía no hay operaciones para mostrar.</p>:
-       <div className="ops-cards">{sales.map(s=>{
+       <div className="ops-cards">{sortedSales.map(s=>{
         const paid=s.status==="approved";
         return <article key={s.orderId} className={"ops-sale"+(paid&&!s.contactedAt?" ops-attention":"")}>
-          <div className="ops-sale-head"><span>#{s.code||"Pedido sin código"}</span><b>{paid?"PAGO APROBADO":s.status.toUpperCase()}</b></div>
+          <div className="ops-sale-head"><span>#{s.code||"Pedido sin código"}</span><b>{paid?(s.contactedAt?"CONTACTADO":"PAGO · CONTACTO PENDIENTE"):s.status.toUpperCase()}</b></div>
           <h3>{s.experienceSlug||"Experiencia personalizada"}</h3>
           <p className="ops-price">{peso(s.priceMinor)}</p>
           <dl><div><dt>Contacto</dt><dd>{s.buyerEmail||"Sin email"}</dd></div>
@@ -49,8 +57,16 @@ export default async function Operations({searchParams}:{searchParams:Promise<{e
           <div><dt>Creado</dt><dd>{date(s.createdAt)}</dd></div>
           <div><dt>Pago acreditado</dt><dd>{date(s.paidAt)}</dd></div>
           <div><dt>Confirmación por correo</dt><dd>{s.accessEmailAccepted?"Aceptada por proveedor":"Sin confirmación de envío"}</dd></div>
-          <div><dt>Personalización</dt><dd>{paid?"Desde Mis regalos":"Disponible después del pago"}</dd></div></dl>
-
+          <div><dt>Personalización</dt><dd>{paid?"Desde Mis regalos":"Disponible después del pago"}</dd></div>
+          <div><dt>Seguimiento interno</dt><dd>{s.contactedAt?date(s.contactedAt):paid?"Aún sin registrar":"—"}</dd></div></dl>
+          {paid&&<div className="ops-actions">
+            {s.whatsapp&&/^\+?[0-9\s().-]{8,25}$/.test(s.whatsapp)&&<a href={"https://wa.me/"+s.whatsapp.replace(/\D/g,"")} target="_blank" rel="noopener noreferrer">WhatsApp del comprador ↗</a>}
+            {s.buyerEmail&&<a href={"mailto:"+encodeURIComponent(s.buyerEmail)}>Escribir por email ↗</a>}
+            {!s.contactedAt&&<form action={markContacted}>
+              <input type="hidden" name="orderId" value={s.orderId}/>
+              <button type="submit">✓ Marcar como contactado</button>
+            </form>}
+          </div>}
         </article>;
        })}</div>}
    </section>

@@ -24,5 +24,8 @@ jobs:
       - name: Validate gift previews and media uploads
         run: node --test scripts/studio-media-audit.mjs
 
+      - name: Validate commercial prices and payment boundaries
+        run: node --test scripts/pricing-commercial-qa.mjs
+
       - name: Build
         run: npm run build
