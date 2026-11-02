@@ -17,6 +17,13 @@ export default function DragonBallPreview({code,recipientName,giverName,config,p
   const frame = useRef<HTMLIFrameElement>(null);
   const photoHandler = useRef(onPhotoClick);
   useEffect(()=>{photoHandler.current=onPhotoClick;},[onPhotoClick]);
+  const send = useCallback(() => {
+    frame.current?.contentWindow?.postMessage({
+      type:"tehiceesto:dragon-ball:gift",
+      payload:{...config,recipientName,giverName,photoUrls,voiceUrl},
+    },window.location.origin);
+  },[config,recipientName,giverName,photoUrls,voiceUrl]);
+
   const handleLoad = useCallback(() => {
     send();
     const doc=frame.current?.contentDocument;
@@ -25,8 +32,8 @@ export default function DragonBallPreview({code,recipientName,giverName,config,p
     // rebuilding the scene and scrolling the preview back to the top.
     doc.addEventListener("click",(event:globalThis.MouseEvent)=>{
       const target=event.target;
-      if(!(target instanceof doc.defaultView!.Element))return;
-      const card=target.closest(".origin-panels .polaroid");
+      if(!target||typeof (target as Element).closest!=="function")return;
+      const card=(target as Element).closest(".origin-panels .polaroid");
       if(!card)return;
       const cards=Array.from(doc.querySelectorAll(".origin-panels .polaroid"));
       const slot=cards.indexOf(card);
@@ -35,13 +42,6 @@ export default function DragonBallPreview({code,recipientName,giverName,config,p
       photoHandler.current?.(slot);
     },true);
   },[send]);
-  const send = useCallback(() => {
-    frame.current?.contentWindow?.postMessage({
-      type:"tehiceesto:dragon-ball:gift",
-      payload:{...config,recipientName,giverName,photoUrls,voiceUrl},
-    },window.location.origin);
-  },[config,recipientName,giverName,photoUrls,voiceUrl]);
-
   useEffect(()=>{send();},[send]);
 
   return <iframe
