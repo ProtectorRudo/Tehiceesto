@@ -17,6 +17,12 @@ assert(bridge.includes('.is("ops_notice_sent_at",null)'));
 assert(bridge.includes('ops_notice_last_attempt_at.is.null,ops_notice_last_attempt_at.lt.'));
 assert(bridge.includes('"Idempotency-Key":"thi-ops-"+orderId'));
 assert(bridge.includes("ops_notice_sent_at:new Date().toISOString()"));
+assert(bridge.includes("function declaredAddOnCode(story:unknown)"),"Must keep live bundle declaration");
+assert(bridge.includes("function isBundledExtra("),"Must keep live bundle validation");
+assert(bridge.includes("bundle_experience_link_mismatch"),"Must keep paid secondary experience validation");
+assert(bridge.includes("bundle_child_activation_failed"),"Must keep child gift entitlement logic");
+assert(bridge.includes('if(code==="personalized_experience_v1")'),"Must keep personalized add-on logic");
+
 assert(bridge.includes('String(Deno.env.get("TEHICEESTO_OPS_EMAIL")||"").trim()'));
 assert(bridge.includes('email_transport_not_configured'));
 assert(admin.includes("opsNoticeAccepted:!!order.ops_notice_sent_at"));

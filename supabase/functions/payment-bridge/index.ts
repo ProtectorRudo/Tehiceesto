@@ -15,6 +15,24 @@ const PUBLIC_KEY=defaultKey("SUPABASE_PUBLISHABLE_KEYS")||defaultKey("SUPABASE_A
 function client(){
   return createClient(SUPABASE_URL,SECRET_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
 }
+function declaredAddOnCode(story:unknown){
+  if(!story||typeof story!=="object")return "";
+  const checkout=(story as Record<string,unknown>).checkout;
+  if(!checkout||typeof checkout!=="object")return "";
+  const code=String((checkout as Record<string,unknown>).addonCode||"");
+  return ["secret_letter_v1","pack_juegos_v1","personalized_experience_v1"].includes(code)?code:"";
+}
+function isBundledExtra(story:unknown,orderMinor:unknown,addonCode:unknown,addonMinor:unknown){
+  if(!story||typeof story!=="object")return false;
+  const val=story as Record<string,unknown>;
+  const meta=val.checkout&&typeof val.checkout==="object"?val.checkout as Record<string,unknown>:{};
+  const addon=Number(addonMinor),base=Number(meta.baseAmountMinor),total=Number(orderMinor);
+  return String(meta.addonCode)===String(addonCode)&&
+    ["secret_letter_v1","pack_juegos_v1","personalized_experience_v1"].includes(String(addonCode))&&
+    addon===1000000&&Number(meta.addonAmountMinor)===addon&&
+    Number(meta.totalAmountMinor)===total&&
+    Number.isInteger(base)&&base>0&&base+addon===total;
+}
 
 function reply(body:unknown,status=200){
   return new Response(JSON.stringify(body),{
@@ -206,11 +224,34 @@ Deno.serve(async(req:Request)=>{
 
     const {data:gift}=await supabase
       .from("gifts")
-      .select("public_code,status,experience_slug,giver_name,recipient_name")
+      .select("public_code,status,experience_slug,giver_name,recipient_name,story_data")
       .eq("id",order.gift_id)
       .maybeSingle();
 
     if(!gift)return reply({error:"gift_not_found"},404);
+
+    // The single Mercado Pago order may contain either optional product.
+    // Identify it from server-stored purchase metadata, not from the browser.
+    const declaredCode=declaredAddOnCode(gift.story_data);
+    const {data:bundle,error:bundleError}=declaredCode
+      ?await supabase.from("gift_upsells")
+        .select("amount_minor,status,provider_order_id,checkout_url,product_code,addon_gift_id")
+        .eq("order_id",order.id).eq("product_code",declaredCode)
+        .is("provider_order_id",null).maybeSingle()
+      :{data:null,error:null};
+    if(bundleError)return reply({error:"bundle_lookup_unavailable"},503);
+    let addonExperienceSlug:string|null=null;
+    if(declaredCode==="personalized_experience_v1"&&bundle?.addon_gift_id){
+      const {data:addonGift,error:addonGiftError}=await supabase.from("gifts")
+        .select("experience_slug").eq("id",bundle.addon_gift_id).maybeSingle();
+      if(addonGiftError)return reply({error:"bundle_gift_lookup_unavailable"},503);
+      const desired=String((gift.story_data?.checkout||{}).addonExperienceSlug||"");
+      if(addonGift?.experience_slug===desired&&desired)addonExperienceSlug=desired;
+    }
+    const bundledExtra=Boolean(bundle&&bundle.status==="pending"&&
+      !bundle.checkout_url&&isBundledExtra(gift.story_data,
+      order.amount_minor,bundle.product_code,bundle.amount_minor)&&
+      (declaredCode!=="personalized_experience_v1"||addonExperienceSlug));
 
     return reply({
       code:gift.public_code,
@@ -220,6 +261,10 @@ Deno.serve(async(req:Request)=>{
       recipientName:gift.recipient_name,
       amountMinor:order.amount_minor,
       currency:order.currency||"ARS",
+      bundledExtra,
+      bundleCode:bundledExtra?declaredCode:null,
+      bundleExperienceSlug:bundledExtra?addonExperienceSlug:null,
+      bundleAmountMinor:bundledExtra?1000000:0,
       currentCheckoutUrl:order.checkout_url||null,
       providerReference:order.provider_reference||null,
     });
@@ -290,6 +335,67 @@ Deno.serve(async(req:Request)=>{
 
     const {error:updateError}=await supabase.from("orders").update(orderPatch).eq("id",order.id);
     if(updateError)return reply({error:"sync_failed"},500);
+
+    // Independently verified provider state is the ONLY entitlement authority.
+    // Also perform a repair on approved orders when checkout webhook delivery retries.
+    const {data:bundleGift,error:bundleGiftError}=await supabase.from("gifts")
+      .select("story_data").eq("id",order.gift_id).maybeSingle();
+    const code=declaredAddOnCode(bundleGift?.story_data);
+    if(bundleGiftError)console.error("bundle_receipt_gift_lookup_failed",bundleGiftError.code);
+    if(code){
+      const {data:bundled,error:bundledError}=await supabase.from("gift_upsells")
+        .select("id,status,amount_minor,provider_order_id,checkout_url,product_code,addon_gift_id")
+        .eq("order_id",order.id).eq("product_code",code)
+        .is("provider_order_id",null).maybeSingle();
+      if(bundledError){
+        console.error("bundle_lookup_failed",bundledError.code);
+      }else if(bundled&&!bundled.checkout_url&&
+        isBundledExtra(bundleGift?.story_data,order.amount_minor,bundled.product_code,bundled.amount_minor)){
+        let validExperienceLink=true;
+        if(code==="personalized_experience_v1"){
+          validExperienceLink=false;
+          if(bundled.addon_gift_id){
+            const {data:child,error:childError}=await supabase.from("gifts")
+              .select("experience_slug").eq("id",bundled.addon_gift_id).maybeSingle();
+            const declared=String((bundleGift?.story_data?.checkout||{}).addonExperienceSlug||"");
+            if(!childError&&declared&&child?.experience_slug===declared){
+              validExperienceLink=true;
+            }
+          }
+        }
+        if(!validExperienceLink){
+          console.error("bundle_experience_link_mismatch");
+        }else{
+        const grant=next==="approved"&&refundedAmountMinor===0;
+        const revoke=next==="refunded"||refundedAmountMinor>0;
+        if(grant&&bundled.status==="pending"){
+          const {error:grantError}=await supabase.from("gift_upsells")
+            .update({status:"approved",paid_at:orderPatch.paid_at||order.paid_at||new Date().toISOString(),
+              updated_at:new Date().toISOString()})
+            .eq("id",bundled.id).eq("status","pending");
+          if(grantError)console.error("bundle_grant_failed",grantError.code);
+        }else if(revoke&&["pending","approved"].includes(bundled.status)){
+          const {error:revokeError}=await supabase.from("gift_upsells")
+            .update({status:"refunded",paid_at:null,updated_at:new Date().toISOString()})
+            .eq("id",bundled.id);
+          if(revokeError)console.error("bundle_revoke_failed",revokeError.code);
+        }
+        // Real editable second gift, never a second charge. Idempotent on retries.
+        if(code==="personalized_experience_v1"&&bundled.addon_gift_id){
+          if(grant){
+            const {error:childPaidError}=await supabase.from("gifts")
+              .update({status:"paid"}).eq("id",bundled.addon_gift_id)
+              .eq("status","awaiting_payment");
+            if(childPaidError)console.error("bundle_child_activation_failed",childPaidError.code);
+          }else if(revoke){
+            const {error:childRevokeError}=await supabase.from("gifts")
+              .update({status:"awaiting_payment"}).eq("id",bundled.addon_gift_id);
+            if(childRevokeError)console.error("bundle_child_revocation_failed",childRevokeError.code);
+          }
+        }
+        }
+      }
+    }
 
     const {data:gift}=await supabase
       .from("gifts")
