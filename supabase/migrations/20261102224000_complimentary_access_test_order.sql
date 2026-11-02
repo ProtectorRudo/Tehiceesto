@@ -23,8 +23,8 @@ insert into public.complimentary_access_grants(order_id,gift_id,product_code,rea
 select o.id,o.gift_id,g.product_code,
   'Excepción de prueba autorizada expresamente por el propietario el 2026-11-02: compra reembolsada; acceso de cortesía al regalo y a los cuatro juegos'
 from public.orders o
-cross join (values ('dragon-ball-pareja'),('pack_juegos_v1')) as g(product_code)
 join public.gifts gift on gift.id=o.gift_id
+cross join (values ('dragon-ball-pareja'),('pack_juegos_v1')) as g(product_code)
 where o.id='bd35b2a3-97bd-4acb-bd27-ba6915067ca8'::uuid
   and o.status='refunded'
   and o.refunded_amount_minor=o.amount_minor
