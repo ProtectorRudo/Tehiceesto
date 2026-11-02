@@ -116,7 +116,7 @@ export default function StickerBombExperience({recipient,sender,copy,photos=[],a
      <div className={styles.stickerPanel}>
       <span className={styles.tape} aria-hidden="true"/>
       <div className={styles.panelOverline}><span>ARCHIVO DE {recipient.toUpperCase()}</span><span>OBJETO {String(step+1).padStart(2,"0")}</span></div>
-      <StickerBombStickers chapter={active?.id||""} personalLine={lines[0]||undefined} collected={!!active&&collectedStickers.includes(active.id)} onCollect={()=>{if(active&&!collectedStickers.includes(active.id))setCollectedStickers(previous=>[...previous,active.id]);}}/>
+      <StickerBombStickers chapter={active?.id||""} personalLine={lines[0]||undefined} collected={!!active&&collectedStickers.includes(active.id)} onCollect={()=>{if(active)setCollectedStickers(previous=>previous.includes(active.id)?previous.filter(id=>id!==active.id):[...previous,active.id]);}}/>
       {active?.id==="moments"&&visiblePhotos.length>0&&
        <div className={styles.photos}>{visiblePhotos.slice(0,6).map((photo,i)=>
         <figure key={photo.url+"-"+i} className={styles.polaroid}>
