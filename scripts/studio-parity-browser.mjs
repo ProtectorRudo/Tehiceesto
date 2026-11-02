@@ -128,7 +128,9 @@ try{
    await page.getByText("Archivo incorporado a tu regalo.").waitFor({timeout:18000});
    assert.equal((stored.get(code)||[]).filter(x=>x.kind==="image").length,1,"Photo not registered: "+slug);
    await input.setInputFiles({name:"mensaje-whatsapp.opus",mimeType:"application/octet-stream",buffer:opus});
-   await page.getByText("Archivo incorporado a tu regalo.").waitFor({timeout:18000});
+   // The previous image upload notice may still be visible. Wait for a NEW
+   // audio media card, not that stale notice, before checking backend state.
+   await page.locator(".mediaGrid audio[controls], audio[controls]").first().waitFor({timeout:18000});
    assert.equal((stored.get(code)||[]).filter(x=>x.kind==="audio").length,1,"WhatsApp audio not registered: "+slug);
    assert.ok(await page.locator("audio[controls]").count()>=1,"Uploaded audio player missing: "+slug);
    if(slug==="dragon-ball-pareja"){
