@@ -99,7 +99,17 @@ function escapeHtml(value:unknown){
   })[c]||c);
 }
 async function sendOpsNotice(orderId:string,email:string,slug:string,amountMinor:number){
-  const destination=String(Deno.env.get("TEHICEESTO_OPS_EMAIL")||"").trim();
+  // Environment overrides are supported, but Vault is the production source
+  // of truth. This private RPC is callable only by service_role.
+  let destination=String(Deno.env.get("TEHICEESTO_OPS_EMAIL")||"").trim();
+  if(!destination){
+    const {data,error}=await client().rpc("tehiceesto_private_ops_email");
+    if(error){
+      console.error("ops_email_lookup_failed",error.code||"rpc_error");
+      return {ok:false,error:"ops_recipient_not_configured"};
+    }
+    destination=String(data||"").trim();
+  }
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(destination)||destination.length>254){
     return {ok:false,error:"ops_recipient_not_configured"};
   }
