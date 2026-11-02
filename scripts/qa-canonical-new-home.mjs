@@ -17,6 +17,7 @@ try{
  assert.ok(body.includes("Y otros que")&&body.includes("se sienten"),"New design hero missing");
  const resources=await page.evaluate(()=>({scripts:[...document.scripts].map(x=>x.src).filter(Boolean),styles:[...document.querySelectorAll('link[rel="stylesheet"]')].map(x=>x.href),width:document.documentElement.scrollWidth,viewport:innerWidth}));
  console.log("QA_ASSETS",JSON.stringify({scripts:resources.scripts.length,styles:resources.styles.length,remoteScripts:resources.scripts.filter(x=>x.startsWith(prefix)).length,remoteStyles:resources.styles.filter(x=>x.startsWith(prefix)).length}));
+ console.log("QA_ASSET_SAMPLES",JSON.stringify({scripts:resources.scripts.slice(0,3),styles:resources.styles.slice(0,3)}));
  assert.ok(resources.scripts.some(x=>x.startsWith(prefix)),"Scripts not resolved from canonical domain");
  assert.ok(resources.styles.some(x=>x.startsWith(prefix)),"Styles not resolved from canonical domain");
  assert.ok(resources.width-resources.viewport<=4,"Horizontal overflow");
