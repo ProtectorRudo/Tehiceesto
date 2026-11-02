@@ -19,15 +19,15 @@ try{
   assert.match(await page.locator(".quick-checkout-addon-copy strong").first().innerText(),/Pack de 4 juegos/);
   assert.equal(await option.getAttribute("aria-pressed"),"false","default is opt-out");
   assert.match(await page.locator(".quick-checkout-discount").innerText(),/PRECIO ESPECIAL/);
-  assert.match(await page.locator(".quick-checkout-addon-price").innerText(),/1\.000/);
-  assert.match(await page.locator(".quick-checkout-addon-price").innerText(),/1\.000/);
+  assert.match(await page.locator(".quick-checkout-addon-price").innerText(),/10\.000/);
+  assert.match(await page.locator(".quick-checkout-addon-price").innerText(),/10\.000/);
 
-  assert.match(await page.locator(".quick-checkout-total").innerText(),/1\.000/);
+  assert.match(await page.locator(".quick-checkout-total").innerText(),/25\.000/);
   await option.click();assert.equal(await option.getAttribute("aria-pressed"),"true");
-  assert.match(await page.locator(".quick-checkout-total").innerText(),/2\.000/);
+  assert.match(await page.locator(".quick-checkout-total").innerText(),/35\.000/);
   await page.screenshot({path:"visual-fast-checkout/precheckout-addon-"+width+".png",fullPage:true});
   await option.click();assert.equal(await option.getAttribute("aria-pressed"),"false");
-  assert.match(await page.locator(".quick-checkout-total").innerText(),/1\.000/);
+  assert.match(await page.locator(".quick-checkout-total").innerText(),/25\.000/);
   await option.click();
   let sent=null,calls=0;
   await page.route("**/api/checkout",async route=>{
@@ -55,17 +55,17 @@ try{
   const add=section.locator(".quick-checkout-addon-choice");
   assert.equal(await add.getAttribute("aria-pressed"),"false","unselected by default");
   assert.match(await section.innerText(),/PRECIO ESPECIAL/);
-  assert.match(await section.innerText(),/1\.000/);
+  assert.match(await section.innerText(),/10\.000/);
   assert.equal(await page.locator("#checkout-experience-choice option").count(),9,"Club de Amigos ya no debe aparecer en opciones del regalo extra");
    assert.equal(await page.locator('#checkout-experience-choice option[value="club-amigos"]').count(),0,"No se ofrece el producto retirado");
    assert.equal(await page.locator("#checkout-experience-choice option[value=\"dragon-ball-pareja\"]").count(),1,"Dragon Ball must be selectable as the additional experience");
   await page.locator("#checkout-experience-choice").selectOption("sticker-bomb-amistad");
   await add.click();
-  assert.match(await page.locator(".quick-checkout-total").innerText(),/2\.000/);
+  assert.match(await page.locator(".quick-checkout-total").innerText(),/35\.000/);
   assert.equal(await add.getAttribute("aria-pressed"),"true");
   await page.screenshot({path:"visual-fast-checkout/reverse-"+slug+"-390.png",fullPage:true});
   await add.click();
-  assert.match(await page.locator(".quick-checkout-total").innerText(),/1\.000/);
+  assert.match(await page.locator(".quick-checkout-total").innerText(),/25\.000/);
   await add.click();
   let payload=null,calls=0;
   await page.route("**/api/checkout",async route=>{
