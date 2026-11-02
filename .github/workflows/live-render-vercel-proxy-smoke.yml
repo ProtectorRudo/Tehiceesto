@@ -29,6 +29,8 @@ jobs:
         run: node scripts/diagnose-commercial-login.mjs
       - name: Verify canonical-home staging route and old customer access
         run: node scripts/qa-canonical-new-home.mjs
+      - name: Verify live new design on canonical host, preserve old paid gifts
+        run: node scripts/verify-new-commercial-home.mjs
       - name: Save evidence
         if: always()
         uses: actions/upload-artifact@v4
