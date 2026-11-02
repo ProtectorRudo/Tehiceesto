@@ -78,14 +78,31 @@ const entries=[
 const orbValues=[['CONFIANZA','Porque con vos puedo ser yo.'],['COMPLICIDAD','Porque hay miradas que no necesitan explicación.'],['ADMIRACIÓN','Porque siempre encuentro una razón más para admirarte.'],['RISAS','Porque nuestra locura es mi lugar favorito.'],['CUIDADO','Porque el amor también está en lo cotidiano.'],['HOGAR','Porque hay personas que se sienten como volver a casa.'],['FUTURO','Porque todavía nos quedan muchos capítulos por vivir.']];
 const rivals=[['La distancia','Incluso lejos, supimos elegirnos.'],['Los malos días','Nos acompañamos incluso sin tener todas las respuestas.'],['Los miedos','Aprendimos a confiar en lo que construimos.']];
 const e=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function save(){try{localStorage.setItem(giftMode?'db_saga_gift_'+new URLSearchParams(location.search).get('code'):'db_nuestra_saga_v2',JSON.stringify({receiver:S.receiver,sender:S.sender,date:S.date,collected:[...S.collected],orbs:[...S.orbs]}))}catch{}}
-function load(){try{const o=JSON.parse(localStorage.getItem(giftMode?'db_saga_gift_'+new URLSearchParams(location.search).get('code'):'db_nuestra_saga_v2')||'null');if(o){if(!giftMode){S.receiver=String(o.receiver||'Nico').slice(0,30);S.sender=String(o.sender||'Luna').slice(0,30);S.date=String(o.date||'un día inesperado').slice(0,60);}S.collected=new Set((o.collected||[]).filter(i=>Number.isInteger(i)&&i>=0&&i<9));S.orbs=new Set((o.orbs||[]).filter(i=>Number.isInteger(i)&&i>=0&&i<7))}}catch{}}
+// Demos can keep optional name edits, never previously revealed surprises.
+// Only purchased gifts persist collectible progress under their unique gift code.
+function save(){try{const key=giftMode?'db_saga_gift_'+new URLSearchParams(location.search).get('code'):'db_nuestra_saga_v2';const data={receiver:S.receiver,sender:S.sender,date:S.date};if(giftMode){data.collected=[...S.collected];data.orbs=[...S.orbs];}localStorage.setItem(key,JSON.stringify(data))}catch{}}
+function load(){try{const o=JSON.parse(localStorage.getItem(giftMode?'db_saga_gift_'+new URLSearchParams(location.search).get('code'):'db_nuestra_saga_v2')||'null');if(o){if(!giftMode){S.receiver=String(o.receiver||'Nico').slice(0,30);S.sender=String(o.sender||'Luna').slice(0,30);S.date=String(o.date||'un día inesperado').slice(0,60);}else{S.collected=new Set((o.collected||[]).filter(i=>Number.isInteger(i)&&i>=0&&i<9));S.orbs=new Set((o.orbs||[]).filter(i=>Number.isInteger(i)&&i>=0&&i<7));}}}catch{}}
 function toast(t){const x=document.getElementById('toast');x.textContent=t;x.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>x.classList.remove('show'),2800)}
 function sound(f=750){try{if(!window.ac)window.ac=new (window.AudioContext||window.webkitAudioContext)();const osc=ac.createOscillator(),gain=ac.createGain();osc.type='sine';osc.frequency.setValueAtTime(f,ac.currentTime);osc.frequency.exponentialRampToValueAtTime(f*1.35,ac.currentTime+.13);gain.gain.setValueAtTime(.035,ac.currentTime);gain.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+.16);osc.connect(gain);gain.connect(ac.destination);osc.start();osc.stop(ac.currentTime+.16)}catch{}}
 function burst(n=22){const app=document.getElementById('app');for(let i=0;i<n;i++){const q=document.createElement('i');q.className='spark';q.style.setProperty('--x',Math.floor(30+Math.random()*40)+'vw');q.style.setProperty('--y',Math.floor(25+Math.random()*40)+'vh');q.style.setProperty('--dx',((Math.random()-.5)*320)+'px');q.style.setProperty('--dy',((Math.random()-.5)*390)+'px');q.style.background=['#ffdf3d','#fff','#65dcff','#ff8a2f'][i%4];app.append(q);setTimeout(()=>q.remove(),1000)}}
 function art(name,cls='char'){return `<img class="${cls}" src="${ART[name]}" alt="${e(name.toUpperCase())}" draggable="false">`}
+// A replay is a fresh performance of the demo, not a continuation of
+// already opened envelopes. Never erase progress from a purchased gift.
+function restartJourney(){
+ if(!giftMode){
+  S.collected.clear();S.openedMemories.clear();S.rivals.clear();S.orbs.clear();
+  S.power=0;S.powered=false;S.scanned=false;
+  if(chargeTimer!==null){clearInterval(chargeTimer);chargeTimer=null;}
+  if('speechSynthesis'in window)window.speechSynthesis.cancel();
+  const audio=document.getElementById('recorded');if(audio)audio.pause();
+  if(S.audioUrl){URL.revokeObjectURL(S.audioUrl);S.audioUrl=null;}
+  const overlay=document.getElementById('overlay-root');if(overlay)overlay.innerHTML='';
+  save();
+ }
+ go(0);
+}
 function step(d){go(S.page+d)}
-function go(n){S.page=Math.max(0,Math.min(8,n));const app=document.getElementById('app');app.classList.toggle('hero-screen',S.page===0);document.getElementById('scene').setAttribute('data-scene',S.page);document.getElementById('scene').innerHTML=pages[S.page]();document.getElementById('stage').scrollTop=0;const steps=document.getElementById('steps');steps.innerHTML=Array.from({length:9},(_,i)=>`<span class="${i===S.page?'current':''}"></span>`).join('');document.getElementById('page').textContent=String(S.page+1).padStart(2,'0')+' / 09';document.getElementById('back').disabled=S.page===0;document.getElementById('next').textContent=S.page===8?'VOLVER AL INICIO ↻':'CONTINUAR ➜';document.getElementById('next').onclick=S.page===8?()=>go(0):()=>step(1);document.getElementById('stickerCount').textContent=S.collected.size+'/9';if(S.page===5)setupCharge();if(S.page===7)setupAudio();}
+function go(n){S.page=Math.max(0,Math.min(8,n));const app=document.getElementById('app');app.classList.toggle('hero-screen',S.page===0);document.getElementById('scene').setAttribute('data-scene',S.page);document.getElementById('scene').innerHTML=pages[S.page]();document.getElementById('stage').scrollTop=0;const steps=document.getElementById('steps');steps.innerHTML=Array.from({length:9},(_,i)=>`<span class="${i===S.page?'current':''}"></span>`).join('');document.getElementById('page').textContent=String(S.page+1).padStart(2,'0')+' / 09';document.getElementById('back').disabled=S.page===0;document.getElementById('next').textContent=S.page===8?(giftMode?'VOLVER AL INICIO ↻':'REVIVIR DESDE CERO ↻'):'CONTINUAR ➜';document.getElementById('next').onclick=S.page===8?()=>restartJourney():()=>step(1);document.getElementById('stickerCount').textContent=S.collected.size+'/9';if(S.page===5)setupCharge();if(S.page===7)setupAudio();}
 const sceneWrap=(content,mode='sky')=>`${mode==='sky'?'<div class="artsky"></div>':''}<div class="texture"></div><div class="scene-inner">${content}</div>`;
 const title=(subtitle,main)=>`<div class="eyebrow">★ ${subtitle}</div><div class="comic-head sm">${main}</div>`;
 const pages=[
