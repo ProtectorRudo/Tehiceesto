@@ -3,7 +3,7 @@ import {redirect} from "next/navigation";
 import {revalidatePath} from "next/cache";
 import {isAdminAuthenticated} from "@/lib/admin-auth";
 import {createAdminSupabase} from "@/lib/supabase/admin";
-import {getEscapeRoom,validateEscapeConfig} from "@/data/escape-rooms";
+import {getEscapeRoom,getActiveEscapeRoom,validateEscapeConfig} from "@/data/escape-rooms";
 async function requireAdmin(){if(!(await isAdminAuthenticated()))throw new Error("admin_unauthorized")}
 function getForm(room:NonNullable<ReturnType<typeof getEscapeRoom>>,formData:FormData){
  const raw:Record<string,unknown>={};
@@ -13,7 +13,7 @@ function getForm(room:NonNullable<ReturnType<typeof getEscapeRoom>>,formData:For
 export async function createEscapeGift(formData:FormData){
  await requireAdmin();
  const slug=String(formData.get("room")||"");
- const room=getEscapeRoom(slug);
+ const room=getActiveEscapeRoom(slug);
  if(!room)throw new Error("invalid_room");
  const config=getForm(room,formData);
  const {data,error}=await createAdminSupabase().from("gifts").insert({
