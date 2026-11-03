@@ -10,6 +10,7 @@ import {readFileSync,existsSync} from "node:fs";
 import {resolve} from "node:path";
 import {PURCHASED_ROUTE_CONTRACT,LEGACY_PACK_GAME_ROUTES} from "../lib/release/public-route-contract.mjs";
 import {verifyLockedRenderers} from "./verify-renderer-lock.mjs";
+import {verifySoleReleaseEntrypoint} from "./verify-release-entrypoints.mjs";
 import {PURCHASED_RENDERERS} from "../lib/gifts/purchased-renderers.mjs";
 
 export const requiredPublicPaths=Object.freeze([
@@ -21,6 +22,7 @@ export const requiredPublicPaths=Object.freeze([
 
 export function assertStaticReleaseContract(root=process.cwd()){
  verifyLockedRenderers(root);
+ verifySoleReleaseEntrypoint(root);
  const read=(p)=>readFileSync(resolve(root,p),"utf8");
  const required={
   "/mis-regalos":"app/mis-regalos/page.tsx",
@@ -51,6 +53,11 @@ export function assertStaticReleaseContract(root=process.cwd()){
    throw Error("purchased_games_missing_entitlement_checks");
  const giftRead=read("supabase/functions/gift-read/index.ts");
  const giftRepository=read("lib/gifts/repository.ts");
+ const snapshot=read("data/purchased-experiences-20261103.ts");
+ if(!giftRepository.includes('from "@/data/purchased-experiences-20261103"') ||
+    !snapshot.includes('slug: "dragon-ball-pareja"') ||
+    !snapshot.includes('slug: "pareja"'))
+   throw Error("purchased_catalogue_snapshot_not_used");
  const giftPage=read("app/r/[code]/page.tsx");
  if(!(giftRead.includes("experience_slug,template_version,giver_name")||giftRead.includes("template_version,experience_slug,giver_name"))||
     !giftRepository.includes("purchasedRendererFor(row.experience_slug,row.template_version)")||
@@ -114,6 +121,12 @@ export async function checkLiveRelease({origin,expectedSha,fetchImpl=fetch}){
   assertion(result.status===200, "broken_permanent_route:"+path+":http_"+result.status);
   assertion(result.headers.get("content-type")?.includes("text/html"),
     "not_html_route:"+path);
+  if(path==="/juegos/pack/completo"||path==="/juegos/trazo-complice/completo"){
+   const html=await result.text();
+   const expected=path==="/juegos/pack/completo"?"pack-juegos":"trazo-complice";
+   assertion(html.includes('data-purchased-product="'+expected+'"'),
+     "wrong_purchased_product_route:"+path);
+  }
   if(path==="/"){
    const html=await result.text();
    assertion(html.includes("4 JUEGOS")&&html.includes("$25.000"),"outdated_pack_offer");

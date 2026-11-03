@@ -1,0 +1,11 @@
+.page{box-sizing:border-box;min-height:100dvh;display:grid;place-items:center;padding:28px 18px;background:radial-gradient(ellipse at 20% 15%,#fbf3ed,#f4eee9 50%,#ede4df);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#342b32}
+.panel{width:min(100%,480px);box-sizing:border-box;padding:43px clamp(25px,6vw,46px);border:1px solid #dfcfc4;border-radius:27px;background:#fff9f5;box-shadow:0 22px 65px #513b3517;text-align:center}
+.symbol{font-size:32px;line-height:1;color:#b68181;margin-bottom:18px}
+.kicker{font-size:11px;font-weight:800;letter-spacing:.23em;color:#977c78;margin:0 0 19px}
+.panel h1{font:400 clamp(29px,7vw,39px)/1.12 Georgia,"Times New Roman",serif;letter-spacing:-.03em;color:#392c37;margin:0 0 17px}
+.message{color:#695963;font-size:15px;line-height:1.7;margin:0 auto 28px}
+.retry{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:13px 28px;border:0;border-radius:999px;cursor:pointer;background:#5b364e;color:#fffaf8;box-shadow:0 8px 24px #5b364e2b;font:700 14px/1.25 system-ui,sans-serif}
+.retry:focus-visible{outline:3px solid #9e5881;outline-offset:4px}
+.retry:hover{background:#75455e}
+.hint{font-size:12px;line-height:1.65;color:#857780;margin:22px 0 0}
+@media(prefers-reduced-motion: no-preference){.panel{animation:open .26s ease-out both}@keyframes open{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}}
