@@ -10,7 +10,10 @@ const fetchMock=(patch={})=>async(url)=>{
  const path=new URL(url).pathname;
  const modified=patch[path];
  const status=modified?.status ?? (path==="/r/000000000000000000"||path==="/comprar/sticker-bomb-amistad"?404:200);
- const value=modified?.body??(path==="/api/version"?{service:"tehiceesto",commit:sha}:home);
+ const value=modified?.body??(path==="/api/version"?{service:"tehiceesto",commit:sha}:
+   path==="/juegos/pack/completo"?'<span hidden data-purchased-product="pack-juegos"></span>':
+   path==="/juegos/trazo-complice/completo"?'<span hidden data-purchased-product="trazo-complice"></span>':
+   home);
  const body=typeof value==="string"?value:JSON.stringify(value);
  const response=new Response(body,{status,headers:{"content-type":path==="/api/version"?"application/json":"text/html"}});
  const finalPath=path==="/juegos/pack/pedido"?PURCHASED_ROUTE_CONTRACT.myGifts:
@@ -72,4 +75,13 @@ test("A nonexistent gift must never show a generic demo or another buyer's purch
  await assert.rejects(checkLiveRelease({origin:"https://tehiceesto.com",expectedSha:sha,
   fetchImpl:fetchMock({"/r/000000000000000000":{status:200}})}),
   /unknown_gift_looks_published/);
+});
+
+test("A bought game URL serving a different game is blocked even when HTTP is 200",async()=>{
+ await assert.rejects(checkLiveRelease({origin:"https://tehiceesto.com",expectedSha:sha,
+  fetchImpl:fetchMock({"/juegos/pack/completo":{body:'<span hidden data-purchased-product="trazo-complice"></span>'}})}),
+  /wrong_purchased_product_route/);
+ await assert.rejects(checkLiveRelease({origin:"https://tehiceesto.com",expectedSha:sha,
+  fetchImpl:fetchMock({"/juegos/trazo-complice/completo":{body:'<span hidden data-purchased-product="pack-juegos"></span>'}})}),
+  /wrong_purchased_product_route/);
 });
