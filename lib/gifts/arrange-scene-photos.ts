@@ -35,7 +35,13 @@ export function arrangeScenePhotos<T extends SlotPhoto>(
     const positions=slotMaps.get(scene);
     if(!positions){result.push(...group.map(item=>({item,scene})));continue;}
     const ordered=[...group];
-    for(const [index,item] of [...positions].sort((a,b)=>a[0]-b[0]))ordered[index]=item;
+    for(const [index,item] of [...positions].sort((a,b)=>a[0]-b[0])){
+      // Choosing an already-used image moves it to the selected slot instead
+      // of accidentally duplicating it in two cards of the same scene.
+      const previous=ordered.findIndex(x=>x?.id===item.id);
+      if(previous>=0&&previous!==index)ordered[previous]=ordered[index];
+      ordered[index]=item;
+    }
     result.push(...ordered.filter(Boolean).map(item=>({item,scene})));
   }
   result.push(...original.filter(x=>!handled.has(x.scene)));
