@@ -19,6 +19,8 @@ export type SevenDaysProps = {
   singleDay?: number;
   editing?: boolean;
   onTextSelect?: (selection:{scene:string;source:string;current:string})=>void;
+  onPhotoClick?: (slot:number)=>void;
+  onAudioClick?: ()=>void;
 };
 
 function safeScript(value: unknown) {
@@ -27,7 +29,7 @@ function safeScript(value: unknown) {
 
 export default function SevenDaysExperience({
   experience, sceneTextOverrides = {}, photoMedia = [], audioMedia = [],
-  singleDay, editing = false, onTextSelect,
+  singleDay, editing = false, onTextSelect,onPhotoClick,onAudioClick,
 }: SevenDaysProps) {
   const [day, setDay] = useState(singleDay || 1);
   const [markup, setMarkup] = useState("");
@@ -103,9 +105,27 @@ window.__TEHICEESTO_COPY = ${copyJson.replace(/</g,"\\u003c")};
   },[currentDay,config,copyJson]);
 
   const attachEditor = () => {
-    if (!editing || !onTextSelect) return;
     const doc=frameRef.current?.contentDocument;
-    if (!doc) return;
+    if(!doc)return;
+    if(currentDay===7 && (onPhotoClick||onAudioClick)){
+      doc.addEventListener("click",(event)=>{
+        const target=event.target as Element|null;
+        if(!target)return;
+        const photo=target.closest(".photo-gallery img");
+        if(photo&&onPhotoClick){
+          const images=[...doc.querySelectorAll(".photo-gallery img")];
+          const slot=images.indexOf(photo);
+          if(slot<0||slot>3)return;
+          event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+          onPhotoClick(slot);return;
+        }
+        if(target.closest(".final-audio audio")&&onAudioClick){
+          event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+          onAudioClick();
+        }
+      },true);
+    }
+    if (!editing || !onTextSelect) return;
     doc.addEventListener("click", (event) => {
       const target=event.target as Element | null;
       if (!target || target.closest("script,style,svg")) return;

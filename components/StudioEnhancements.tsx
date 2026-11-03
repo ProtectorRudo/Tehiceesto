@@ -15,6 +15,7 @@ import VoiceRecorder from "@/components/VoiceRecorder";
 import GuestVoiceInvites from "@/components/GuestVoiceInvites";
 import { getExperience, type SceneType } from "@/data/experiences";
 import { normalizeSceneTextOverrides } from "@/data/scene-text";
+import {arrangeScenePhotos} from "@/lib/gifts/arrange-scene-photos";
 import styles from "@/app/mis-regalos/account.module.css";
 
 const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -142,7 +143,10 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
   const [progress, setProgress] = useState(0);
   const [busy, setBusy] = useState(false);
   const [confirmPublish, setConfirmPublish] = useState(false);
-  const [photoPicker,setPhotoPicker]=useState<{kind:"dragon";slot:number}|{kind:"media";mediaId:string}|null>(null);
+  const [photoPicker,setPhotoPicker]=useState<{kind:"dragon";slot:number}|{kind:"slot";scene:SceneType;slot:number}|{kind:"media";mediaId:string}|{kind:"audio";mediaId:string}|null>(null);
+  const [photoSlots,setPhotoSlots]=useState<Record<string,{mediaId:string}>>(()=>
+    gift.story_data?.photoSlots&&typeof gift.story_data.photoSlots==="object"&&!Array.isArray(gift.story_data.photoSlots)
+      ? gift.story_data.photoSlots as Record<string,{mediaId:string}>:{});
   const [photoAssignment,setPhotoAssignment]=useState<{slot:number;mediaId:string;revision:number}|null>(null);
   const [photoRevision,setPhotoRevision]=useState(0);
 
@@ -151,13 +155,14 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
   const scenes = useMemo(() => (
     Array.isArray(gift.scene_recipe) && gift.scene_recipe.length ? gift.scene_recipe : model?.recipe || []
   ), [gift.scene_recipe, model]);
-  const signedPhotos = orderedMedia.filter(m => m.kind === "image" && m.url).map(m => ({
-    url: m.url as string, caption:m.caption || undefined,
-    fit: m.metadata?.fit === "contain" ? "contain" as const : "cover" as const,
-    position: (["center","top","bottom","left","right"].includes(String(m.metadata?.position)) ? m.metadata?.position : "center") as "center" | "top" | "bottom" | "left" | "right",
-  }));
+  const signedPhotos = arrangeScenePhotos(orderedMedia.filter(m=>m.kind==="image"&&m.url),photoSlots,scenes)
+    .map(({item:m,scene})=>({
+      url:m.url as string,caption:m.caption||undefined,scene:scene as SceneType,
+      fit:m.metadata?.fit==="contain"?"contain" as const:"cover" as const,
+      position:(["center","top","bottom","left","right"].includes(String(m.metadata?.position))?m.metadata?.position:"center") as "center"|"top"|"bottom"|"left"|"right",
+    }));
   const soundtrack = orderedMedia.find(m => m.kind === "audio" && m.url && m.metadata?.role === "soundtrack");
-  const audioMedia = orderedMedia.filter(m => m.kind === "audio" && m.url && m.metadata?.role !== "soundtrack").map(m => ({url:m.url as string,caption:m.caption || undefined}));
+  const audioMedia = orderedMedia.filter(m => m.kind === "audio" && m.url && m.metadata?.role !== "soundtrack").map(m => ({url:m.url as string,caption:m.caption || undefined,scene:m.metadata?.scene as SceneType|undefined}));
   const videoMedia = orderedMedia.filter(m => m.kind === "video" && m.url).map(m => ({url:m.url as string,caption:m.caption || undefined}));
   // Never use the generic experience engine to preview a purchased Dragon Ball saga.
   const savedDragonConfig = gift.story_data?.dragonBall;
@@ -255,6 +260,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
         : source.type === mimeType ? source : new File([source],source.name,{type:mimeType,lastModified:source.lastModified});
       const prepared = await action(access, "prepareStudioUpload", {
         fileName:file.name, mimeType:file.type, size:file.size,
+        ...(replacing?{replacingMediaId:replacing.id}:{}),
       });
       if (typeof prepared.token !== "string" || !prepared.token) throw new Error("upload_signature_missing");
       // For mobile photos prefer the signed object upload: live TUS requests were
@@ -293,9 +299,9 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
         catch {setProgress(0);await uploadSigned();}
       }
       if(replacing) {
-        if(prepared.kind!=="image"||replacing.kind!=="image")throw Error("invalid_image_replacement");
+        if(prepared.kind!==replacing.kind)throw Error("invalid_media_replacement");
         await action(access,"replaceStudioMedia",{
-          mediaId:replacing.id,storagePath:prepared.path,kind:"image",
+          mediaId:replacing.id,storagePath:prepared.path,kind:replacing.kind,
           originalName:file.name,mimeType:file.type,size:file.size,
         });
       }else{
@@ -305,7 +311,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
         });
       }
       await refreshMedia();
-      onNotice(replacing?"La foto se cambió en tu experiencia.":"Archivo incorporado a tu regalo.");
+      onNotice(replacing?("El "+(replacing.kind==="audio"?"audio":"archivo")+" se reemplazó conservando su lugar en la experiencia."):"Archivo incorporado a tu regalo.");
       return true;
     } catch (error) { onError(error instanceof Error&&error.message==="heic_decode_failed"
         ? "Tu teléfono no pudo convertir esta foto HEIC. Guardala como JPG o PNG y volvé a seleccionarla."
@@ -316,6 +322,16 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
   function choosePreviewPhoto(event:MouseEvent<HTMLDivElement>){
     const target=event.target;
     if(target instanceof Element){
+      const audio=target.closest("audio");
+      if(audio){
+        const matched=orderedMedia.find(item=>item.kind==="audio"&&item.url&&
+          (item.url===audio.currentSrc||item.url===audio.getAttribute("src")));
+        if(matched){
+          event.preventDefault();event.stopPropagation();
+          setSelected(null);setPhotoPicker({kind:"audio",mediaId:matched.id});
+          return;
+        }
+      }
       const img=target.closest("img");
       if(img){
         const clickedUrl=img.getAttribute("src")||"";
@@ -328,7 +344,49 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
         }
       }
     }
+    if(target instanceof Element){
+      // Scene artworks are not always IMG elements: some approved models use
+      // CSS backgrounds. Only capture known personal-photo containers.
+      const card=target.closest<HTMLElement>(
+        ".memory-card,.thi-mama-memory-card,.secret-gallery-frame,.club-polaroid,.polaroid,.thi-attached-photo,.photo-frame,figure"
+      );
+      const img=target.closest("img");
+      if(card && (img||target.closest(".memory-image"))){
+        const shell=target.closest<HTMLElement>("[data-current-scene]");
+        const classes=(target.closest("section")?.className||"").toString().split(/\s+/);
+        const detected=classes.map(c=>c.match(/^scene-(.+)$/)?.[1]||
+          c.match(/^thi-(?:scene-)?(memories|timeline|gallery|childhood|origin)$/)?.[1])
+          .find(v=>v&&scenes.includes(v as SceneType));
+        const candidate=shell?.dataset.currentScene||detected||
+          (["memories","gallery","day7","club"] as SceneType[]).find(v=>scenes.includes(v))||scenes[0];
+        if(candidate&&scenes.includes(candidate as SceneType)){
+          const scene=candidate as SceneType;
+          const siblings=Array.from(card.parentElement?.children||[]).filter(el=>
+            el.matches(".memory-card,.thi-mama-memory-card,.secret-gallery-frame,.club-polaroid,.polaroid,.thi-attached-photo,.photo-frame,figure"));
+          const slot=Math.max(0,Math.min(19,siblings.indexOf(card)));
+          event.preventDefault();event.stopPropagation();
+          setSelected(null);setPhotoPicker({kind:"slot",scene,slot});return;
+        }
+      }
+    }
     chooseText(event);
+  }
+
+  async function assignScenePhoto(scene:SceneType,slot:number,mediaId:string){
+    if(busy)return false;
+    setBusy(true);
+    try{
+      await action(access,"saveStudioPhotoSlot",{scene,slot,mediaId});
+      setPhotoSlots(prev=>{
+        const next={...prev};const key=scene+":"+slot;
+        if(mediaId)next[key]={mediaId};else delete next[key];
+        return next;
+      });
+      setPhotoPicker(null);
+      onNotice("Imagen guardada en este lugar exacto de la experiencia.");
+      return true;
+    }catch(error){onError(displayError(error));return false;}
+    finally{setBusy(false);}
   }
 
   async function assignDragonPhoto(slot:number,mediaId:string){
@@ -350,6 +408,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
   async function chooseExistingPhoto(mediaId:string){
     if(!photoPicker||busy)return;
     if(photoPicker.kind==="dragon"){await assignDragonPhoto(photoPicker.slot,mediaId);return;}
+    if(photoPicker.kind==="slot"){await assignScenePhoto(photoPicker.scene,photoPicker.slot,mediaId);return;}
     const ids=orderedMedia.map(m=>m.id);
     const from=ids.indexOf(photoPicker.mediaId),to=ids.indexOf(mediaId);
     if(from<0||to<0){onError("No encontramos la foto seleccionada.");return;}
@@ -365,29 +424,41 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
   }
 
   async function uploadReplacement(file:File){
-    if(!photoPicker||busy||uploading)return;
+    if(!photoPicker||busy||uploading)return false;
+    if(photoPicker.kind==="audio"){
+      if(!file.type.startsWith("audio/")&&!/\.(mp3|m4a|mp4|wav|webm|ogg|opus)$/i.test(file.name)){
+        onError("Seleccioná un audio MP3, M4A, WAV, WebM, OGG u OPUS.");return false;
+      }
+      const original=orderedMedia.find(item=>item.id===photoPicker.mediaId&&item.kind==="audio");
+      if(!original){onError("Este audio ya no está disponible.");return false;}
+      const ok=await uploadFile(file,original.metadata?.scene||scenes[0]||"intro",original);
+      if(ok)setPhotoPicker(null);
+      return ok;
+    }
     if(!file.type.startsWith("image/")&&!/\.(jpe?g|png|webp|heic|heif)$/i.test(file.name)){
-      onError("Seleccioná una fotografía JPG, PNG, WebP o HEIC.");return;
+      onError("Seleccioná una fotografía JPG, PNG, WebP o HEIC.");return false;
     }
     if(photoPicker.kind==="media"){
       const old=orderedMedia.find(item=>item.id===photoPicker.mediaId&&item.kind==="image");
-      if(!old){onError("La foto ya no está disponible.");return;}
+      if(!old){onError("La foto ya no está disponible.");return false;}
       const ok=await uploadFile(file,old.metadata?.scene||scenes[0]||"intro",old);
       if(ok)setPhotoPicker(null);
-      return;
+      return ok;
     }
-    if(orderedMedia.length>=30){onError("Alcanzaste el máximo de archivos. Eliminá una foto que no uses antes de subir otra.");return;}
+    if(orderedMedia.length>=30){onError("Alcanzaste el máximo de archivos. Eliminá una foto que no uses antes de subir otra.");return false;}
     const before=new Set(orderedMedia.map(item=>item.id));
-    const ok=await uploadFile(file,scenes[0]||"intro");
-    if(!ok)return;
+    const ok=await uploadFile(file,photoPicker.kind==="slot"?photoPicker.scene:(scenes[0]||"intro"));
+    if(!ok)return false;
     try{
       await refreshMedia();
       const response=await action(access,"openStudio");
       const rows:StudioMedia[]=Array.isArray(response.media)?response.media:[];
       const newPhoto=rows.find(item=>item.kind==="image"&&!before.has(item.id));
-      if(!newPhoto){onError("La foto se subió, pero no pudimos seleccionarla automáticamente. Elegila desde esta galería.");return;}
-      await assignDragonPhoto(photoPicker.slot,newPhoto.id);
-    }catch(error){onError(displayError(error));}
+      if(!newPhoto){onError("La foto se subió, pero no pudimos seleccionarla automáticamente. Elegila desde esta galería.");return false;}
+      if(photoPicker.kind==="slot")await assignScenePhoto(photoPicker.scene,photoPicker.slot,newPhoto.id);
+      else await assignDragonPhoto(photoPicker.slot,newPhoto.id);
+      return true;
+    }catch(error){onError(displayError(error));return false;}
   }
 
   async function updateMedia(item: StudioMedia, event: FormEvent<HTMLFormElement>) {
@@ -513,6 +584,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
               <button className={styles.ghost} disabled={busy} type="submit">Guardar archivo</button>
             </form>
             <div className={styles.mediaActions}>
+              {(item.kind==="audio"||item.kind==="image") && <button type="button" disabled={busy||Boolean(uploading)} onClick={()=>setPhotoPicker({kind:item.kind==="audio"?"audio":"media",mediaId:item.id})}>Reemplazar {item.kind==="audio"?"audio":"foto"}</button>}
               <button disabled={busy||idx===0} onClick={()=>void moveMedia(item,-1)} aria-label="Mover antes">↑</button>
               <button disabled={busy||idx===orderedMedia.length-1} onClick={()=>void moveMedia(item,1)} aria-label="Mover después">↓</button>
               <button disabled={busy} onClick={()=>void deleteMedia(item)}>Quitar</button>
@@ -544,6 +616,15 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
               audioMedia={audioMedia}
               editing={editingCopy}
               onTextSelect={selection=>{setSelected(selection);setCopyValue(selection.current);}}
+              onPhotoClick={slot=>{
+                const photo=orderedMedia.filter(m=>m.kind==="image"&&m.url)[slot];
+                if(photo)setPhotoPicker({kind:"media",mediaId:photo.id});
+                else onError("Todavía no hay una foto para este lugar. Subila desde Materiales personales.");
+              }}
+              onAudioClick={()=>{
+                const voice=orderedMedia.find(m=>m.kind==="audio"&&m.url&&m.metadata?.role!=="soundtrack");
+                if(voice)setPhotoPicker({kind:"audio",mediaId:voice.id});
+              }}
             /> :
           <ExperienceEngine
             experience={{...model,
@@ -565,16 +646,17 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
         {photoPicker && <div className={styles.copyModal} role="dialog" aria-modal="true" aria-label="Cambiar fotografía">
           <div className={styles.copyPanel} style={{maxWidth:530,maxHeight:"88dvh",overflowY:"auto"}}>
             <span className={styles.eyebrow}>EDITAR FOTOGRAFÍA</span>
-            <h3>{photoPicker.kind==="dragon"?"Elegí la foto para este recuerdo":"Cambiar la foto del recorrido"}</h3>
-            <p>Solo se modifica la imagen que elegís. Las escenas, animaciones y efectos permanecen intactos.</p>
+            <h3>{photoPicker.kind==="dragon"?"Elegí la foto para este recuerdo":photoPicker.kind==="slot"?"Elegí una foto para esta escena":photoPicker.kind==="audio"?"Reemplazar el audio de este momento":"Cambiar la foto del recorrido"}</h3>
+            <p>El archivo elegido se reemplaza en su mismo lugar. Los demás recuerdos y las animaciones permanecen intactos.</p>
+            {photoPicker.kind==="audio" && <VoiceRecorder disabled={busy||Boolean(uploading)} onSave={uploadReplacement}/>}
             <label className={styles.primary} style={{display:"block",textAlign:"center",cursor:busy||Boolean(uploading)?"wait":"pointer",margin:"14px 0"}}>
-              {uploading?"Subiendo foto…":"Elegir una foto de mi teléfono"}
-              <input aria-label="Subir una foto de reemplazo" type="file" accept="image/*,.heic,.heif"
+              {uploading?"Subiendo archivo…":photoPicker.kind==="audio"?"Subir una grabación de mi teléfono":"Elegir una foto de mi teléfono"}
+              <input aria-label="Subir una foto de reemplazo" type="file" accept={photoPicker.kind==="audio"?"audio/*,.mp3,.m4a,.mp4,.wav,.ogg,.opus,.webm":"image/*,.heic,.heif"}
                 style={{position:"absolute",width:1,height:1,opacity:0}}
-                disabled={busy||Boolean(uploading)||(photoPicker.kind==="dragon"&&orderedMedia.length>=30)}
+                disabled={busy||Boolean(uploading)||((photoPicker.kind==="dragon"||photoPicker.kind==="slot")&&orderedMedia.length>=30)}
                 onChange={e=>{const file=e.currentTarget.files?.[0];if(file)void uploadReplacement(file);e.currentTarget.value="";}}/>
             </label>
-            {orderedMedia.some(item=>item.kind==="image") && <>
+            {photoPicker.kind!=="audio" && orderedMedia.some(item=>item.kind==="image") && <>
               <p style={{fontWeight:700}}>O elegí una foto que ya subiste</p>
               <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:10,margin:"12px 0"}}>
                 {orderedMedia.filter(item=>item.kind==="image"&&item.url).map((item,i)=>
@@ -587,8 +669,8 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
                   </button>)}
               </div>
             </>}
-            {photoPicker.kind==="dragon" && <button type="button" className={styles.ghost} disabled={busy}
-              onClick={()=>void assignDragonPhoto(photoPicker.slot,"")}>Mostrar ilustración original</button>}
+            {(photoPicker.kind==="dragon"||photoPicker.kind==="slot") && <button type="button" className={styles.ghost} disabled={busy}
+              onClick={()=>void (photoPicker.kind==="dragon"?assignDragonPhoto(photoPicker.slot,""):assignScenePhoto(photoPicker.scene,photoPicker.slot,""))}>Mostrar imagen original</button>}
             <div className={styles.previewActions} style={{marginTop:18}}>
               <button className={styles.ghost} type="button" disabled={busy||Boolean(uploading)} onClick={()=>setPhotoPicker(null)}>Cancelar</button>
             </div>

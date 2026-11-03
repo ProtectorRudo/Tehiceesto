@@ -236,8 +236,15 @@ export default function SecretExperience({
               </div>
               <div className="secret-tape-label">GRABACIÓN PERSONAL · {giver.toLocaleUpperCase("es-AR")}</div>
               <div className="secret-tape-window">{Array.from({length:25},(_,i)=><i key={i} style={{height: (8+((i*17)%25))+"px",animationDelay:((i%7)*.11)+"s"}} />)}</div>
-              {audioMedia?.[0]?.url ? (
-                <audio className="secret-voice-player" src={audioMedia[0].url} controls preload="none" onPlay={() => setVoiceOpened(true)} onEnded={() => setVoiceOpened(true)} />
+              {audioMedia?.some(voice=>voice.url) ? (
+                <div style={{display:"grid",gap:12}}>
+                  {audioMedia.filter(voice=>voice.url).map((voice,index)=><div key={voice.url} style={{display:"grid",gap:5}}>
+                    <small>{voice.caption||"Mensaje de voz "+(index+1)}</small>
+                    <audio className="secret-voice-player" src={voice.url} controls preload="none"
+                      aria-label={"Escuchar mensaje de voz "+(index+1)}
+                      onPlay={() => setVoiceOpened(true)} onEnded={() => setVoiceOpened(true)} />
+                  </div>)}
+                </div>
               ) : (
                 <button className="secret-play" type="button" onClick={() => { setVoiceOpened(true); pulse(); }}>
                   {voiceOpened ? "✓ MENSAJE ABIERTO" : "▷ DESCUBRIR EL MENSAJE"}
