@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import {hideSalesWhatsappOnRoute,salesContextForRoute,buyerAlreadyOwnsSalesContext,type BoughtProduct} from "@/lib/marketing/sales-whatsapp-visibility";
 import { getExperience } from "@/data/experiences";
@@ -10,6 +10,9 @@ export default function FloatingWhatsApp() {
   const pathname = usePathname();
   const context=salesContextForRoute(pathname);
   const [verified,setVerified]=useState<{pathname:string;hide:boolean}|null>(null);
+  // Reuse a single client per mounted site shell; navigation across demos must
+  // not create extra auth refresh timers or storage listeners.
+  const accountClient=useRef<ReturnType<typeof createClient>|null>(null);
 
   useEffect(()=>{
     if(!context)return;
@@ -21,7 +24,7 @@ export default function FloatingWhatsApp() {
       if(!url||!key){if(active)setVerified({pathname,hide:false});return;}
       let authenticated=false;
       try{
-        const client=createClient(url,key,{auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:false}});
+        const client=accountClient.current||(accountClient.current=createClient(url,key,{auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:false}}));
         const {data,error}=await client.auth.getSession();
         if(error)throw error;
         const session=data.session;
