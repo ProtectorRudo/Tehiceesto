@@ -321,52 +321,62 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
 
   function choosePreviewPhoto(event:MouseEvent<HTMLDivElement>){
     const target=event.target;
-    if(target instanceof Element){
-      const audio=target.closest("audio");
-      if(audio){
-        const matched=orderedMedia.find(item=>item.kind==="audio"&&item.url&&
-          (item.url===audio.currentSrc||item.url===audio.getAttribute("src")));
-        if(matched){
-          event.preventDefault();event.stopPropagation();
-          setSelected(null);setPhotoPicker({kind:"audio",mediaId:matched.id});
-          return;
-        }
-      }
-      const img=target.closest("img");
-      if(img){
-        const clickedUrl=img.getAttribute("src")||"";
-        const existing=orderedMedia.find(item=>item.kind==="image"&&item.url&&
-          (item.url===clickedUrl||item.url===img.currentSrc));
-        if(existing){
-          event.preventDefault();event.stopPropagation();
-          setSelected(null);setPhotoPicker({kind:"media",mediaId:existing.id});
-          return;
-        }
+    if(!(target instanceof Element))return;
+
+    // FIRST identify the exact, editable position in the experience. A single
+    // uploaded photo may be reused in several different scenes. Replacing its
+    // storage object would unexpectedly edit all those other memories too.
+    const image=target.closest("img");
+    const card=target.closest<HTMLElement>(
+      ".memory-card,.thi-mama-memory-card,.friend-polaroid,.secret-gallery-frame,"+
+      ".club-polaroid,.polaroid,.thi-attached-photo,.photo-frame,figure"
+    );
+    const photoSurface=target.closest(".memory-image,.thi-mama-memory-photo");
+    if(card&&(image||photoSurface)){
+      const shell=target.closest<HTMLElement>("[data-current-scene]");
+      const classes=(target.closest("section")?.className||"").toString().split(/\\s+/);
+      const detected=classes.map(name=>
+        name.match(/^scene-(.+)$/)?.[1]||
+        name.match(/^thi-(?:scene-)?(memories|timeline|gallery|childhood|origin)$/)?.[1]
+      ).find(value=>value&&scenes.includes(value as SceneType));
+      const candidate=shell?.dataset.currentScene||detected||
+        (["memories","gallery","day7","club"] as SceneType[]).find(scene=>scenes.includes(scene))||
+        scenes[0];
+      if(candidate&&scenes.includes(candidate as SceneType)){
+        const scene=candidate as SceneType;
+        const siblingCards=Array.from(card.parentElement?.children||[]).filter(element=>
+          element.matches(".memory-card,.thi-mama-memory-card,.friend-polaroid,.secret-gallery-frame,.club-polaroid,.polaroid,.thi-attached-photo,.photo-frame")||
+          (element.matches("figure")&&!!element.querySelector("img"))
+        );
+        const slot=Math.max(0,Math.min(19,siblingCards.indexOf(card)));
+        event.preventDefault();
+        event.stopPropagation();
+        setSelected(null);
+        setPhotoPicker({kind:"slot",scene,slot});
+        return;
       }
     }
-    if(target instanceof Element){
-      // Scene artworks are not always IMG elements: some approved models use
-      // CSS backgrounds. Only capture known personal-photo containers.
-      const card=target.closest<HTMLElement>(
-        ".memory-card,.thi-mama-memory-card,.secret-gallery-frame,.club-polaroid,.polaroid,.thi-attached-photo,.photo-frame,figure"
-      );
-      const img=target.closest("img");
-      if(card && (img||target.closest(".memory-image"))){
-        const shell=target.closest<HTMLElement>("[data-current-scene]");
-        const classes=(target.closest("section")?.className||"").toString().split(/\s+/);
-        const detected=classes.map(c=>c.match(/^scene-(.+)$/)?.[1]||
-          c.match(/^thi-(?:scene-)?(memories|timeline|gallery|childhood|origin)$/)?.[1])
-          .find(v=>v&&scenes.includes(v as SceneType));
-        const candidate=shell?.dataset.currentScene||detected||
-          (["memories","gallery","day7","club"] as SceneType[]).find(v=>scenes.includes(v))||scenes[0];
-        if(candidate&&scenes.includes(candidate as SceneType)){
-          const scene=candidate as SceneType;
-          const siblings=Array.from(card.parentElement?.children||[]).filter(el=>
-            el.matches(".memory-card,.thi-mama-memory-card,.secret-gallery-frame,.club-polaroid,.polaroid,.thi-attached-photo,.photo-frame,figure"));
-          const slot=Math.max(0,Math.min(19,siblings.indexOf(card)));
-          event.preventDefault();event.stopPropagation();
-          setSelected(null);setPhotoPicker({kind:"slot",scene,slot});return;
-        }
+
+    // Outside a visual scene, a directly displayed personal file is edited
+    // by its file ID. In particular, an audio player is never a photo slot.
+    const audio=target.closest("audio");
+    if(audio){
+      const existing=orderedMedia.find(item=>item.kind==="audio"&&item.url&&
+        (item.url===audio.currentSrc||item.url===audio.getAttribute("src")));
+      if(existing){
+        event.preventDefault();event.stopPropagation();
+        setSelected(null);setPhotoPicker({kind:"audio",mediaId:existing.id});
+        return;
+      }
+    }
+    if(image){
+      const clickedUrl=image.getAttribute("src")||"";
+      const existing=orderedMedia.find(item=>item.kind==="image"&&item.url&&
+        (item.url===clickedUrl||item.url===image.currentSrc));
+      if(existing){
+        event.preventDefault();event.stopPropagation();
+        setSelected(null);setPhotoPicker({kind:"media",mediaId:existing.id});
+        return;
       }
     }
     chooseText(event);
