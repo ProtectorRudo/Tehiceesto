@@ -32,7 +32,11 @@ test("a restored unsafe deploy workflow would block the whole release",()=>{
 
 test("the purchased product catalog is an independently locked snapshot",()=>{
   const repo=read("lib/gifts/repository.ts");
-  assert.match(repo,/import \{ getExperience \} from "@\/data\/purchased-experiences-20261103"/);
+  assert.match(repo,/import \{purchasedExperienceBaseline\} from "@\/lib\/gifts\/purchased-experience-baseline"/);
+  assert.match(repo,/purchasedExperienceBaseline\(row\.experience_slug,row\.template_version\)/);
+  const baseline=read("lib/gifts/purchased-experience-baseline.ts");
+  assert.match(baseline,/getFrozenPurchasedExperience/);
+  assert.match(baseline,/getLegacyArchiveExperience/);
   const snapshot=read("data/purchased-experiences-20261103.ts");
   const original=read("data/experiences.ts");
   assert.ok(snapshot.includes('slug: "pareja"')&&snapshot.includes('slug: "dragon-ball-pareja"'));
