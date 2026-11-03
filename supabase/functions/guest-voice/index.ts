@@ -114,6 +114,14 @@ Deno.serve(async req=>{
       if(error)return response(origin,{error:"revoke_failed"},500);
       return response(origin,{ok:true});
     }
+    // Do not promise twelve recordings if the gift has only a few free media
+    // slots left. Check BEFORE revoking the previous invite so the owner does
+    // not lose a working link when the gift is full.
+    const usedMedia=await mediaCount(supabase,gift.id);
+    if(usedMedia<0)return response(origin,{error:"lookup_failed"},500);
+    const availableSlots=Math.min(MAX_INVITE_UPLOADS,MAX_GIFT_MEDIA-usedMedia);
+    if(availableSlots<=0)return response(origin,{error:"gift_full"},409);
+
     // At most one active link at any time, to make accidental forwarding revocable.
     await supabase.from("voice_guest_invites").update({revoked_at:new Date().toISOString()})
       .eq("gift_id",gift.id).is("revoked_at",null);
@@ -121,7 +129,7 @@ Deno.serve(async req=>{
     const {data,error}=await supabase.from("voice_guest_invites").insert({
       gift_id:gift.id,token_hash:await sha256(token),created_by_email:email,
       expires_at:new Date(Date.now()+14*24*60*60*1000).toISOString(),
-      max_submissions:MAX_INVITE_UPLOADS,
+      max_submissions:availableSlots,
     }).select("id,expires_at,max_submissions").single();
     if(error||!data)return response(origin,{error:"invite_create_failed"},500);
     return response(origin,{ok:true,id:data.id,expiresAt:data.expires_at,maxSubmissions:data.max_submissions,url:VOICE_BASE+"#t="+token});
