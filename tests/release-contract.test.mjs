@@ -6,16 +6,20 @@ import {PURCHASED_ROUTE_CONTRACT,LEGACY_PACK_GAME_ROUTES} from "../lib/release/p
 
 const sha="a".repeat(40);
 const home="TE HICE ESTO · 4 JUEGOS · $25.000";
-const fetchMock=(patch={})=>async(url)=>{
+const fetchMock=(patch={})=>async(url,init={})=>{
  const path=new URL(url).pathname;
  const modified=patch[path];
- const status=modified?.status ?? (path==="/r/000000000000000000"||path==="/comprar/sticker-bomb-amistad"?404:200);
- const value=modified?.body??(path==="/api/version"?{service:"tehiceesto",commit:sha}:
+ const checkout=path==="/api/checkout"&&init.method==="POST";
+ const forbidden=checkout&&init.headers?.origin==="https://foreign-origin.invalid";
+ const status=modified?.status ?? (checkout?(forbidden?403:400):
+   path==="/r/000000000000000000"||path==="/comprar/sticker-bomb-amistad"?404:200);
+ const value=modified?.body??(checkout?{error:forbidden?"forbidden_origin":"invalid_input"}:
+   path==="/api/version"?{service:"tehiceesto",commit:sha}:
    path==="/juegos/pack/completo"?'<span hidden data-purchased-product="pack-juegos"></span>':
    path==="/juegos/trazo-complice/completo"?'<span hidden data-purchased-product="trazo-complice"></span>':
    home);
  const body=typeof value==="string"?value:JSON.stringify(value);
- const response=new Response(body,{status,headers:{"content-type":path==="/api/version"?"application/json":"text/html"}});
+ const response=new Response(body,{status,headers:{"content-type":checkout||path==="/api/version"?"application/json":"text/html"}});
  const finalPath=path==="/juegos/pack/pedido"?PURCHASED_ROUTE_CONTRACT.myGifts:
    LEGACY_PACK_GAME_ROUTES.includes(path)?PURCHASED_ROUTE_CONTRACT.pack:path;
  Object.defineProperty(response,"url",{value:new URL(finalPath,url).href,configurable:true});
@@ -39,6 +43,24 @@ test("Both product version and share code are immutable once an order is created
 test("A healthy release passes all permanent routes and original purchase identity",async()=>{
  const passed=await checkLiveRelease({origin:"https://tehiceesto.com",expectedSha:sha,fetchImpl:fetchMock()});
  assert.equal(passed.checkedRoutes,requiredPublicPaths.length+2);
+});
+
+test("Production release must reject a checkout that blocks its legitimate commercial Origin",async()=>{
+ await assert.rejects(checkLiveRelease({origin:"https://tehiceesto.com",expectedSha:sha,
+  fetchImpl:fetchMock({"/api/checkout":{status:403,body:{error:"forbidden_origin"}}})}),
+  /checkout_valid_origin_rejected/);
+});
+
+test("Production release must reject a checkout with disabled cross-origin protection",async()=>{
+ const original=fetchMock();
+ await assert.rejects(checkLiveRelease({origin:"https://tehiceesto.com",expectedSha:sha,
+  fetchImpl:async(url,init)=>{
+   if(new URL(url).pathname==="/api/checkout" &&
+      init?.headers?.origin==="https://foreign-origin.invalid")
+    return new Response('{"error":"invalid_input"}',{status:400,
+      headers:{"content-type":"application/json"}});
+   return original(url,init);
+  }}),/checkout_cross_origin_not_blocked/);
 });
 
 test("A stale deployment is rejected even if the pages still respond HTTP 200",async()=>{
