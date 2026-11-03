@@ -28,21 +28,17 @@ try{
   const errs=[];page.on("pageerror",e=>errs.push(e.message));
   for(const slug of slugs){
    const response=await page.goto(base+"/experiencias/"+slug+"?embed=1",{waitUntil:"domcontentloaded",timeout:35000});
+   if(slug==="sticker-bomb-amistad"){
+     assert.equal(response?.status(),404,"Withdrawn Sticker Bomb must not reappear publicly");
+     console.log("RETIRED_DEMO_HIDDEN",slug,viewport.width);
+     continue;
+   }
    assert.equal(response?.status(),200,"Missing demo "+slug);
    const html=await page.content();
    assert.ok(!html.includes("NEXT_NOT_FOUND"),"Demo returned a not-found page: "+slug);
    if(slug==="dragon-ball-pareja")assert.equal(await page.locator('iframe[src*="dragon-ball-pareja.html"]').count(),1);
-   if(slug==="sticker-bomb-amistad"){
-    assert.equal(await page.getByRole("main",{name:"Sticker Bomb · Expediente de nuestra amistad"}).count(),1);
-    await page.getByRole("button",{name:/Abrir nuestro expediente/}).click();
-    await page.getByText("Atención psicológica").waitFor();
-    await page.getByRole("button",{name:"Ir al capítulo 12"}).click();
-    await page.getByRole("button",{name:/Abrir la carta/}).click();
-    await page.getByText("Querida persona favorita",{exact:false}).waitFor();
-   }
    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
    assert.ok(overflow<=3,slug+" viewport "+viewport.width+" horizontal overflow="+overflow);
-   if(slug==="sticker-bomb-amistad")await page.screenshot({path:"visual-smoke/studio-parity/sticker-"+viewport.width+".png"});
    console.log("DEMO_PASS",slug,viewport.width);
   }
   assert.deepEqual(errs,[],"Demo JavaScript errors at width "+viewport.width);

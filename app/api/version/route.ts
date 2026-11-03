@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import buildIdentity from "@/lib/release/build.json";
 
 export const dynamic = "force-dynamic";
 
@@ -7,6 +8,7 @@ export function GET() {
     {
       service: "tehiceesto",
       commit:
+        (buildIdentity.commit !== "local" ? buildIdentity.commit : "") ||
         process.env.VERCEL_GIT_COMMIT_SHA ||
         process.env.GITHUB_SHA ||
         "local",

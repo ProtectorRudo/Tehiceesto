@@ -9,6 +9,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -33,6 +34,21 @@ jobs:
             exit 1
           fi
 
+      - name: Reject the wrong project and an old commit
+        env:
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          test "$VERCEL_PROJECT_ID" = "prj_1VcOY4n08AEPMH9ltaRLBRJZstKt" || {
+            echo "::error::Refusing to deploy into any other project (especially shared Viralio)."
+            exit 1
+          }
+          remote="$(git ls-remote origin refs/heads/main | cut -f1)"
+          test "$remote" = "$EXPECTED_SHA" || {
+            echo "::error::Main advanced while preparing release: refuse stale deployment."
+            exit 1
+          }
+
       - name: Use Node 22
         uses: actions/setup-node@v4
         with:
@@ -41,6 +57,16 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Enforce permanent product and purchase routes
+        run: |
+          node --test tests/*.test.mjs
+          node scripts/release-contract.mjs --static
+
+      - name: Pin artifact to the checkout SHA
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: node scripts/create-release-manifest.mjs "$EXPECTED_SHA"
 
       - name: Install pinned Vercel CLI
         run: npm install --no-save vercel@latest
@@ -59,42 +85,66 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: npx vercel build --prod --token="$VERCEL_TOKEN"
 
-      - name: Deploy exact prebuilt artifact
+      - name: Confirm main still matches the artifact before staging
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          remote="$(git ls-remote origin refs/heads/main | cut -f1)"
+          test "$remote" = "$EXPECTED_SHA" || {
+            echo "::error::New code was merged. Do not ship an earlier artifact."
+            exit 1
+          }
+
+      - name: Stage production artifact WITHOUT changing customer domains
         id: deploy
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          url="$(npx vercel deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN")"
+          url="$(npx vercel deploy --prebuilt --prod --skip-domain --yes --token="$VERCEL_TOKEN")"
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "Deployed: $url"
 
-      - name: Verify deployment URL
+      - name: Smoke test exact staged artifact before any promotion
         env:
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
-        run: |
-          for i in {1..30}; do
-            if curl -fsSL --max-time 30 "$DEPLOYMENT_URL/api/version" > /tmp/version.json; then
-              cat /tmp/version.json
-              break
-            fi
-            sleep 5
-          done
-          test -s /tmp/version.json
-
-      - name: Verify production alias
-        env:
           EXPECTED_SHA: ${{ github.sha }}
         run: |
-          for i in {1..30}; do
-            body="$(curl -fsSL --max-time 30 https://tehiceesto.com/api/version || true)"
-            echo "$body"
-            if printf '%s' "$body" | grep -q "$EXPECTED_SHA"; then
-              echo "Production alias points to expected commit."
+          test -n "$DEPLOYMENT_URL"
+          for i in {1..12}; do
+            if node scripts/release-contract.mjs --live "$DEPLOYMENT_URL" "$EXPECTED_SHA"; then
+              echo "Staged release passed the complete customer-route contract."
               exit 0
             fi
             sleep 5
           done
-          echo "::error::tehiceesto.com does not expose expected commit $EXPECTED_SHA"
+          echo "::error::Staged release failed. The public site has NOT been modified."
           exit 1
+
+      - name: Promote the SAME verified deployment (no rebuild)
+        id: promote
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
+        run: npx vercel promote "$DEPLOYMENT_URL" --yes --token="$VERCEL_TOKEN"
+
+      - name: Verify both public destinations serve the exact release
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          for i in {1..18}; do
+            if node scripts/release-contract.mjs --live "https://tehiceesto.vercel.app" "$EXPECTED_SHA" &&
+               node scripts/release-contract.mjs --live "https://tehiceesto.com" "$EXPECTED_SHA"; then
+              echo "Both customer origins are serving and passing the exact same release."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Production aliases disagree with the approved release. ROLLBACK REQUIRED."
+          exit 1
+
+      - name: Publish a failed-release incident summary
+        if: failure()
+        run: |
+          echo "::error::Release failed a required check. Inspect failed step and previous READY release; do not claim publication success."
