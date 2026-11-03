@@ -1,7 +1,7 @@
 import {adminRequest} from "@/lib/admin-auth";
 import "server-only";
 import type { Experience, SceneType } from "@/data/experiences";
-import { getExperience } from "@/data/experiences";
+import { getExperience } from "@/data/purchased-experiences-20261103";
 import {purchasedRendererFor,type PurchasedRendererFamily} from "@/lib/gifts/purchased-renderers.mjs";
 import { normalizeSceneTextOverrides, type SceneTextOverrides } from "@/data/scene-text";
 import {arrangeScenePhotos} from "@/lib/gifts/arrange-scene-photos";
