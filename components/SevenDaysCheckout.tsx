@@ -30,6 +30,7 @@ export default function SevenDaysCheckout(){
      });
      const data=await res.json() as CheckoutResult;
      if(!res.ok||data.error)throw new Error(data.error||"request_failed");
+     if(Number(data.priceMinor)!==2_500_000||data.currency!=="ARS")throw new Error("price_mismatch");
      setOrder(data);
      if(data.checkoutReady&&data.checkoutUrl&&data.checkoutUrl.startsWith("https://")){
        window.location.assign(data.checkoutUrl);
@@ -48,7 +49,7 @@ export default function SevenDaysCheckout(){
     <span style={{letterSpacing:".2em",fontSize:11,fontWeight:800,color:"#a85d7c"}}>TE HICE ESTO ♥ · SIETE DÍAS DE AMOR</span>
     <h1 style={{font:"normal clamp(45px,7vw,70px)/1 Georgia,serif",margin:"18px 0"}}>Un poquito de mí,<br/><i style={{color:"#b93468"}}>cada día.</i></h1>
     <p style={{fontSize:17,lineHeight:1.65,color:"#967b88"}}>Siete capítulos únicos, un regalo diferente cada día. Personalizá nombres, mensajes, fotos y audios desde tu espacio privado.</p>
-    <strong style={{display:"block",fontSize:26,marginTop:20}}>$1.000 ARS · precio de prueba</strong>
+    <strong style={{display:"block",fontSize:26,marginTop:20}}>$25.000 ARS · pago único</strong>
     <small style={{color:"#927c88"}}>Pago único · acceso para personalizar y compartir los siete días</small>
    </div>
    <form onSubmit={submit} style={{maxWidth:560,margin:"auto",padding:"clamp(24px,5vw,38px)",border:"1px solid #efd4de",background:"#fffefd",borderRadius:28,boxShadow:"0 18px 60px #a4537020",display:"grid",gap:18}}>
