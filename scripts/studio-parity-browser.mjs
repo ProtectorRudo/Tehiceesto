@@ -4,6 +4,8 @@ import fs from "node:fs/promises";
 
 const base=process.env.AUDIT_BASE_URL||"http://127.0.0.1:3000";
 const slugs=["pareja","cumpleanos","mama","papa","amistad","dragon-ball-pareja","sticker-bomb-amistad","siete-dias","frasco365"];
+// The withdrawn template stays in mocked historical purchases, not public demos.
+const publicSlugs=slugs.filter(slug=>slug!=="sticker-bomb-amistad");
 const codes=Object.fromEntries(slugs.map((slug,i)=>[String(i+1).padStart(16,"0"),slug]));
 const gifts=Object.entries(codes).map(([code,experienceSlug])=>({
  code,experienceSlug,status:"paid",templateVersion:"premium",
@@ -26,7 +28,7 @@ try{
  for(const viewport of [{width:390,height:844},{width:1360,height:900}]){
   const page=await browser.newPage({viewport,isMobile:viewport.width<600,hasTouch:viewport.width<600,deviceScaleFactor:1});
   const errs=[];page.on("pageerror",e=>errs.push(e.message));
-  for(const slug of slugs){
+  for(const slug of publicSlugs){
    const response=await page.goto(base+"/experiencias/"+slug+"?embed=1",{waitUntil:"domcontentloaded",timeout:35000});
    if(slug==="sticker-bomb-amistad"){
      assert.equal(response?.status(),404,"Withdrawn Sticker Bomb must not reappear publicly");
@@ -41,6 +43,8 @@ try{
    assert.ok(overflow<=3,slug+" viewport "+viewport.width+" horizontal overflow="+overflow);
    console.log("DEMO_PASS",slug,viewport.width);
   }
+  const withdrawn=await page.goto(base+"/experiencias/sticker-bomb-amistad?embed=1",{waitUntil:"domcontentloaded",timeout:35000});
+  assert.equal(withdrawn?.status(),404,"Withdrawn Sticker Bomb demo must return 404");
   assert.deepEqual(errs,[],"Demo JavaScript errors at width "+viewport.width);
   await page.close();
  }
