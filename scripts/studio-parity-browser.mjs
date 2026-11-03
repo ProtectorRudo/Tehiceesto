@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 
 const base=process.env.AUDIT_BASE_URL||"http://127.0.0.1:3000";
 const slugs=["pareja","cumpleanos","mama","papa","amistad","dragon-ball-pareja","sticker-bomb-amistad","siete-dias","frasco365"];
-const codes=Object.fromEntries(slugs.map((slug,i)=>[String(i+1).padStart(16,"0"),slug]));
+// Retired templates remain in mocked paid gifts to guard legacy ownership,\n// but must never appear as public demos or new-sale offers.\nconst publicSlugs=slugs.filter(slug=>slug!=="sticker-bomb-amistad");\nconst codes=Object.fromEntries(slugs.map((slug,i)=>[String(i+1).padStart(16,"0"),slug]));
 const gifts=Object.entries(codes).map(([code,experienceSlug])=>({
  code,experienceSlug,status:"paid",templateVersion:"premium",
  giverName:"Remitente QA",recipientName:"Destinataria QA",
@@ -26,7 +26,7 @@ try{
  for(const viewport of [{width:390,height:844},{width:1360,height:900}]){
   const page=await browser.newPage({viewport,isMobile:viewport.width<600,hasTouch:viewport.width<600,deviceScaleFactor:1});
   const errs=[];page.on("pageerror",e=>errs.push(e.message));
-  for(const slug of slugs){
+  for(const slug of publicSlugs){
    const response=await page.goto(base+"/experiencias/"+slug+"?embed=1",{waitUntil:"domcontentloaded",timeout:35000});
    assert.equal(response?.status(),200,"Missing demo "+slug);
    const html=await page.content();
@@ -45,7 +45,7 @@ try{
    if(slug==="sticker-bomb-amistad")await page.screenshot({path:"visual-smoke/studio-parity/sticker-"+viewport.width+".png"});
    console.log("DEMO_PASS",slug,viewport.width);
   }
-  assert.deepEqual(errs,[],"Demo JavaScript errors at width "+viewport.width);
+  const withdrawn=await page.goto(base+"/experiencias/sticker-bomb-amistad?embed=1",{waitUntil:"domcontentloaded",timeout:35000});\n  assert.equal(withdrawn?.status(),404,"Withdrawn Sticker Bomb demo must return 404");\n  assert.deepEqual(errs,[],"Demo JavaScript errors at width "+viewport.width);
   await page.close();
  }
  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
