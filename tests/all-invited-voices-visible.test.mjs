@@ -8,7 +8,7 @@ test("Every published gift family exposes the complete customer voice collection
   const page=read("app/r/[code]/page.tsx");
   assert.equal(page.split("<GiftVoiceCollection audios={storedGift.audioMedia}").length-1,5,
     "Dragon Ball, withdrawn historical gifts, Jar, Seven Days and regular gifts must all have voice access");
-  assert.ok(page.indexOf("<GiftVoiceCollection")<page.indexOf("// Development fallback"),
+  assert.ok(page.indexOf("<GiftVoiceCollection")<page.indexOf('if(process.env.NODE_ENV==="production")'),
     "The collection is private and should not be inserted into public demos");
   assert.match(page,/if\(storedGift\.rendererFamily==="dragon-ball"\)return/);
   assert.match(page,/if \(storedGift\.rendererFamily==="jar365"\)/);
