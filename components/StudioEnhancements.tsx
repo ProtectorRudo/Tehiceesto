@@ -334,7 +334,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
     const photoSurface=target.closest(".memory-image,.thi-mama-memory-photo");
     if(card&&(image||photoSurface)){
       const shell=target.closest<HTMLElement>("[data-current-scene]");
-      const classes=(target.closest("section")?.className||"").toString().split(/\\s+/);
+      const classes=(target.closest("section")?.className||"").toString().split(/\s+/);
       const detected=classes.map(name=>
         name.match(/^scene-(.+)$/)?.[1]||
         name.match(/^thi-(?:scene-)?(memories|timeline|gallery|childhood|origin)$/)?.[1]
