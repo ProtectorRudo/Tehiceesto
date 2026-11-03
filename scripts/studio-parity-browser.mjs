@@ -126,11 +126,11 @@ try{
   await page.locator("article").filter({has:page.getByRole("button",{name:"Editar mi experiencia →"})}).nth(Object.keys(codes).indexOf(code)).getByRole("button",{name:"Editar mi experiencia →"}).click();
   await page.getByRole("heading",{name:"Tu historia, a tu manera."}).waitFor({timeout:15000});
   await page.getByLabel("Para",{exact:true}).fill("Destinataria QA "+slug);
-  await page.getByLabel("Mensaje de bienvenida",{exact:true}).first().fill("Bienvenida QA "+slug);
+  if(slug!=="siete-dias")await page.getByLabel("Mensaje de bienvenida",{exact:true}).first().fill("Bienvenida QA "+slug);
   await page.getByRole("button",{name:"Guardar cambios →"}).click();
   await page.getByText("Cambios guardados.",{exact:false}).waitFor({timeout:15000});
   assert.equal(savedGifts.get(code)?.recipient_name,"Destinataria QA "+slug,"Basic recipient was not saved: "+slug);
-  if(slug!=="frasco365"){
+  if(slug!=="frasco365" && slug!=="siete-dias"){
    const input=page.getByLabel("Seleccionar archivos");
    await input.setInputFiles({name:"qa-photo.jpg",mimeType:"application/octet-stream",buffer:png});
    await page.getByText("Archivo incorporado a tu regalo.").waitFor({timeout:18000});
@@ -173,6 +173,25 @@ try{
      await page.locator(".legacy-premium-renderer, .experience-shell").first().waitFor({timeout:12000});
     }
    }
+  }else if(slug==="siete-dias"){
+   // No unrelated media, voice, or music tools; seven individual signed links.
+   assert.equal(await page.getByLabel("Seleccionar archivos").count(),0);
+   assert.equal(await page.getByRole("button",{name:"Empezar a grabar"}).count(),0);
+   assert.equal(await page.getByRole("button",{name:/Crear enlace para invitar/}).count(),0);
+   assert.equal(await page.getByLabel("Enlace de música (opcional)").count(),0);
+   assert.equal(await page.getByLabel("Carta personal").count(),0);
+   assert.equal(await page.getByLabel("Ocasión",{exact:true}).count(),0);
+   const links=Array.from({length:7},(_,index)=>{
+    const day=index+1;
+    return {day,url:"https://tehiceesto.com/r/"+code+"/dia/"+day+"/"+day.toString(16).repeat(64)};
+   });
+   await page.route("**/api/seven-days-links",r=>ok(r,{links,published:true}));
+   await page.getByRole("button",{name:"Preparar mis siete enlaces"}).click();
+   await page.getByRole("button",{name:"Copiar enlace"}).first().waitFor();
+   assert.equal(await page.getByRole("button",{name:"Copiar enlace"}).count(),7);
+   assert.equal(await page.getByRole("link",{name:"Enviar por WhatsApp"}).count(),7);
+   await page.getByRole("button",{name:"Abrir vista previa →"}).click();
+   await page.locator('iframe[title*="Día"]').first().waitFor();
   }else{
    assert.equal(await page.getByLabel("Seleccionar archivos").count(),0,"Frasco365 is a text-only model and must not promise media slots");
    await page.getByRole("button",{name:"Abrir vista previa →"}).click();
@@ -184,8 +203,8 @@ try{
   await page.locator("article").filter({has:page.getByRole("button",{name:"Editar mi experiencia →"})}).nth(Object.keys(codes).indexOf(code)).getByRole("button",{name:"Editar mi experiencia →"}).click();
   await page.getByRole("heading",{name:"Tu historia, a tu manera."}).waitFor();
   assert.equal(await page.getByLabel("Para",{exact:true}).inputValue(),"Destinataria QA "+slug,"Saved recipient was lost after reopening: "+slug);
-  assert.equal(await page.locator('textarea[maxlength="5000"]').first().inputValue(),"Bienvenida QA "+slug,"Saved welcome text was lost after reopening: "+slug);
-  if(slug!=="frasco365"){
+  if(slug!=="siete-dias")assert.equal(await page.locator('textarea[maxlength="5000"]').first().inputValue(),"Bienvenida QA "+slug,"Saved welcome text was lost after reopening: "+slug);
+  if(slug!=="frasco365" && slug!=="siete-dias"){
    assert.equal(await page.locator('input[aria-label="Seleccionar archivos"]').count(),1);
    assert.ok(await page.locator("audio[controls]").count()>=1,"Audio vanished after reopening: "+slug);
    assert.ok((stored.get(code)||[]).some(item=>item.kind==="image"),"Photo vanished after reopening: "+slug);
@@ -196,6 +215,10 @@ try{
    }
    if(slug==="sticker-bomb-amistad")assert.equal(await page.getByLabel("La frase que presenta la amistad").inputValue(),"Amistad QA para siempre");
   }
+  if(slug==="siete-dias"){
+   assert.equal(await page.getByLabel("Seleccionar archivos").count(),0,"No irrelevant media after reopening");
+   assert.equal(await page.getByRole("button",{name:"Preparar mis siete enlaces"}).count(),1);
+  }
   console.log("REOPEN_PASS",slug);
   await page.getByRole("button",{name:"← Volver a mis regalos"}).click();
   await page.getByRole("heading",{name:"Los recuerdos tienen casa."}).waitFor();
@@ -205,6 +228,6 @@ try{
  assert.deepEqual(errs,[],"Authenticated studio JavaScript errors");
  await page.screenshot({path:"visual-smoke/studio-parity/account.png",fullPage:true});
  await page.close();
- assert.equal(ops.filter(x=>x==="registerStudioMedia").length,(slugs.length-1)*2,"Expected mock Storage upload registration for each photo and WhatsApp audio");
- console.log("STUDIO_PARITY_BROWSER_QA_PASS",JSON.stringify({demos:slugs.length*2,studio:slugs.length,photos:slugs.length-1,audios:slugs.length-1}));
+ assert.equal(ops.filter(x=>x==="registerStudioMedia").length,(slugs.length-2)*2,"Only media-bearing models can upload photos/audio");
+ console.log("STUDIO_PARITY_BROWSER_QA_PASS",JSON.stringify({demos:slugs.length*2,studio:slugs.length,photos:slugs.length-2,audios:slugs.length-2}));
 }finally{await browser.close()}
