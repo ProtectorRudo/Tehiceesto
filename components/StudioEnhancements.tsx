@@ -392,7 +392,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
     }
     if(photoPicker.kind==="media"){
       const old=orderedMedia.find(item=>item.id===photoPicker.mediaId&&item.kind==="image");
-      if(!old){onError("La foto ya no está disponible.");return;}
+      if(!old){onError("La foto ya no está disponible.");return false;}
       const ok=await uploadFile(file,old.metadata?.scene||scenes[0]||"intro",old);
       if(ok)setPhotoPicker(null);
       return ok;
@@ -406,7 +406,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
       const response=await action(access,"openStudio");
       const rows:StudioMedia[]=Array.isArray(response.media)?response.media:[];
       const newPhoto=rows.find(item=>item.kind==="image"&&!before.has(item.id));
-      if(!newPhoto){onError("La foto se subió, pero no pudimos seleccionarla automáticamente. Elegila desde esta galería.");return;}
+      if(!newPhoto){onError("La foto se subió, pero no pudimos seleccionarla automáticamente. Elegila desde esta galería.");return false;}
       await assignDragonPhoto(photoPicker.slot,newPhoto.id);
       return true;
     }catch(error){onError(displayError(error));return false;}
