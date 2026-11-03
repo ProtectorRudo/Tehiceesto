@@ -23,7 +23,7 @@ export default async function EscapeAdmin(){
    </details>)}
   </section>
   <section className="admin-list-section"><h2>Invitaciones creadas</h2>
-   {error?<p>No se pudo consultar el historial de invitaciones.</p>:!data?.length?<p>Todavía no hay invitaciones de estas tres salas.</p>:<div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Invitación</th><th>Destinatario</th><th>Estado</th><th>Editar</th></tr></thead><tbody>{data.map(item=><tr key={item.public_code}><td>{item.experience_slug}</td><td>{item.recipient_name}</td><td>{item.status}</td><td><a href={"/admin/escapes/"+item.public_code}>Abrir edición →</a></td></tr>)}</tbody></table></div>}
+   {error?<p>No se pudo consultar el historial de invitaciones.</p>:!data?.length?<p>Todavía no hay invitaciones creadas.</p>:<div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Invitación</th><th>Destinatario</th><th>Estado</th><th>Editar</th></tr></thead><tbody>{data.map(item=><tr key={item.public_code}><td>{item.experience_slug}</td><td>{item.recipient_name}</td><td>{item.status}</td><td><a href={"/admin/escapes/"+item.public_code}>Abrir edición →</a></td></tr>)}</tbody></table></div>}
   </section>
  </main>;
 }
