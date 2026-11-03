@@ -9,6 +9,8 @@
 import {readFileSync,existsSync} from "node:fs";
 import {resolve} from "node:path";
 import {PURCHASED_ROUTE_CONTRACT,LEGACY_PACK_GAME_ROUTES} from "../lib/release/public-route-contract.mjs";
+import {verifyLockedRenderers} from "./verify-renderer-lock.mjs";
+import {PURCHASED_RENDERERS} from "../lib/gifts/purchased-renderers.mjs";
 
 export const requiredPublicPaths=Object.freeze([
  "/", "/mis-regalos", "/juegos/pack", "/juegos/pack/completo",
@@ -18,6 +20,7 @@ export const requiredPublicPaths=Object.freeze([
 ]);
 
 export function assertStaticReleaseContract(root=process.cwd()){
+ verifyLockedRenderers(root);
  const read=(p)=>readFileSync(resolve(root,p),"utf8");
  const required={
   "/mis-regalos":"app/mis-regalos/page.tsx",
@@ -46,6 +49,15 @@ export function assertStaticReleaseContract(root=process.cwd()){
  if(!pack.includes('functions/v1/pack-juegos-content')||
     !drawing.includes('functions/v1/trazo-complice-words'))
    throw Error("purchased_games_missing_entitlement_checks");
+ const giftRead=read("supabase/functions/gift-read/index.ts");
+ const giftRepository=read("lib/gifts/repository.ts");
+ const giftPage=read("app/r/[code]/page.tsx");
+ if(!giftRead.includes("experience_slug,template_version,giver_name")||
+    !giftRepository.includes("purchasedRendererFor(row.experience_slug,row.template_version)")||
+    !giftPage.includes("storedGift.rendererFamily"))
+   throw Error("purchased_renderer_version_bypass");
+ if(Object.keys(PURCHASED_RENDERERS).length<15)
+   throw Error("purchased_renderer_registry_incomplete");
  const orderCreate=read("supabase/functions/order-create/index.ts");
  if(!orderCreate.includes('slug==="dragon-ball-pareja"?"dragon-ball-v1"')||
     !orderCreate.includes('template_version:versionForNewGift(experienceSlug)')||
