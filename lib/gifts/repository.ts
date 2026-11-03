@@ -2,11 +2,13 @@ import {adminRequest} from "@/lib/admin-auth";
 import "server-only";
 import type { Experience, SceneType } from "@/data/experiences";
 import { getExperience } from "@/data/experiences";
+import {purchasedRendererFor,type PurchasedRendererFamily} from "@/lib/gifts/purchased-renderers.mjs";
 import { normalizeSceneTextOverrides, type SceneTextOverrides } from "@/data/scene-text";
 import {arrangeScenePhotos} from "@/lib/gifts/arrange-scene-photos";
 
 type EdgeGift = {
   experience_slug: string;
+  template_version: string;
   giver_name: string;
   recipient_name: string;
   occasion: string | null;
@@ -77,6 +79,8 @@ export async function getPublishedGiftByCode(
   code: string,
 ): Promise<{
   experience: Experience;
+  templateVersion: string;
+  rendererFamily: PurchasedRendererFamily;
   letterText?: string;
   photoMedia?: {
     url: string;
@@ -124,6 +128,9 @@ export async function getPublishedGiftByCode(
   const payload = (await response.json()) as GiftReadResponse;
   const row = payload.gift;
 
+  // A purchased gift is NOT a reference to the latest catalogue demo.
+  // Validate its exact stored product and version before choosing a renderer.
+  const rendererFamily=purchasedRendererFor(row.experience_slug,row.template_version);
   const base = getExperience(row.experience_slug);
   if (!base) {
     throw new Error("gift_experience_not_found");
@@ -191,6 +198,8 @@ export async function getPublishedGiftByCode(
   const dragonBallVoice=orderedMedia.find(m=>m.id===pickedVoice&&m.kind==="audio")?.url||null;
 
   return {
+    templateVersion: row.template_version,
+    rendererFamily,
     experience: {
       ...base,
       demoGiver: row.giver_name,

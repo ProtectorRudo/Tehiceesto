@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "referenceGitCommit": "10024756e1135963f580d87e77687e0cd7e80ae1",
+  "note": "Locked purchased renderer sources. For a new visual design, archive the previous renderer and introduce a new template version before changing these files. Never remove historical bindings.",
+  "files": {
+    "components/ExperienceEngine.tsx": "8c36342e342f25ffef43b8aa435e3edf7fb2f4c495f5e4bd2f793728a5cbfbe4",
+    "components/LegacyPremiumExperience.tsx": "aff1e16323553341c559814dd6a0d33af101a0eee8cc3eb98a7f7d195333ed24",
+    "components/legacy-v5/ExperienceEngine.tsx": "a0a40b13310f4bce1d2e3ac359dfbc5c367d27a5270a4ad8e22b93aad1e37ddc",
+    "components/legacy-v5/data.ts": "1263e51c46eb6609cf691d68b4bf53e828ff84cc4917ee3757ccbb3e1aced0da",
+    "components/legacy-v5/legacy-styles.css": "4d36a926580e651aa6e14cf227cc5d46bc5e1ec6da35f80625d9863c38af9612",
+    "components/legacy-v5/tehiceesto-live.css": "83f0d1c0df25da51a60862d1a7801450ecf3a0c4cf9d464fc04f59399ab6eec2",
+    "components/DragonBallGift.tsx": "320c83ddd15c588b2254406e116521332b9c9db312852316ae25867d5206da1b",
+    "public/dragon-ball-pareja.html": "3ed12c8c22c697c368be6fddc24adec58cccaa3ab22c57388ecb8f02e6782fdd",
+    "components/SevenDaysExperience.tsx": "a4a929693ce4f8267904e4b298b4996425d92248a5dc1dd23fd444c017681b3d",
+    "components/seven-days.css": "954bd3b9081384545d3b520558d87a530ed2b9e2e92242249199b6b05fc74981",
+    "public/siete-dias/dia-07.html": "83c79391285c2313ad8ff0d5dcf8e85df24085353ce8dfeab678a6169d6b14c2",
+    "components/Jar365Experience.tsx": "7754426ccd3bf1c58ae645046c38a5ff54db0e75769a1706a325ae09f4df6aaf",
+    "components/ClubAmigosExperience.tsx": "7c41cd6ef1756b51e5d7a904cd34d3a8fe77c10f4245aff389c5ca384955ad84",
+    "components/SecretExperience.tsx": "0b765af3f7ad0304680137f448650152e41d8c0895e290a9f4235e60f7aa25e3",
+    "components/StickerBombExperience.tsx": "cc34dbe89465064b349ceebe2e7460fec555affe690738c1758ae9afc54b3d20",
+    "data/experiences.ts": "372f2965c371475381588aced2b6ad93b0ac45afb1702fcf4bfedd22b68358d2"
+  }
+}

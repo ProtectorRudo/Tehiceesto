@@ -29,23 +29,26 @@ export default async function GiftPage({
     try {
       const storedGift = await getPublishedGiftByCode(code);
 
-      if(storedGift.experience.slug==="dragon-ball-pareja")return <><DragonBallGift
+      if(storedGift.rendererFamily==="dragon-ball")return <><DragonBallGift
         code={code} receiverName={storedGift.experience.demoRecipient}
         senderName={storedGift.experience.demoGiver}
         config={storedGift.dragonBall?.config||{}}
         photoUrls={storedGift.dragonBall?.photoUrls||[]}
         voiceUrl={storedGift.dragonBall?.voiceUrl||null}
       /><GiftVoiceCollection audios={storedGift.audioMedia}/></>;
-      if (storedGift.experience.slug==="sticker-bomb-amistad") return <><StickerBombExperience
+      if (storedGift.rendererFamily==="sticker-bomb") return <><StickerBombExperience
         recipient={storedGift.experience.demoRecipient}
         sender={storedGift.experience.demoGiver}
         copy={storedGift.stickerBomb}
         photos={storedGift.photoMedia}
         audios={storedGift.audioMedia}
       /><GiftVoiceCollection audios={storedGift.audioMedia}/><ExtraLetterLink code={code}/></>;
-      if (storedGift.experience.slug==="frasco365") return <><Jar365Experience experience={storedGift.experience} giftCode={code} /><GiftVoiceCollection audios={storedGift.audioMedia}/><ExtraLetterLink code={code}/></>;
-      if (storedGift.experience.slug==="siete-dias") return <><SevenDaysExperience experience={storedGift.experience} singleDay={1} sceneTextOverrides={storedGift.sceneTextOverrides} photoMedia={storedGift.photoMedia} audioMedia={storedGift.audioMedia} /><GiftVoiceCollection audios={storedGift.audioMedia}/><ExtraLetterLink code={code}/></>;
+      if (storedGift.rendererFamily==="jar365") return <><Jar365Experience experience={storedGift.experience} giftCode={code} /><GiftVoiceCollection audios={storedGift.audioMedia}/><ExtraLetterLink code={code}/></>;
+      if (storedGift.rendererFamily==="seven-days") return <><SevenDaysExperience experience={storedGift.experience} singleDay={1} sceneTextOverrides={storedGift.sceneTextOverrides} photoMedia={storedGift.photoMedia} audioMedia={storedGift.audioMedia} /><GiftVoiceCollection audios={storedGift.audioMedia}/><ExtraLetterLink code={code}/></>;
 
+      if(!["premium-legacy","secret","club"].includes(storedGift.rendererFamily)){
+        throw new Error("gift_renderer_version_unavailable");
+      }
       return (
         <>
         <ExperienceEngine
