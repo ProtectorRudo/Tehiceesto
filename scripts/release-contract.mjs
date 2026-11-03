@@ -56,6 +56,22 @@ export function assertStaticReleaseContract(root=process.cwd()){
   if(!migration.includes("new."+attribute+" is distinct from old."+attribute))
     throw Error("gift_identity_not_frozen:"+attribute);
  }
+ const validator=read("supabase/migrations/20261103095000_validate_specialized_template_on_insert.sql");
+ const specialized={
+  "dragon-ball-pareja":"dragon-ball-v1",
+  "pack-juegos":"pack-v1",
+  "trazo-complice":"trazo-v1",
+  "sticker-bomb-amistad":"sticker-bomb-v2",
+  "club-amigos":"club-v1",
+  "frasco365":"jar365-v1",
+  "siete-dias":"seven-days-v1",
+ };
+ for(const [slug,version] of Object.entries(specialized)){
+  if(!validator.includes("when '"+slug+"' then '"+version+"'"))
+   throw Error("specialized_purchase_not_pinned:"+slug);
+ }
+ if(!validator.includes("message='specialized_template_mismatch'"))
+   throw Error("specialized_template_mismatch_not_rejected");
  if(PURCHASED_ROUTE_CONTRACT.pack!=="/juegos/pack/completo" ||
     PURCHASED_ROUTE_CONTRACT.giftPrefix!=="/r/" ||
     PURCHASED_ROUTE_CONTRACT.myGifts!=="/mis-regalos")
