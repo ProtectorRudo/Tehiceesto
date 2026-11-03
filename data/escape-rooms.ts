@@ -10,7 +10,9 @@ const common=[
  {key:"firma",label:"Firma de quien invita",max:90},
  {key:"rsvp",label:"WhatsApp para confirmar (con código de país)",max:18},
 ] satisfies EscapeField[];
-export const escapeRooms:EscapeRoom[]=[
+// Keep historical room definitions available for already-created private gifts.
+// Only active rooms may be promoted or created as new experiences.
+const allEscapeRooms:EscapeRoom[]=[
  {slug:"caso-m",title:"CASO M · Operación Rescate",eyebrow:"MISTERIO · ESCAPE 3D",subtitle:"Una desaparición. Seis cifras. Un sobre que cambia todo.",
  description:"Una misión contrarreloj, tres evidencias y un cajón cerrado. El mensaje personal aparece después del rescate.",
  accent:"#dcaa7b",url:"https://viralio.net/showcase/rescate-mauro/",duration:"3 minutos + un último intento",
@@ -32,7 +34,12 @@ export const escapeRooms:EscapeRoom[]=[
  {key:"voz",label:"Audio del desenlace (URL HTTPS, opcional)",max:950}
  ]}
 ];
-export function getEscapeRoom(slug:string){return escapeRooms.find(room=>room.slug===slug);}
+export const RETIRED_ESCAPE_SLUGS = ["ultima-funcion"] as const;
+export const escapeRooms:EscapeRoom[]=allEscapeRooms.filter(
+ room=>!RETIRED_ESCAPE_SLUGS.some(slug=>slug===room.slug)
+);
+export function getActiveEscapeRoom(slug:string){return escapeRooms.find(room=>room.slug===slug);}
+export function getEscapeRoom(slug:string){return allEscapeRooms.find(room=>room.slug===slug);}
 export function validateEscapeConfig(room:EscapeRoom,input:Record<string,unknown>){
  const result:Record<string,string>={};
  for(const field of room.fields){
