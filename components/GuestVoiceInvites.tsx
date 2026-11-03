@@ -36,7 +36,12 @@ export default function GuestVoiceInvites({code,bearer,onError,onRefresh}:Props)
       setLink(result.url);
       await reload();
       setNotice("Invitación lista para compartir.");
-    }catch{onError("No se pudo generar la invitación. Volvé a intentarlo.");}
+    }catch(error){
+      const code=error instanceof Error?error.message:"";
+      onError(code==="gift_full"
+        ?"Este regalo ya alcanzó su capacidad de archivos. Eliminá un archivo que no uses antes de invitar nuevas voces."
+        :"No se pudo generar la invitación. Volvé a intentarlo.");
+    }
     finally{setBusy(false);}
   }
   async function revoke(){
@@ -60,7 +65,7 @@ export default function GuestVoiceInvites({code,bearer,onError,onRefresh}:Props)
   return <div className={styles.guestInvite}>
     <span className={styles.eyebrow}>RECUERDOS QUE SE ESCUCHAN</span>
     <h3>Invitá a otros a grabar su voz</h3>
-    <p>Compartí un enlace por WhatsApp. La persona verá <strong>únicamente una grabadora</strong>: no puede entrar a tu cuenta, ver otros recuerdos ni cambiar nada del regalo.</p>
+    <p>Compartí un enlace por WhatsApp. La persona verá <strong>únicamente una grabadora</strong>: no puede entrar a tu cuenta, ver otros recuerdos ni cambiar nada del regalo. Cada voz recibida se incorpora a la experiencia y se puede escuchar desde <strong>«Escuchar voces»</strong>. El enlace permite hasta 12 mensajes, según el espacio disponible en el regalo.</p>
     <button className={styles.primary} type="button" disabled={busy} onClick={()=>void create()}>
       {busy?"Preparando…":active?"Crear otro enlace privado →":"Crear enlace para invitar →"}
     </button>
