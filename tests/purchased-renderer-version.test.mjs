@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {purchasedRendererFor,NON_GIFT_PRODUCTS,PURCHASED_RENDERERS} from "../lib/gifts/purchased-renderers.mjs";
+import {verifyLockedRenderers} from "../scripts/verify-renderer-lock.mjs";
 
 const read=path=>readFileSync(new URL("../"+path,import.meta.url),"utf8");
 
@@ -73,4 +74,9 @@ test("all declared registry products are real supported experience slugs",()=>{
  const data=read("data/experiences.ts");
  const declared=[...data.matchAll(/\bslug: "([a-z0-9-]+)"/g)].map(x=>x[1]);
  for(const slug of Object.keys(PURCHASED_RENDERERS))assert.ok(declared.includes(slug),slug);
+});
+
+test("visual and functional model source files are frozen against unnoticed edits",()=>{
+ const result=verifyLockedRenderers();
+ assert.ok(result.protectedFiles>=16);
 });
