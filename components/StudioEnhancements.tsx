@@ -532,12 +532,11 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
 
   return (
     <div className={styles.enhancement}>
-      <ExtraLetterEditor code={access.code} editorToken={access.editorToken} />
+      {gift.experience_slug!=="siete-dias" && <ExtraLetterEditor code={access.code} editorToken={access.editorToken} />}
       {gift.experience_slug==="dragon-ball-pareja" && <DragonBallEditor access={access} gift={gift} media={media} onError={onError} onNotice={onNotice} onDraftChange={setDragonDraft} photoAssignment={photoAssignment}/>}
       {gift.experience_slug==="sticker-bomb-amistad" && <StickerBombEditor key={access.code} access={access} gift={gift} media={media} onError={onError} onNotice={onNotice} onRefreshMedia={refreshMedia}/>}
-      {gift.experience_slug==="siete-dias" && <SevenDaysSharePanel code={access.code} editorToken={access.editorToken} />}
       {gift.experience_slug==="frasco365" && <Jar365Editor code={access.code} editorToken={access.editorToken} onNotesChange={(notes)=>{setJarNotes(notes);setJarPreviewVersion(version=>version+1);}} />}
-      {gift.experience_slug!=="frasco365" && <section className={styles.studioSection}>
+      {gift.experience_slug!=="frasco365" && gift.experience_slug!=="siete-dias" && <section className={styles.studioSection}>
         <div className={styles.studioHeading}>
           <span className={styles.eyebrow}>MATERIALES PERSONALES</span>
           <h2>Fotos, voces y momentos</h2>
@@ -609,10 +608,10 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
         <div className={styles.studioHeading}>
           <span className={styles.eyebrow}>VISTA PREVIA DEL MODELO ORIGINAL</span>
           <h2>Viví tu experiencia</h2>
-          <p>{gift.experience_slug==="frasco365"?"Abrí una demo de tu frasco con tus frases guardadas. Probá los papelitos sin consumir las aperturas de la persona que lo recibe.":gift.experience_slug==="dragon-ball-pareja"?"Revisá las nueve escenas originales de Dragon Ball. Tocá cualquiera de los tres recuerdos para elegir o cambiar su foto, sin salir de la escena.":"Revisá el recorrido con tus datos. Tocá una foto para reemplazarla; también podés personalizar textos sin alterar el modelo original."}</p>
+          <p>{gift.experience_slug==="frasco365"?"Abrí una demo de tu frasco con tus frases guardadas. Probá los papelitos sin consumir las aperturas de la persona que lo recibe.":gift.experience_slug==="dragon-ball-pareja"?"Revisá las nueve escenas originales de Dragon Ball. Tocá cualquiera de los tres recuerdos para elegir o cambiar su foto, sin salir de la escena.":gift.experience_slug==="siete-dias"?"Recorré los siete capítulos. Activá «Editar frases» y tocá un mensaje dentro de cada día para personalizarlo. Las escenas originales se conservan.":"Revisá el recorrido con tus datos. Tocá una foto para reemplazarla; también podés personalizar textos sin alterar el modelo original."}</p>
         </div>
         <div className={styles.previewActions}>
-          <button className={styles.ghost} type="button" disabled={previewLoading || Boolean(uploading)} onClick={()=>void togglePreview()}>{previewLoading?"Actualizando fotos…":preview?"Cerrar vista previa":"Abrir vista previa →"}</button>
+          <button className={styles.ghost} type="button" disabled={previewLoading || Boolean(uploading)} onClick={()=>void togglePreview()}>{previewLoading?"Preparando vista previa…":preview?"Cerrar vista previa":"Abrir vista previa →"}</button>
           {preview && gift.experience_slug!=="frasco365" && gift.experience_slug!=="dragon-ball-pareja" && <button className={styles.ghost} type="button" onClick={()=>{setEditingCopy(!editingCopy);setSelected(null)}}>{editingCopy?"Terminar edición de textos":"Personalizar textos de las escenas"}</button>}
         </div>
         {preview && model && <div className={styles.previewWindow} onClickCapture={gift.experience_slug==="dragon-ball-pareja"?undefined:choosePreviewPhoto}>
@@ -629,13 +628,6 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
               audioMedia={audioMedia}
               editing={editingCopy}
               onTextSelect={selection=>{setSelected(selection);setCopyValue(selection.current);}}
-              onPhotoClick={slot=>{
-                setPhotoPicker({kind:"slot",scene:"day7",slot});
-              }}
-              onAudioClick={()=>{
-                const voice=orderedMedia.find(m=>m.kind==="audio"&&m.url&&m.metadata?.role!=="soundtrack");
-                if(voice)setPhotoPicker({kind:"audio",mediaId:voice.id});
-              }}
             /> :
           <ExperienceEngine
             experience={{...model,
@@ -654,7 +646,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
             sceneTextOverrides={sceneContent}
           />}
         </div>}
-        {preview && model && <GiftVoiceCollection audios={audioMedia} embedded/>}
+        {preview && model && gift.experience_slug!=="siete-dias" && <GiftVoiceCollection audios={audioMedia} embedded/>}
         {photoPicker && <div className={styles.copyModal} role="dialog" aria-modal="true" aria-label="Cambiar fotografía">
           <div className={styles.copyPanel} style={{maxWidth:530,maxHeight:"88dvh",overflowY:"auto"}}>
             <span className={styles.eyebrow}>EDITAR FOTOGRAFÍA</span>
@@ -702,10 +694,11 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
         </div>}
       </section>}
       <section className={styles.studioSection}>
-        <div className={styles.studioHeading}><span className={styles.eyebrow}>ÚLTIMO PASO</span><h2>Tu regalo está listo para compartir</h2><p>Cuando termines de revisar los textos y recuerdos, publicalo. El recorrido se mantiene idéntico al modelo original, con tus datos personales.</p></div>
-        <label className={styles.publishConfirm}><input type="checkbox" checked={confirmPublish} onChange={e=>setConfirmPublish(e.target.checked)} /> Revisé nombres, fotos, audios y mensajes y quiero publicar esta experiencia.</label>
+        <div className={styles.studioHeading}><span className={styles.eyebrow}>ÚLTIMO PASO</span><h2>Tu regalo está listo para compartir</h2><p>{gift.experience_slug==="siete-dias"?"Cuando hayas revisado las frases de los siete días, publicá el regalo para que se activen sus enlaces privados.":"Cuando termines de revisar los textos y recuerdos, publicalo. El recorrido se mantiene idéntico al modelo original, con tus datos personales."}</p></div>
+        <label className={styles.publishConfirm}><input type="checkbox" checked={confirmPublish} onChange={e=>setConfirmPublish(e.target.checked)} /> {gift.experience_slug==="siete-dias"?"Revisé los nombres y las frases de los siete capítulos y quiero publicar esta experiencia.":"Revisé nombres, fotos, audios y mensajes y quiero publicar esta experiencia."}</label>
         <button className={styles.primary} disabled={busy||!confirmPublish} onClick={()=>void publishGift()}>Publicar mi regalo →</button>
       </section>
+      {gift.experience_slug==="siete-dias" && <SevenDaysSharePanel code={access.code} editorToken={access.editorToken} />}
     </div>
   );
 }
