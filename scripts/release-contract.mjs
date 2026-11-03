@@ -121,6 +121,12 @@ export async function checkLiveRelease({origin,expectedSha,fetchImpl=fetch}){
   assertion(result.status===200, "broken_permanent_route:"+path+":http_"+result.status);
   assertion(result.headers.get("content-type")?.includes("text/html"),
     "not_html_route:"+path);
+  if(path==="/juegos/pack/completo"||path==="/juegos/trazo-complice/completo"){
+   const html=await result.text();
+   const expected=path==="/juegos/pack/completo"?"pack-juegos":"trazo-complice";
+   assertion(html.includes('data-purchased-product="'+expected+'"'),
+     "wrong_purchased_product_route:"+path);
+  }
   if(path==="/"){
    const html=await result.text();
    assertion(html.includes("4 JUEGOS")&&html.includes("$25.000"),"outdated_pack_offer");
