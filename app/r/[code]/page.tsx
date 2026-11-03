@@ -3,6 +3,7 @@ import ExperienceEngine from "@/components/ExperienceEngine";
 import SevenDaysExperience from "@/components/SevenDaysExperience";
 import Jar365Experience from "@/components/Jar365Experience";
 import ExtraLetterLink from "@/components/ExtraLetterLink";
+import GiftVoiceCollection from "@/components/GiftVoiceCollection";
 import DragonBallGift from "@/components/DragonBallGift";
 import StickerBombExperience from "@/components/StickerBombExperience";
 import { getExperience } from "@/data/experiences";
@@ -28,22 +29,22 @@ export default async function GiftPage({
     try {
       const storedGift = await getPublishedGiftByCode(code);
 
-      if(storedGift.experience.slug==="dragon-ball-pareja")return <DragonBallGift
+      if(storedGift.experience.slug==="dragon-ball-pareja")return <><DragonBallGift
         code={code} receiverName={storedGift.experience.demoRecipient}
         senderName={storedGift.experience.demoGiver}
         config={storedGift.dragonBall?.config||{}}
         photoUrls={storedGift.dragonBall?.photoUrls||[]}
         voiceUrl={storedGift.dragonBall?.voiceUrl||null}
-      />;
+      /><GiftVoiceCollection audios={storedGift.audioMedia}/></>;
       if (storedGift.experience.slug==="sticker-bomb-amistad") return <><StickerBombExperience
         recipient={storedGift.experience.demoRecipient}
         sender={storedGift.experience.demoGiver}
         copy={storedGift.stickerBomb}
         photos={storedGift.photoMedia}
         audios={storedGift.audioMedia}
-      /><ExtraLetterLink code={code}/></>;
-      if (storedGift.experience.slug==="frasco365") return <><Jar365Experience experience={storedGift.experience} giftCode={code} /><ExtraLetterLink code={code}/></>;
-      if (storedGift.experience.slug==="siete-dias") return <><SevenDaysExperience experience={storedGift.experience} singleDay={1} sceneTextOverrides={storedGift.sceneTextOverrides} photoMedia={storedGift.photoMedia} audioMedia={storedGift.audioMedia} /><ExtraLetterLink code={code}/></>;
+      /><GiftVoiceCollection audios={storedGift.audioMedia}/><ExtraLetterLink code={code}/></>;
+      if (storedGift.experience.slug==="frasco365") return <><Jar365Experience experience={storedGift.experience} giftCode={code} /><GiftVoiceCollection audios={storedGift.audioMedia}/><ExtraLetterLink code={code}/></>;
+      if (storedGift.experience.slug==="siete-dias") return <><SevenDaysExperience experience={storedGift.experience} singleDay={1} sceneTextOverrides={storedGift.sceneTextOverrides} photoMedia={storedGift.photoMedia} audioMedia={storedGift.audioMedia} /><GiftVoiceCollection audios={storedGift.audioMedia}/><ExtraLetterLink code={code}/></>;
 
       return (
         <>
@@ -58,6 +59,7 @@ export default async function GiftPage({
           storyContext={storedGift.storyContext}
           sceneTextOverrides={storedGift.sceneTextOverrides}
         />
+        <GiftVoiceCollection audios={storedGift.audioMedia}/>
         <ExtraLetterLink code={code}/>
         </>
       );

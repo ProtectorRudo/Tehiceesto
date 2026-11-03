@@ -13,6 +13,7 @@ import Jar365Experience from "@/components/Jar365Experience";
 import type { Jar365Note } from "@/data/jar365-notes";
 import VoiceRecorder from "@/components/VoiceRecorder";
 import GuestVoiceInvites from "@/components/GuestVoiceInvites";
+import GiftVoiceCollection from "@/components/GiftVoiceCollection";
 import { getExperience, type SceneType } from "@/data/experiences";
 import { normalizeSceneTextOverrides } from "@/data/scene-text";
 import {arrangeScenePhotos} from "@/lib/gifts/arrange-scene-photos";
@@ -653,6 +654,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
             sceneTextOverrides={sceneContent}
           />}
         </div>}
+        {preview && model && <GiftVoiceCollection audios={audioMedia} embedded/>}
         {photoPicker && <div className={styles.copyModal} role="dialog" aria-modal="true" aria-label="Cambiar fotografía">
           <div className={styles.copyPanel} style={{maxWidth:530,maxHeight:"88dvh",overflowY:"auto"}}>
             <span className={styles.eyebrow}>EDITAR FOTOGRAFÍA</span>
