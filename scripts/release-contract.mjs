@@ -52,7 +52,7 @@ export function assertStaticReleaseContract(root=process.cwd()){
  const giftRead=read("supabase/functions/gift-read/index.ts");
  const giftRepository=read("lib/gifts/repository.ts");
  const giftPage=read("app/r/[code]/page.tsx");
- if(!giftRead.includes("experience_slug,template_version,giver_name")||
+ if(!(giftRead.includes("experience_slug,template_version,giver_name")||giftRead.includes("template_version,experience_slug,giver_name"))||
     !giftRepository.includes("purchasedRendererFor(row.experience_slug,row.template_version)")||
     !giftPage.includes("storedGift.rendererFamily"))
    throw Error("purchased_renderer_version_bypass");
