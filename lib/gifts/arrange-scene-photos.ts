@@ -7,7 +7,7 @@ export type SlotPhoto = {
   id:string;
   metadata?: {scene?:string}|null;
 };
-export type ArrangedPhoto<T extends SlotPhoto>={item:T;scene:string};
+export type ArrangedPhoto<T extends SlotPhoto>={item:T;scene:string;slot?:number};
 export function arrangeScenePhotos<T extends SlotPhoto>(
   photos:T[],rawSlots:unknown,recipe:readonly string[]
 ):ArrangedPhoto<T>[]{
@@ -42,7 +42,11 @@ export function arrangeScenePhotos<T extends SlotPhoto>(
       if(previous>=0&&previous!==index)ordered[previous]=ordered[index];
       ordered[index]=item;
     }
-    result.push(...ordered.filter(Boolean).map(item=>({item,scene})));
+    for(const [index,item] of ordered.entries()){
+      if(!item)continue;
+      const explicit=positions.get(index)?.id===item.id;
+      result.push(explicit?{item,scene,slot:index}:{item,scene});
+    }
   }
   result.push(...original.filter(x=>!handled.has(x.scene)));
   return result;
