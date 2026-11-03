@@ -20,7 +20,7 @@ test("The creator preview contains the same complete collection before publishin
   assert.match(editor,/preview && model && gift\.experience_slug!=="siete-dias" && <GiftVoiceCollection audios=\{audioMedia\} embedded\/>/);
   assert.ok(editor.includes('gift.experience_slug!=="frasco365" && gift.experience_slug!=="siete-dias"'),
     "Seven Days must not promise uploading voices that its chapters do not support");
-  assert.ok(editor.includes("role!==\"soundtrack\""));
+  assert.match(editor,/metadata\?\.role\s*!==\s*"soundtrack"/);
 });
 
 test("The collection plays every voice without arbitrary 1, 2 or 3 message limits",()=>{
