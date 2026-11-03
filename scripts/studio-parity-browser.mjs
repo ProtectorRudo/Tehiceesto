@@ -44,7 +44,15 @@ try{
    console.log("DEMO_PASS",slug,viewport.width);
   }
   const withdrawn=await page.goto(base+"/experiencias/sticker-bomb-amistad?embed=1",{waitUntil:"domcontentloaded",timeout:35000});
-  assert.equal(withdrawn?.status(),404,"Withdrawn Sticker Bomb demo must return 404");
+  // Next.js may stream notFound() after sending HTTP 200 headers. Require
+  // the actual 404 fallback + noindex; never accept a live demo in disguise.
+  const withdrawnMarkup=await page.content();
+  const streamed404=withdrawn?.status()===200 &&
+    withdrawnMarkup.includes("NEXT_HTTP_ERROR_FALLBACK;404") &&
+    withdrawnMarkup.includes("404 · Acá no hay una historia esperando") &&
+    (await page.locator('meta[name="robots"][content*="noindex"]').count())>0;
+  assert.ok(withdrawn?.status()===404||streamed404,
+    "Withdrawn Sticker Bomb demo must really be unavailable");
   assert.deepEqual(errs,[],"Demo JavaScript errors at width "+viewport.width);
   await page.close();
  }
