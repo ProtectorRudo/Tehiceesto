@@ -75,3 +75,71 @@ test("Only Seven Days uses its dedicated share panel and never shows generic med
  assert.ok(panel.includes('!published&&'));
  assert.ok(api.includes('action:"openStudio"')&&api.includes('sevenDaysLinks(code,origin)'));
 });
+
+function mockSevenDaysRoute({secret="test-signing-secret",backendStatus=200,experienceSlug="siete-dias"}={}){
+ const routeSource=read("app/api/seven-days-links/route.ts");
+ const script=ts.transpileModule(routeSource,{compilerOptions:{
+  module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022
+ }}).outputText;
+ const signer=isolatedSigner(secret);
+ const mod={exports:{}};
+ const calls=[];
+ const context={
+  module:mod,exports:mod.exports,
+  require:(name)=>{
+   if(name==="next/server")return {NextResponse:{json:(value,options={})=>
+    new Response(JSON.stringify(value),{status:options.status||200,
+     headers:{"content-type":"application/json",...(options.headers||{})}})}};
+   if(name==="@/lib/seven-days-links")return signer;
+   throw Error("Unexpected module "+name);
+  },
+  process:{env:{NEXT_PUBLIC_SUPABASE_URL:"https://mock.supabase.co",
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:"test-public",
+   ...(secret?{SEVEN_DAYS_LINK_SECRET:secret}:{})}},
+  fetch:async(url,options)=>{
+   calls.push({url,body:JSON.parse(options.body)});
+   return new Response(JSON.stringify({gift:{experience_slug:experienceSlug,status:"published"}}),
+    {status:backendStatus,headers:{"content-type":"application/json"}});
+  },
+  Request,Response,URL,Buffer,console
+ };
+ runInNewContext(script,context);
+ return {POST:mod.exports.POST,calls};
+}
+function postRequest(codeValue=code,token="b".repeat(64)){
+ return new Request(origin+"/api/seven-days-links",{method:"POST",
+  headers:{"content-type":"application/json"},
+  body:JSON.stringify({code:codeValue,editorToken:token})});
+}
+
+test("The actual Seven Days API signs seven links only after creator-api authenticates the edit token",async()=>{
+ const route=mockSevenDaysRoute();
+ const response=await route.POST(postRequest());
+ assert.equal(response.status,200);
+ const result=await response.json();
+ assert.equal(result.published,true);
+ assert.equal(result.links.length,7);
+ assert.equal(route.calls.length,1);
+ assert.equal(route.calls[0].body.action,"openStudio");
+ assert.equal(route.calls[0].body.code,code);
+ assert.equal(route.calls[0].body.editorToken,"b".repeat(64));
+ assert.equal(result.links[0].url,isolatedSigner("test-signing-secret").sevenDaysLinks(code,origin)[0].url);
+});
+
+test("The Seven Days API rejects bad input, unauthorized owners and other products",async()=>{
+ const route=mockSevenDaysRoute();
+ const bad=await route.POST(postRequest("not-a-code"));
+ assert.equal(bad.status,400);
+ assert.equal(route.calls.length,0);
+ const unauthorized=mockSevenDaysRoute({backendStatus:403});
+ assert.equal((await unauthorized.POST(postRequest())).status,403);
+ const other=mockSevenDaysRoute({experienceSlug:"pareja"});
+ assert.equal((await other.POST(postRequest())).status,403);
+});
+
+test("Without a server signing key the API returns 503 and never fabricates share links",async()=>{
+ const route=mockSevenDaysRoute({secret:null});
+ const response=await route.POST(postRequest());
+ assert.equal(response.status,503);
+ assert.equal((await response.json()).error,"unavailable");
+});
