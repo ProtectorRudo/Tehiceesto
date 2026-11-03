@@ -723,7 +723,15 @@ Deno.serve(async (req: Request) => {
         .from("gift_media")
         .select("*", { count: "exact", head: true })
         .eq("gift_id", gift.id);
-      if ((count || 0) >= 30) return json(origin, { error: "media_limit" }, 400);
+      // Same-owner, same-kind media replacements do not consume an extra slot.
+      // Keep the existing 30-file limit for brand-new uploads.
+      const replacingMediaId=cleanText(body.replacingMediaId,80);
+      if(replacingMediaId){
+        const {data:existing}=await supabase.from("gift_media").select("id")
+          .eq("id",replacingMediaId).eq("gift_id",gift.id).eq("kind",kind).maybeSingle();
+        if(!existing)return json(origin,{error:"invalid_media_replacement"},400);
+      }
+      if ((count || 0) >= 30 && !replacingMediaId) return json(origin, { error: "media_limit" }, 400);
 
       const path = code + "/studio-" + crypto.randomUUID() + "-" + fileName;
       const { data, error } = await supabase.storage
