@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Experience } from "@/data/experiences";
 import type { SceneTextOverrides } from "@/data/scene-text";
 import "./seven-days.css";
+import {sevenDaysPhotoUrls,sevenDaysAudioUrl,type SevenDaysPhoto,type SevenDaysAudio} from "@/lib/gifts/seven-days-media";
 
 export const sevenDaysTitles = [
   "Asalto de besos", "Ridículamente besable", "El caso del corazón robado",
@@ -14,8 +15,8 @@ export const sevenDaysTitles = [
 export type SevenDaysProps = {
   experience: Experience;
   sceneTextOverrides?: SceneTextOverrides;
-  photoMedia?: {url:string;caption?:string}[];
-  audioMedia?: {url:string;caption?:string}[];
+  photoMedia?: (SevenDaysPhoto&{caption?:string})[];
+  audioMedia?: (SevenDaysAudio&{caption?:string})[];
   singleDay?: number;
   editing?: boolean;
   onTextSelect?: (selection:{scene:string;source:string;current:string})=>void;
@@ -38,15 +39,15 @@ export default function SevenDaysExperience({
   const currentDay = singleDay || day;
   const copy = sceneTextOverrides["day"+currentDay] || {};
   const copyJson = JSON.stringify(copy);
-  const mediaJson = JSON.stringify({photos:photoMedia.map(x=>x.url),audio:audioMedia.map(x=>x.url)});
+  const mediaJson = JSON.stringify({photos:photoMedia.map(x=>({url:x.url,scene:x.scene,slot:x.slot})),audio:audioMedia.map(x=>({url:x.url,scene:x.scene}))});
   const config = useMemo(() => {
-    const media = JSON.parse(mediaJson) as {photos:string[];audio:string[]};
+    const media = JSON.parse(mediaJson) as {photos:SevenDaysPhoto[];audio:SevenDaysAudio[]};
     return {
       recipient:experience.demoRecipient,
       sender:experience.demoGiver,
       // Day 7 has real image/audio slots; all other scenes retain their approved artwork.
-      finalPhotos:media.photos.slice(0,4),
-      finalAudio:media.audio[0] || "",
+      finalPhotos:sevenDaysPhotoUrls(media.photos),
+      finalAudio:sevenDaysAudioUrl(media.audio),
       days:{},
     };
   },[experience.demoRecipient,experience.demoGiver,mediaJson]);
