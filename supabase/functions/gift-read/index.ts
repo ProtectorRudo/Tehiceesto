@@ -66,7 +66,7 @@ Deno.serve(async (req: Request) => {
   const giftQuery = new URL(`${SUPABASE_URL}/rest/v1/gifts`);
   giftQuery.searchParams.set(
     "select",
-    "id,experience_slug,giver_name,recipient_name,occasion,feeling,opening_text,letter_text,closing_text,music_url,scene_recipe,story_data,theme_data,reactions_enabled,expires_at"
+    "id,experience_slug,template_version,giver_name,recipient_name,occasion,feeling,opening_text,letter_text,closing_text,music_url,scene_recipe,story_data,theme_data,reactions_enabled,expires_at"
   );
   giftQuery.searchParams.set("public_code", `eq.${code}`);
   giftQuery.searchParams.set("status", "eq.published");
