@@ -51,6 +51,12 @@ export function assertStaticReleaseContract(root=process.cwd()){
  if(!pack.includes('functions/v1/pack-juegos-content')||
     !drawing.includes('functions/v1/trazo-complice-words'))
    throw Error("purchased_games_missing_entitlement_checks");
+ const checkoutSource=read("app/api/checkout/route.ts");
+ const checkoutPolicy=read("lib/checkout/allowed-origins.mjs");
+ if(!checkoutSource.includes("isAllowedCheckoutOrigin(origin,req.nextUrl.origin,process.env.NODE_ENV)") ||
+    !checkoutPolicy.includes("https://tehiceesto.com") ||
+    !checkoutPolicy.includes("https://www.tehiceesto.com"))
+   throw Error("commercial_checkout_origin_guard_missing");
  const giftRead=read("supabase/functions/gift-read/index.ts");
  const giftRepository=read("lib/gifts/repository.ts");
  const frozenModelResolver=read("lib/gifts/purchased-model-snapshots.ts");
@@ -144,6 +150,24 @@ export async function checkLiveRelease({origin,expectedSha,fetchImpl=fetch}){
      "legacy_game_not_canonical:"+path);
   }
  }
+ // A GET-only smoke misses legitimate purchases blocked by reverse-proxy
+ // Origin mismatches. Empty JSON is rejected before any order is created.
+ const checkoutRequest=async(headers)=>{
+  const ctrl=new AbortController();
+  const timeout=setTimeout(()=>ctrl.abort(),15000);
+  try{return await fetchImpl(root+"/api/checkout",{
+    method:"POST",redirect:"manual",cache:"no-store",signal:ctrl.signal,
+    headers:{"content-type":"application/json","Cache-Control":"no-cache",
+      "User-Agent":"TeHiceEsto-Release-Guard/1.0",...headers},
+    body:"{}"
+  });}finally{clearTimeout(timeout);}
+ };
+ const legitimate=await checkoutRequest({"origin":root,"sec-fetch-site":"same-origin"});
+ assertion(legitimate.status===400,"checkout_valid_origin_rejected:"+legitimate.status);
+ const checkoutResult=await legitimate.json().catch(()=>null);
+ assertion(checkoutResult?.error==="invalid_input","checkout_invalid_body_accepted");
+ const forged=await checkoutRequest({"origin":"https://foreign-origin.invalid","sec-fetch-site":"cross-site"});
+ assertion(forged.status===403,"checkout_cross_origin_not_blocked:"+forged.status);
  // Protect customer privacy: unknown gifts must never be treated as demos.
  const invalidGift=await get("/r/000000000000000000");
  // Next.js can stream notFound() after initial HTTP 200 headers were sent.
