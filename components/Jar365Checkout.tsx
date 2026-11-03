@@ -30,6 +30,7 @@ export default function Jar365Checkout(){
      });
      const data=await res.json() as CheckoutResult;
      if(!res.ok||data.error)throw new Error(data.error||"request_failed");
+     if(Number(data.priceMinor)!==2_500_000||data.currency!=="ARS")throw new Error("price_mismatch");
      setOrder(data);
      if(data.checkoutReady&&data.checkoutUrl&&data.checkoutUrl.startsWith("https://")){
        window.location.assign(data.checkoutUrl);
@@ -48,7 +49,7 @@ export default function Jar365Checkout(){
     <span style={{letterSpacing:".2em",fontSize:11,fontWeight:800,color:"#a85d7c"}}>TE HICE ESTO ♥ · 365 MENSAJES</span>
     <h1 style={{font:"normal clamp(45px,7vw,70px)/1 Georgia,serif",margin:"18px 0"}}>Un año de cosas,<br/><i style={{color:"#b93468"}}>lindas para vos.</i></h1>
     <p style={{fontSize:17,lineHeight:1.65,color:"#967b88"}}>365 papelitos de colores dentro de un frasco digital. Una frase genuina por día, con nuevos cupos cada 24 horas. Podés editar los 365 mensajes y sus categorías desde tu espacio privado.</p>
-    <strong style={{display:"block",fontSize:26,marginTop:20}}>$1.000 ARS · precio de prueba</strong>
+    <strong style={{display:"block",fontSize:26,marginTop:20}}>$25.000 ARS · pago único</strong>
     <small style={{color:"#927c88"}}>Pago único · 365 mensajes personalizados · acceso privado</small>
    </div>
    <form onSubmit={submit} style={{maxWidth:560,margin:"auto",padding:"clamp(24px,5vw,38px)",border:"1px solid #efd4de",background:"#fffefd",borderRadius:28,boxShadow:"0 18px 60px #a4537020",display:"grid",gap:18}}>

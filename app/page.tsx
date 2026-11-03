@@ -60,16 +60,16 @@ export default function Home() {
 
       <section className="boutique-escapes" id="juegos" aria-labelledby="pack-games-home-title">
         <div>
-          <span className="boutique-kicker">PACK DE JUEGOS · TRES EXPERIENCIAS, UNA SOLA COMPRA</span>
-          <h2 id="pack-games-home-title">Tres juegos.<br/><em>Mil maneras de conectar.</em></h2>
-          <p><strong>CÓMPLICES + ENTRE DOS + TRAZO CÓMPLICE</strong>. Aventura cooperativa, preguntas para descubrirse y risas dibujando. Los tres completos en un mismo pack por <strong>$1.000 ARS</strong>, pago único. Probá gratis la demo de cada uno antes de comprar.</p>
+          <span className="boutique-kicker">PACK DE JUEGOS · CUATRO MUNDOS, UNA SOLA COMPRA</span>
+          <h2 id="pack-games-home-title">Cuatro juegos.<br/><em>Mil maneras de conectar.</em></h2>
+          <p><strong>CÓMPLICES + ENTRE DOS + TRAZO CÓMPLICE + MEME MATCH</strong>. Aventura cooperativa, preguntas para descubrirse, risas dibujando y desafíos de memoria. Los cuatro completos en un mismo pack por <strong>$25.000 ARS</strong>, pago único. Probá gratis la demo de cada uno antes de comprar.</p>
           <Link className="boutique-button boutique-button-light" href="/juegos/pack">Ver el pack, sus demos y comprar ↗</Link>
           <p><small>Las salas de escape se venden por separado.</small></p>
         </div>
         <div className="boutique-escapes-card">
           <span>PACK PARA JUGAR JUNTOS · UN SOLO CELULAR</span>
           <div className="boutique-escapes-orbit" aria-hidden="true">✳</div>
-          <strong>3 JUEGOS.<br/>1 COMPRA.<br/>$1.000 ARS.</strong>
+          <strong>4 JUEGOS.<br/>1 COMPRA.<br/>$25.000 ARS.</strong>
         </div>
       </section>
 
