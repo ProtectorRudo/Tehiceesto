@@ -54,7 +54,11 @@ export function assertStaticReleaseContract(root=process.cwd()){
  const giftRead=read("supabase/functions/gift-read/index.ts");
  const giftRepository=read("lib/gifts/repository.ts");
  const snapshot=read("data/purchased-experiences-20261103.ts");
- if(!giftRepository.includes('from "@/data/purchased-experiences-20261103"') ||
+ const versionedBaseline=read("lib/gifts/purchased-experience-baseline.ts");
+ if(!giftRepository.includes("purchasedExperienceBaseline(row.experience_slug,row.template_version)") ||
+    !versionedBaseline.includes('from "@/data/purchased-experiences-20261103"') ||
+    !versionedBaseline.includes('from "@/components/legacy-v5/data"') ||
+    !versionedBaseline.includes("purchasedRendererFor(slug,templateVersion)") ||
     !snapshot.includes('slug: "dragon-ball-pareja"') ||
     !snapshot.includes('slug: "pareja"'))
    throw Error("purchased_catalogue_snapshot_not_used");
