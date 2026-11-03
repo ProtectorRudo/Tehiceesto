@@ -345,19 +345,25 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
       }
     }
     if(target instanceof Element){
+      // Scene artworks are not always IMG elements: some approved models use
+      // CSS backgrounds. Only capture known personal-photo containers.
+      const card=target.closest<HTMLElement>(
+        ".memory-card,.thi-mama-memory-card,.secret-gallery-frame,.club-polaroid,.polaroid,.thi-attached-photo,.photo-frame,figure"
+      );
       const img=target.closest("img");
-      const photoArea=img?.closest("figure,.memory-card,.polaroid,.secret-gallery-frame,.club-polaroid,.thi-memories-card,.thi-attached-photo,.photo-frame");
-      if(img&&photoArea){
-        const shell=img.closest<HTMLElement>("[data-current-scene]");
-        const classes=(img.closest("section")?.className||"").toString().split(/\s+/);
-        const detected=classes.map(c=>c.match(/^scene-(.+)$/)?.[1]||c.match(/^thi-(?:scene-)?(memories|timeline|gallery|childhood|origin)$/)?.[1])
+      if(card && (img||target.closest(".memory-image"))){
+        const shell=target.closest<HTMLElement>("[data-current-scene]");
+        const classes=(target.closest("section")?.className||"").toString().split(/\s+/);
+        const detected=classes.map(c=>c.match(/^scene-(.+)$/)?.[1]||
+          c.match(/^thi-(?:scene-)?(memories|timeline|gallery|childhood|origin)$/)?.[1])
           .find(v=>v&&scenes.includes(v as SceneType));
-        const candidate=shell?.dataset.currentScene||detected||(["memories","gallery","day7","club"] as SceneType[]).find(v=>scenes.includes(v))||scenes[0];
+        const candidate=shell?.dataset.currentScene||detected||
+          (["memories","gallery","day7","club"] as SceneType[]).find(v=>scenes.includes(v))||scenes[0];
         if(candidate&&scenes.includes(candidate as SceneType)){
           const scene=candidate as SceneType;
-          const all=Array.from(photoArea.parentElement?.querySelectorAll("img")||[]).filter(el=>
-            el.closest("figure,.memory-card,.polaroid,.secret-gallery-frame,.club-polaroid,.thi-memories-card,.thi-attached-photo,.photo-frame"));
-          const slot=Math.max(0,Math.min(19,all.indexOf(img)));
+          const siblings=Array.from(card.parentElement?.children||[]).filter(el=>
+            el.matches(".memory-card,.thi-mama-memory-card,.secret-gallery-frame,.club-polaroid,.polaroid,.thi-attached-photo,.photo-frame,figure"));
+          const slot=Math.max(0,Math.min(19,siblings.indexOf(card)));
           event.preventDefault();event.stopPropagation();
           setSelected(null);setPhotoPicker({kind:"slot",scene,slot});return;
         }
