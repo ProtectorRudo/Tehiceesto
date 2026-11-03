@@ -2,6 +2,7 @@ import {adminRequest} from "@/lib/admin-auth";
 import "server-only";
 import type { Experience, SceneType } from "@/data/experiences";
 import { getExperience } from "@/data/purchased-experiences-20261103";
+import {getPurchasedModelSnapshot} from "@/lib/gifts/purchased-model-snapshots";
 import {purchasedRendererFor,type PurchasedRendererFamily} from "@/lib/gifts/purchased-renderers.mjs";
 import { normalizeSceneTextOverrides, type SceneTextOverrides } from "@/data/scene-text";
 import {arrangeScenePhotos} from "@/lib/gifts/arrange-scene-photos";
@@ -131,10 +132,11 @@ export async function getPublishedGiftByCode(
   // A purchased gift is NOT a reference to the latest catalogue demo.
   // Validate its exact stored product and version before choosing a renderer.
   const rendererFamily=purchasedRendererFor(row.experience_slug,row.template_version);
-  const base = getExperience(row.experience_slug);
-  if (!base) {
-    throw new Error("gift_experience_not_found");
-  }
+  // Preserve the independently archived sold-product identity (PR #70).
+  // Render the exact purchased-version baseline (PR #71), never the mutable demo.
+  const archivedProduct = getExperience(row.experience_slug);
+  if (!archivedProduct) throw new Error("gift_experience_not_found");
+  const base = getPurchasedModelSnapshot(row.experience_slug,row.template_version);
 
   const orderedMedia = [...(payload.media || [])].sort(
     (a, b) => a.sort_order - b.sort_order,

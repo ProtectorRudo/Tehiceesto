@@ -77,6 +77,29 @@ test("A nonexistent gift must never show a generic demo or another buyer's purch
   /unknown_gift_looks_published/);
 });
 
+test("A streamed Next.js 404 for a nonexistent gift is safe despite initial HTTP 200",async()=>{
+ const streamed404='<main>404 · Acá no hay una historia esperando</main>' +
+  '<script>NEXT_HTTP_ERROR_FALLBACK;404</script>' +
+  '<meta name="robots" content="noindex"/>';
+ const passed=await checkLiveRelease({origin:"https://tehiceesto.com",expectedSha:sha,
+  fetchImpl:fetchMock({"/r/000000000000000000":{status:200,body:streamed404}})});
+ assert.equal(passed.checkedRoutes,requiredPublicPaths.length+2);
+});
+
+test("A normal HTTP 200 for an unknown gift fails even if it mentions 404",async()=>{
+ const fake='<main>404 · Acá no hay una historia esperando</main><meta name="robots" content="noindex"/>';
+ await assert.rejects(checkLiveRelease({origin:"https://tehiceesto.com",expectedSha:sha,
+  fetchImpl:fetchMock({"/r/000000000000000000":{status:200,body:fake}})}),
+  /unknown_gift_looks_published/);
+});
+
+test("A Next.js 404 digest without noindex metadata fails the private-gift gate",async()=>{
+ const fake='<main>404 · Acá no hay una historia esperando</main><script>NEXT_HTTP_ERROR_FALLBACK;404</script>';
+ await assert.rejects(checkLiveRelease({origin:"https://tehiceesto.com",expectedSha:sha,
+  fetchImpl:fetchMock({"/r/000000000000000000":{status:200,body:fake}})}),
+  /unknown_gift_looks_published/);
+});
+
 test("A bought game URL serving a different game is blocked even when HTTP is 200",async()=>{
  await assert.rejects(checkLiveRelease({origin:"https://tehiceesto.com",expectedSha:sha,
   fetchImpl:fetchMock({"/juegos/pack/completo":{body:'<span hidden data-purchased-product="trazo-complice"></span>'}})}),

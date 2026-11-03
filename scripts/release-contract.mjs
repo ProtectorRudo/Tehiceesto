@@ -53,11 +53,15 @@ export function assertStaticReleaseContract(root=process.cwd()){
    throw Error("purchased_games_missing_entitlement_checks");
  const giftRead=read("supabase/functions/gift-read/index.ts");
  const giftRepository=read("lib/gifts/repository.ts");
+ const frozenModelResolver=read("lib/gifts/purchased-model-snapshots.ts");
  const snapshot=read("data/purchased-experiences-20261103.ts");
  if(!giftRepository.includes('from "@/data/purchased-experiences-20261103"') ||
     !snapshot.includes('slug: "dragon-ball-pareja"') ||
     !snapshot.includes('slug: "pareja"'))
    throw Error("purchased_catalogue_snapshot_not_used");
+ if(!giftRepository.includes("getPurchasedModelSnapshot(row.experience_slug,row.template_version)") ||
+    !frozenModelResolver.includes("gift_model_snapshot_unavailable"))
+   throw Error("purchased_model_baseline_not_frozen");
  const giftPage=read("app/r/[code]/page.tsx");
  if(!(giftRead.includes("experience_slug,template_version,giver_name")||giftRead.includes("template_version,experience_slug,giver_name"))||
     !giftRepository.includes("purchasedRendererFor(row.experience_slug,row.template_version)")||
@@ -142,7 +146,18 @@ export async function checkLiveRelease({origin,expectedSha,fetchImpl=fetch}){
  }
  // Protect customer privacy: unknown gifts must never be treated as demos.
  const invalidGift=await get("/r/000000000000000000");
- assertion(invalidGift.status===404,"unknown_gift_looks_published");
+ // Next.js can stream notFound() after initial HTTP 200 headers were sent.
+ // Accept only the real Next.js 404 digest, fallback content and noindex;
+ // a normal successful (200) gift page still blocks the release.
+ if(invalidGift.status===200){
+  const streamedNotFound=await invalidGift.text();
+  assertion(streamedNotFound.includes("NEXT_HTTP_ERROR_FALLBACK;404") &&
+    streamedNotFound.includes('<meta name="robots" content="noindex"/>') &&
+    streamedNotFound.includes("404 · Acá no hay una historia esperando"),
+    "unknown_gift_looks_published");
+ }else{
+  assertion(invalidGift.status===404,"unknown_gift_looks_published");
+ }
  const withdrawn=await get("/comprar/sticker-bomb-amistad");
  assertion(withdrawn.status===404,"withdrawn_model_is_buyable");
  return {origin:root,expectedSha,checkedRoutes:requiredPublicPaths.length+2};
