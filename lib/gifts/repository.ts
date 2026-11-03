@@ -3,6 +3,7 @@ import "server-only";
 import type { Experience, SceneType } from "@/data/experiences";
 import { getExperience } from "@/data/experiences";
 import { normalizeSceneTextOverrides, type SceneTextOverrides } from "@/data/scene-text";
+import {arrangeScenePhotos} from "@/lib/gifts/arrange-scene-photos";
 
 type EdgeGift = {
   experience_slug: string;
@@ -82,8 +83,9 @@ export async function getPublishedGiftByCode(
     caption?: string;
     fit?: "cover" | "contain";
     position?: "center" | "top" | "bottom" | "left" | "right";
+    scene?: SceneType;
   }[];
-  audioMedia?: { url: string; caption?: string }[];
+  audioMedia?: { url: string; caption?: string; scene?: SceneType }[];
   soundtrackMedia?: { url: string; caption?: string };
   videoMedia?: { url: string; caption?: string }[];
   storyContext?: {
@@ -131,18 +133,18 @@ export async function getPublishedGiftByCode(
     (a, b) => a.sort_order - b.sort_order,
   );
 
-  const photoMedia = orderedMedia
-    .filter((item) => item.kind === "image" && item.url)
-    .map((item) => ({
+  const imageAssets = orderedMedia.filter((item) => item.kind === "image" && item.url);
+  const photoMedia = arrangeScenePhotos(imageAssets,row.story_data?.photoSlots,
+    Array.isArray(row.scene_recipe) && row.scene_recipe.length ? row.scene_recipe : base.recipe)
+    .map(({item,scene}) => ({
       url: item.url as string,
       caption: item.caption || undefined,
+      scene: scene as SceneType,
       fit: item.metadata?.fit === "contain" ? "contain" as const : "cover" as const,
       position:
-        ["center", "top", "bottom", "left", "right"].includes(
-          String(item.metadata?.position || ""),
-        )
+        ["center", "top", "bottom", "left", "right"].includes(String(item.metadata?.position || ""))
           ? (item.metadata?.position as "center" | "top" | "bottom" | "left" | "right")
-          : "center",
+          : "center" as const,
     }));
 
   const soundtrackItem = orderedMedia.find(
@@ -169,6 +171,7 @@ export async function getPublishedGiftByCode(
     .map((item) => ({
       url: item.url as string,
       caption: item.caption || undefined,
+      scene: typeof item.metadata?.scene==="string" ? item.metadata.scene as SceneType : undefined,
     }));
 
   const videoMedia = orderedMedia
