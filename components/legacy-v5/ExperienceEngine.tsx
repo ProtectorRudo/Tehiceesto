@@ -590,7 +590,7 @@ export default function ExperienceEngine({experience,letterText,photoMedia,audio
           </section>;
         }
         if(experience.slug==="mama"){
-          const count=Math.min(3,customerGift?currentAudios.length:Math.max(currentAudios.length,voiceEntries.length));
+          const count=customerGift?currentAudios.length:Math.min(3,Math.max(currentAudios.length,voiceEntries.length));
           const entries=Array.from({length:count},(_,i)=>{
             const voice=customerGift?undefined:(voiceEntries[i]||voiceEntries[0]);
             const audio=currentAudios[i]||(!customerGift&&i===0?{url:"/mama-voz-web.mp3",caption:"Tu hija Alina"}:undefined);
@@ -686,7 +686,7 @@ export default function ExperienceEngine({experience,letterText,photoMedia,audio
           </section>;
         }
         if(experience.slug==="papa"){
-          const count=Math.min(3,customerGift?currentAudios.length:Math.max(currentAudios.length,voiceEntries.length));
+          const count=customerGift?currentAudios.length:Math.min(3,Math.max(currentAudios.length,voiceEntries.length));
           const estimateDuration=(message:string)=>Math.max(12,Math.ceil(message.trim().split(/\s+/).filter(Boolean).length/2.2));
           const formatVoiceTime=(seconds:number)=>{const safe=Math.max(0,Math.floor(Number.isFinite(seconds)?seconds:0));return `${Math.floor(safe/60)}:${String(safe%60).padStart(2,"0")}`};
           const entries=Array.from({length:count},(_,i)=>{
