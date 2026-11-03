@@ -51,6 +51,10 @@ export function assertStaticReleaseContract(root=process.cwd()){
    throw Error("purchased_games_missing_entitlement_checks");
  const giftRead=read("supabase/functions/gift-read/index.ts");
  const giftRepository=read("lib/gifts/repository.ts");
+ const frozenModelResolver=read("lib/gifts/purchased-model-snapshots.ts");
+ if(!giftRepository.includes("getPurchasedModelSnapshot(row.experience_slug,row.template_version)")||
+    !frozenModelResolver.includes("gift_model_snapshot_unavailable"))
+   throw Error("purchased_model_baseline_not_frozen");
  const giftPage=read("app/r/[code]/page.tsx");
  if(!(giftRead.includes("experience_slug,template_version,giver_name")||giftRead.includes("template_version,experience_slug,giver_name"))||
     !giftRepository.includes("purchasedRendererFor(row.experience_slug,row.template_version)")||
