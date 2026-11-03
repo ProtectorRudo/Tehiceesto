@@ -2,11 +2,12 @@
 import {useMemo,useState} from "react";
 import type {Experience as CurrentExperience} from "@/data/experiences";
 import type {SceneTextOverrides} from "@/data/scene-text";
+import type {SceneType as ArchivedScene} from "./legacy-v5/data";
 import PremiumOpeningIntro from "./PremiumOpeningIntro";
 import ArchivedPremiumEngine from "./legacy-v5/ExperienceEngine";
 import {getExperience as getArchivedExperience} from "./legacy-v5/data";
 import "./legacy-v5/legacy-styles.css";
-type Media={url:string;caption?:string;fit?:"cover"|"contain";position?:"center"|"top"|"bottom"|"left"|"right"};
+type Media={url:string;caption?:string;fit?:"cover"|"contain";position?:"center"|"top"|"bottom"|"left"|"right";scene?:string};
 type Props={experience:CurrentExperience;letterText?:string;photoUrls?:string[];photoMedia?:Media[];audioMedia?:Media[];soundtrackMedia?:Media;videoMedia?:Media[];storyContext?:{keyDate?:string;anecdote?:string};sceneTextOverrides?:SceneTextOverrides;customerGift?:boolean};
 export const restoredPremiumSlugs=new Set(["pareja","cumpleanos","hijos","abuelos","aniversario","propuesta","mama","papa","amistad"]);
 export default function LegacyPremiumExperience(props:Props){
@@ -19,5 +20,5 @@ export default function LegacyPremiumExperience(props:Props){
   const photoMedia=(props.photoMedia?.length?props.photoMedia:props.photoUrls?.map(url=>({url})))||[];
   // Cumpleaños skips the redundant text-based intro, entering at its candles scene.
   const activeModel=experience.slug==="cumpleanos"?{...model,recipe:model.recipe.filter(scene=>scene!=="intro")}:model;
-  return <div className="thi-root legacy-premium-renderer"><ArchivedPremiumEngine experience={activeModel} letterText={props.letterText} photoMedia={photoMedia} audioMedia={props.audioMedia} soundtrackMedia={props.soundtrackMedia} videoMedia={props.videoMedia} storyContext={props.storyContext} sceneTextOverrides={props.sceneTextOverrides} customerGift={props.customerGift||false}/></div>;
+  return <div className="thi-root legacy-premium-renderer"><ArchivedPremiumEngine experience={activeModel} letterText={props.letterText} photoMedia={photoMedia as {url:string;caption?:string;scene?:ArchivedScene}[]} audioMedia={props.audioMedia as {url:string;caption?:string;scene?:ArchivedScene}[]|undefined} soundtrackMedia={props.soundtrackMedia} videoMedia={props.videoMedia} storyContext={props.storyContext} sceneTextOverrides={props.sceneTextOverrides} customerGift={props.customerGift||false}/></div>;
 }
