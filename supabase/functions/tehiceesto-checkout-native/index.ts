@@ -1,3 +1,4 @@
+import {mercadoPagoAddonExternalCode} from "./item-code.mjs";
 // Native TeHiceEsto port of the existing Checkout Pro Orders adapter.
 // The original checkout is still active until credentials, tests and routing are verified.
 // No payment secret is embedded in this source; secret values belong in Supabase Edge secrets.
@@ -229,7 +230,7 @@ Deno.serve(async(req:Request)=>{
   const items=bundledExtra?[
     {external_code:code,title:itemTitle,quantity:1,unit_price:((amountMinor-addonMinor)/100).toFixed(2)},
     // Mercado Pago limits item external_code to 30 chars. A single addon is allowed per order.
-    {external_code:code+"-addon",title:bundledTitle,quantity:1,unit_price:(addonMinor/100).toFixed(2)},
+    {external_code:mercadoPagoAddonExternalCode(code),title:bundledTitle,quantity:1,unit_price:(addonMinor/100).toFixed(2)},
   ]:[{external_code:code,title:itemTitle,quantity:1,unit_price:amount}];
   const isPack=config.experienceSlug==="pack-juegos";
   const receiptBase=isPack?`https://tehiceesto.com/juegos/pack/pedido?code=${code}&pago=`:`https://tehiceesto.com/pedido/${code}?pago=`;
