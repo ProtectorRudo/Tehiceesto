@@ -57,6 +57,11 @@ test("Private voice list is not an editable or buyer-authorized endpoint",()=>{
 test("Invited guest recordings are saved as voice files for the gift, not replacing the original narration",()=>{
   const service=read("supabase/functions/guest-voice/index.ts");
   assert.match(service,/source:"guest_voice",role:"voice",guestSpeaker:speaker/);
-  assert.match(service,/max_submissions:MAX_INVITE_UPLOADS/);
   assert.match(service,/const MAX_INVITE_UPLOADS=12/);
+  assert.match(service,/const availableSlots=Math.min\(MAX_INVITE_UPLOADS,MAX_GIFT_MEDIA-usedMedia\)/);
+  assert.match(service,/max_submissions:availableSlots/);
+  assert.ok(service.indexOf("const usedMedia=await mediaCount")<
+    service.indexOf('// At most one active link'),
+    "Capacity must be checked before any active invite is revoked");
+  assert.match(read("components/GuestVoiceInvites.tsx"),/El enlace permite hasta 12 mensajes, según el espacio disponible/);
 });
