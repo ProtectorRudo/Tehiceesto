@@ -409,18 +409,19 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
     if(!photoPicker||busy)return;
     if(photoPicker.kind==="dragon"){await assignDragonPhoto(photoPicker.slot,mediaId);return;}
     if(photoPicker.kind==="slot"){await assignScenePhoto(photoPicker.scene,photoPicker.slot,mediaId);return;}
-    const ids=orderedMedia.map(m=>m.id);
-    const from=ids.indexOf(photoPicker.mediaId),to=ids.indexOf(mediaId);
-    if(from<0||to<0){onError("No encontramos la foto seleccionada.");return;}
-    if(from===to){setPhotoPicker(null);return;}
-    [ids[from],ids[to]]=[ids[to],ids[from]];
-    setBusy(true);
-    try{
-      await action(access,"reorderStudioMedia",{mediaIds:ids});
-      await refreshMedia();setPhotoPicker(null);
-      onNotice("Foto cambiada en el recorrido.");
-    }catch(error){onError(displayError(error))}
-    finally{setBusy(false)}
+    const selected=orderedMedia.find(m=>m.id===photoPicker.mediaId&&m.kind==="image");
+    const replacement=orderedMedia.find(m=>m.id===mediaId&&m.kind==="image");
+    if(!selected||!replacement){onError("No encontramos la fotografía seleccionada.");return;}
+    if(selected.id===replacement.id){setPhotoPicker(null);return;}
+    const preferred=selected.metadata?.scene;
+    const natural=(["memories","gallery","day7","club"] as SceneType[]).find(name=>scenes.includes(name))||scenes[0];
+    const scene=(preferred&&scenes.includes(preferred as SceneType)?preferred:natural) as SceneType;
+    const candidates=orderedMedia.filter(m=>m.kind==="image"&&
+      ((m.metadata?.scene&&scenes.includes(m.metadata.scene as SceneType)?m.metadata.scene:natural)===scene));
+    const slot=Math.max(0,candidates.findIndex(m=>m.id===selected.id));
+    // No list-wide reorder: it could also reorder audios or move photos
+    // between different scenes. The slot override is the source of truth.
+    await assignScenePhoto(scene,slot,replacement.id);
   }
 
   async function uploadReplacement(file:File){
