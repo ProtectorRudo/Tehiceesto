@@ -10,9 +10,9 @@ test("Every published gift family exposes the complete customer voice collection
     "Dragon Ball, withdrawn historical gifts, Jar, Seven Days and regular gifts must all have voice access");
   assert.ok(page.indexOf("<GiftVoiceCollection")<page.indexOf("// Development fallback"),
     "The collection is private and should not be inserted into public demos");
-  assert.match(page,/if\(storedGift\.experience\.slug==="dragon-ball-pareja"\)return/);
-  assert.match(page,/if \(storedGift\.experience\.slug==="frasco365"\)/);
-  assert.match(page,/if \(storedGift\.experience\.slug==="siete-dias"\)/);
+  assert.match(page,/if\(storedGift\.rendererFamily==="dragon-ball"\)return/);
+  assert.match(page,/if \(storedGift\.rendererFamily==="jar365"\)/);
+  assert.match(page,/if \(storedGift\.rendererFamily==="seven-days"\)/);
 });
 
 test("The creator preview contains the same complete collection before publishing",()=>{
