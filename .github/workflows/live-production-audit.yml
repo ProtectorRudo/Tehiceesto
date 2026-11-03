@@ -6,6 +6,9 @@ on:
       - scripts/live-production-audit.mjs
       - .github/workflows/live-production-audit.yml
   workflow_dispatch:
+  schedule:
+    # Check for drift and broken purchased URLs even when no code changes.
+    - cron: '17 */4 * * *'
 permissions:
   contents: read
 jobs:
@@ -21,6 +24,8 @@ jobs:
         run: |
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
+      - name: Detect stale production builds and broken purchased URLs
+        run: node scripts/release-contract.mjs --live https://tehiceesto.com "$(git rev-parse HEAD)"
       - name: Audit live TeHiceEsto from mobile
         run: node scripts/live-production-audit.mjs
       - name: Save results and screenshots
