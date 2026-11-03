@@ -18,11 +18,13 @@ export type ExperiencePhoto = {
   caption?: string;
   fit?: "cover" | "contain";
   position?: "center" | "top" | "bottom" | "left" | "right";
+  scene?: SceneType;
 };
 
 export type ExperienceAudio = {
   url: string;
   caption?: string;
+  scene?: SceneType;
 };
 
 export type ExperienceVideo = {
