@@ -16,7 +16,7 @@ test("Dragon Ball preview renders the purchased model, never the generic scene e
   assert.match(preview, /dragon-ball-pareja\.html\?mode=gift&code=/);
   assert.match(preview, /tehiceesto:dragon-ball:gift/);
   assert.match(gift, /tehiceesto:dragon-ball:gift/);
-  assert.match(published, /slug==="dragon-ball-pareja"\)return <>\s*<DragonBallGift/);
+  assert.match(published, /rendererFamily==="dragon-ball"\)return <>\s*<DragonBallGift/);
   assert.match(studio, /onDraftChange=\{setDragonDraft\}/);
   assert.match(dragon, /useEffect\(\(\)=>\{onDraftChange\?\.\(draft\)/);
   assert.match(studio, /photoMediaIds/);
@@ -45,7 +45,7 @@ test("Special preview types are routed explicitly instead of silently falling in
   assert.ok(stickerModel.includes("stickerBombChapters"));
   assert.ok(stickerModel.includes("normalizeStickerBomb(copy)"));
   assert.ok(engine.includes('props.experience.slug === "sticker-bomb-amistad"'));
-  assert.ok(published.includes('slug==="sticker-bomb-amistad") return <><StickerBombExperience'));
+  assert.ok(published.includes('rendererFamily==="sticker-bomb") return <><StickerBombExperience'));
   assert.ok(giftRepo.includes("stickerBomb:row.story_data?.stickerBomb"));
   assert.ok(studio.includes("browserJpegFromHeic"));
   assert.ok(studio.includes("await refreshMedia();setPreview(true)"));
