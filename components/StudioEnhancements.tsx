@@ -616,6 +616,15 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
               audioMedia={audioMedia}
               editing={editingCopy}
               onTextSelect={selection=>{setSelected(selection);setCopyValue(selection.current);}}
+              onPhotoClick={slot=>{
+                const photo=orderedMedia.filter(m=>m.kind==="image"&&m.url)[slot];
+                if(photo)setPhotoPicker({kind:"media",mediaId:photo.id});
+                else onError("Todavía no hay una foto para este lugar. Subila desde Materiales personales.");
+              }}
+              onAudioClick={()=>{
+                const voice=orderedMedia.find(m=>m.kind==="audio"&&m.url&&m.metadata?.role!=="soundtrack");
+                if(voice)setPhotoPicker({kind:"audio",mediaId:voice.id});
+              }}
             /> :
           <ExperienceEngine
             experience={{...model,
