@@ -156,8 +156,9 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
     Array.isArray(gift.scene_recipe) && gift.scene_recipe.length ? gift.scene_recipe : model?.recipe || []
   ), [gift.scene_recipe, model]);
   const signedPhotos = arrangeScenePhotos(orderedMedia.filter(m=>m.kind==="image"&&m.url),photoSlots,scenes)
-    .map(({item:m,scene})=>({
+    .map(({item:m,scene,slot})=>({
       url:m.url as string,caption:m.caption||undefined,scene:scene as SceneType,
+      ...(slot===undefined?{}:{slot}),
       fit:m.metadata?.fit==="contain"?"contain" as const:"cover" as const,
       position:(["center","top","bottom","left","right"].includes(String(m.metadata?.position))?m.metadata?.position:"center") as "center"|"top"|"bottom"|"left"|"right",
     }));
@@ -628,9 +629,7 @@ export default function StudioEnhancements({ access, ownerToken, gift, initialMe
               editing={editingCopy}
               onTextSelect={selection=>{setSelected(selection);setCopyValue(selection.current);}}
               onPhotoClick={slot=>{
-                const photo=orderedMedia.filter(m=>m.kind==="image"&&m.url)[slot];
-                if(photo)setPhotoPicker({kind:"media",mediaId:photo.id});
-                else onError("Todavía no hay una foto para este lugar. Subila desde Materiales personales.");
+                setPhotoPicker({kind:"slot",scene:"day7",slot});
               }}
               onAudioClick={()=>{
                 const voice=orderedMedia.find(m=>m.kind==="audio"&&m.url&&m.metadata?.role!=="soundtrack");
