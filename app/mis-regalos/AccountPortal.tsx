@@ -19,6 +19,7 @@ type Gift = {
 };
 type Story = Record<string, unknown>;
 type EditableGift = {
+  experience_slug?: string;
   giver_name: string;
   recipient_name: string;
   occasion?: string | null;
@@ -398,18 +399,21 @@ export default function AccountPortal() {
                 <div className={styles.studioHeading}>
                   <span className={styles.eyebrow}>TU EXPERIENCIA · PERSONALIZÁ EL CONTENIDO</span>
                   <h2>{labels[gifts.find((gift) => gift.code === studio.code)?.experienceSlug || ""] || "Mi regalo"}</h2>
-                  <p>Personalizá nombres y mensajes. Las escenas y animaciones originales permanecen iguales.</p>
+                  <p>{studioData.experience_slug==="siete-dias"
+                    ?"Personalizá los dos nombres acá. Para cambiar las frases de cada día, abrí la vista previa, activá «Editar frases» y tocá el mensaje que quieras modificar. El recorrido original no cambia."
+                    :"Personalizá nombres y mensajes. Las escenas y animaciones originales permanecen iguales."}</p>
                 </div>
                 <form className={styles.editForm} onSubmit={saveGift}>
                   <div className={styles.editGrid}>
                     {([["giver_name", "De parte de"], ["recipient_name", "Para"], ["occasion", "Ocasión"], ["feeling", "Emoción"]] as const).map(([key, label]) =>
-                      <label key={key}>{label}<input value={String(studioData[key] || "")} onChange={(event) => changeGiftField(key, event.target.value)} required={key === "giver_name" || key === "recipient_name"} maxLength={key === "occasion" ? 120 : 80} /></label>
+                      (studioData.experience_slug!=="siete-dias" || key==="giver_name" || key==="recipient_name") &&
+                        <label key={key}>{label}<input value={String(studioData[key] || "")} onChange={(event) => changeGiftField(key, event.target.value)} required={key === "giver_name" || key === "recipient_name"} maxLength={key === "occasion" ? 120 : 80} /></label>
                     )}
-                    {([["opening_text", "Mensaje de bienvenida"], ["letter_text", "Carta personal"], ["closing_text", "Mensaje final"]] as const).map(([key, label]) =>
+                    {studioData.experience_slug!=="siete-dias" && ([["opening_text", "Mensaje de bienvenida"], ["letter_text", "Carta personal"], ["closing_text", "Mensaje final"]] as const).map(([key, label]) =>
                       <label key={key} className={styles.wide}>{label}<textarea rows={key === "letter_text" ? 7 : 4} value={String(studioData[key] || "")} onChange={(event) => changeGiftField(key, event.target.value)} maxLength={key === "letter_text" ? 14000 : 5000} /></label>
                     )}
                   </div>
-                  <div className={styles.personalDetails}>
+                  {studioData.experience_slug!=="siete-dias" && <div className={styles.personalDetails}>
                     <label>Fecha especial
                       <input type="date" value={String(studioData.story_data?.keyDate || "")}
                         onChange={(event) => setStudioData(old => old ? {...old,story_data:{...(old.story_data || {}),keyDate:event.target.value}} : old)} />
@@ -426,9 +430,9 @@ export default function AccountPortal() {
                       <input type="url" value={String(studioData.music_url || "")} maxLength={700} placeholder="https://..."
                         onChange={(event) => changeGiftField("music_url",event.target.value)} />
                     </label>
-                  </div>
+                  </div>}
                   <div className={styles.saveBar}>
-                    <span>Los cambios no alteran la estructura de la experiencia.</span>
+                    <span>{studioData.experience_slug==="siete-dias"?"Los nombres se guardan acá. Para editar los mensajes de los siete capítulos, usá la vista previa de abajo.":"Los cambios no alteran la estructura de la experiencia."}</span>
                     <button className={styles.primary} type="submit" disabled={saving}>{saving ? "Guardando…" : "Guardar cambios →"}</button>
                   </div>
                 </form>
