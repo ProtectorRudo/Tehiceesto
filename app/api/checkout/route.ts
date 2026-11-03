@@ -1,12 +1,13 @@
 import {NextRequest,NextResponse} from "next/server";
 import {isIP} from "node:net";
+import {isAllowedCheckoutOrigin} from "@/lib/checkout/allowed-origins.mjs";
 import {affiliateBackendConfig,ATTRIBUTION_COOKIE} from "@/lib/affiliates/backend";
 
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export async function POST(req:NextRequest){
  const origin=req.headers.get("origin");
- if(origin&&origin!==req.nextUrl.origin)return NextResponse.json({error:"forbidden_origin"},{status:403});
+ if(!isAllowedCheckoutOrigin(origin,req.nextUrl.origin,process.env.NODE_ENV))return NextResponse.json({error:"forbidden_origin"},{status:403});
  const fetchSite=req.headers.get("sec-fetch-site");
  if(fetchSite&&fetchSite!=="same-origin"&&fetchSite!=="none")return NextResponse.json({error:"forbidden_site"},{status:403});
  let body:Record<string,unknown>;
