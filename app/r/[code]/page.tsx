@@ -81,7 +81,9 @@ export default async function GiftPage({
     }
   }
 
-  // Development fallback while production environment variables are absent.
+  // A missing production backend must NEVER show a public demo in place of
+  // someone's paid gift. Keep these aliases strictly local to development.
+  if(process.env.NODE_ENV==="production")throw new Error("gift_backend_not_configured");
   const demoSlug = demoGifts[code];
   if (!demoSlug) notFound();
 
