@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "referenceGitCommit": "10024756e1135963f580d87e77687e0cd7e80ae1",
-  "note": "Locked purchased renderer sources. For a new visual design, archive the previous renderer and introduce a new template version before changing these files. Never remove historical bindings.",
+  "note": "Locked purchased renderer sources. For a new visual design, archive the previous renderer and introduce a new template version before changing these files. Never remove historical bindings. Purchased model baseline snapshot JSON has its own locked digest. Any new model version requires archive/registration and review; no edits in place.",
   "files": {
     "components/ExperienceEngine.tsx": "8c36342e342f25ffef43b8aa435e3edf7fb2f4c495f5e4bd2f793728a5cbfbe4",
     "components/LegacyPremiumExperience.tsx": "aff1e16323553341c559814dd6a0d33af101a0eee8cc3eb98a7f7d195333ed24",
@@ -18,6 +18,7 @@
     "components/ClubAmigosExperience.tsx": "7c41cd6ef1756b51e5d7a904cd34d3a8fe77c10f4245aff389c5ca384955ad84",
     "components/SecretExperience.tsx": "0b765af3f7ad0304680137f448650152e41d8c0895e290a9f4235e60f7aa25e3",
     "components/StickerBombExperience.tsx": "cc34dbe89465064b349ceebe2e7460fec555affe690738c1758ae9afc54b3d20",
-    "data/experiences.ts": "372f2965c371475381588aced2b6ad93b0ac45afb1702fcf4bfedd22b68358d2"
+    "data/experiences.ts": "372f2965c371475381588aced2b6ad93b0ac45afb1702fcf4bfedd22b68358d2",
+    "data/purchased-model-snapshots.json": "4cef5c124fceba930a6867a78e722f9fdc2522c80273703330f27fb8cf3284db"
   }
 }
