@@ -16,7 +16,7 @@ test("Dragon Ball preview renders the purchased model, never the generic scene e
   assert.match(preview, /dragon-ball-pareja\.html\?mode=gift&code=/);
   assert.match(preview, /tehiceesto:dragon-ball:gift/);
   assert.match(gift, /tehiceesto:dragon-ball:gift/);
-  assert.match(published, /slug==="dragon-ball-pareja"\)return <DragonBallGift/);
+  assert.match(published, /slug==="dragon-ball-pareja"\)return <>\s*<DragonBallGift/);
   assert.match(studio, /onDraftChange=\{setDragonDraft\}/);
   assert.match(dragon, /useEffect\(\(\)=>\{onDraftChange\?\.\(draft\)/);
   assert.match(studio, /photoMediaIds/);
