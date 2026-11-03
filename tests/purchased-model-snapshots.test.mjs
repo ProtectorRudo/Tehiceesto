@@ -30,7 +30,7 @@ test("Catalog changes cannot silently change the baseline used to render a paid 
  const source=read("lib/gifts/repository.ts");
  const loader=read("lib/gifts/purchased-model-snapshots.ts");
  assert.ok(source.includes("getPurchasedModelSnapshot(row.experience_slug,row.template_version)"));
- assert.ok(!source.includes("getExperience(row.experience_slug)"));
+ assert.ok(!source.includes("const base = getExperience("));
  assert.match(loader,/products/);
  assert.match(loader,/gift_model_snapshot_unavailable/);
  assert.match(loader,/return \{\.\.\.model,tags:\[\.\.\.model.tags\],recipe:\[\.\.\.model.recipe\]\}/);
