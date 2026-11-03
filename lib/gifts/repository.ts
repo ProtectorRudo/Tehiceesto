@@ -136,10 +136,11 @@ export async function getPublishedGiftByCode(
   const imageAssets = orderedMedia.filter((item) => item.kind === "image" && item.url);
   const photoMedia = arrangeScenePhotos(imageAssets,row.story_data?.photoSlots,
     Array.isArray(row.scene_recipe) && row.scene_recipe.length ? row.scene_recipe : base.recipe)
-    .map(({item,scene}) => ({
+    .map(({item,scene,slot}) => ({
       url: item.url as string,
       caption: item.caption || undefined,
       scene: scene as SceneType,
+      ...(slot===undefined?{}:{slot}),
       fit: item.metadata?.fit === "contain" ? "contain" as const : "cover" as const,
       position:
         ["center", "top", "bottom", "left", "right"].includes(String(item.metadata?.position || ""))
