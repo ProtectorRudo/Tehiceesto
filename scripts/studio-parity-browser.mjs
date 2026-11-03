@@ -4,7 +4,10 @@ import fs from "node:fs/promises";
 
 const base=process.env.AUDIT_BASE_URL||"http://127.0.0.1:3000";
 const slugs=["pareja","cumpleanos","mama","papa","amistad","dragon-ball-pareja","sticker-bomb-amistad","siete-dias","frasco365"];
-// Retired templates remain in mocked paid gifts to guard legacy ownership,\n// but must never appear as public demos or new-sale offers.\nconst publicSlugs=slugs.filter(slug=>slug!=="sticker-bomb-amistad");\nconst codes=Object.fromEntries(slugs.map((slug,i)=>[String(i+1).padStart(16,"0"),slug]));
+// Retired templates remain in mocked paid gifts to guard legacy ownership,
+// but must never appear as public demos or new-sale offers.
+const publicSlugs=slugs.filter(slug=>slug!=="sticker-bomb-amistad");
+const codes=Object.fromEntries(slugs.map((slug,i)=>[String(i+1).padStart(16,"0"),slug]));
 const gifts=Object.entries(codes).map(([code,experienceSlug])=>({
  code,experienceSlug,status:"paid",templateVersion:"premium",
  giverName:"Remitente QA",recipientName:"Destinataria QA",
@@ -45,7 +48,9 @@ try{
    if(slug==="sticker-bomb-amistad")await page.screenshot({path:"visual-smoke/studio-parity/sticker-"+viewport.width+".png"});
    console.log("DEMO_PASS",slug,viewport.width);
   }
-  const withdrawn=await page.goto(base+"/experiencias/sticker-bomb-amistad?embed=1",{waitUntil:"domcontentloaded",timeout:35000});\n  assert.equal(withdrawn?.status(),404,"Withdrawn Sticker Bomb demo must return 404");\n  assert.deepEqual(errs,[],"Demo JavaScript errors at width "+viewport.width);
+  const withdrawn=await page.goto(base+"/experiencias/sticker-bomb-amistad?embed=1",{waitUntil:"domcontentloaded",timeout:35000});
+  assert.equal(withdrawn?.status(),404,"Withdrawn Sticker Bomb demo must return 404");
+  assert.deepEqual(errs,[],"Demo JavaScript errors at width "+viewport.width);
   await page.close();
  }
  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
