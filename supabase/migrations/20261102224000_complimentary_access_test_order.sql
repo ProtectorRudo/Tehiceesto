@@ -17,20 +17,6 @@ revoke all privileges on public.complimentary_access_grants from public, anon, a
 grant select, insert, update, delete on public.complimentary_access_grants to service_role;
 comment on table public.complimentary_access_grants is 'Manual support licenses, never proof of a paid Mercado Pago order; query with verified buyer identity and order ownership.';
 
--- A one-off, explicit owner authorization for the precise test purchase.
--- Preserve all existing photo/media references and the refunded provider ledger.
-insert into public.complimentary_access_grants(order_id,gift_id,product_code,reason)
-select o.id,o.gift_id,g.product_code,
-  'Excepción de prueba autorizada expresamente por el propietario el 2026-11-02: compra reembolsada; acceso de cortesía al regalo y a los cuatro juegos'
-from public.orders o
-join public.gifts gift on gift.id=o.gift_id
-cross join (values ('dragon-ball-pareja'),('pack_juegos_v1')) as g(product_code)
-where o.id='bd35b2a3-97bd-4acb-bd27-ba6915067ca8'::uuid
-  and o.status='refunded'
-  and o.refunded_amount_minor=o.amount_minor
-  and o.amount_minor=3500000
-  and gift.experience_slug='dragon-ball-pareja'
-  and gift.story_data #>> '{creator,mode}'='selfserve'
-  and (gift.story_data #>> '{checkout,addonCode}')='pack_juegos_v1'
-  and exists (select 1 from public.gift_upsells x where x.order_id=o.id and x.gift_id=o.gift_id and x.product_code='pack_juegos_v1' and x.status='refunded')
-on conflict (order_id,product_code) do nothing;
+-- Individual complimentary grants are operational support records and MUST NOT
+-- be seeded by schema migrations. Grant/revoke them explicitly and auditably
+-- for an authenticated buyer in the intended environment only.
