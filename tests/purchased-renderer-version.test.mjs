@@ -54,7 +54,7 @@ test("unknown versions and non-gift purchases never silently become a generic pa
 
 test("public gift-read includes immutable template_version so the app can decide correctly",()=>{
  const edge=read("supabase/functions/gift-read/index.ts");
- assert.match(edge,/experience_slug,template_version,giver_name/);
+ assert.match(edge,/template_version,experience_slug,giver_name|experience_slug,template_version,giver_name/);
  const repo=read("lib/gifts/repository.ts");
  assert.match(repo,/const rendererFamily=purchasedRendererFor\(row\.experience_slug,row\.template_version\)/);
  assert.match(repo,/templateVersion: row\.template_version/);
