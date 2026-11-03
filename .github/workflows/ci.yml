@@ -27,6 +27,9 @@ jobs:
       - name: Validate commercial prices and payment boundaries
         run: node --test scripts/pricing-commercial-qa.mjs
 
+      - name: Verify buyer-facing product consistency and private-route CTA regressions
+        run: node --test tests/*.test.mjs
+
       - name: Verify native payments and purchase-email retry routing
         run: node scripts/audit-native-mp-cutover.mjs
 
