@@ -15,7 +15,7 @@ const fetchMock=(patch={})=>async(url)=>{
  const response=new Response(body,{status,headers:{"content-type":path==="/api/version"?"application/json":"text/html"}});
  const finalPath=path==="/juegos/pack/pedido"?PURCHASED_ROUTE_CONTRACT.myGifts:
    LEGACY_PACK_GAME_ROUTES.includes(path)?PURCHASED_ROUTE_CONTRACT.pack:path;
- Object.defineProperty(response,"url",{value:new URL(finalPath,url).href});
+ Object.defineProperty(response,"url",{value:new URL(finalPath,url).href,configurable:true});
  return response;
 };
 
