@@ -16,7 +16,7 @@ test("Retired Sticker Bomb never appears in the public Home or catalog",()=>{
   assert.match(catalog,/categoria==="todos"\?publicExperiences:publicExperiences\.filter/);
   assert.match(demo,/slug==="sticker-bomb-amistad"\) notFound\(\)/);
   assert.match(checkout,/notFound\(\)/);
-  assert.match(read("app/r/[code]/page.tsx"),/slug==="sticker-bomb-amistad"/,
+  assert.match(read("app/r/[code]/page.tsx"),/rendererFamily==="sticker-bomb"/,
     "Previously shared private gifts must keep their original renderer");
 });
 
