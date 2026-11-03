@@ -1,14 +1,60 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+import {hideSalesWhatsappOnRoute,salesContextForRoute,buyerAlreadyOwnsSalesContext,type BoughtProduct} from "@/lib/marketing/sales-whatsapp-visibility";
 import { getExperience } from "@/data/experiences";
 
 export default function FloatingWhatsApp() {
   const pathname = usePathname();
+  const context=salesContextForRoute(pathname);
+  const [verified,setVerified]=useState<{pathname:string;hide:boolean}|null>(null);
 
-  if (pathname.startsWith("/mis-regalos") || pathname.startsWith("/voz") || pathname.startsWith("/r/") || pathname.startsWith("/admin") || pathname.startsWith("/escape-r/") || pathname.startsWith("/escapes/")) {
-    return null;
-  }
+  useEffect(()=>{
+    if(!context)return;
+    let active=true;
+    const check=async()=>{
+      const url=process.env.NEXT_PUBLIC_SUPABASE_URL||"";
+      const key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY||"";
+      // No session: this is a public demo and the sales CTA is relevant.
+      if(!url||!key){if(active)setVerified({pathname,hide:false});return;}
+      let authenticated=false;
+      try{
+        const client=createClient(url,key,{auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:false}});
+        const {data,error}=await client.auth.getSession();
+        if(error)throw error;
+        const session=data.session;
+        if(!session){if(active)setVerified({pathname,hide:false});return;}
+        authenticated=true;
+        const response=await fetch(url+"/functions/v1/gift-account",{
+          method:"POST",cache:"no-store",signal:AbortSignal.timeout(12000),
+          headers:{apikey:key,authorization:"Bearer "+session.access_token,"content-type":"application/json"},
+          body:JSON.stringify({action:"list"}),
+        });
+        if(!response.ok)throw Error("owned_products_unavailable");
+        const result=await response.json();
+        const gifts: BoughtProduct[]=Array.isArray(result.gifts)?
+          result.gifts.filter((gift:unknown):gift is BoughtProduct=>
+            !!gift&&typeof gift==="object"&&typeof (gift as BoughtProduct).experienceSlug==="string"
+          ):[];
+        if(active)setVerified({pathname,hide:buyerAlreadyOwnsSalesContext(gifts,context)});
+      }catch{
+        // In an authenticated account, an intermittent entitlement lookup
+        // must not reintroduce a misleading 'buy again' overlay.
+        if(active)setVerified({pathname,hide:authenticated});
+      }
+    };
+    void check();
+    return()=>{active=false;};
+  },[pathname]);
+
+  // All purchased experiences and protected games are private by URL. Their
+  // sales CTA is hidden even if the visitor's session is being refreshed.
+  if(hideSalesWhatsappOnRoute(pathname))return null;
+  // For public demos, check ownership before rendering: no flashes of a
+  // purchase CTA over a product the logged-in customer already owns.
+  if(context&&(!verified||verified.pathname!==pathname||verified.hide))return null;
 
   const compact = pathname.startsWith("/experiencias/");
   const creatorCompact = pathname.startsWith("/crear");
