@@ -69,21 +69,21 @@ jobs:
         run: node scripts/create-release-manifest.mjs "$EXPECTED_SHA"
 
       - name: Install pinned Vercel CLI
-        run: npm install --no-save vercel@latest
+        run: npm install --global --ignore-scripts vercel@65.10.0
 
       - name: Pull production project settings
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: npx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+        run: vercel pull --yes --environment=production
 
       - name: Build production artifact
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: npx vercel build --prod --token="$VERCEL_TOKEN"
+        run: vercel build --prod
 
       - name: Confirm main still matches the artifact before staging
         env:
@@ -102,7 +102,7 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          url="$(npx vercel deploy --prebuilt --prod --skip-domain --yes --token="$VERCEL_TOKEN")"
+          url="$(vercel deploy --prebuilt --prod --skip-domain --yes)"
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "Deployed: $url"
 
@@ -127,7 +127,7 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
-        run: npx vercel promote "$DEPLOYMENT_URL" --yes --token="$VERCEL_TOKEN"
+        run: vercel promote "$DEPLOYMENT_URL" --yes
 
       - name: Verify both public destinations serve the exact release
         env:
