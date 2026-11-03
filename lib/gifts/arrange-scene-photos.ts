@@ -11,7 +11,8 @@ export type ArrangedPhoto<T extends SlotPhoto>={item:T;scene:string};
 export function arrangeScenePhotos<T extends SlotPhoto>(
   photos:T[],rawSlots:unknown,recipe:readonly string[]
 ):ArrangedPhoto<T>[]{
-  const original=photos.map(item=>({item,scene:item.metadata?.scene||recipe[0]||"intro"}));
+  const natural=recipe.includes("memories")?"memories":recipe.includes("gallery")?"gallery":recipe.includes("day7")?"day7":recipe[0]||"intro";
+  const original=photos.map(item=>({item,scene:item.metadata?.scene||natural}));
   if(!rawSlots||typeof rawSlots!=="object"||Array.isArray(rawSlots))return original;
   const slots=rawSlots as Record<string,unknown>;
   const byId=new Map(photos.map(item=>[item.id,item]));
