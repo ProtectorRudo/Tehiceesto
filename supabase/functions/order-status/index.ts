@@ -86,7 +86,7 @@ Deno.serve(async (req: Request) => {
     /^ORD[A-Za-z0-9_-]{6,160}$/.test(order.provider_reference)&&
     typeof order?.paid_at==="string"&&Number.isFinite(Date.parse(order.paid_at))&&
     typeof order?.buyer_email==="string"&&
-    /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(order.buyer_email);
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(order.buyer_email);
   const emailRetryDue=verifiedPaidPurchase&&!order?.access_email_sent_at&&
     (!Number.isFinite(previousEmailAttempt)||Date.now()-previousEmailAttempt>20*60*1000);
   if((order?.status==="pending"||emailRetryDue) && typeof order?.payment_token==="string"){
