@@ -65,5 +65,5 @@ test("Invited guest recordings are saved as voice files for the gift, not replac
   assert.ok(service.indexOf("const usedMedia=await mediaCount")<
     service.indexOf('// At most one active link'),
     "Capacity must be checked before any active invite is revoked");
-  assert.match(read("components/GuestVoiceInvites.tsx"),/El enlace permite hasta 12 mensajes, según el espacio disponible/);
+  assert.match(read("components/GuestVoiceInvites.tsx"),/Algunas escenas destacan solo una parte/);
 });
