@@ -74,6 +74,41 @@ h1,h2,h3{font-family:'Instrument Serif',Georgia,serif;font-weight:400;letter-spa
 .envelope-area.opening:after{content:'✧   ♥   ✦';position:absolute;top:5%;font-size:28px;letter-spacing:23px;color:#c68098;pointer-events:none;animation:paperSpark .85s ease-out both}
 @keyframes paperSpark{0%{opacity:0;transform:translateY(25px) scale(.7)}45%{opacity:1}100%{opacity:0;transform:translateY(-30px) scale(1.15)}}
 .envelope-scene .action[aria-busy=true]{opacity:.72;pointer-events:none}
+/* Mimo · day 01. The paper used to emerge 42px before opening while the
+   flap/pocket painted in the wrong order, leaving an oversized broken triangle
+   on narrow phones. Keep the animation and the personal letter unchanged. */
+.envelope-scene .envelope-area{height:clamp(218px,29svh,274px);margin:4px 0 0}
+.envelope-scene .envelope-area:before{width:min(88vw,310px);height:82%}
+.envelope-scene .envelope{
+  width:min(78vw,272px);height:auto;aspect-ratio:278/176;
+  position:relative;isolation:isolate;perspective:850px;
+  filter:drop-shadow(0 19px 18px rgba(139,84,105,.19))
+}
+.envelope-scene .envelope .back{inset:0;z-index:0}
+.envelope-scene .envelope .paper-in{
+  top:-8%;left:8%;right:8%;height:82%;z-index:1;
+  padding-top:18px;justify-content:flex-start;gap:7px;
+  overflow:hidden;box-shadow:0 8px 24px rgba(141,88,107,.12)
+}
+.envelope-scene .envelope .paper-in span{font-size:9px}
+.envelope-scene .envelope .paper-in b{font-size:32px}
+.envelope-scene .envelope .front{
+  z-index:2;
+  clip-path:polygon(0 12%,50% 65%,100% 12%,100% 100%,0 100%)
+}
+.envelope-scene .envelope .topfold{
+  z-index:3;
+  clip-path:polygon(0 0,100% 0,50% 55%);
+  transform-origin:50% 0
+}
+.envelope-scene .envelope .wax{z-index:4;top:55%;width:54px;height:54px}
+.envelope-scene .envelope.opening .paper-in{transform:translateY(-68%)}
+@media(max-width:370px){
+  .envelope-scene .envelope-area{height:clamp(198px,29svh,234px)}
+  .envelope-scene .envelope{width:min(79vw,246px)}
+  .envelope-scene .envelope .paper-in{padding-top:15px}
+}
+
 @media(prefers-reduced-motion:reduce){.envelope .paper-in,.envelope .topfold,.envelope .wax{transition:none!important}}
 
 </style>
