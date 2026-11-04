@@ -21,8 +21,16 @@ test("Mamá demo restores original audio and includes mobile GPU optimization",(
   assert.equal(mp3.toString("ascii",0,3),"ID3");
   const renderer=read("components/legacy-v5/ExperienceEngine.tsx");
   assert.match(renderer,/mama-voz-web\.mp3/);
+  const publicDemo=read("components/legacy-v5/MamaDemoEngine.tsx");
+  assert.match(publicDemo,/demoVoiceUtteranceRef\.current=utterance/,"Retain Android TTS utterance");
+  assert.match(publicDemo,/utterance\.onend=\(\)=>/,"Mark textual voices heard only after playback");
+  assert.match(publicDemo,/Math\.abs\(percent-previous\)>=3/,"Reduce CPU churn for audio progress");
+  const route=read("app/experiencias/[slug]/page.tsx");
+  assert.match(route,/slug==="mama"\?MamaDemoExperience/,"Only the public Mamá demo gets the new renderer");
+  assert.match(route,/slug==="papa"\) notFound\(\)/,"Hide direct Papá demo route");
   const css=read("components/legacy-v5/tehiceesto-mama-voices-fix.css");
   assert.match(css,/Mobile Mamá performance/);
+  assert.match(css,/\.thi-mama-demo \.thi-theme-mama/,"Mobile optimization must not affect purchased gifts");
 });
 
 test("Dragon Ball demo opens closed sticker envelopes, does not scroll back when flipping, and supports Android holds",()=>{

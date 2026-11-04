@@ -59,15 +59,15 @@
 
 /* Mobile Mamá performance: preserve the visual layout, reduce expensive GPU layers. */
 @media(max-width:650px){
- .thi-theme-mama .thi-mama-voice-back,
- .thi-theme-mama .thi-mama-memories-continue,
- .thi-theme-mama .thi-mama-intro-cta,
- .thi-theme-mama .thi-mama-memory-local-nav>button,
- .thi-theme-mama .thi-mama-voice-list>button{
+ .thi-mama-demo .thi-theme-mama .thi-mama-voice-back,
+ .thi-mama-demo .thi-theme-mama .thi-mama-memories-continue,
+ .thi-mama-demo .thi-theme-mama .thi-mama-intro-cta,
+ .thi-mama-demo .thi-theme-mama .thi-mama-memory-local-nav>button,
+ .thi-mama-demo .thi-theme-mama .thi-mama-voice-list>button{
   -webkit-backdrop-filter:none!important;
   backdrop-filter:none!important;
  }
- .thi-theme-mama .thi-mama-memory-card.is-prev,
- .thi-theme-mama .thi-mama-memory-card.is-next{filter:none!important}
- .thi-theme-mama .thi-mama-voice-wave.is-playing>i{animation-duration:1.25s}
+ .thi-mama-demo .thi-theme-mama .thi-mama-memory-card.is-prev,
+ .thi-mama-demo .thi-theme-mama .thi-mama-memory-card.is-next{filter:none!important}
+ .thi-mama-demo .thi-theme-mama .thi-mama-voice-wave.is-playing>i{animation-duration:1.25s}
 }
