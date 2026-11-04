@@ -56,10 +56,11 @@ try{
   assert.equal(await add.getAttribute("aria-pressed"),"false","unselected by default");
   assert.match(await section.innerText(),/PRECIO ESPECIAL/);
   assert.match(await section.innerText(),/10\.000/);
-  assert.equal(await page.locator("#checkout-experience-choice option").count(),9,"Club de Amigos ya no debe aparecer en opciones del regalo extra");
-   assert.equal(await page.locator('#checkout-experience-choice option[value="club-amigos"]').count(),0,"No se ofrece el producto retirado");
+  assert.equal(await page.locator("#checkout-experience-choice option").count(),7,"Solo se ofrecen los siete regalos adicionales disponibles");
+   assert.equal(await page.locator('#checkout-experience-choice option[value="club-amigos"]').count(),0,"No se ofrece Club de Amigos");
+   assert.equal(await page.locator('#checkout-experience-choice option[value="papa"]').count(),0,"Papá no se ofrece hasta su relanzamiento");
    assert.equal(await page.locator("#checkout-experience-choice option[value=\"dragon-ball-pareja\"]").count(),1,"Dragon Ball must be selectable as the additional experience");
-  await page.locator("#checkout-experience-choice").selectOption("sticker-bomb-amistad");
+  await page.locator("#checkout-experience-choice").selectOption("dragon-ball-pareja");
   await add.click();
   assert.match(await page.locator(".quick-checkout-total").innerText(),/35\.000/);
   assert.equal(await add.getAttribute("aria-pressed"),"true");
@@ -79,11 +80,12 @@ try{
   await page.getByRole("button",{name:/Continuar a Mercado Pago/}).click();
   await page.locator(".quick-checkout-status").waitFor({state:"visible",timeout:12000});
   assert.equal(calls,1,"one combined order only");
-  assert.equal(payload.addonExperienceSlug,"sticker-bomb-amistad","selected experience must reach server");
+  assert.equal(payload.addonExperienceSlug,"dragon-ball-pareja","selected experience must reach server");
   assert.equal(payload.addGamesPack,false);
  }
- await page.goto(base+"/comprar/sticker-bomb-amistad",{waitUntil:"domcontentloaded"});
- assert.equal(await page.locator(".quick-checkout-addon").count(),1,"friendship gift should offer discounted pack");
+ const retired=await page.goto(base+"/comprar/sticker-bomb-amistad",{waitUntil:"domcontentloaded"});
+ assert.equal(retired?.status(),404,"Retired Sticker Bomb must not be purchasable");
+ assert.equal(await page.locator(".quick-checkout-form").count(),0,"Retired experience has no checkout");
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2),false,"no horizontal overflow");
  await page.close();
  console.log("PRECHECKOUT_BUNDLE_QA_PASS: pack PRECIO ESPECIAL, single order, price changes, reciprocal experience selector, mobile responsive");

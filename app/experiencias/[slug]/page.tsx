@@ -9,7 +9,8 @@ import { getExperience, hiddenExperienceSlugs } from "@/data/experiences";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  if (slug==="club-amigos" || slug==="sticker-bomb-amistad" || slug==="papa") notFound();
+  if (slug==="club-amigos" || slug==="sticker-bomb-amistad") notFound();
+  if(slug==="papa") notFound();
   const experience = getExperience(slug);
   if (!experience) return {};
   return {
@@ -28,7 +29,8 @@ export default async function ExperiencePage({
   const { slug } = await params;
   const { embed } = await searchParams;
   const experience = getExperience(slug);
-  if (!experience || slug==="club-amigos" || slug==="sticker-bomb-amistad" || slug==="papa") notFound();
+  if (!experience || slug==="club-amigos" || slug==="sticker-bomb-amistad") notFound();
+  if(slug==="papa") notFound();
   const isEmbedded=embed==="1";
   const isUnlaunched=(hiddenExperienceSlugs.has(slug)||slug==="papa");
   if(slug==="dragon-ball-pareja")return (
@@ -37,11 +39,12 @@ export default async function ExperiencePage({
       <iframe src="/dragon-ball-pareja-demo-mobile.html" title="Dragon Ball · Nuestra Saga — Demo" style={{display:"block",width:"100%",height:"100%",border:0}} allow="autoplay"/>
     </div>
   );
-  const DemoRenderer=slug==="frasco365"?Jar365DemoExperience:slug==="mama"?MamaDemoExperience:ExperienceEngine;
+  const DemoRenderer=slug==="frasco365"?Jar365DemoExperience:ExperienceEngine;
+  const SceneRenderer=slug==="mama"?MamaDemoExperience:DemoRenderer;
   return (
     <div className={[isEmbedded?"boutique-embedded-route":"",slug==="mama"?"thi-mama-demo":""].filter(Boolean).join(" ")}>
       {!isEmbedded&&<div className="demo-ribbon"><span>{isUnlaunched?"VISTA PREVIA · ":"DEMO · "}{experience.title}</span>{!isUnlaunched&&<Link href={"/comprar/"+encodeURIComponent(slug)}>Comprar esta experiencia →</Link>}</div>}
-      <DemoRenderer experience={experience} />
+      <SceneRenderer experience={experience} />
     </div>
   );
 }

@@ -27,6 +27,8 @@ test("Mamá demo restores original audio and includes mobile GPU optimization",(
   assert.match(publicDemo,/Math\.abs\(percent-previous\)>=3/,"Reduce CPU churn for audio progress");
   const route=read("app/experiencias/[slug]/page.tsx");
   assert.match(route,/slug==="mama"\?MamaDemoExperience/,"Only the public Mamá demo gets the new renderer");
+  assert.match(read("app/api/checkout/route.ts"),/\["sticker-bomb-amistad","papa"\]/,"No purchases from hidden products");
+  assert.doesNotMatch(read("components/QuickCheckout.tsx"),/\{slug:"papa",name:"Para papá"\}/,"No Papá addon");
   assert.match(route,/slug==="papa"\) notFound\(\)/,"Hide direct Papá demo route");
   assert.match(read("components/MamaDemoExperience.tsx"),/w=1400\\b/,"Smaller mobile photos, same originals");
   const css=read("components/legacy-v5/tehiceesto-mama-voices-fix.css");

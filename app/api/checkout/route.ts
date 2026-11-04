@@ -21,7 +21,7 @@ export async function POST(req:NextRequest){
  }
  // Withdrawn experiences cannot be purchased through deep links or as addons.
  // Existing purchases and private gift links are intentionally unaffected.
- if(experienceSlug==="sticker-bomb-amistad"||addonExperienceSlug==="sticker-bomb-amistad"){
+ if(["sticker-bomb-amistad","papa"].includes(experienceSlug)||["sticker-bomb-amistad","papa"].includes(addonExperienceSlug)){
   return NextResponse.json({error:"experience_unavailable"},{status:404});
  }
  try{

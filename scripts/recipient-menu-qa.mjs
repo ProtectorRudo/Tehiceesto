@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 const base=process.env.AUDIT_BASE_URL||"http://127.0.0.1:3000";
 const browser=await chromium.launch({headless:true,args:["--no-sandbox"]});
-const paths=["pareja","mama","papa","amigos","juegos","todos"];
+const paths=["pareja","mama","amigos","juegos","todos"];
 const details=[];
 try{
  for(const viewport of [{width:320,height:720},{width:390,height:844},{width:1280,height:900}]){
@@ -18,7 +18,7 @@ try{
   await panel.waitFor({state:"visible"});
   assert.equal(await page.locator("body").evaluate(el=>el.style.overflow),"hidden");
   const nav=panel.getByRole("navigation",{name:"Elegir destinatario"});
-  assert.equal(await nav.getByRole("link").count(),6);
+  assert.equal(await nav.getByRole("link").count(),5);
   for(const slug of paths){
    assert.equal(await nav.locator('a[href="/coleccion/'+slug+'"]').count(),1,slug);
   }
