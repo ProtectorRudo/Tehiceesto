@@ -63,7 +63,7 @@ Deno.serve(async (req: Request) => {
   const orderQuery = new URL(`${SUPABASE_URL}/rest/v1/orders`);
   orderQuery.searchParams.set(
     "select",
-    "status,provider,provider_reference,checkout_url,amount_minor,currency,payment_token,paid_at,refunded_amount_minor,updated_at,access_email_sent_at,access_email_last_attempt_at"
+    "status,provider,provider_reference,checkout_url,amount_minor,currency,payment_token,paid_at,refunded_amount_minor,updated_at,buyer_email,access_email_sent_at,access_email_last_attempt_at"
   );
   orderQuery.searchParams.set("gift_id", `eq.${gift.id}`);
   orderQuery.searchParams.set("limit", "1");
@@ -75,7 +75,19 @@ Deno.serve(async (req: Request) => {
   // If an email transport failed when the payment was credited, reopening the
   // private order page retries after a cooldown; it never grants editor access.
   const previousEmailAttempt=Date.parse(String(order?.access_email_last_attempt_at||""));
-  const emailRetryDue=order?.status==="approved"&&!order?.access_email_sent_at&&
+  // A row marked "approved" is NOT proof that we should retry delivery.
+  // Internal complimentary/test grants also have a payment token, and some
+  // historical Mercado Pago rows have no verified amount. Never email those
+  // through the public order status link. Pending checkout reconciliation stays.
+  const verifiedPaidPurchase=order?.status==="approved"&&
+    order?.provider==="mercadopago"&&
+    Number.isSafeInteger(order?.amount_minor)&&order.amount_minor>0&&
+    typeof order?.provider_reference==="string"&&
+    /^ORD[A-Za-z0-9_-]{6,160}$/.test(order.provider_reference)&&
+    typeof order?.paid_at==="string"&&Number.isFinite(Date.parse(order.paid_at))&&
+    typeof order?.buyer_email==="string"&&
+    /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(order.buyer_email);
+  const emailRetryDue=verifiedPaidPurchase&&!order?.access_email_sent_at&&
     (!Number.isFinite(previousEmailAttempt)||Date.now()-previousEmailAttempt>20*60*1000);
   if((order?.status==="pending"||emailRetryDue) && typeof order?.payment_token==="string"){
     try{
