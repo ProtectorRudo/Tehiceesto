@@ -5,8 +5,8 @@
   "project": "efvvadfxuyieswdqnsjg",
   "functions": {
     "order-status": {
-      "version": 14,
-      "sha256": "b67ee24dcbd30d7efde53fae449d5e5359c35633f7d5e9cfc7c051f3a0691a00"
+      "version": 15,
+      "sha256": "d876282ef9e5527046a257628ead54f25f75b4e4a395adaa66dd961fe3164173"
     },
     "creator-api": {
       "version": 41,
