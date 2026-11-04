@@ -141,6 +141,24 @@ try{
    await page.locator(".mediaGrid audio[controls], audio[controls]").first().waitFor({timeout:18000});
    assert.equal((stored.get(code)||[]).filter(x=>x.kind==="audio").length,1,"WhatsApp audio not registered: "+slug);
    assert.ok(await page.locator("audio[controls]").count()>=1,"Uploaded audio player missing: "+slug);
+   if(slug==="mama"){
+    // Simulate eleven invited guest recordings alongside the owner's audio.
+    // A buyer must be able to review ALL twelve before publishing, even if
+    // the model's cinematic voice scene highlights only a selection.
+    const previouslyStored=stored.get(code)||[];
+    const guestVoices=Array.from({length:11},(_,index)=>({
+      id:"guest-voice-"+index+"-"+code,
+      kind:"audio",
+      url:api+"/storage/v1/object/sign/gift-media/"+code+"/guest-"+index+".opus",
+      sort_order:previouslyStored.length+index,
+      caption:"Voz invitada "+(index+1),
+      metadata:{role:"voice",scene:"voices",source:"guest_voice"}
+    }));
+    stored.set(code,[...previouslyStored,...guestVoices]);
+    await page.getByRole("button",{name:"Actualizar mensajes recibidos"}).click();
+    await page.getByText("Mensajes actualizados.",{exact:false}).waitFor({timeout:15000});
+   }
+
    if(slug==="dragon-ball-pareja"){
     await page.getByLabel("Foto del recuerdo 1").selectOption("media-image-"+code);
     await page.getByLabel("Audio de la cápsula").selectOption("media-audio-"+code);
@@ -171,6 +189,14 @@ try{
      await page.locator('iframe[title*="Día"]').first().waitFor();
     }else{
      await page.locator(".legacy-premium-renderer, .experience-shell").first().waitFor({timeout:12000});
+    }
+    if(slug==="mama"){
+      const archive=page.getByRole("region",{name:"Todas las grabaciones de este regalo"});
+      await archive.locator("audio[controls]").first().waitFor({timeout:15000});
+      assert.equal(await archive.locator("audio[controls]").count(),12,
+        "All 12 submitted voices must be playable in the creator preview");
+      assert.match(await archive.innerText(),/Voz invitada 11/);
+      await page.screenshot({path:"visual-smoke/studio-parity/mama-twelve-voices.png",fullPage:false});
     }
    }
   }else if(slug==="siete-dias"){
