@@ -65,19 +65,20 @@ try{
       hasContent:Boolean(document.body?.innerText?.trim()),
       noindex:Boolean(document.querySelector('meta[name="robots"][content*="noindex"]')),
       hasBuyLink:Boolean(document.querySelector('a[href^="/comprar/"]')),
+      streamedNotFound:document.documentElement.innerHTML.includes("NEXT_HTTP_ERROR_FALLBACK;404"),
 
      };
     });
     if(status===200 && !hidden.has(slug)&&screen.name!=="android-compact"){
      await page.screenshot({path:path.join(out,screen.name+"-"+slug+".png"),fullPage:false});
     }
-    if(!hidden.has(slug)&&status!==200)failure="public_model_http_"+status;
+    if(!hidden.has(slug)&&(status!==200||metrics.streamedNotFound))failure="public_model_unavailable_"+status;
     if(status===200){
      if(errors.length)failure+=" js_error";
      if(metrics.documentWidth>screen.width+2)failure+=" horizontal_overflow";
      if(metrics.brokenImages?.length)failure+=" broken_images";
      if(!metrics.hasContent)failure+=" empty_body";
-     if(hidden.has(slug)&&(!metrics.noindex||metrics.hasBuyLink))
+     if(hidden.has(slug)&&!metrics.streamedNotFound&&(!metrics.noindex||metrics.hasBuyLink))
       failure+=" unlaunched_publicly_promoted";
     }
    }catch(error){failure="navigation_failure:"+String(error.message||error).slice(0,180);}
@@ -102,7 +103,7 @@ const summary={
  widths:sizes.map(s=>s.width),checks:report.length,
  failures:report.filter(x=>x.failure).map(x=>({slug:x.slug,screen:x.screen,
   failure:x.failure,status:x.status,metrics:x.metrics,errors:x.errors})),
- hidden200:report.filter(x=>!x.expectedPublic&&x.status===200).map(x=>x.slug)
+ hidden200:report.filter(x=>!x.expectedPublic&&x.status===200&&!x.metrics.streamedNotFound).map(x=>x.slug)
 };
 summary.hidden200=[...new Set(summary.hidden200)];
 await fs.writeFile(path.join(out,"report.json"),JSON.stringify({summary,report},null,2));
