@@ -218,7 +218,33 @@ Deno.serve(async (req: Request) => {
           (gift?.template_version==="premium-v5"&&gift?.experience_slug==="pareja"),
       };
     });
-    return json(origin,{sales});
+    // Aggregate only verified Resend events for our sending domain, after
+    // the webhook was activated. Never attach these events to individual
+    // orders: the existing payment email sender does not persist Resend IDs.
+    const since=new Date(Date.now()-7*24*60*60*1000).toISOString();
+    const {data:deliveryEvents,error:deliveryError}=await supabase
+      .from("thi_resend_delivery_events")
+      .select("event_type,received_at")
+      .gte("received_at",since)
+      .order("received_at",{ascending:false}).limit(2001);
+    const eventCounts={
+      sent:0,delivered:0,delayed:0,bounced:0,failed:0,suppressed:0,complained:0
+    };
+    if(!deliveryError){
+      for(const entry of (deliveryEvents||[]).slice(0,2000)){
+        const event=String(entry.event_type||"").replace(/^email\./,"");
+        if(event==="delivery_delayed")eventCounts.delayed++;
+        else if(Object.prototype.hasOwnProperty.call(eventCounts,event))
+          eventCounts[event as keyof typeof eventCounts]++;
+      }
+    }
+    return json(origin,{sales,emailDelivery:{
+      status:deliveryError?"unavailable":"ready",windowDays:7,
+      totalEvents:deliveryError?0:Math.min(deliveryEvents?.length||0,2000),
+      ...eventCounts,
+      truncated:!deliveryError&&(deliveryEvents?.length||0)>2000,
+      latestAt:!deliveryError?deliveryEvents?.[0]?.received_at||null:null
+    }});
   }
 
   if (action === "markSaleContacted") {
