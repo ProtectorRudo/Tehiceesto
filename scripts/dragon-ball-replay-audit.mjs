@@ -25,7 +25,10 @@ try{
     assert.equal(await page.locator('button[aria-label^="Abrir sobre"]').count(),9,"All nine open affordances");
     // Actually open one envelope through the UI and peel it via its action.
     await page.locator(".pack").first().click();
-    await page.getByRole("dialog",{name:/Sticker de/}).getByRole("button",{name:/DESPEGAR Y PEGAR/}).click();
+    const stickerDialog=page.getByRole("dialog",{name:/Sticker de/});
+    assert.equal(await stickerDialog.locator(".reveal-zone.demo-sealed").count(),1,"New stickers start inside sealed envelopes");
+    await stickerDialog.locator(".foil-open").click();
+    await stickerDialog.getByRole("button",{name:/DESPEGAR Y PEGAR/}).click();
     await page.locator(".pack.opened").waitFor({timeout:4500});
     assert.equal(await page.locator("#stickerCount").innerText(),"1/9");
     // The demo must not persist the collected item but should keep any edited names.
@@ -35,13 +38,25 @@ try{
     assert.equal("orbs" in stored,false,"A demo must never save Dragon Balls");
     // Visit the other interactive chapters and acquire progress.
     await page.evaluate(()=>go(2));
+    const memoryScrollBefore=await page.evaluate(()=>{
+      const stage=document.getElementById("stage");stage.scrollTop=200;return stage.scrollTop;
+    });
     await page.locator(".polaroid").first().click();
+    if(memoryScrollBefore>0){
+      const memoryScrollAfter=await page.evaluate(()=>document.getElementById("stage").scrollTop);
+      assert.ok(memoryScrollAfter>0,"Tapping a memory must not return to the top");
+    }
     assert.equal(await page.locator(".polaroid.flipped").count(),1);
     await page.evaluate(()=>go(4));
     await page.locator(".rival").first().click();
     assert.equal(await page.locator(".rival.done").count(),1);
     await page.evaluate(()=>go(1));
     await page.getByRole("button",{name:/ESCANEAR/}).click();
+    await page.evaluate(()=>go(5));
+    await page.locator("#chargeBtn").dispatchEvent("pointerdown",{pointerId:101});
+    await page.waitForTimeout(1940);
+    await page.locator("#chargeBtn").dispatchEvent("pointerup",{pointerId:101});
+    assert.match(await page.locator("#powerHint").innerText(),/ENERGÍA 100%/,"Holding the button charges fully on mobile");
     await page.evaluate(()=>go(6));
     await page.locator(".orb").first().click();
     assert.equal(await page.locator(".orb.open").count(),1);

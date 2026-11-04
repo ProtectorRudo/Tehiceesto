@@ -8,12 +8,10 @@ const pages=[
   ["/coleccion/pareja",0.8],
   ["/coleccion/amigos",0.8],
   ["/coleccion/mama",0.75],
-  ["/coleccion/papa",0.75],
   ["/juegos/pack",0.85],
   ["/escapes",0.65],
   ["/experiencias/pareja",0.8],
   ["/experiencias/mama",0.75],
-  ["/experiencias/papa",0.75],
   ["/experiencias/cumpleanos",0.75],
   ["/experiencias/amistad",0.75],
 

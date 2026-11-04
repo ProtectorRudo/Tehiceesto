@@ -30,15 +30,6 @@ export const recipientCategories: readonly RecipientCategory[] = [
     slugs: ["mama"],
   },
   {
-    id: "papa",
-    title: "Papá",
-    description: "Lo que dejó en vos",
-    titleLong: "Para papá",
-    heading: "Lo que te enseñó merece quedar.",
-    subheading: "Una forma de agradecer su presencia, sus gestos y esa huella que vive en vos.",
-    slugs: ["papa"],
-  },
-  {
     id: "amigos",
     title: "Amigos",
     description: "Historias que solo ustedes entienden",
