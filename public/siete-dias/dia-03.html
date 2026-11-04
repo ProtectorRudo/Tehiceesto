@@ -36,7 +36,9 @@ h1{font-size:clamp(61px,9vw,95px);line-height:.91}h2{font-size:clamp(55px,8vw,81
 .speech small{font-size:9px;display:block;color:#ad8f9a;letter-spacing:.04em;margin-top:8px}
 .action,.outline{display:inline-flex;align-items:center;justify-content:center;gap:13px;border-radius:999px;padding:13px 27px;font-size:12px;font-weight:800;min-height:51px;transition:transform .2s,background .2s,box-shadow .2s}
 .action{border:1px solid #b63468;background:#b63468;color:#fff;box-shadow:0 11px 25px #b63b6742}.action:hover:not(:disabled){background:#a22958;transform:translateY(-2px);box-shadow:0 15px 30px #a52a5e56}.action:disabled{background:#c4afb9;border-color:#c4afb9;box-shadow:none;opacity:.83}.action:active:not(:disabled),.outline:active{transform:scale(.97)}
-.action span{font-size:17px;font-weight:400}.outline{border:1px solid #e0c0cc;color:#97516c;background:#fffaf7dc;min-height:44px;padding:11px 23px}
+.action span{font-size:17px;font-weight:400}
+/* A generous mobile tap target avoids the initial expediente CTA collapsing to min-content. */
+.intro .action[data-action="investigate"]{min-width:min(100%,242px);min-height:58px;touch-action:manipulation;white-space:nowrap;position:relative;z-index:2;-webkit-tap-highlight-color:transparent}.outline{border:1px solid #e0c0cc;color:#97516c;background:#fffaf7dc;min-height:44px;padding:11px 23px}
 .whisper{font-size:10px;line-height:1.6;color:#ad8d9b;margin:10px 0 0}
 .steps{display:flex;gap:5px}.steps i{height:4px;width:12px;border-radius:99px;background:#e6cbd4;transition:width .25s,background .25s}.steps i.on{width:28px;background:#b94475}
 /* Scene 2: the investigation dossier. */
@@ -145,6 +147,21 @@ if(stage==='investigate'){let n=revealed.filter(Boolean).length;html=`<section c
 if(stage==='verdict')html=`<section class="scene verdict" aria-labelledby="verdict-title"><div class="kicker">SENTENCIA · CASO Nº 003</div><h2 id="verdict-title">Veredicto<br><em>irrevocable.</em></h2><p class="lead">El inspector Bruno examinó todas las pruebas y llegó a una sola conclusión.</p><div class="verdict-document"><div class="document-stamp-top">DEPARTAMENTO DEL AMOR · ACTA OFICIAL</div><div class="document-title">Se declara a ${esc(gift.recipient)}…</div><div class="stamp" role="img" aria-label="Sello que dice culpable de enamorarme"><strong>CULPABLE</strong><em>de enamorarme</em></div><div class="case-meta">SENTENCIA FIRME · SIN DERECHO A APELACIÓN</div></div><div class="confetti" aria-hidden="true"><b>♥</b><b>♥</b><b>✦</b><b>♥</b><b>✦</b><b>♥</b></div><button type="button" class="action" data-action="letter">Leer la sentencia de amor <span>♡</span></button><p class="whisper">La condena: dejar que te quiera muchísimo.</p></section>`;
 if(stage==='letter')html=`<section class="scene letter-scene" aria-labelledby="letter-title"><div class="kicker">UNA CARTITA SOLO PARA VOS</div><article class="letter"><div class="heart">♡</div><div class="to">DE ${esc(gift.sender.toUpperCase())} · PARA ${esc(gift.recipient.toUpperCase())}</div><h2 id="letter-title">${esc(gift.letterTitle)}</h2>${(gift.letterParagraphs||[]).map(p=>`<p class="copy">${esc(p)}</p>`).join('')}<div class="rule">— ✦ —</div><div class="signature">${esc(gift.signature)}</div><div class="from">— ${esc(gift.sender)}</div></article><div class="tomorrow"><div class="done">✓</div><div><strong>Tercera sorpresa entregada.</strong><p>${esc(gift.tomorrow)}</p></div></div><button type="button" class="outline" data-action="replay">↺ Vivirla otra vez</button></section>`;
 area.innerHTML=html;scrollTopImmediately()}
+// The first mobile tap must work without waiting for a delayed synthetic click.
+let expedientePress=null;
+root.addEventListener('pointerdown',e=>{
+ const btn=e.target.closest('button[data-action="investigate"]');
+ if(stage==='arrival'&&btn&&e.isPrimary)expedientePress={id:e.pointerId,x:e.clientX,y:e.clientY};
+});
+root.addEventListener('pointerup',e=>{
+ if(e.pointerType!=='touch'||!expedientePress||e.pointerId!==expedientePress.id)return;
+ const start=expedientePress;expedientePress=null;
+ if(stage!=='arrival'||Math.hypot(e.clientX-start.x,e.clientY-start.y)>22)return;
+ const btn=e.target.closest('button[data-action="investigate"]');
+ if(!btn)return;
+ e.preventDefault();stage='investigate';buzz(12);chime([620,830]);render();
+});
+root.addEventListener('pointercancel',()=>{expedientePress=null});
 root.addEventListener('click',e=>{const btn=e.target.closest('button');if(!btn||!root.contains(btn))return;const ev=btn.dataset.evidence;if(ev!==undefined){let n=Number(ev);if(stage!=='investigate'||!Number.isInteger(n)||n<0||n>2||revealed[n])return;revealed[n]=true;buzz([12,24,10]);chime(revealed.every(Boolean)?[522,659,784,1047]:[620,830]);render();return}
 const action=btn.dataset.action;if(action==='investigate'){stage='investigate';buzz(12);chime([620,830]);render()}else if(action==='stamp'&&revealed.every(Boolean)){stage='verdict';buzz([20,35,28]);chime([523,659,784,1046]);render()}else if(action==='letter'){stage='letter';finished=true;buzz(14);chime([784,988,880]);render()}else if(action==='replay'){stage='arrival';revealed=[false,false,false];render()}});
 render();
