@@ -33,7 +33,7 @@ export default async function ExperiencePage({
   if(slug==="dragon-ball-pareja")return (
     <div style={{position:"fixed",inset:0,background:"#10245b"}}>
       {!isEmbedded&&<div className="demo-ribbon" style={{position:"absolute",top:0,left:0,right:0,zIndex:10}}><span>DEMO · {experience.title}</span>{!isUnlaunched&&<Link href="/comprar/dragon-ball-pareja">Comprar esta experiencia →</Link>}</div>}
-      <iframe src="/dragon-ball-pareja.html" title="Dragon Ball · Nuestra Saga — Demo" style={{display:"block",width:"100%",height:"100%",border:0}} allow="autoplay"/>
+      <iframe src="/dragon-ball-pareja-demo-mobile.html" title="Dragon Ball · Nuestra Saga — Demo" style={{display:"block",width:"100%",height:"100%",border:0}} allow="autoplay"/>
     </div>
   );
   const DemoRenderer=slug==="frasco365"?Jar365DemoExperience:ExperienceEngine;

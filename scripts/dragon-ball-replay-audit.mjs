@@ -10,7 +10,7 @@ try{
     const page=await context.newPage();
     const errors=[];
     page.on("pageerror",e=>errors.push(e.message));
-    const home=await page.goto(base+"/dragon-ball-pareja.html",{waitUntil:"domcontentloaded"});
+    const home=await page.goto(base+"/dragon-ball-pareja-demo-mobile.html",{waitUntil:"domcontentloaded"});
     assert.equal(home?.status(),200,"Dragon Ball public HTML response");
     // Regression: previous version persisted opened packs and collected orbs
     // in an identical localStorage key, even across new demo visits.

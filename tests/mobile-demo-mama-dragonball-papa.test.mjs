@@ -26,7 +26,7 @@ test("Mamá demo restores original audio and includes mobile GPU optimization",(
 });
 
 test("Dragon Ball demo opens closed sticker envelopes, does not scroll back when flipping, and supports Android holds",()=>{
-  const src=read("public/dragon-ball-pareja.html");
+  const src=read("public/dragon-ball-pareja-demo-mobile.html");
   assert.match(src,/function go\(n,keepScroll=false\)/);
   assert.match(src,/function flipMemory\(i\)[^\n]*go\(S\.page,true\)/);
   assert.match(src,/function beat\(i\)[^\n]*go\(S\.page,true\)/);
@@ -35,5 +35,5 @@ test("Dragon Ball demo opens closed sticker envelopes, does not scroll back when
   assert.match(src,/#chargeBtn\{touch-action:none;-webkit-touch-callout:none;/);
   assert.match(src,/performance\.now\(\)-startedAt/);
   assert.match(src,/if\(!giftMode&&zone\?\.classList/,"New envelope sequence is demo-only");
-  assert.match(src,/function restartJourney\(\)/,"Purchased gift replay behavior is retained");
+  assert.match(read("public/dragon-ball-pareja.html"),/function restartJourney\(\)/,"Locked purchased gift replay behavior remains intact");
 });
