@@ -63,6 +63,9 @@ try{
       buttonCount:document.querySelectorAll("button").length,
       hasMain:Boolean(document.querySelector("main")),
       hasContent:Boolean(document.body?.innerText?.trim()),
+      noindex:Boolean(document.querySelector('meta[name="robots"][content*="noindex"]')),
+      hasBuyLink:Boolean(document.querySelector('a[href^="/comprar/"]')),
+
      };
     });
     if(status===200 && !hidden.has(slug)&&screen.name!=="android-compact"){
@@ -74,6 +77,8 @@ try{
      if(metrics.documentWidth>screen.width+2)failure+=" horizontal_overflow";
      if(metrics.brokenImages?.length)failure+=" broken_images";
      if(!metrics.hasContent)failure+=" empty_body";
+     if(hidden.has(slug)&&(!metrics.noindex||metrics.hasBuyLink))
+      failure+=" unlaunched_publicly_promoted";
     }
    }catch(error){failure="navigation_failure:"+String(error.message||error).slice(0,180);}
    page.off("pageerror",onError);
