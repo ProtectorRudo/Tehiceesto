@@ -167,9 +167,18 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
     try{
       let note:OpenedNote, next:JarState;
       if(demo){
-        const record=(previewNotes?.length===365?previewNotes:JAR365_SEED)[demoDay%365];
-        note={...record,openedAt:new Date().toISOString()};
-        next={...(state as JarState),available:current+1<365?1:0,remaining:Math.max(0,364-current),openedCount:current+1,opened:[...opened,note]};
+        const records=previewNotes?.length===365?previewNotes:JAR365_SEED;
+        // The public demo never reveals more than five unique notes.
+        // Subsequent openings replay precisely those five, including after a refresh.
+        if(limitedDemo&&current>=5){
+          note=opened[demoDay%5];
+          next=state as JarState;
+        }else{
+          const record=records[current%365];
+          note={...record,openedAt:new Date().toISOString()};
+          next={...(state as JarState),available:current+1<365?1:0,remaining:Math.max(0,364-current),openedCount:current+1,opened:[...opened,note]};
+          if(limitedDemo)try{localStorage.setItem(demoStorage,String(next.openedCount));}catch{}
+        }
         setDemoDay(n=>n+1);
       }else{
         const response=await fetch("/api/jar365",{method:"POST",headers:{"content-type":"application/json"},
