@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "observedAt": "2026-11-04",
-  "purpose": "Source parity verified against Supabase production Edge Function file contents. Protects the exact audited sources; does not prove a later deployment is live.",
+  "purpose": "Release source fingerprint. New admin-api v24 and Resend delivery webhook v1 are candidates until deployment and live parity are verified; no release may be claimed before that verification.",
   "project": "efvvadfxuyieswdqnsjg",
   "functions": {
     "order-status": {
@@ -37,8 +37,12 @@
       "sha256": "f112940c51dffacd6ca2ca30f579de604cc516bf2f73c0bf8667b7b7243bdac0"
     },
     "admin-api": {
-      "version": 23,
-      "sha256": "4ea6dc1d223e2700a46f0566a5126191548d663672404d5c7bc49aeb550fc23b"
+      "version": 24,
+      "sha256": "56bfc70c451f8bdbac9af0f7b1e29eb3f5cb814c76aff8912929f8a343898330"
+    },
+    "resend-delivery-webhook": {
+      "version": 1,
+      "sha256": "843b9cf010559008b668977d6b4e24658f3e830190617a22e4518ab877e3ef59"
     }
   }
 }
