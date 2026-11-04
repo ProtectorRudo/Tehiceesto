@@ -1,11 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
+import {createHash} from "node:crypto";
 
 const read=path=>readFileSync(new URL("../"+path,import.meta.url),"utf8");
-const jar=read("components/Jar365Experience.tsx");
+const jar=read("components/Jar365DemoExperience.tsx");
 
-test("365 public demo stops at five unique mimos; paid gifts and staff preview are exempt",()=>{
+test("365 public demo stops at five unique mimos; the locked renderer is unchanged",()=>{
+ const paid=read("components/Jar365Experience.tsx");
+ const lock=JSON.parse(read("lib/gifts/purchased-renderer-lock.json"));
+ assert.equal(createHash("sha256").update(paid).digest("hex"),lock.files["components/Jar365Experience.tsx"]);
+ assert.doesNotMatch(paid,/jar365-public-demo-opened-v1/);
+ const route=read("app/experiencias/[slug]/page.tsx");
+ assert.match(route,/slug==="frasco365"\?Jar365DemoExperience:ExperienceEngine/);
  assert.match(jar,/const limitedDemo=demo&&!*\(previewNotes\?\.length===365\)/);
  assert.match(jar,/const demoStorage="jar365-public-demo-opened-v1"/);
  assert.match(jar,/Math\.min\(5,n\)/);
