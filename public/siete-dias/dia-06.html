@@ -50,6 +50,7 @@ h1,h2{font:400 clamp(56px,9vw,85px)/.96 'Instrument Serif',Georgia,serif;letter-
 @keyframes secretRevealed{from{opacity:0;transform:translateY(11px)}to{opacity:1;transform:none}}
 
 .scratch-box,#scratchCanvas{touch-action:none;overscroll-behavior:contain;user-select:none;-webkit-user-select:none}
+.scratch-box #scratchCanvas.finished{pointer-events:auto}
 </style></head><body><div class="app" id="app"><span class="ambient amb1">✦</span><span class="ambient amb2">♥</span><span class="ambient amb3">✧</span><header class="top"><div class="brand">TE HICE ESTO <span>♥</span><small>UN POQUITO DE MÍ, CADA DÍA</small></div><div class="tools"><button type="button" id="sound" class="sound" aria-label="Activar sonidos" aria-pressed="false">♫ OFF</button><div class="daychip">DÍA <strong>06</strong> <em>/ 07</em></div></div></header><main id="stage" class="stage" aria-live="polite"></main><footer class="bottom"><span>HECHO CON AMOR, ESPECIALMENTE PARA VOS</span><div class="steps" id="steps"></div></footer></div><script>
 const day = 6;
 const cfg = window.TEHICEESTO_GIFT || {};
@@ -113,6 +114,7 @@ function setupScratch(){
  }
  function end(e){
    if(activePointer!==null&&e.pointerId!==undefined&&e.pointerId!==activePointer)return;
+   if(e.cancelable)e.preventDefault();
    down=false;last=null;activePointer=null;
  }
  c.addEventListener('pointerdown',begin);
