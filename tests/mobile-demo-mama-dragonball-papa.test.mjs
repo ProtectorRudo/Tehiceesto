@@ -28,6 +28,7 @@ test("Mamá demo restores original audio and includes mobile GPU optimization",(
   const route=read("app/experiencias/[slug]/page.tsx");
   assert.match(route,/slug==="mama"\?MamaDemoExperience/,"Only the public Mamá demo gets the new renderer");
   assert.match(route,/slug==="papa"\) notFound\(\)/,"Hide direct Papá demo route");
+  assert.match(read("components/MamaDemoExperience.tsx"),/w=1400\\b/,"Smaller mobile photos, same originals");
   const css=read("components/legacy-v5/tehiceesto-mama-voices-fix.css");
   assert.match(css,/Mobile Mamá performance/);
   assert.match(css,/\.thi-mama-demo \.thi-theme-mama/,"Mobile optimization must not affect purchased gifts");
