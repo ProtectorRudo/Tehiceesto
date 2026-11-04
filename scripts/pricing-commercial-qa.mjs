@@ -37,11 +37,14 @@ test("Browser QA uses production price and enforces single-payment bundle",()=>{
 test("Post-sale operations prioritize paid orders and expose existing authorized contact action",()=>{
  const page=source("app/admin/operaciones/page.tsx");
  const actions=source("app/admin/operaciones/actions.ts");
- assert.ok(page.includes("needsFollowup=approved.filter"));
+ assert.ok(page.includes("accessReview=sales.filter(accessNeedsReview)"));
+ assert.ok(page.includes("historicalReview=sales.filter(historicalApprovalNeedsReview)"));
+ assert.ok(page.includes("Correos de acceso pendientes"));
  assert.ok(page.includes("sortedSales.map"));
  assert.ok(page.includes("action={markContacted}"));
  assert.ok(page.includes('name="orderId"'));
- assert.ok(page.includes("Los correos automáticos de acceso funcionan por separado"));
+ assert.ok(page.includes("este panel no envía correos ni modifica pagos"));
+ assert.ok(page.includes("Seguimiento interno (opcional)"));
  assert.ok(actions.includes('if(!await isAdminAuthenticated())'));
  assert.ok(actions.includes('adminRequest("markSaleContacted"'));
 });
