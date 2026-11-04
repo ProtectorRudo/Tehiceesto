@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {readFileSync,mkdtempSync,cpSync,writeFileSync,rmSync} from "node:fs";
+import {readFileSync,mkdtempSync,mkdirSync,writeFileSync,appendFileSync,rmSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {verifyLiveEdgeSourceLock} from "../scripts/verify-live-edge-source-lock.mjs";
@@ -26,15 +26,20 @@ test("Full production order-status flow includes addon and refund status fields 
  assert.match(source,/giftUrl: gift.status === "published"/);
 });
 
-test("Parity guard fails closed on a changed Edge Function even when it compiles",()=>{
+test("Parity guard blocks a silent one-byte change even if other eight functions match",()=>{
  const dir=mkdtempSync(join(tmpdir(),"thi-edge-lock-"));
  try{
   const lock=JSON.parse(read("lib/release/live-edge-source-lock.json"));
-  writeFileSync(join(dir,".placeholder"),"x");
-  const path=join(dir,"lib/release");
-  // Check the failure is not mistakenly attributed to a missing source.
-  importDummy();
-  function importDummy(){assert.ok(lock.functions["order-status"].sha256.length===64);}
-  assert.ok(verifyLiveEdgeSourceLock.toString().includes("live_edge_source_drift"));
+  const lockDirectory=join(dir,"lib/release");
+  mkdirSync(lockDirectory,{recursive:true});
+  writeFileSync(join(lockDirectory,"live-edge-source-lock.json"),JSON.stringify(lock));
+  for(const slug of Object.keys(lock.functions)){
+   const folder=join(dir,"supabase/functions",slug);
+   mkdirSync(folder,{recursive:true});
+   writeFileSync(join(folder,"index.ts"),read("supabase/functions/"+slug+"/index.ts"));
+  }
+  assert.equal(verifyLiveEdgeSourceLock(dir).verifiedFunctions,9);
+  appendFileSync(join(dir,"supabase/functions/order-status/index.ts"),"\\n// accidental drift\\n");
+  assert.throws(()=>verifyLiveEdgeSourceLock(dir),/live_edge_source_drift:order-status/);
  }finally{rmSync(dir,{recursive:true,force:true});}
 });
