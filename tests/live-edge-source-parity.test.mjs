@@ -13,7 +13,7 @@ test("All nine live audited Edge Function sources stay identical to their verifi
  const lock=JSON.parse(read("lib/release/live-edge-source-lock.json"));
  assert.ok(lock.functions["payment-bridge"]);
  assert.ok(lock.functions["guest-voice"]);
- assert.equal(lock.functions["order-status"].version,14);
+ assert.equal(lock.functions["order-status"].version,15);
 });
 
 test("Full production order-status flow includes addon and refund status fields from the actual live v14",()=>{
