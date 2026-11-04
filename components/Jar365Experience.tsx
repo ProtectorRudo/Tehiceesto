@@ -213,7 +213,7 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
         <span className="jar365-stage-spark s1">✦</span><span className="jar365-stage-spark s2">✧</span>
         <span className="jar365-orbit-caption">UNO POR DÍA · SIN APURO</span>
         <button type="button" className="jar365-jar-button" onClick={()=>void draw()}
-          disabled={!available||busy||!ready} aria-label={available?"Tocar el frasco para sacar un papelito":"Frasco cerrado hasta el próximo cupo"}>
+          disabled={!available||busy||!ready} aria-label={limitedDemo&&current>=5?"Volver a leer uno de mis cinco mimos":available?"Tocar el frasco para sacar un papelito":"Frasco cerrado hasta el próximo cupo"}>
           <JarIllustration progress={current} drawing={drawing}/>
           {drawing&&<span className="jar365-flying-paper">Para vos ♡</span>}
         </button>
@@ -243,7 +243,7 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
         <div className="jar365-progress-track" role="progressbar" aria-valuenow={current} aria-valuemin={0} aria-valuemax={365}>
           <i style={{width:progress+"%"}}/>
         </div>
-        <p className="jar365-progress-caption">{demo?"En un regalo real se desbloquea uno nuevo cada 24 horas.":"Uno cada 24 horas. Los que todavía no abriste siguen guardados para vos."}</p>
+        <p className="jar365-progress-caption">{demo?"El demo tiene cinco mimos que se pueden repetir. El regalo real contiene 365, uno nuevo cada 24 horas.":"Uno cada 24 horas. Los que todavía no abriste siguen guardados para vos."}</p>
       </section>
       <footer className="jar365-bottom">
         <span>365 DÍAS · 365 PEQUEÑAS RAZONES</span><span>HECHO CON CARIÑO, PARA UNA SOLA PERSONA ♡</span>
@@ -277,7 +277,7 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
             <span className="jar365-history-palette"/><span><b>#{String(note.position).padStart(3,"0")} · {labelFor(note.category)}</b><small>{note.message}</small></span><span>{favorites.includes(note.position)?"♥":"›"}</span>
           </button>):<div className="jar365-empty">Todavía no abriste ningún papelito. El primero te espera afuera.</div>}
         </div>
-        <span className="jar365-history-count">{current} DE 365 · CADA UNO A SU TIEMPO</span>
+        <span className="jar365-history-count">{current} DE {limitedDemo?5:365} · CADA UNO A SU TIEMPO</span>
       </section>
     </div>}
   </main>;
