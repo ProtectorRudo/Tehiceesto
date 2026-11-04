@@ -90,6 +90,8 @@ function JarIllustration({progress,drawing}:{progress:number;drawing:boolean}){
 
 export default function Jar365Experience({experience,giftCode,previewNotes}:Props){
   const demo=!giftCode;
+  const limitedDemo=demo&&!(previewNotes?.length===365);
+  const demoStorage="jar365-public-demo-opened-v1";
   const [state,setState]=useState<JarState|null>(demo?{
     giver:experience.demoGiver,recipient:experience.demoRecipient,total:365,
     opened:[],available:1,openedCount:0,startedAt:null,nextAt:null,remaining:365,serverNow:new Date().toISOString(),
@@ -101,7 +103,7 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
   const [error,setError]=useState("");
   const [clock,setClock]=useState(Date.now());
   const [demoDay,setDemoDay]=useState(0);
-  const [ready,setReady]=useState(demo);
+  const [ready,setReady]=useState(demo&&!limitedDemo);
   const [favorites,setFavorites]=useState<number[]>([]);
   const giftStorage=demo?"jar365-demo-favorites":"jar365-favorites-"+giftCode;
 
@@ -117,6 +119,19 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
   },[demo,giftCode]);
 
   useEffect(()=>{void load();},[load]);
+  // Restore the same five demo notes after refresh or a return visit.
+  // This is never used for paid gifts or personalized staff previews.
+  useEffect(()=>{
+    if(!limitedDemo)return;
+    let saved=0;
+    try{const n=Number(localStorage.getItem(demoStorage)||"0");
+      if(Number.isSafeInteger(n))saved=Math.max(0,Math.min(5,n));}catch{}
+    const reopened=JAR365_SEED.slice(0,saved).map(note=>({...note,openedAt:null}));
+    setState({giver:experience.demoGiver,recipient:experience.demoRecipient,total:365,
+      opened:reopened,available:1,openedCount:saved,startedAt:null,nextAt:null,
+      remaining:365-saved,serverNow:new Date().toISOString()});
+    setReady(true);
+  },[limitedDemo,experience.demoGiver,experience.demoRecipient]);
   useEffect(()=>{
     const timer=setInterval(()=>setClock(Date.now()),1000);
     const onFocus=()=>{setClock(Date.now());void load();};
