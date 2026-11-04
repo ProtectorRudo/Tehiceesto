@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import ExperienceEngine from "@/components/ExperienceEngine";
 import CreatorExperienceGrid from "@/components/CreatorExperienceGrid";
-import { publicExperiences } from "@/data/experiences";
+import { publicExperiences } from "@/data/public-experiences";
 
 type Draft = {
   experience: string;

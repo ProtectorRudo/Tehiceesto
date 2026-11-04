@@ -13,7 +13,6 @@ const experienceAddOnChoices=[
  {slug:"pareja",name:"Nuestra historia · Pareja"},
  {slug:"cumpleanos",name:"Tu día · Cumpleaños"},
  {slug:"mama",name:"Para mamá"},
- {slug:"papa",name:"Para papá"},
  {slug:"amistad",name:"Expediente de amistad"},
 
  {slug:"frasco365",name:"Un año de cosas lindas"},
@@ -39,7 +38,7 @@ function photo(slug:string){if(slug==="pack-juegos")return "/demo-previews/trazo
 export default function QuickCheckout({experience}:Props){
   const isPack=experience.slug==="pack-juegos";
   const isGame=isPack||experience.slug==="trazo-complice";
-  const canOfferPack=["pareja","cumpleanos","hijos","mama","papa","amistad",
+  const canOfferPack=["pareja","cumpleanos","hijos","mama","amistad",
     "frasco365","siete-dias","dragon-ball-pareja"].includes(experience.slug);
   const [addGamesPack,setAddGamesPack]=useState(false);
   const [addExperience,setAddExperience]=useState(false);

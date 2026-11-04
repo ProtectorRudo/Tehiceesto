@@ -15,6 +15,8 @@ const source=readFileSync(new URL("../data/experiences.ts",import.meta.url),"utf
 const slugs=[...source.matchAll(/\bslug:\s*"([a-z0-9-]+)"/g)].map(match=>match[1]);
 const hiddenLine=source.match(/export const hiddenExperienceSlugs = new Set\(\[([^\]]+)\]\)/)?.[1]||"";
 const hidden=new Set([...hiddenLine.matchAll(/"([a-z0-9-]+)"/g)].map(match=>match[1]));
+// Papá is still a locked purchased model but temporarily withdrawn from the public catalog.
+hidden.add("papa");
 if(slugs.length!==15||new Set(slugs).size!==15)throw Error("visual_matrix_registry_changed");
 
 const base=(process.env.AUDIT_BASE_URL||"https://tehiceesto.com").replace(/\/$/,"");

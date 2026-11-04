@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 const base=process.env.AUDIT_BASE_URL||"http://127.0.0.1:3000";
 const slugs=["pareja","cumpleanos","mama","papa","amistad","dragon-ball-pareja","sticker-bomb-amistad","siete-dias","frasco365"];
 // The withdrawn template stays in mocked historical purchases, not public demos.
-const publicSlugs=slugs.filter(slug=>slug!=="sticker-bomb-amistad");
+const publicSlugs=slugs.filter(slug=>!["sticker-bomb-amistad","papa"].includes(slug));
 const codes=Object.fromEntries(slugs.map((slug,i)=>[String(i+1).padStart(16,"0"),slug]));
 const gifts=Object.entries(codes).map(([code,experienceSlug])=>({
  code,experienceSlug,status:"paid",templateVersion:"premium",
@@ -38,21 +38,21 @@ try{
    assert.equal(response?.status(),200,"Missing demo "+slug);
    const html=await page.content();
    assert.ok(!html.includes("NEXT_NOT_FOUND"),"Demo returned a not-found page: "+slug);
-   if(slug==="dragon-ball-pareja")assert.equal(await page.locator('iframe[src*="dragon-ball-pareja.html"]').count(),1);
+   if(slug==="dragon-ball-pareja")assert.equal(await page.locator('iframe[src*="dragon-ball-pareja-demo-mobile.html"]').count(),1);
    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
    assert.ok(overflow<=3,slug+" viewport "+viewport.width+" horizontal overflow="+overflow);
    console.log("DEMO_PASS",slug,viewport.width);
   }
-  const withdrawn=await page.goto(base+"/experiencias/sticker-bomb-amistad?embed=1",{waitUntil:"domcontentloaded",timeout:35000});
-  // Next.js may stream notFound() after sending HTTP 200 headers. Require
-  // the actual 404 fallback + noindex; never accept a live demo in disguise.
-  const withdrawnMarkup=await page.content();
-  const streamed404=withdrawn?.status()===200 &&
-    withdrawnMarkup.includes("NEXT_HTTP_ERROR_FALLBACK;404") &&
-    withdrawnMarkup.includes("404 · Acá no hay una historia esperando") &&
-    (await page.locator('meta[name="robots"][content*="noindex"]').count())>0;
-  assert.ok(withdrawn?.status()===404||streamed404,
-    "Withdrawn Sticker Bomb demo must really be unavailable");
+  for(const retiredSlug of ["sticker-bomb-amistad","papa"]){
+    const withdrawn=await page.goto(base+"/experiencias/"+retiredSlug+"?embed=1",{waitUntil:"domcontentloaded",timeout:35000});
+    // Next.js may stream notFound() with a 200 status; require the 404 fallback and noindex.
+    const withdrawnMarkup=await page.content();
+    const streamed404=withdrawn?.status()===200&&
+      withdrawnMarkup.includes("NEXT_HTTP_ERROR_FALLBACK;404")&&
+      withdrawnMarkup.includes("404 · Acá no hay una historia esperando")&&
+      (await page.locator('meta[name="robots"][content*="noindex"]').count())>0;
+    assert.ok(withdrawn?.status()===404||streamed404,"Withdrawn "+retiredSlug+" demo must really be unavailable");
+  }
   assert.deepEqual(errs,[],"Demo JavaScript errors at width "+viewport.width);
   await page.close();
  }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { publicExperiences } from "@/data/experiences";
+import { publicExperiences } from "@/data/public-experiences";
 import BoutiqueGallery from "@/components/BoutiqueGallery";
 import "./home-boutique.css";
 import "./ethos-redesign.css";
