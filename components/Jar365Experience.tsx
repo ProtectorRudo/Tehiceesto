@@ -90,8 +90,6 @@ function JarIllustration({progress,drawing}:{progress:number;drawing:boolean}){
 
 export default function Jar365Experience({experience,giftCode,previewNotes}:Props){
   const demo=!giftCode;
-  const limitedDemo=demo&&!(previewNotes?.length===365);
-  const demoStorage="jar365-public-demo-opened-v1";
   const [state,setState]=useState<JarState|null>(demo?{
     giver:experience.demoGiver,recipient:experience.demoRecipient,total:365,
     opened:[],available:1,openedCount:0,startedAt:null,nextAt:null,remaining:365,serverNow:new Date().toISOString(),
@@ -103,7 +101,7 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
   const [error,setError]=useState("");
   const [clock,setClock]=useState(Date.now());
   const [demoDay,setDemoDay]=useState(0);
-  const [ready,setReady]=useState(demo&&!limitedDemo);
+  const [ready,setReady]=useState(demo);
   const [favorites,setFavorites]=useState<number[]>([]);
   const giftStorage=demo?"jar365-demo-favorites":"jar365-favorites-"+giftCode;
 
@@ -119,19 +117,6 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
   },[demo,giftCode]);
 
   useEffect(()=>{void load();},[load]);
-  // Restore the same five demo notes after refresh or a return visit.
-  // This is never used for paid gifts or personalized staff previews.
-  useEffect(()=>{
-    if(!limitedDemo)return;
-    let saved=0;
-    try{const n=Number(localStorage.getItem(demoStorage)||"0");
-      if(Number.isSafeInteger(n))saved=Math.max(0,Math.min(5,n));}catch{}
-    const reopened=JAR365_SEED.slice(0,saved).map(note=>({...note,openedAt:null}));
-    setState({giver:experience.demoGiver,recipient:experience.demoRecipient,total:365,
-      opened:reopened,available:1,openedCount:saved,startedAt:null,nextAt:null,
-      remaining:365-saved,serverNow:new Date().toISOString()});
-    setReady(true);
-  },[limitedDemo,experience.demoGiver,experience.demoRecipient]);
   useEffect(()=>{
     const timer=setInterval(()=>setClock(Date.now()),1000);
     const onFocus=()=>{setClock(Date.now());void load();};
@@ -152,7 +137,7 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
   const current=state?.openedCount||0;
   const nextMs=state?.nextAt?Date.parse(state.nextAt)-clock:0;
   const remaining=Math.max(0,365-current);
-  const progress=Math.round(current/(limitedDemo?5:365)*100);
+  const progress=Math.round(current/365*100);
   const toggleFavorite=(position:number)=>{
     setFavorites(prev=>{
       const next=prev.includes(position)?prev.filter(x=>x!==position):[...prev,position];
@@ -167,18 +152,9 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
     try{
       let note:OpenedNote, next:JarState;
       if(demo){
-        const records=previewNotes?.length===365?previewNotes:JAR365_SEED;
-        // The public demo never reveals more than five unique notes.
-        // Subsequent openings replay precisely those five, including after a refresh.
-        if(limitedDemo&&current>=5){
-          note=opened[demoDay%5];
-          next=state as JarState;
-        }else{
-          const record=records[current%365];
-          note={...record,openedAt:new Date().toISOString()};
-          next={...(state as JarState),available:current+1<365?1:0,remaining:Math.max(0,364-current),openedCount:current+1,opened:[...opened,note]};
-          if(limitedDemo)try{localStorage.setItem(demoStorage,String(next.openedCount));}catch{}
-        }
+        const record=(previewNotes?.length===365?previewNotes:JAR365_SEED)[demoDay%365];
+        note={...record,openedAt:new Date().toISOString()};
+        next={...(state as JarState),available:current+1<365?1:0,remaining:Math.max(0,364-current),openedCount:current+1,opened:[...opened,note]};
         setDemoDay(n=>n+1);
       }else{
         const response=await fetch("/api/jar365",{method:"POST",headers:{"content-type":"application/json"},
@@ -199,7 +175,7 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
   return <main className="jar365-shell">
     <header className="jar365-topbar">
       <a href="/" className="jar365-brand">TE HICE ESTO<span>♥</span><small>UN REGALO QUE DURA UN AÑO</small></a>
-      <span className="jar365-top-count"><i/> {String(current).padStart(3,"0")} <b>/ {limitedDemo?"005":"365"}</b></span>
+      <span className="jar365-top-count"><i/> {String(current).padStart(3,"0")} <b>/ 365</b></span>
       {demo&&<a className="jar365-top-link" href="/comprar/frasco365">Quiero regalarlo <span>↗</span></a>}
     </header>
     <div className="jar365-ambient"><i/><i/><i/><i/></div>
@@ -213,7 +189,7 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
         <span className="jar365-stage-spark s1">✦</span><span className="jar365-stage-spark s2">✧</span>
         <span className="jar365-orbit-caption">UNO POR DÍA · SIN APURO</span>
         <button type="button" className="jar365-jar-button" onClick={()=>void draw()}
-          disabled={!available||busy||!ready} aria-label={limitedDemo&&current>=5?"Volver a leer uno de mis cinco mimos":available?"Tocar el frasco para sacar un papelito":"Frasco cerrado hasta el próximo cupo"}>
+          disabled={!available||busy||!ready} aria-label={available?"Tocar el frasco para sacar un papelito":"Frasco cerrado hasta el próximo cupo"}>
           <JarIllustration progress={current} drawing={drawing}/>
           {drawing&&<span className="jar365-flying-paper">Para vos ♡</span>}
         </button>
@@ -221,29 +197,28 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
       </section>
       <section className="jar365-ritual">
         {ready&&state&&<div className="jar365-inventory" aria-label="Progreso del frasco">
-          <div className="jar365-inventory-number"><strong>{limitedDemo?Math.max(0,5-current):remaining}</strong><span>{limitedDemo?"mimos para descubrir":"papelitos que quedan"}</span></div>
+          <div className="jar365-inventory-number"><strong>{remaining}</strong><span>papelitos que quedan</span></div>
           <span className="jar365-inventory-divider" aria-hidden="true"/>
           <div className="jar365-inventory-number"><strong>{current}</strong><span>que ya abriste</span></div>
         </div>}
-        {limitedDemo&&<span className="jar365-demo-notice">DEMO INTERACTIVA · CINCO MIMOS · SE RECUERDAN EN ESTE DISPOSITIVO</span>}
+        {demo&&<span className="jar365-demo-notice">DEMO INTERACTIVA · PODÉS PROBAR VARIAS APERTURAS</span>}
         {!ready?<p className="jar365-loading">Buscando tu papelito de hoy…</p>:<>
-          {limitedDemo&&current>=5?<div className="jar365-ritual-copy"><strong>Ya descubriste los cinco mimos de la demo. ♡</strong><span>Podés volver a verlos siempre; nunca aparecen otros nuevos.</span></div>:
-          current>=365?<div className="jar365-ritual-copy"><strong>Ya abriste los 365.</strong><span>Ahora tenés un año entero de mensajes para volver a leer.</span></div>:
+          {current>=365?<div className="jar365-ritual-copy"><strong>Ya abriste los 365.</strong><span>Ahora tenés un año entero de mensajes para volver a leer.</span></div>:
           available>0?<div className="jar365-ritual-copy"><strong>{demo&&current===0?"Tu primer papelito está listo.":"Hay un papelito esperándote."}</strong><span>Tocá el frasco y descubrí lo que te tocó hoy.</span></div>:
           <div className="jar365-ritual-copy"><strong>Por hoy, ya está. ♡</strong><span>El siguiente se libera en <b className="jar365-countdown">{formatCountdown(nextMs)}</b></span></div>}
           <button className="jar365-main-cta" type="button" onClick={()=>void draw()}
-            disabled={!available||busy||drawing||(!limitedDemo&&current>=365)}>
-            <span className="jar365-cta-icon">✉</span>{busy?"Abriendo tu mimo…":limitedDemo&&current>=5?"Volver a ver mis mimos":available?"Sacar mi papelito":current>=365?"Ya abriste todos":"Ya abriste el de hoy"} <span>♡</span>
+            disabled={!available||busy||drawing||current>=365}>
+            <span className="jar365-cta-icon">✉</span>{busy?"Sacando tu papelito…":available?"Sacar mi papelito":current>=365?"Ya abriste todos":"Ya abriste el de hoy"} <span>♡</span>
           </button>
         </>}
         {error&&<p className="jar365-error" role="alert">{error}</p>}
         <button type="button" className="jar365-library-link" onClick={()=>setHistory(true)}>
-          <span>◌</span> Mis papelitos abiertos <b>{current}/{limitedDemo?5:365}</b>
+          <span>◌</span> Mis papelitos abiertos <b>{current}/365</b>
         </button>
-        <div className="jar365-progress-track" role="progressbar" aria-valuenow={current} aria-valuemin={0} aria-valuemax={limitedDemo?5:365}>
+        <div className="jar365-progress-track" role="progressbar" aria-valuenow={current} aria-valuemin={0} aria-valuemax={365}>
           <i style={{width:progress+"%"}}/>
         </div>
-        <p className="jar365-progress-caption">{demo?"El demo tiene cinco mimos que se pueden repetir. El regalo real contiene 365, uno nuevo cada 24 horas.":"Uno cada 24 horas. Los que todavía no abriste siguen guardados para vos."}</p>
+        <p className="jar365-progress-caption">{demo?"En un regalo real se desbloquea uno nuevo cada 24 horas.":"Uno cada 24 horas. Los que todavía no abriste siguen guardados para vos."}</p>
       </section>
       <footer className="jar365-bottom">
         <span>365 DÍAS · 365 PEQUEÑAS RAZONES</span><span>HECHO CON CARIÑO, PARA UNA SOLA PERSONA ♡</span>
@@ -277,7 +252,7 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
             <span className="jar365-history-palette"/><span><b>#{String(note.position).padStart(3,"0")} · {labelFor(note.category)}</b><small>{note.message}</small></span><span>{favorites.includes(note.position)?"♥":"›"}</span>
           </button>):<div className="jar365-empty">Todavía no abriste ningún papelito. El primero te espera afuera.</div>}
         </div>
-        <span className="jar365-history-count">{current} DE {limitedDemo?5:365} · CADA UNO A SU TIEMPO</span>
+        <span className="jar365-history-count">{current} DE 365 · CADA UNO A SU TIEMPO</span>
       </section>
     </div>}
   </main>;
