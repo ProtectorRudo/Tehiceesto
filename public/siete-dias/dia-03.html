@@ -83,6 +83,11 @@ h1{font-size:clamp(61px,9vw,95px);line-height:.91}h2{font-size:clamp(55px,8vw,81
 @keyframes inkFlecks{from{opacity:0;transform:rotate(-5deg) translateY(15px) scale(.4)}55%{opacity:.9}to{opacity:0;transform:rotate(5deg) translateY(-18px) scale(1.2)}}
 @media(prefers-reduced-motion:reduce){.stamp:after{animation:none;opacity:.55}}
 
+.intro [data-action="investigate"]{
+  min-width:min(87vw,290px);max-width:100%;padding:15px 25px;
+  position:relative;z-index:4;white-space:nowrap;touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
 </style>
 
 </head>
@@ -162,8 +167,15 @@ root.addEventListener('pointerup',e=>{
  e.preventDefault();stage='investigate';buzz(12);chime([620,830]);render();
 });
 root.addEventListener('pointercancel',()=>{expedientePress=null});
+// Touch/pen release responds even when WebView suppresses its synthetic click.
+// The stage guard ensures no second activation after the scene changes.
+root.addEventListener('pointerup',e=>{
+ if(stage!=='arrival'||!['touch','pen'].includes(e.pointerType))return;
+ const target=e.target instanceof Element?e.target.closest('button[data-action="investigate"]'):null;
+ if(target&&root.contains(target))target.click();
+});
 root.addEventListener('click',e=>{const btn=e.target.closest('button');if(!btn||!root.contains(btn))return;const ev=btn.dataset.evidence;if(ev!==undefined){let n=Number(ev);if(stage!=='investigate'||!Number.isInteger(n)||n<0||n>2||revealed[n])return;revealed[n]=true;buzz([12,24,10]);chime(revealed.every(Boolean)?[522,659,784,1047]:[620,830]);render();return}
-const action=btn.dataset.action;if(action==='investigate'){stage='investigate';buzz(12);chime([620,830]);render()}else if(action==='stamp'&&revealed.every(Boolean)){stage='verdict';buzz([20,35,28]);chime([523,659,784,1046]);render()}else if(action==='letter'){stage='letter';finished=true;buzz(14);chime([784,988,880]);render()}else if(action==='replay'){stage='arrival';revealed=[false,false,false];render()}});
+const action=btn.dataset.action;if(action==='investigate'&&stage==='arrival'){stage='investigate';buzz(12);chime([620,830]);render()}else if(action==='stamp'&&revealed.every(Boolean)){stage='verdict';buzz([20,35,28]);chime([523,659,784,1046]);render()}else if(action==='letter'){stage='letter';finished=true;buzz(14);chime([784,988,880]);render()}else if(action==='replay'){stage='arrival';revealed=[false,false,false];render()}});
 render();
 </script>
 </body>
