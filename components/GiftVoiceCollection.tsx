@@ -67,7 +67,7 @@ export default function GiftVoiceCollection({
 
   if(voices.length===0)return null;
 
-  const archive=<div className={styles.content}>
+  const archive=<div className={styles.content} data-voice-count={voices.length}>
     <p className={styles.kicker}>PARA ESCUCHAR CON EL CORAZÓN</p>
     <h2 className={styles.title} id="gift-voice-collection-title">Voces que quedaron para vos</h2>
     <p className={styles.subtitle}>
@@ -92,7 +92,7 @@ export default function GiftVoiceCollection({
         </div>
       </li>)}
     </ol>
-    <p className={styles.footer}>Hay palabras que merecen escucharse más de una vez.</p>
+    <p className={styles.footer}>Todas las voces de este regalo están acá para escucharlas cuando quieras.</p>
   </div>;
 
   if(embedded)return <section className={styles.inline} aria-label="Todas las grabaciones de este regalo">
