@@ -15,14 +15,12 @@ test("Papá is removed from public discovery, not deleted from purchased gift mo
   assert.match(read("app/r/[code]/page.tsx"),/getExperience|renderer/i,"Private gifts remain resolvable");
 });
 
-test("Mamá demo has the original recording and limits render churn on audio progress",()=>{
+test("Mamá demo restores original audio and includes mobile GPU optimization",()=>{
   const mp3=readFileSync(new URL("../public/mama-voz-web.mp3",import.meta.url));
   assert.ok(mp3.length>100000,"Actual user-provided voice recording must be present");
   assert.equal(mp3.toString("ascii",0,3),"ID3");
   const renderer=read("components/legacy-v5/ExperienceEngine.tsx");
   assert.match(renderer,/mama-voz-web\.mp3/);
-  assert.match(renderer,/Math\.abs\(percent-previous\)>=3/,"Avoid needless full scene re-renders on every audio timeupdate");
-  assert.match(renderer,/demoVoiceUtteranceRef\.current=utterance/,"Keep speech-synthesis utterance alive on mobile");
   const css=read("components/legacy-v5/tehiceesto-mama-voices-fix.css");
   assert.match(css,/Mobile Mamá performance/);
 });

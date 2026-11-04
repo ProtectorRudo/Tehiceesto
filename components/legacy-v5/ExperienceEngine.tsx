@@ -84,7 +84,7 @@ export default function ExperienceEngine({experience,letterText,photoMedia,audio
   const [friendUnlocked,setFriendUnlocked]=useState(false);
   const [casefileOpen,setCasefileOpen]=useState(false);const [insideJokesOpen,setInsideJokesOpen]=useState<number[]>([]);const [incidentsOpen,setIncidentsOpen]=useState<number[]>([]);const [proofOpen,setProofOpen]=useState<number[]>([]);const [pactOpen,setPactOpen]=useState<number[]>([]);
   const [soundtrackStarted,setSoundtrackStarted]=useState(false);const [soundtrackPaused,setSoundtrackPaused]=useState(false);
-  const soundtrackRef=useRef<HTMLAudioElement|null>(null);const soundtrackFadeRef=useRef<number|null>(null);const demoVoiceMessageRef=useRef<string|null>(null);const demoVoiceRunRef=useRef(0);const demoVoiceUtteranceRef=useRef<SpeechSynthesisUtterance|null>(null);const parejaDemoAudioRef=useRef<HTMLAudioElement|null>(null);const mamaVoiceAudioRef=useRef<HTMLAudioElement|null>(null);const papaVoiceRunRef=useRef(0);const papaVoiceActiveRef=useRef<number|null>(null);
+  const soundtrackRef=useRef<HTMLAudioElement|null>(null);const soundtrackFadeRef=useRef<number|null>(null);const demoVoiceMessageRef=useRef<string|null>(null);const demoVoiceRunRef=useRef(0);const parejaDemoAudioRef=useRef<HTMLAudioElement|null>(null);const mamaVoiceAudioRef=useRef<HTMLAudioElement|null>(null);const papaVoiceRunRef=useRef(0);const papaVoiceActiveRef=useRef<number|null>(null);
   const shellRef=useRef<HTMLElement|null>(null);const papaVisitedRef=useRef<Set<number>>(new Set([initialSceneIndex]));const mamaMemorySwipeRef=useRef<{pointerId:number|null;x:number;y:number}>({pointerId:null,x:0,y:0});const mamaLetterSwipeRef=useRef<{pointerId:number|null;x:number;y:number;swiped:boolean}>({pointerId:null,x:0,y:0,swiped:false});
 
   const copy=getExperienceCopy(experience,copyOverride);
@@ -194,7 +194,7 @@ export default function ExperienceEngine({experience,letterText,photoMedia,audio
     const pattern=passiveHapticPatterns[control.dataset.action||""];
     if(pattern!==undefined)haptic(pattern);
   };
-  const stopDemoVoice=()=>{demoVoiceRunRef.current+=1;papaVoiceRunRef.current+=1;demoVoiceMessageRef.current=null;demoVoiceUtteranceRef.current=null;setDemoVoiceStatus("idle");if(parejaDemoAudioRef.current){try{parejaDemoAudioRef.current.pause();parejaDemoAudioRef.current.currentTime=0}catch{}}if(mamaVoiceAudioRef.current){try{mamaVoiceAudioRef.current.pause()}catch{}}setMamaVoiceRealPlaying(false);if(shellRef.current){shellRef.current.querySelectorAll<HTMLAudioElement>("audio[data-papa-audio]").forEach(audio=>{try{audio.pause()}catch{}})}setPapaVoicePlaying(false);papaVoiceActiveRef.current=null;if(typeof window!=="undefined"&&"speechSynthesis" in window){try{window.speechSynthesis.cancel()}catch{}}restoreSoundtrack()};
+  const stopDemoVoice=()=>{demoVoiceRunRef.current+=1;papaVoiceRunRef.current+=1;demoVoiceMessageRef.current=null;setDemoVoiceStatus("idle");if(parejaDemoAudioRef.current){try{parejaDemoAudioRef.current.pause();parejaDemoAudioRef.current.currentTime=0}catch{}}if(mamaVoiceAudioRef.current){try{mamaVoiceAudioRef.current.pause()}catch{}}setMamaVoiceRealPlaying(false);if(shellRef.current){shellRef.current.querySelectorAll<HTMLAudioElement>("audio[data-papa-audio]").forEach(audio=>{try{audio.pause()}catch{}})}setPapaVoicePlaying(false);papaVoiceActiveRef.current=null;if(typeof window!=="undefined"&&"speechSynthesis" in window){try{window.speechSynthesis.cancel()}catch{}}restoreSoundtrack()};
   const toggleDemoVoice=(message:string)=>{
     const fallbackToggle=()=>{
       if(demoVoiceMessageRef.current===message&&demoVoiceStatus==="playing"){setDemoVoiceStatus("paused");restoreSoundtrack();return}
@@ -214,9 +214,9 @@ export default function ExperienceEngine({experience,letterText,photoMedia,audio
       const voices=synth.getVoices();
       const preferred=voices.find(v=>v.lang.toLowerCase().startsWith("es-ar"))||voices.find(v=>v.lang.toLowerCase().startsWith("es"));
       if(preferred)utterance.voice=preferred;
-      const finish=()=>{if(demoVoiceRunRef.current!==run)return;demoVoiceMessageRef.current=null;demoVoiceUtteranceRef.current=null;setDemoVoiceStatus("idle");restoreSoundtrack()};
+      const finish=()=>{if(demoVoiceRunRef.current!==run)return;demoVoiceMessageRef.current=null;setDemoVoiceStatus("idle");restoreSoundtrack()};
       utterance.onend=finish;utterance.onerror=finish;
-      demoVoiceMessageRef.current=message;demoVoiceUtteranceRef.current=utterance;setDemoVoiceStatus("playing");duckSoundtrack();synth.speak(utterance);
+      demoVoiceMessageRef.current=message;setDemoVoiceStatus("playing");duckSoundtrack();synth.speak(utterance);
     }catch{fallbackToggle()}
   };
   const commitSceneIndex=(nextIndex:number)=>{const destination=scenes[nextIndex];if(previewScene&&onSceneChange&&destination){onSceneChange(destination,nextIndex,total);return}setInternalSceneIndex(nextIndex)};
@@ -659,7 +659,7 @@ export default function ExperienceEngine({experience,letterText,photoMedia,audio
                   preload="metadata"
                   onPlay={()=>{setMamaVoiceError(false);setMamaVoiceRealPlaying(true);setVoicesPlayed(v=>v.includes(active)?v:[...v,active]);duckSoundtrack();haptic(6)}}
                   onPause={()=>{setMamaVoiceRealPlaying(false);restoreSoundtrack()}}
-                  onTimeUpdate={event=>{const el=event.currentTarget;const percent=el.duration?Math.min(100,Math.round((el.currentTime/el.duration)*100)):0;setMamaVoiceProgress(previous=>percent===100||Math.abs(percent-previous)>=3?percent:previous)}}
+                  onTimeUpdate={event=>{const el=event.currentTarget;setMamaVoiceProgress(el.duration?Math.min(100,(el.currentTime/el.duration)*100):0)}}
                   onEnded={()=>{setMamaVoiceRealPlaying(false);setMamaVoiceProgress(100);setVoicesPlayed(v=>v.includes(active)?v:[...v,active]);restoreSoundtrack()}}
                   onError={()=>{setMamaVoiceError(true);setMamaVoiceRealPlaying(false);restoreSoundtrack()}}
                 />}
