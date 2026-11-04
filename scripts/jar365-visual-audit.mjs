@@ -17,7 +17,7 @@ for (const size of [{name:"mobile-320",width:320,height:720},{name:"mobile-390",
  if(visualPapers!==365)throw Error(size.name+": expected 365 visible papers, got "+visualPapers);
  if(await page.locator(".jar365-illustration").getAttribute("data-paper-count")!=="365")throw Error(size.name+": full jar should start with 365");
  const firstCount=await page.locator(".jar365-inventory").innerText();
- if(!firstCount.includes("365")||!firstCount.includes("0")||!firstCount.includes("papelitos que quedan"))throw Error(size.name+": initial remaining/opened count missing");
+ if(!firstCount.includes("5")||!firstCount.includes("0")||!firstCount.includes("mimos para descubrir"))throw Error(size.name+": initial five-mimo demo count missing");
  await page.screenshot({path:path.join(dir,size.name+"-01-frasco.png"),fullPage:true});
  if(await page.getByRole("button",{name:/Sacar mi papelito/i}).count()!==1)throw Error(size.name+": draw button missing");
  const wide=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2);
@@ -27,7 +27,7 @@ for (const size of [{name:"mobile-320",width:320,height:720},{name:"mobile-390",
  await modal.waitFor({state:"visible",timeout:5000});
  if(await page.locator(".jar365-slip").count()!==364)throw Error(size.name+": jar must lose exactly one visual paper");
  const count=await page.locator(".jar365-inventory").innerText();
- if(!count.includes("364")||!count.includes("1"))throw Error(size.name+": remaining/opened figures did not update");
+ if(!count.includes("4")||!count.includes("1"))throw Error(size.name+": remaining/opened five-mimo demo figures did not update");
  const text=await modal.locator(".jar365-note-message").innerText();
  if(!text||text.length<18)throw Error(size.name+": empty opening text");
  await page.screenshot({path:path.join(dir,size.name+"-02-abierto.png"),fullPage:true});
@@ -37,6 +37,25 @@ for (const size of [{name:"mobile-320",width:320,height:720},{name:"mobile-390",
  await history.waitFor({state:"visible",timeout:4000});
  if(await history.locator(".jar365-history-note").count()!==1)throw Error(size.name+": history missing opened note");
  await page.screenshot({path:path.join(dir,size.name+"-03-historial.png"),fullPage:true});
+ await history.getByRole("button",{name:"Cerrar"}).click();
+ const fiveNotes=[text.trim()];
+ for(let opening=2;opening<=7;opening++){
+   await page.locator(".jar365-main-cta").click();
+   const note=page.locator(".jar365-note-modal");
+   await note.waitFor({state:"visible",timeout:5000});
+   fiveNotes.push((await note.locator(".jar365-note-message").innerText()).trim());
+   await note.getByRole("button",{name:/Guardar y cerrar/i}).click();
+ }
+ if(new Set(fiveNotes).size!==5)throw Error(size.name+": demo must show exactly five different mimos");
+ if(!fiveNotes.slice(5).every(note=>fiveNotes.slice(0,5).includes(note)))throw Error(size.name+": demo showed a new mimo after five");
+ if(!((await page.locator(".jar365-top-count").innerText()).includes("005")))throw Error(size.name+": demo counter should remain five");
+ await page.reload({waitUntil:"networkidle"});
+ await page.waitForFunction(()=>document.querySelector(".jar365-top-count")?.textContent?.includes("005"),null,{timeout:6000});
+ if(!(await page.locator(".jar365-top-count").innerText()).includes("005"))throw Error(size.name+": five-note limit lost on reload");
+ await page.locator(".jar365-main-cta").click();
+ await page.locator(".jar365-note-modal").waitFor({state:"visible",timeout:5000});
+ const again=(await page.locator(".jar365-note-message").innerText()).trim();
+ if(!fiveNotes.slice(0,5).includes(again))throw Error(size.name+": reload revealed a sixth mimo");
  if(errors.length)throw Error(size.name+": JavaScript errors "+errors.join(" | "));
  report.push({viewport:size.name,status:"OK",firstNote:text,overflow:false});
  await page.close();
