@@ -152,7 +152,7 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
   const current=state?.openedCount||0;
   const nextMs=state?.nextAt?Date.parse(state.nextAt)-clock:0;
   const remaining=Math.max(0,365-current);
-  const progress=Math.round(current/365*100);
+  const progress=Math.round(current/(limitedDemo?5:365)*100);
   const toggleFavorite=(position:number)=>{
     setFavorites(prev=>{
       const next=prev.includes(position)?prev.filter(x=>x!==position):[...prev,position];
@@ -221,7 +221,7 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
       </section>
       <section className="jar365-ritual">
         {ready&&state&&<div className="jar365-inventory" aria-label="Progreso del frasco">
-          <div className="jar365-inventory-number"><strong>{remaining}</strong><span>papelitos que quedan</span></div>
+          <div className="jar365-inventory-number"><strong>{limitedDemo?Math.max(0,5-current):remaining}</strong><span>{limitedDemo?"mimos para descubrir":"papelitos que quedan"}</span></div>
           <span className="jar365-inventory-divider" aria-hidden="true"/>
           <div className="jar365-inventory-number"><strong>{current}</strong><span>que ya abriste</span></div>
         </div>}
@@ -240,7 +240,7 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
         <button type="button" className="jar365-library-link" onClick={()=>setHistory(true)}>
           <span>◌</span> Mis papelitos abiertos <b>{current}/{limitedDemo?5:365}</b>
         </button>
-        <div className="jar365-progress-track" role="progressbar" aria-valuenow={current} aria-valuemin={0} aria-valuemax={365}>
+        <div className="jar365-progress-track" role="progressbar" aria-valuenow={current} aria-valuemin={0} aria-valuemax={limitedDemo?5:365}>
           <i style={{width:progress+"%"}}/>
         </div>
         <p className="jar365-progress-caption">{demo?"El demo tiene cinco mimos que se pueden repetir. El regalo real contiene 365, uno nuevo cada 24 horas.":"Uno cada 24 horas. Los que todavía no abriste siguen guardados para vos."}</p>
