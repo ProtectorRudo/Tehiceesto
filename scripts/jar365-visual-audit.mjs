@@ -50,6 +50,7 @@ for (const size of [{name:"mobile-320",width:320,height:720},{name:"mobile-390",
  if(!fiveNotes.slice(5).every(note=>fiveNotes.slice(0,5).includes(note)))throw Error(size.name+": demo showed a new mimo after five");
  if(!((await page.locator(".jar365-top-count").innerText()).includes("005")))throw Error(size.name+": demo counter should remain five");
  await page.reload({waitUntil:"networkidle"});
+ await page.waitForFunction(()=>document.querySelector(".jar365-top-count")?.textContent?.includes("005"),null,{timeout:6000});
  if(!(await page.locator(".jar365-top-count").innerText()).includes("005"))throw Error(size.name+": five-note limit lost on reload");
  await page.locator(".jar365-main-cta").click();
  await page.locator(".jar365-note-modal").waitFor({state:"visible",timeout:5000});
