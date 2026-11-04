@@ -7,9 +7,9 @@ import {verifyLiveEdgeSourceLock} from "../scripts/verify-live-edge-source-lock.
 
 const read=path=>readFileSync(new URL("../"+path,import.meta.url),"utf8");
 
-test("All nine live audited Edge Function sources stay identical to their verified production copies",()=>{
+test("All ten audited Edge Function sources stay identical to their verified production copies",()=>{
  const result=verifyLiveEdgeSourceLock();
- assert.equal(result.verifiedFunctions,9);
+ assert.equal(result.verifiedFunctions,10);
  const lock=JSON.parse(read("lib/release/live-edge-source-lock.json"));
  assert.ok(lock.functions["payment-bridge"]);
  assert.ok(lock.functions["guest-voice"]);
@@ -26,7 +26,7 @@ test("Full production order-status flow includes addon and refund status fields 
  assert.match(source,/giftUrl: gift.status === "published"/);
 });
 
-test("Parity guard blocks a silent one-byte change even if other eight functions match",()=>{
+test("Parity guard blocks a silent one-byte change even if other nine functions match",()=>{
  const dir=mkdtempSync(join(tmpdir(),"thi-edge-lock-"));
  try{
   const lock=JSON.parse(read("lib/release/live-edge-source-lock.json"));
@@ -38,7 +38,7 @@ test("Parity guard blocks a silent one-byte change even if other eight functions
    mkdirSync(folder,{recursive:true});
    writeFileSync(join(folder,"index.ts"),read("supabase/functions/"+slug+"/index.ts"));
   }
-  assert.equal(verifyLiveEdgeSourceLock(dir).verifiedFunctions,9);
+  assert.equal(verifyLiveEdgeSourceLock(dir).verifiedFunctions,10);
   appendFileSync(join(dir,"supabase/functions/order-status/index.ts"),"\\n// accidental drift\\n");
   assert.throws(()=>verifyLiveEdgeSourceLock(dir),/live_edge_source_drift:order-status/);
  }finally{rmSync(dir,{recursive:true,force:true});}

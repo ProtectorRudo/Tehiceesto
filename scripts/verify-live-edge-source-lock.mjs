@@ -14,7 +14,7 @@ import {fileURLToPath} from "node:url";
 export function verifyLiveEdgeSourceLock(root=process.cwd()){
  const lock=JSON.parse(readFileSync(resolve(root,"lib/release/live-edge-source-lock.json"),"utf8"));
  if(lock.schema!==1||lock.project!=="efvvadfxuyieswdqnsjg"||
-    Object.keys(lock.functions||{}).length!==9)
+    Object.keys(lock.functions||{}).length!==10)
    throw Error("live_edge_source_lock_incomplete");
  for(const [slug,entry] of Object.entries(lock.functions)){
   if(!/^[a-z-]+$/.test(slug)||!Number.isInteger(entry.version)||entry.version<1||

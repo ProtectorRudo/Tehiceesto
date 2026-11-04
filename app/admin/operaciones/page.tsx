@@ -13,6 +13,11 @@ type Sale={
  contactedAt:string|null;accessEmailAccepted:boolean;opsNoticeAccepted:boolean;opsNoticeAttempted:boolean;opsNoticeError:string|null;assisted:boolean;
 };
 function date(raw:string|null){return raw?new Intl.DateTimeFormat("es-AR",{dateStyle:"short",timeStyle:"short",timeZone:"America/Argentina/Buenos_Aires"}).format(new Date(raw)):"—";}
+type DeliveryMonitor={
+ status:"ready"|"unavailable";windowDays:number;totalEvents:number;
+ sent:number;delivered:number;delayed:number;bounced:number;failed:number;
+ suppressed:number;complained:number;truncated:boolean;latestAt:string|null;
+};
 const peso=(n:number|null)=>n===null?"—":new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n/100);
 export default async function Operations({searchParams}:{searchParams:Promise<{error?:string}>}){
  const authenticated=await isAdminAuthenticated();
@@ -33,6 +38,10 @@ export default async function Operations({searchParams}:{searchParams:Promise<{e
  const totals=operationalSaleCounts(sales);
  const accessReview=sales.filter(accessNeedsReview);
  const historicalReview=sales.filter(historicalApprovalNeedsReview);
+ const delivery=result?.emailDelivery&&typeof result.emailDelivery==="object"?
+   result.emailDelivery as DeliveryMonitor:null;
+ const deliveryProblems=delivery?.status==="ready"?
+   delivery.bounced+delivery.failed+delivery.suppressed+delivery.complained:0;
  const sortedSales=[...sales].sort((a,b)=>
    saleAttentionPriority(b)-saleAttentionPriority(a)||Date.parse(b.createdAt)-Date.parse(a.createdAt));
  return <main className="ops-page"><div className="ops-wrapper">
@@ -47,6 +56,21 @@ export default async function Operations({searchParams}:{searchParams:Promise<{e
    {accessReview.length>0&&<p className="ops-followup-notice" role="alert"><strong>{accessReview.length} pago{accessReview.length===1?"":"s"} acreditado{accessReview.length===1?"":"s"} sin confirmación de aceptación del correo de acceso.</strong> Revisá el pedido y el transporte antes de reenviar manualmente; este panel no envía correos ni modifica pagos.</p>}
    {historicalReview.length>0&&<p className="ops-followup-notice" role="status"><strong>{historicalReview.length} registro{historicalReview.length===1?"":"s"} histórico{historicalReview.length===1?"":"s"} incompleto{historicalReview.length===1?"":"s"}.</strong> Figura{historicalReview.length===1?"":"n"} como aprobado{historicalReview.length===1?"":"s"}, pero sin fecha de pago o importe válido. No se cuenta{historicalReview.length===1?"":"n"} como correo pendiente ni se reenvía{historicalReview.length===1?"":"n"} automáticamente.</p>}
    {!result?.sales&&<p className="ops-error" role="alert">No pudimos consultar las ventas. Revisá la conexión antes de operar.</p>}
+   <section className="ops-section" aria-label="Entrega de correos">
+     <h2>Entrega de correos · Resend</h2>
+     <p>Eventos firmados recibidos en los últimos siete días, desde que se activó el monitoreo. No incluye mensajes anteriores ni garantiza que la persona haya leído el correo. Estas cifras no se asocian individualmente a los pedidos.</p>
+     {delivery?.status==="ready"?<>
+       <div className="ops-metrics">
+         <article><span>Correos enviados · eventos</span><strong>{delivery.sent}</strong></article>
+         <article><span>Entregas confirmadas</span><strong>{delivery.delivered}</strong></article>
+         <article className={deliveryProblems?"ops-metric-attention":""}><span>Rebotes, fallos o bloqueos</span><strong>{deliveryProblems}</strong></article>
+         <article><span>Entregas demoradas</span><strong>{delivery.delayed}</strong></article>
+       </div>
+       {deliveryProblems>0&&<p className="ops-followup-notice" role="alert">Resend informó {deliveryProblems} evento{deliveryProblems===1?"":"s"} de rebote, fallo, supresión o queja en la última semana. Revisá los mensajes en Resend antes de tomar medidas. No se reenvía automáticamente.</p>}
+       {delivery.truncated&&<p role="status">La consulta alcanzó el límite de 2000 eventos. Los valores podrían ser inferiores a los reales.</p>}
+       <p>Último evento recibido: {date(delivery.latestAt)}. Que un correo figure entregado significa aceptación por el servidor de destino, no lectura por el comprador.</p>
+     </>:<p role="status">Todavía no hay monitoreo de entrega disponible. Podés consultar el estado de los correos directamente en Resend.</p>}
+   </section>
    <section className="ops-section"><h2>Historial de compras</h2><p>Los pagos solo se acreditan mediante el proveedor. Después, el comprador recibe el acceso a «Mis regalos» para editar, publicar y compartir.</p>
      {!sales.length?<p className="ops-empty">Todavía no hay operaciones para mostrar.</p>:
        <div className="ops-cards">{sortedSales.map(s=>{
