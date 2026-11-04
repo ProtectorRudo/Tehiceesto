@@ -8,7 +8,7 @@ test("Papá is removed from public discovery, not deleted from purchased gift mo
   const catalog=read("data/experiences.ts");
   const categories=read("data/recipient-categories.ts");
   const sitemap=read("app/sitemap.ts");
-  assert.match(catalog,/hiddenExperienceSlugs\s*=\s*new Set\(\[[^\]]*"papa"/);
+  assert.match(read("data/public-experiences.ts"),/experience\.slug !== "papa"/);
   assert.match(catalog,/slug:\s*"papa"/,"Preserve Papá as an internal/previously purchased model");
   assert.doesNotMatch(categories,/id:\s*"papa"/,"No empty public Papá collection");
   assert.doesNotMatch(sitemap,/\/(?:coleccion|experiencias)\/papa/);

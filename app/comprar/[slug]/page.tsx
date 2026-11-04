@@ -1,7 +1,7 @@
 import {notFound} from "next/navigation";
 import type {Metadata} from "next";
 import QuickCheckout from "@/components/QuickCheckout";
-import {publicExperiences} from "@/data/experiences";
+import {publicExperiences} from "@/data/public-experiences";
 
 type Props={params:Promise<{slug:string}>};
 export async function generateMetadata({params}:Props):Promise<Metadata>{

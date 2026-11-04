@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: experience.title + " — Te Hice Esto",
     description: experience.short,
-    ...(hiddenExperienceSlugs.has(slug)?{robots:{index:false,follow:false,nocache:true}}:{}),
+    ...((hiddenExperienceSlugs.has(slug)||slug==="papa")?{robots:{index:false,follow:false,nocache:true}}:{}),
     openGraph: { title: experience.title + " — Te Hice Esto", description: experience.short, siteName: "Te Hice Esto", type: "website" },
   };
 }
@@ -29,7 +29,7 @@ export default async function ExperiencePage({
   const experience = getExperience(slug);
   if (!experience || slug==="club-amigos" || slug==="sticker-bomb-amistad") notFound();
   const isEmbedded=embed==="1";
-  const isUnlaunched=hiddenExperienceSlugs.has(slug);
+  const isUnlaunched=(hiddenExperienceSlugs.has(slug)||slug==="papa");
   if(slug==="dragon-ball-pareja")return (
     <div style={{position:"fixed",inset:0,background:"#10245b"}}>
       {!isEmbedded&&<div className="demo-ribbon" style={{position:"absolute",top:0,left:0,right:0,zIndex:10}}><span>DEMO · {experience.title}</span>{!isUnlaunched&&<Link href="/comprar/dragon-ball-pareja">Comprar esta experiencia →</Link>}</div>}

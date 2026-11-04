@@ -1,7 +1,7 @@
 import type {Metadata} from "next";
 import Link from "next/link";
 import {notFound} from "next/navigation";
-import {publicExperiences} from "@/data/experiences";
+import {publicExperiences} from "@/data/public-experiences";
 import {recipientCategories,recipientCategory,getRecipientLabel} from "@/data/recipient-categories";
 import "./recipient-collection.css";
 
