@@ -31,7 +31,8 @@ const files=["components/ClubAmigosExperience.tsx","data/experiences.ts","supaba
 const text=await Promise.all(files.map(f=>fs.readFile(f,"utf8")));
 assert.match(text[0],/sceneTextOverrides\?\.club\?\.\[value\]/,"Existing gifts retain custom text");
 assert.match(text[0],/photoMedia\[i\]\?\.url/,"Existing gifts retain their photographs");
-assert.match(text[0],/audioMedia\[0\]\.url/,"Existing gifts retain audio");
+assert.match(text[0],/audioMedia\.map\(\(voice,index\)/,"Existing gifts retain all voice recordings");
+assert.match(text[0],/src=\{voice\.url\}/,"Existing gift audio retains each original URL");
 assert.match(text[1],/slug: "club-amigos"/,"Historical template stays available for existing gifts");
 assert.match(text[1],/hiddenExperienceSlugs[\s\S]*?"club-amigos"/,"New catalog excludes retired experience");
 assert.match(text[2],/\["abuelos","aniversario","propuesta","club-amigos"\]/,"New purchase is rejected at backend");
