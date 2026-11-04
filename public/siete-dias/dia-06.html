@@ -137,5 +137,11 @@ if(scene==='scratch')html=`<section class="scene"><div class="kicker">CONFESIÓN
 if(scene==='revealed')html=`<section class="scene"><div class="kicker">CONFESIÓN REVELADA</div><h2>Me seguís<br><em>gustando muchísimo.</em></h2><p class="lead">Desde el primer día y en cada uno de los días que vinieron después.</p><div class="hamster-stage">${hamster}</div><p class="scratch-done">“Y no pienso disimularlo.”</p>${button('Leer mi confesión completa ↗','letter')}</section>`;
 if(scene==='letter')html=letter();area.innerHTML=html;requestAnimationFrame(()=>window.scrollTo(0,0));if(scene==='scratch')requestAnimationFrame(setupScratch);
 }
+// Some mobile WebViews drop the synthetic click when a scratch gesture just ended.
+root.addEventListener('pointerup',e=>{
+ if(scene!=='scratch'||!scratchFinished||!['touch','pen'].includes(e.pointerType))return;
+ const b=e.target instanceof Element?e.target.closest('button[data-action="continue"]'):null;
+ if(b&&root.contains(b))b.click();
+});
 root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const a=b.dataset.action;if(a==='start'){scratchFinished=false;strokes=0;go('scratch')}else if(a==='reveal')revealScratch();else if(a==='continue'&&scratchFinished)go('revealed');else if(a==='letter'){buzz(15);chime([659,784,988]);go('letter')}else if(a==='replay')go('arrival')});render();
 </script></body></html>
