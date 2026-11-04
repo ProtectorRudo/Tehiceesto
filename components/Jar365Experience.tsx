@@ -227,17 +227,18 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
         </div>}
         {limitedDemo&&<span className="jar365-demo-notice">DEMO INTERACTIVA · CINCO MIMOS · SE RECUERDAN EN ESTE DISPOSITIVO</span>}
         {!ready?<p className="jar365-loading">Buscando tu papelito de hoy…</p>:<>
-          {current>=365?<div className="jar365-ritual-copy"><strong>Ya abriste los 365.</strong><span>Ahora tenés un año entero de mensajes para volver a leer.</span></div>:
+          {limitedDemo&&current>=5?<div className="jar365-ritual-copy"><strong>Ya descubriste los cinco mimos de la demo. ♡</strong><span>Podés volver a verlos siempre; nunca aparecen otros nuevos.</span></div>:
+          current>=365?<div className="jar365-ritual-copy"><strong>Ya abriste los 365.</strong><span>Ahora tenés un año entero de mensajes para volver a leer.</span></div>:
           available>0?<div className="jar365-ritual-copy"><strong>{demo&&current===0?"Tu primer papelito está listo.":"Hay un papelito esperándote."}</strong><span>Tocá el frasco y descubrí lo que te tocó hoy.</span></div>:
           <div className="jar365-ritual-copy"><strong>Por hoy, ya está. ♡</strong><span>El siguiente se libera en <b className="jar365-countdown">{formatCountdown(nextMs)}</b></span></div>}
           <button className="jar365-main-cta" type="button" onClick={()=>void draw()}
-            disabled={!available||busy||drawing||current>=365}>
-            <span className="jar365-cta-icon">✉</span>{busy?"Sacando tu papelito…":available?"Sacar mi papelito":current>=365?"Ya abriste todos":"Ya abriste el de hoy"} <span>♡</span>
+            disabled={!available||busy||drawing||(!limitedDemo&&current>=365)}>
+            <span className="jar365-cta-icon">✉</span>{busy?"Abriendo tu mimo…":limitedDemo&&current>=5?"Volver a ver mis mimos":available?"Sacar mi papelito":current>=365?"Ya abriste todos":"Ya abriste el de hoy"} <span>♡</span>
           </button>
         </>}
         {error&&<p className="jar365-error" role="alert">{error}</p>}
         <button type="button" className="jar365-library-link" onClick={()=>setHistory(true)}>
-          <span>◌</span> Mis papelitos abiertos <b>{current}/365</b>
+          <span>◌</span> Mis papelitos abiertos <b>{current}/{limitedDemo?5:365}</b>
         </button>
         <div className="jar365-progress-track" role="progressbar" aria-valuenow={current} aria-valuemin={0} aria-valuemax={365}>
           <i style={{width:progress+"%"}}/>
