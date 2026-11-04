@@ -6,7 +6,7 @@
  * Run: PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04-x64
  *      AUDIT_BASE_URL=https://tehiceesto.com node scripts/visual-model-matrix.mjs
  */
-import {chromium} from "playwright";
+import {chromium,webkit} from "playwright";
 import {readFileSync} from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -18,14 +18,17 @@ const hidden=new Set([...hiddenLine.matchAll(/"([a-z0-9-]+)"/g)].map(match=>matc
 if(slugs.length!==15||new Set(slugs).size!==15)throw Error("visual_matrix_registry_changed");
 
 const base=(process.env.AUDIT_BASE_URL||"https://tehiceesto.com").replace(/\/$/,"");
-const out=process.env.AUDIT_REPORT_DIR||"visual-smoke/model-matrix";
+const engineName=process.env.AUDIT_ENGINE==="webkit"?"webkit":"chromium";
+const out=process.env.AUDIT_REPORT_DIR||"visual-smoke/model-matrix-"+engineName;
 const sizes=[
  {name:"android-compact",width:320,height:740,isMobile:true,hasTouch:true},
  {name:"android-phone",width:390,height:844,isMobile:true,hasTouch:true},
  {name:"desktop",width:1440,height:900,isMobile:false,hasTouch:false},
 ];
 await fs.mkdir(out,{recursive:true});
-const browser=await chromium.launch({headless:true,args:["--no-sandbox"]});
+const browser=await (engineName==="webkit"?webkit:chromium).launch({
+ headless:true,...(engineName==="chromium"?{args:["--no-sandbox"]}:{})
+});
 const report=[];
 try{
  for(const screen of sizes){
@@ -90,7 +93,7 @@ try{
  await browser.close();
 }
 const summary={
- generatedAt:new Date().toISOString(),base,slugs:slugs.length,public:slugs.filter(s=>!hidden.has(s)).length,
+ generatedAt:new Date().toISOString(),engine:engineName,base,slugs:slugs.length,public:slugs.filter(s=>!hidden.has(s)).length,
  widths:sizes.map(s=>s.width),checks:report.length,
  failures:report.filter(x=>x.failure).map(x=>({slug:x.slug,screen:x.screen,
   failure:x.failure,status:x.status,metrics:x.metrics,errors:x.errors})),
