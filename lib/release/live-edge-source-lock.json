@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "observedAt": "2026-11-04",
+  "purpose": "Source parity verified against Supabase production Edge Function file contents. Protects the exact audited sources; does not prove a later deployment is live.",
+  "project": "efvvadfxuyieswdqnsjg",
+  "functions": {
+    "order-status": {
+      "version": 15,
+      "sha256": "d876282ef9e5527046a257628ead54f25f75b4e4a395adaa66dd961fe3164173"
+    },
+    "creator-api": {
+      "version": 41,
+      "sha256": "13df3c4ac36c0cde45ee5a2a917cc97f5d9098d034b6b084e2f6dbed2c12d7d0"
+    },
+    "payment-bridge": {
+      "version": 17,
+      "sha256": "03cdb3ddcdb342f71fbd0c2a4d12506bbb190096531b0481708d5e1e26191ad0"
+    },
+    "gift-account": {
+      "version": 29,
+      "sha256": "bf9a1f28de6ed71ef31d2ebbfb89564996855aa6866df71666d201c66f01e8a4"
+    },
+    "gift-read": {
+      "version": 8,
+      "sha256": "c003a7ab3adc3a8365f941aaa070569400081e56fc23c787e2214fdf5b2eebcf"
+    },
+    "guest-voice": {
+      "version": 6,
+      "sha256": "dedfe9152635160fbfcb943916f1434f7149db82c64e3b76b83219c5efae74bb"
+    },
+    "order-create": {
+      "version": 46,
+      "sha256": "8d25be3783c1991592fc127a17e2874cb356406ee467e7c3cabf3b2c5f28509a"
+    },
+    "tehiceesto-checkout-native": {
+      "version": 17,
+      "sha256": "f112940c51dffacd6ca2ca30f579de604cc516bf2f73c0bf8667b7b7243bdac0"
+    },
+    "admin-api": {
+      "version": 23,
+      "sha256": "4ea6dc1d223e2700a46f0566a5126191548d663672404d5c7bc49aeb550fc23b"
+    }
+  }
+}

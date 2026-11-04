@@ -10,6 +10,7 @@ import {readFileSync,existsSync} from "node:fs";
 import {resolve} from "node:path";
 import {PURCHASED_ROUTE_CONTRACT,LEGACY_PACK_GAME_ROUTES} from "../lib/release/public-route-contract.mjs";
 import {verifyLockedRenderers} from "./verify-renderer-lock.mjs";
+import {verifyLiveEdgeSourceLock} from "./verify-live-edge-source-lock.mjs";
 import {verifySoleReleaseEntrypoint} from "./verify-release-entrypoints.mjs";
 import {PURCHASED_RENDERERS} from "../lib/gifts/purchased-renderers.mjs";
 
@@ -22,6 +23,7 @@ export const requiredPublicPaths=Object.freeze([
 
 export function assertStaticReleaseContract(root=process.cwd()){
  verifyLockedRenderers(root);
+ verifyLiveEdgeSourceLock(root);
  verifySoleReleaseEntrypoint(root);
  const read=(p)=>readFileSync(resolve(root,p),"utf8");
  const required={
