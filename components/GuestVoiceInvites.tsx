@@ -65,7 +65,7 @@ export default function GuestVoiceInvites({code,bearer,onError,onRefresh}:Props)
   return <div className={styles.guestInvite}>
     <span className={styles.eyebrow}>RECUERDOS QUE SE ESCUCHAN</span>
     <h3>Invitá a otros a grabar su voz</h3>
-    <p>Compartí un enlace por WhatsApp. La persona verá <strong>únicamente una grabadora</strong>: no puede entrar a tu cuenta, ver otros recuerdos ni cambiar nada del regalo. Cada voz recibida se incorpora a la experiencia y se puede escuchar desde <strong>«Escuchar voces»</strong>. El enlace permite hasta 12 mensajes, según el espacio disponible en el regalo.</p>
+    <p>Compartí un enlace por WhatsApp. La persona verá <strong>únicamente una grabadora</strong>: no puede entrar a tu cuenta, ver otros recuerdos ni cambiar nada del regalo. Cada grabación recibida se conserva en el regalo. Algunas escenas destacan solo una parte, pero <strong>todas las voces recibidas</strong> quedan disponibles en «Escuchar voces», sin reemplazar la narración original. El enlace acepta hasta 12 mensajes según el espacio libre.</p>
     <button className={styles.primary} type="button" disabled={busy} onClick={()=>void create()}>
       {busy?"Preparando…":active?"Crear otro enlace privado →":"Crear enlace para invitar →"}
     </button>
