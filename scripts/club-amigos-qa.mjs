@@ -35,7 +35,7 @@ assert.match(text[0],/audioMedia\.map\(\(voice,index\)/,"Existing gifts retain a
 assert.match(text[0],/src=\{voice\.url\}/,"Existing gift audio retains each original URL");
 assert.match(text[1],/slug: "club-amigos"/,"Historical template stays available for existing gifts");
 assert.match(text[1],/hiddenExperienceSlugs[\s\S]*?"club-amigos"/,"New catalog excludes retired experience");
-assert.match(text[2],/\["abuelos","aniversario","propuesta","club-amigos"\]/,"New purchase is rejected at backend");
+assert.match(text[2],/\["abuelos","aniversario","propuesta","club-amigos","sticker-bomb-amistad"\]/,"New purchase is rejected at backend for both withdrawn friendship products");
 assert.match(text[2],/"club-amigos": \["club"\]/,"Existing gift recipe stays available");
 assert.match(text[3],/"club-amigos": \["club"\]/,"Existing gift editor stays available");
 console.log("CLUB_AMIGOS_RETIRED_EXISTING_GIFTS_SAFE",JSON.stringify(report));
