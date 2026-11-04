@@ -199,7 +199,7 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
   return <main className="jar365-shell">
     <header className="jar365-topbar">
       <a href="/" className="jar365-brand">TE HICE ESTO<span>♥</span><small>UN REGALO QUE DURA UN AÑO</small></a>
-      <span className="jar365-top-count"><i/> {String(current).padStart(3,"0")} <b>/ 365</b></span>
+      <span className="jar365-top-count"><i/> {String(current).padStart(3,"0")} <b>/ {limitedDemo?"005":"365"}</b></span>
       {demo&&<a className="jar365-top-link" href="/comprar/frasco365">Quiero regalarlo <span>↗</span></a>}
     </header>
     <div className="jar365-ambient"><i/><i/><i/><i/></div>
@@ -225,7 +225,7 @@ export default function Jar365Experience({experience,giftCode,previewNotes}:Prop
           <span className="jar365-inventory-divider" aria-hidden="true"/>
           <div className="jar365-inventory-number"><strong>{current}</strong><span>que ya abriste</span></div>
         </div>}
-        {demo&&<span className="jar365-demo-notice">DEMO INTERACTIVA · PODÉS PROBAR VARIAS APERTURAS</span>}
+        {limitedDemo&&<span className="jar365-demo-notice">DEMO INTERACTIVA · CINCO MIMOS · SE RECUERDAN EN ESTE DISPOSITIVO</span>}
         {!ready?<p className="jar365-loading">Buscando tu papelito de hoy…</p>:<>
           {current>=365?<div className="jar365-ritual-copy"><strong>Ya abriste los 365.</strong><span>Ahora tenés un año entero de mensajes para volver a leer.</span></div>:
           available>0?<div className="jar365-ritual-copy"><strong>{demo&&current===0?"Tu primer papelito está listo.":"Hay un papelito esperándote."}</strong><span>Tocá el frasco y descubrí lo que te tocó hoy.</span></div>:
