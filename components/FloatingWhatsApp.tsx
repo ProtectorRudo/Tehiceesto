@@ -71,7 +71,7 @@ export default function FloatingWhatsApp() {
       : "Hola! Vi Te Hice Esto y quiero crear una experiencia para regalar. ¿Me contás cómo funciona?";
 
   const whatsappHref =
-    "https://wa.me/5492215653163?text=" + encodeURIComponent(message);
+    "https://wa.me/5492216615155?text=" + encodeURIComponent(message);
 
   return (
     <a
