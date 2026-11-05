@@ -139,6 +139,12 @@ async function assertStudioAccess(
 
   const story = storyObject(gift.story_data);
   const creator = storyObject(story.creator);
+  // A signed editor token from a previous session may still exist. Reject it
+  // before any studio operation when the immutable team-managed marker is set.
+  // Historical purchases do not carry this marker and retain existing rights.
+  if(creator.mode==="assisted"&&creator.fulfillmentVersion==="team-managed-v1"){
+    throw new Error("studio_unauthorized");
+  }
   const hashes = new Set<string>();
   const primaryHash = String(creator.editorTokenHash || "").trim().toLowerCase();
   if (/^[a-f0-9]{64}$/.test(primaryHash)) hashes.add(primaryHash);
