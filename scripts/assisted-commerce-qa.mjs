@@ -12,7 +12,7 @@ const catalog=read("app/crear/page.tsx");
 const paymentBridge=read("supabase/functions/payment-bridge/index.ts");
 const admin=read("supabase/functions/admin-api/index.ts");
 
-assert.match(order,/TEHICEESTO_ASSISTED_PURCHASES_ENABLED/,"Team fulfillment is disabled until the coordinated launch");
+assert.match(order,/assisted_purchases_enabled/,"Team fulfillment is disabled until the coordinated launch");
 assert.match(order,/purchaseModeForNewGift\(slug:string\)/,"Fulfillment mode is chosen by the server and not by the buyer");
 assert.match(order,/fulfillmentVersion:ASSISTED_FULFILLMENT_VERSION/,"New assisted gifts have an immutable mode marker");
 assert.match(order,/story_data:\s*\{\s*\.\.\.purchaseStory\(/,"Checkout records mode and contact in the purchase snapshot");
