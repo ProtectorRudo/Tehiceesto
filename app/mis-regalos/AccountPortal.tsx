@@ -264,7 +264,8 @@ export default function AccountPortal() {
   };
 
   const openGift = async (gift: Gift) => {
-    if (!session || openingCode) return;
+    // Visual gate complements the server-side credential and studio checks.
+    if (gift.assisted || !session || openingCode) return;
     clearFeedback();
     setOpeningCode(gift.code);
     try {
@@ -457,13 +458,13 @@ export default function AccountPortal() {
                   <div className={styles.empty}><h2>Todavía no hay historias acá.</h2><p>Si compraste un regalo, asegurate de ingresar con el mismo correo de compra.</p><a className={styles.primary} href="/#experiencias">Explorar experiencias →</a></div> :
                   <div className={styles.giftGrid}>{gifts.map((gift, index) =>
                     <article className={styles.giftCard} key={gift.code}>
-                      <div className={styles.giftTop}><span>{String(index + 1).padStart(2, "0")} / TE HICE ESTO</span><span className={styles.giftState}>{gift.experienceSlug==="pack-juegos"?"PACK DE 4 JUEGOS":gift.experienceSlug==="trazo-complice"?"JUEGO COMPLETO":gift.status === "published" ? "PUBLICADO" : "PARA PERSONALIZAR"}</span></div>
+                      <div className={styles.giftTop}><span>{String(index + 1).padStart(2, "0")} / TE HICE ESTO</span><span className={styles.giftState}>{gift.experienceSlug==="pack-juegos"?"PACK DE 4 JUEGOS":gift.experienceSlug==="trazo-complice"?"JUEGO COMPLETO":gift.status === "published" ? "PUBLICADO" : gift.assisted ? "EN PREPARACIÓN" : "PARA PERSONALIZAR"}</span></div>
                       <div className={styles.giftArt} aria-hidden="true"><span>♡</span></div>
                       <span className={styles.eyebrow}>{labels[gift.experienceSlug] || gift.experienceSlug.replaceAll("-", " ")}</span>
                       <h2>{gift.experienceSlug==="pack-juegos"?"TRAZO CÓMPLICE · ENTRE DOS · CÓMPLICES · MEME MATCH":gift.experienceSlug==="trazo-complice"?"1.274 palabras por descubrir":gift.recipientName || "Una persona especial"}</h2>
-                      <p>{gift.experienceSlug==="pack-juegos"?"Cuatro juegos · un solo pago · acceso completo":gift.experienceSlug==="trazo-complice"?"Un celular · dos personas · acceso completo":"De "+(gift.giverName || "alguien especial")}</p>
+                      <p>{gift.experienceSlug==="pack-juegos"?"Cuatro juegos · un solo pago · acceso completo":gift.experienceSlug==="trazo-complice"?"Un celular · dos personas · acceso completo":gift.assisted?(gift.status==="published"?"Tu regalo fue preparado por nuestro equipo. Ya podés compartirlo.":"Nuestro equipo está preparando tu experiencia. Si necesitás ayudarnos con recuerdos, escribinos por WhatsApp."):"De "+(gift.giverName || "alguien especial")}</p>
                       <div className={styles.giftActions}>
-                        {gift.experienceSlug==="pack-juegos"?<a href="/juegos/pack/completo">Abrir mis cuatro juegos →</a>:gift.experienceSlug==="trazo-complice"?<a href="/juegos/trazo-complice/completo">Jugar versión completa →</a>:<button disabled={Boolean(openingCode)} onClick={() => void openGift(gift)}>{openingCode === gift.code ? "Abriendo…" : "Editar mi experiencia →"}</button>}
+                        {gift.experienceSlug==="pack-juegos"?<a href="/juegos/pack/completo">Abrir mis cuatro juegos →</a>:gift.experienceSlug==="trazo-complice"?<a href="/juegos/trazo-complice/completo">Jugar versión completa →</a>:gift.assisted?<a href="https://wa.me/5492215653163" target="_blank" rel="noopener noreferrer">Consultar al equipo →</a>:<button disabled={Boolean(openingCode)} onClick={() => void openGift(gift)}>{openingCode === gift.code ? "Abriendo…" : "Editar mi experiencia →"}</button>}
                         {gift.experienceSlug!=="trazo-complice" && gift.experienceSlug!=="pack-juegos" && gift.status === "published" && <a href={(gift.experienceSlug.startsWith("escape-") ? "/escape-r/" : "/r/") + gift.code} target="_blank" rel="noopener noreferrer">Ver regalo ↗</a>}
                       </div>
                     </article>
