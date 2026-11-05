@@ -47,12 +47,12 @@ export default function Home() {
       </section>
 
       <section className="boutique-how" id="como-funciona" aria-labelledby="boutique-how-title">
-        <div className="boutique-section-head"><div><span className="boutique-kicker">ASÍ DE SIMPLE, ASÍ DE PERSONAL</span><h2 id="boutique-how-title">Vos ponés la historia.<br/><em>Nosotros hacemos la magia.</em></h2></div><p>Elegís la experiencia y pagás con solo dos datos. Después recibís el acceso por email, entrás a «Mis regalos» y personalizás vos mismo los mensajes, fotos y audios.</p></div>
+        <div className="boutique-section-head"><div><span className="boutique-kicker">ASÍ DE SIMPLE, ASÍ DE PERSONAL</span><h2 id="boutique-how-title">Vos ponés la historia.<br/><em>Nosotros hacemos la magia.</em></h2></div><p>Elegís la experiencia, dejás tu email y WhatsApp y pagás con Mercado Pago. Después nuestro equipo te contacta para reunir los recuerdos y preparar el regalo por vos, respetando el modelo elegido.</p></div>
         <div className="boutique-how-grid">
           <article><span className="boutique-how-index">01 /</span><div className="boutique-how-icon">◇</div><h3>Elegí su mundo.</h3><p>Explorá y probá nuestras experiencias. Quedate con la que más se parezca a esa persona.</p></article>
           <article><span className="boutique-how-index">02 /</span><div className="boutique-how-icon">✍</div><h3>Comprá en un momento.</h3><p>Solo dejás tu email y WhatsApp. Pagás con Mercado Pago, sin formularios largos.</p></article>
-          <article><span className="boutique-how-index">03 /</span><div className="boutique-how-icon">✦</div><h3>Personalizás después.</h3><p>Con el pago confirmado, recibís un email para entrar a «Mis regalos». Editás textos, fotos y audios y después publicás y compartís. El diseño y sus efectos se mantienen.</p></article>
-          <article><span className="boutique-how-index">04 /</span><div className="boutique-how-icon">♡</div><h3>Le mandás el enlace.</h3><p>Lo abre desde su celular. Y descubre algo que no se parecía a ningún otro regalo.</p></article>
+          <article><span className="boutique-how-index">03 /</span><div className="boutique-how-icon">✦</div><h3>Lo preparamos por vos.</h3><p>Con el pago confirmado recibís una constancia por correo. Nuestro equipo te contacta, reúne tus mensajes, fotos y audios, y personaliza el modelo sin cambiar su recorrido ni sus efectos.</p></article>
+          <article><span className="boutique-how-index">04 /</span><div className="boutique-how-icon">♡</div><h3>Recibís el enlace listo.</h3><p>Probamos el regalo antes de entregarlo. Lo compartís con esa persona y descubre una historia creada especialmente para ella.</p></article>
         </div>
       </section>
 
@@ -73,7 +73,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="boutique-ending"><span className="boutique-kicker">SEGURO QUE YA SABÉS PARA QUIÉN</span><h2>Hay alguien que merece<br/><em>algo que sólo sea suyo.</em></h2><Link className="boutique-button boutique-button-dark" href="/crear">Hacer un regalo inolvidable <span aria-hidden="true">↗</span></Link><small>PERSONALIZADO POR VOS · ACCESO PRIVADO POR EMAIL · PENSADO PARA CELULAR</small></section>
+      <section className="boutique-ending"><span className="boutique-kicker">SEGURO QUE YA SABÉS PARA QUIÉN</span><h2>Hay alguien que merece<br/><em>algo que sólo sea suyo.</em></h2><Link className="boutique-button boutique-button-dark" href="/crear">Hacer un regalo inolvidable <span aria-hidden="true">↗</span></Link><small>PERSONALIZADO POR NUESTRO EQUIPO · ENTREGA PRIVADA · PENSADO PARA CELULAR</small></section>
       <footer className="boutique-footer"><Link href="/" className="boutique-footer-brand">TE HICE ESTO <span>♥</span></Link><p>Regalos digitales que se sienten de verdad.</p><div><Link href="/mis-regalos">Mis regalos</Link><Link href="/crear">Crear un regalo</Link></div><span>ARGENTINA · 2026</span></footer>
     </main>
   );
