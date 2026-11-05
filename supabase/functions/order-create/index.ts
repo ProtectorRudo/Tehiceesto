@@ -79,12 +79,23 @@ function objectValue(value:unknown){
     :{};
 }
 
-// Purchase creation never grants browser editing credentials. The buyer gets
-// editor access only via their authenticated account after approved payment.
-function selfserveStory(contact:{name:string;email:string;whatsapp:string},now:string,
-  fingerprint:string,templateRecipe:string[],templateVersion:string){
-  return {creator:{submitted:true,mode:"selfserve",submittedAt:now,contact,
-    consentAt:now,ipHash:fingerprint,templateRecipe:[...templateRecipe],templateVersion}};
+// New, paid personalized gifts may be fulfilled by our team. The flag is off
+// until web copy, mailer and edit-permission gates are deployed together.
+// Never infer this from a client-supplied request field.
+const ASSISTED_FULFILLMENT_VERSION="team-managed-v1";
+function purchaseModeForNewGift(slug:string){
+  return Deno.env.get("TEHICEESTO_ASSISTED_PURCHASES_ENABLED")==="true" &&
+    !["pack-juegos","trazo-complice"].includes(slug) ? "assisted":"selfserve";
+}
+// Purchase creation never grants browser editing credentials; only approved,
+// historical self-serve purchases may request an authenticated editor token.
+function purchaseStory(contact:{name:string;email:string;whatsapp:string},now:string,
+  fingerprint:string,templateRecipe:string[],templateVersion:string,slug:string){
+  const mode=purchaseModeForNewGift(slug);
+  return {creator:{submitted:true,mode,
+    ...(mode==="assisted"?{fulfillmentVersion:ASSISTED_FULFILLMENT_VERSION}:{}),
+    submittedAt:now,contact,consentAt:now,ipHash:fingerprint,
+    templateRecipe:[...templateRecipe],templateVersion}};
 }
 
 async function ensureCheckout(order:{payment_token?:string|null;checkout_url?:string|null},enabled:boolean){
@@ -363,8 +374,8 @@ Deno.serve(async(req:Request)=>{
       recipient_name:"A definir",
       scene_recipe:recipes[experienceSlug],
       story_data:{
-        ...selfserveStory({name:customerName,email,whatsapp},now,
-          fingerprint,recipes[experienceSlug],versionForNewGift(experienceSlug)),
+        ...purchaseStory({name:customerName,email,whatsapp},now,
+          fingerprint,recipes[experienceSlug],versionForNewGift(experienceSlug),experienceSlug),
         ...(addOnCode?{checkout:{baseAmountMinor:basePriceMinor,
           addonCode:addOnCode,addonAmountMinor:addonPriceMinor,totalAmountMinor:priceMinor,
           ...(addonExperienceSlug?{addonExperienceSlug}:{})}}:{}),
@@ -407,8 +418,8 @@ Deno.serve(async(req:Request)=>{
         giver_name:customerName,recipient_name:"A definir",
         scene_recipe:recipes[addonExperienceSlug],
         story_data:{
-          ...selfserveStory({name:customerName,email,whatsapp},now,
-            fingerprint,recipes[addonExperienceSlug],addonVersion),
+          ...purchaseStory({name:customerName,email,whatsapp},now,
+            fingerprint,recipes[addonExperienceSlug],addonVersion,addonExperienceSlug),
           creatorAddOn:{source:"games-checkout",orderId:order.id},
         },
         theme_data:{},
