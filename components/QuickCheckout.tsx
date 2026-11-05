@@ -104,7 +104,7 @@ export default function QuickCheckout({experience}:Props){
       else if(code==="price_mismatch")setMessage("Por seguridad no iniciamos el cobro: el servidor devolvió un importe distinto al elegido. Intentá nuevamente o escribinos.");
       else if(code==="request_selection_conflict")setMessage("Cambiaste la selección de tu pedido. Actualizá los datos y volvé a continuar.");
       else if(code==="addon_unavailable"||code==="addon_not_available")setMessage(isGame?"La experiencia adicional no está disponible por el momento. Podés quitarla y continuar con los juegos.":"El pack de 4 juegos no está disponible por el momento. Podés quitarlo y continuar con tu regalo.");
-      else if(code==="request_already_completed")setMessage(isPack?"Esa compra ya se completó. Entrá a «Mis juegos» con tu correo para abrir los cuatro juegos.":isGame?"Esa compra ya se completó. Entrá a «Mis regalos» con tu correo y elegí «Jugar versión completa».":"Esa compra ya se completó. Entrá a «Mis regalos» con tu correo para editar tu experiencia.");
+      else if(code==="request_already_completed")setMessage(isPack?"Esa compra ya se completó. Entrá a «Mis juegos» con tu correo para abrir los cuatro juegos.":isGame?"Esa compra ya se completó. Entrá a «Mis regalos» con tu correo y elegí «Jugar versión completa».":"Esa compra ya se completó. Revisá el correo de confirmación. Para consultar sobre tu regalo, escribinos por WhatsApp.");
       else setMessage("No pudimos abrir Mercado Pago. Revisá tu conexión y volvé a intentar; no se realizó ningún cobro.");
     }finally{setBusy(false);}
   }
@@ -121,15 +121,15 @@ export default function QuickCheckout({experience}:Props){
           <div className="quick-checkout-product">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img alt="" src={photo(experience.slug)} loading="eager"/>
-            <div><span>{experience.eyebrow}</span><h1>{experience.title}</h1><p>{isPack?"Trazo Cómplice + Entre Dos + Cómplices + Meme Match":isGame?"1.274 palabras · 11 categorías · Acceso completo":"Personalizable después de comprar"}</p></div>
+            <div><span>{experience.eyebrow}</span><h1>{experience.title}</h1><p>{isPack?"Trazo Cómplice + Entre Dos + Cómplices + Meme Match":isGame?"1.274 palabras · 11 categorías · Acceso completo":"Lo personalizamos por vos"}</p></div>
           </div>
           <div className="quick-checkout-price"><strong>${totalFormatted} <small>ARS</small></strong><span>Pago único · Sin suscripción</span></div>
-          <p className="quick-checkout-help">{isPack?"El pack incluye Trazo Cómplice (1.274 palabras), Entre Dos (90 preguntas), Cómplices (7 desafíos) y Meme Match (48 parejas de memes). Una sola compra de $25.000 ARS. Después de pagar vas a recibir un email para entrar a tus cuatro juegos. Las salas de escape no están incluidas.":isGame?"Desbloqueá Trazo Cómplice para jugar todas las rondas con 1.274 palabras. Después de pagar, recibirás un email para entrar a «Mis regalos» y abrir tu juego completo. No necesitás instalar nada.":"Elegí tu experiencia y pagá de forma segura. Cuando se confirme el pago, vas a recibir un email con acceso a «Mis regalos», donde podés personalizar nombres, mensajes, fotos y audios. El diseño, las escenas y los efectos ya están preparados."}</p>
+          <p className="quick-checkout-help">{isPack?"El pack incluye Trazo Cómplice (1.274 palabras), Entre Dos (90 preguntas), Cómplices (7 desafíos) y Meme Match (48 parejas de memes). Una sola compra de $25.000 ARS. Después de pagar vas a recibir un email para entrar a tus cuatro juegos. Las salas de escape no están incluidas.":isGame?"Desbloqueá Trazo Cómplice para jugar todas las rondas con 1.274 palabras. Después de pagar, recibirás un email para entrar a «Mis regalos» y abrir tu juego completo. No necesitás instalar nada.":"Elegí tu experiencia y pagá de forma segura. Cuando Mercado Pago confirme la compra, recibirás una constancia por correo y nuestro equipo se comunicará con vos para reunir nombres, mensajes, fotografías y audios. Personalizamos tu regalo sin cambiar el modelo, sus escenas ni sus efectos."}</p>
         </section>
         <form className="quick-checkout-form" onSubmit={submit}>
           <span className="quick-checkout-form-kicker">COMPRA RÁPIDA · 2 DATOS</span>
           <h2>Ya casi <em>es tuyo.</em></h2>
-          <p>{isPack?"¿A qué correo enviamos el acceso a tus cuatro juegos?":isGame?"¿A qué correo enviamos tu acceso al juego completo?":"¿A qué correo enviamos el acceso para editar tu regalo?"}</p>
+          <p>{isPack?"¿A qué correo enviamos el acceso a tus cuatro juegos?":isGame?"¿A qué correo enviamos tu acceso al juego completo?":"¿A qué correo enviamos la confirmación de tu regalo?"}</p>
           <label htmlFor="checkout-email">Tu email
             <input id="checkout-email" required type="email" autoComplete="email" inputMode="email"
               placeholder="tu@email.com" maxLength={180} value={email} onChange={event=>setEmail(event.target.value)}
@@ -163,7 +163,7 @@ export default function QuickCheckout({experience}:Props){
               <span>COMPLEMENTO · PRECIO ESPECIAL</span>
               <strong>Agregá una experiencia personalizada <span className="quick-checkout-discount">PRECIO ESPECIAL</span></strong>
               <div className="quick-checkout-addon-price"><b>$10.000 ARS</b><span>Complemento opcional</span></div>
-              <p>Elegí la experiencia que querés regalar. Después de pagar, personalizás los nombres, recuerdos, fotos y audios desde «Mis regalos».</p>
+              <p>Elegí la experiencia que querés regalar. Después del pago, nuestro equipo te contactará para reunir nombres, recuerdos, fotos y audios, sin cambiar el modelo elegido.</p>
               <label className="quick-checkout-addon-select-label" htmlFor="checkout-experience-choice">Elegí tu experiencia
                 <select id="checkout-experience-choice" value={experienceChoice} disabled={busy||!hydrated}
                   onChange={event=>setExperienceChoice(event.target.value)}>
