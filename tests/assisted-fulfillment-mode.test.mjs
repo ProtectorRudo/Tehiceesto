@@ -13,8 +13,8 @@ const home=read("app/page.tsx");
 const checkout=read("components/QuickCheckout.tsx");
 
 test("New assisted purchases are server-selected, feature gated and versioned without modifying older orders",()=>{
- assert.match(order,/TEHICEESTO_ASSISTED_PURCHASES_ENABLED/);
- assert.match(order,/Deno\.env\.get\("TEHICEESTO_ASSISTED_PURCHASES_ENABLED"\)==="true"/);
+ assert.match(order,/assisted_purchases_enabled/);
+ assert.match(order,/commerce\?\.assisted_purchases_enabled===true/);
  assert.match(order,/!\["pack-juegos","trazo-complice"\]\.includes\(slug\)/);
  assert.match(order,/mode==="assisted"\?\{fulfillmentVersion:ASSISTED_FULFILLMENT_VERSION\}/);
  assert.match(order,/purchaseStory\(\{name:customerName,email,whatsapp\}/);
