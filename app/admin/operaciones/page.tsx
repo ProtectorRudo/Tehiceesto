@@ -98,7 +98,7 @@ export default async function Operations({searchParams}:{searchParams:Promise<{e
           <div><dt>Confirmación por correo</dt><dd>{s.accessEmailAccepted?"Aceptada por proveedor (no garantiza recepción)":historicalIncomplete?"Registro incompleto · verificar antes de reenviar":!paid?"Pendiente de acreditación":"Sin confirmación de aceptación"}</dd></div>
           <div><dt>Aviso al equipo</dt><dd>{s.opsNoticeAccepted?"Enviado al equipo":!paid?"—":s.opsNoticeError==="ops_recipient_not_configured"?"Falta configurar correo del equipo":s.opsNoticeAttempted?"En espera de reintento":"Aún no se intentó"}</dd></div>
           <div><dt>Producción asistida</dt><dd>{paid?(s.contactedAt?"Contacto registrado · preparar en editor interno":"Pendiente de contacto y materiales"):"Comienza con el pago acreditado"}</dd></div>
-          <div><dt>Seguimiento de contacto</dt><dd>{s.contactedAt?date(s.contactedAt):paid?"Sin registrar · no bloquea la entrega":"—"}</dd></div></dl>
+          <div><dt>Seguimiento interno (opcional)</dt><dd>{s.contactedAt?date(s.contactedAt):paid?"Sin registrar · no bloquea la entrega":"—"}</dd></div></dl>
           {paid&&<div className="ops-actions">
             {s.whatsapp&&/^\+?[0-9\s().-]{8,25}$/.test(s.whatsapp)&&<a href={"https://wa.me/"+s.whatsapp.replace(/\D/g,"")} target="_blank" rel="noopener noreferrer">WhatsApp del comprador ↗</a>}
             {s.buyerEmail&&<a href={"mailto:"+encodeURIComponent(s.buyerEmail)}>Escribir por email ↗</a>}
