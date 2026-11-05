@@ -31,6 +31,8 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-public-dummy
+      - name: Unit-check public referral redirect on production reverse proxy
+        run: node --test tests/referral-landing-origin.test.mjs
       - name: Run Next server
         run: |
           npm start -- -H 127.0.0.1 -p 3000 >/tmp/affiliate.log 2>&1 &
