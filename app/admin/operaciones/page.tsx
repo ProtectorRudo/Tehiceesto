@@ -45,7 +45,7 @@ export default async function Operations({searchParams}:{searchParams:Promise<{e
  const sortedSales=[...sales].sort((a,b)=>
    saleAttentionPriority(b)-saleAttentionPriority(a)||Date.parse(b.createdAt)-Date.parse(a.createdAt));
  return <main className="ops-page"><div className="ops-wrapper">
-   <header className="ops-header"><div><div className="ops-eyebrow">TE HICE ESTO · OPERACIONES</div><h1>Ventas en <em>tiempo real.</em></h1><p>El comprador personaliza su regalo desde su cuenta.</p></div>
+   <header className="ops-header"><div><div className="ops-eyebrow">TE HICE ESTO · OPERACIONES</div><h1>Ventas en <em>tiempo real.</em></h1><p>El equipo acompaña cada compra, reúne los materiales y prepara el regalo sin cambiar el modelo elegido.</p></div>
    <form action={operationsLogout}><button type="submit" className="ops-out">Cerrar sesión</button></form></header>
    <div className="ops-metrics">
     <article><span>Ventas aprobadas (Mercado Pago)</span><strong>{totals.approved}</strong></article>
@@ -53,6 +53,16 @@ export default async function Operations({searchParams}:{searchParams:Promise<{e
     <article><span>Pendientes de pago</span><strong>{totals.pending}</strong></article>
     <article><span>Pedidos registrados</span><strong>{totals.total}</strong></article>
    </div>
+   <section className="ops-section ops-workflow" aria-label="Producción asistida del equipo">
+     <div className="ops-workflow-title"><div className="ops-eyebrow">DESPUÉS DE CADA PAGO VERIFICADO</div><h2>Del pedido a la emoción.</h2><p>Este recorrido es interno. Nunca publiques una experiencia sin cotejar los datos, los archivos personales y la versión comprada.</p></div>
+     <ol className="ops-workflow-steps">
+       <li><strong>01 · Contactar</strong><span>Escribir al comprador y registrar el contacto, sin pedirle que diseñe una página.</span></li>
+       <li><strong>02 · Reunir recuerdos</strong><span>Solicitar nombres, textos, fechas, fotos y audios necesarios para el modelo que eligió.</span></li>
+       <li><strong>03 · Personalizar</strong><span>Abrir el editor privado del equipo. Conservar las escenas, animaciones y efectos del modelo.</span></li>
+       <li><strong>04 · Revisar y entregar</strong><span>Probar la vista previa en celular; publicar solo cuando esté correcta y compartir el enlace privado.</span></li>
+     </ol>
+     <p className="ops-workflow-warning" role="status"><strong>Transición pendiente:</strong> hoy el sistema también envía acceso automático a «Mis regalos» y ofrece edición al comprador. Hasta que ese flujo se adapte y se pruebe, no comunicar que la producción es exclusivamente asistida.</p>
+   </section>
    {accessReview.length>0&&<p className="ops-followup-notice" role="alert"><strong>{accessReview.length} pago{accessReview.length===1?"":"s"} acreditado{accessReview.length===1?"":"s"} sin confirmación de aceptación del correo de acceso.</strong> Revisá el pedido y el transporte antes de reenviar manualmente; este panel no envía correos ni modifica pagos.</p>}
    {historicalReview.length>0&&<p className="ops-followup-notice" role="status"><strong>{historicalReview.length} registro{historicalReview.length===1?"":"s"} histórico{historicalReview.length===1?"":"s"} incompleto{historicalReview.length===1?"":"s"}.</strong> Figura{historicalReview.length===1?"":"n"} como aprobado{historicalReview.length===1?"":"s"}, pero sin fecha de pago o importe válido. No se cuenta{historicalReview.length===1?"":"n"} como correo pendiente ni se reenvía{historicalReview.length===1?"":"n"} automáticamente.</p>}
    {!result?.sales&&<p className="ops-error" role="alert">No pudimos consultar las ventas. Revisá la conexión antes de operar.</p>}
@@ -71,7 +81,7 @@ export default async function Operations({searchParams}:{searchParams:Promise<{e
        <p>Último evento recibido: {date(delivery.latestAt)}. Que un correo figure entregado significa aceptación por el servidor de destino, no lectura por el comprador.</p>
      </>:<p role="status">Todavía no hay monitoreo de entrega disponible. Podés consultar el estado de los correos directamente en Resend.</p>}
    </section>
-   <section className="ops-section"><h2>Historial de compras</h2><p>Los pagos solo se acreditan mediante el proveedor. Después, el comprador recibe el acceso a «Mis regalos» para editar, publicar y compartir.</p>
+   <section className="ops-section"><h2>Historial de compras</h2><p>Los pagos se acreditan únicamente mediante Mercado Pago. En compras acreditadas, usá las acciones privadas para contactar al comprador y preparar el regalo; el acceso automático del comprador sigue activo hasta completar el cambio de modelo comercial.</p>
      {!sales.length?<p className="ops-empty">Todavía no hay operaciones para mostrar.</p>:
        <div className="ops-cards">{sortedSales.map(s=>{
         const paid=s.status==="approved";
@@ -87,11 +97,13 @@ export default async function Operations({searchParams}:{searchParams:Promise<{e
           <div><dt>Pago acreditado</dt><dd>{date(s.paidAt)}</dd></div>
           <div><dt>Confirmación por correo</dt><dd>{s.accessEmailAccepted?"Aceptada por proveedor (no garantiza recepción)":historicalIncomplete?"Registro incompleto · verificar antes de reenviar":!paid?"Pendiente de acreditación":"Sin confirmación de aceptación"}</dd></div>
           <div><dt>Aviso al equipo</dt><dd>{s.opsNoticeAccepted?"Enviado al equipo":!paid?"—":s.opsNoticeError==="ops_recipient_not_configured"?"Falta configurar correo del equipo":s.opsNoticeAttempted?"En espera de reintento":"Aún no se intentó"}</dd></div>
-          <div><dt>Personalización</dt><dd>{paid?"Desde Mis regalos":"Disponible después del pago"}</dd></div>
-          <div><dt>Seguimiento interno (opcional)</dt><dd>{s.contactedAt?date(s.contactedAt):paid?"Sin registrar · no bloquea la entrega":"—"}</dd></div></dl>
+          <div><dt>Producción asistida</dt><dd>{paid?(s.contactedAt?"Contacto registrado · preparar en editor interno":"Pendiente de contacto y materiales"):"Comienza con el pago acreditado"}</dd></div>
+          <div><dt>Seguimiento de contacto</dt><dd>{s.contactedAt?date(s.contactedAt):paid?"Sin registrar · no bloquea la entrega":"—"}</dd></div></dl>
           {paid&&<div className="ops-actions">
             {s.whatsapp&&/^\+?[0-9\s().-]{8,25}$/.test(s.whatsapp)&&<a href={"https://wa.me/"+s.whatsapp.replace(/\D/g,"")} target="_blank" rel="noopener noreferrer">WhatsApp del comprador ↗</a>}
             {s.buyerEmail&&<a href={"mailto:"+encodeURIComponent(s.buyerEmail)}>Escribir por email ↗</a>}
+            {s.code&&/^[a-z0-9-]{6,64}$/i.test(s.code)&&<a href={"/admin/gifts/"+encodeURIComponent(s.code)}>Preparar en editor privado ↗</a>}
+            {s.code&&/^[a-z0-9-]{6,64}$/i.test(s.code)&&<a href={"/admin/gifts/"+encodeURIComponent(s.code)+"/preview"}>Revisar vista previa ↗</a>}
             {!s.contactedAt&&<form action={markContacted}>
               <input type="hidden" name="orderId" value={s.orderId}/>
               <button type="submit">✓ Marcar como contactado</button>
