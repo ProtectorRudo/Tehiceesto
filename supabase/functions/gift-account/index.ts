@@ -154,6 +154,47 @@ async function sendCustomAccessEmail(email:string,redirect:string,code:string,or
       .eq("id",orderGiftId).maybeSingle();
     if(data&&!code)gift=data;
   }
+  // The buyer of a newly team-managed experience receives a purchase
+  // acknowledgement, NOT a self-service editor invitation or auth token.
+  // Verify ownership above before entering this branch. Historic purchases
+  // (including old "assisted" flags without this marker) stay untouched.
+  const creator=gift?.story_data?.creator;
+  if(code&&gift&&creator?.mode==="assisted"&&creator?.fulfillmentVersion==="team-managed-v1"){
+    const experienceName=safeHtml(EXPERIENCE_NAMES[String(gift.experience_slug)]||"personalizada");
+    const title="¡Recibimos tu pedido! ♥";
+    const message="Mercado Pago confirmó tu compra de una experiencia "+experienceName+
+      ". Nuestro equipo se comunicará con vos usando los datos de contacto de tu pedido para reunir los nombres, recuerdos, textos, fotografías y audios necesarios. "+
+      "Nosotros preparamos tu regalo respetando las escenas y los efectos del modelo elegido. "+
+      "Cuando esté revisado, recibirás el enlace para compartirlo.";
+    const support="https://wa.me/5492215653163";
+    const html='<div style="background:#f7f2ec;padding:32px 12px;color:#332926;font:15px Arial,sans-serif">'+
+      '<div style="max-width:580px;margin:auto;background:#fffdfa;border:1px solid #e7ded5;border-radius:20px;padding:32px">'+
+      '<div style="font-size:12px;letter-spacing:3px;color:#8b6a65;font-weight:bold">TE HICE ESTO</div>'+
+      '<h1 style="font:normal 33px Georgia,serif;margin:28px 0 20px">'+title+'</h1>'+
+      '<p style="line-height:1.9;color:#655853">'+message+'</p>'+
+      '<p style="line-height:1.8;color:#655853">¿Querés consultarnos algo? <a href="'+support+'" style="color:#664d45">Escribinos por WhatsApp</a>.</p>'+
+      '<p style="font-size:12px;color:#998681;margin-top:24px">Guardá este correo como constancia de tu pedido.</p></div></div>';
+    try{
+      const sender=(Deno.env.get("TEHICEESTO_EMAIL_FROM")||"Te Hice Esto <hola@tehiceesto.com>").trim();
+      const response=await fetch("https://api.resend.com/emails",{
+        method:"POST",
+        headers:{"authorization":"Bearer "+apiKey,"content-type":"application/json"},
+        body:JSON.stringify({from:sender,to:[email],subject:title,html,
+          text:[title,message,"Consultas: "+support,"Con cariño, Te Hice Esto."].join("\\n\\n"),
+          reply_to:"hola@tehiceesto.com",
+          tags:[{name:"product",value:"tehiceesto"},{name:"flow",value:"assisted_purchase"}]}),
+        signal:AbortSignal.timeout(12000),
+      });
+      if(!response.ok){
+        console.error("thi_assisted_receipt_rejected",response.status);
+        return {ok:false,status:response.status===429?429:503};
+      }
+      return {ok:true,status:200};
+    }catch{
+      console.error("thi_assisted_receipt_unreachable");
+      return {ok:false,status:503};
+    }
+  }
   let combined=false;
   if(gift&&["pack-juegos","trazo-complice"].includes(gift.experience_slug)){
     try{
@@ -439,6 +480,8 @@ Deno.serve(async(req:Request)=>{
         giverName:gift.giver_name,
         recipientName:gift.recipient_name,
         publishedAt:gift.published_at,
+        assisted:gift.story_data?.creator?.mode==="assisted"&&
+          gift.story_data?.creator?.fulfillmentVersion==="team-managed-v1",
         purchasedAt:order.paid_at||order.created_at,
       };
     }).filter(Boolean);
@@ -454,6 +497,8 @@ Deno.serve(async(req:Request)=>{
         templateVersion:gift.template_version||"dragon-ball-v1",
         giverName:gift.giver_name,recipientName:gift.recipient_name,
         publishedAt:gift.published_at,purchasedAt:grant.purchasedAt,
+        assisted:gift.story_data?.creator?.mode==="assisted"&&
+          gift.story_data?.creator?.fulfillmentVersion==="team-managed-v1",
         complimentary:true
       });
     }
@@ -492,6 +537,8 @@ Deno.serve(async(req:Request)=>{
           templateVersion:gift.template_version||"premium-v1",
           giverName:gift.giver_name,recipientName:gift.recipient_name,
           publishedAt:gift.published_at,purchasedAt,
+          assisted:gift.story_data?.creator?.mode==="assisted"&&
+            gift.story_data?.creator?.fulfillmentVersion==="team-managed-v1",
         });
       }
     }catch{return json(origin,{error:"account_list_failed"},503)}
@@ -538,8 +585,13 @@ Deno.serve(async(req:Request)=>{
       ?rawStory.creator as Record<string,unknown>
       :{};
 
+    // This immutable marker is created only for new team-managed purchases.
+    // Previous customers retain their original editor access, even if an old
+    // record happened to contain creator.mode="assisted".
+    if(rawCreator.mode==="assisted"&&rawCreator.fulfillmentVersion==="team-managed-v1"){
+      return json(origin,{error:"managed_by_team"},403);
+    }
     // Ownership was verified using the authenticated buyer email and an approved order.
-    // Restore editor access to purchases incorrectly flagged as assisted without altering payment.
     const editorToken=newStudioToken();
     const editorTokenHash=await sha256(editorToken);
     const existingHashes:string[]=[];
