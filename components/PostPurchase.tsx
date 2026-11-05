@@ -3,7 +3,7 @@ import {useCallback,useEffect,useState} from "react";
 import Link from "next/link";
 import "./postpurchase.css";
 
-type OrderState={stage:string;order?:{status:string;checkoutUrl:string|null};experienceSlug?:string;hasPackAddOn?:boolean;extraExperience?:{slug:string;code:string}|null};
+type OrderState={stage:string;order?:{status:string;checkoutUrl:string|null};experienceSlug?:string;hasPackAddOn?:boolean;extraExperience?:{slug:string;code:string;assisted?:boolean}|null;assisted?:boolean};
 type Offer={mainPaid:boolean;mainStatus:string;title:string;status:string;canOffer:boolean;checkoutUrl?:string|null;letterReady:boolean;oneClick:boolean};
 // The separate, legacy post-purchase upsell still uses a fixed provider price.
  // Hide new offers during the ARS 1,000 purchase trial to avoid mismatched charges.
@@ -65,6 +65,7 @@ export default function PostPurchase({code}:{code:string}){
  };
  const purchased=order?.order?.status==="approved";
  const isPack=order?.experienceSlug==="pack-juegos";
+ const assisted=order?.assisted===true;
  const completed=offer?.status==="approved";
  const shouldOffer=!TEST_PURCHASE_PRICING&&!isPack&&!order?.hasPackAddOn&&!order?.extraExperience&&purchased&&offer?.canOffer&&offer?.status!=="declined"&&!hidden&&!completed;
  return <main className="postpurchase-shell">
@@ -75,11 +76,11 @@ export default function PostPurchase({code}:{code:string}){
      <span className="postpurchase-check" aria-hidden="true">✓</span>
      <span className="postpurchase-kicker">PAGO CONFIRMADO</span>
      <h1>{isPack?<>¡Tus cuatro juegos <em>ya son tuyos!</em></>:<>¡Ya es <em>tuya!</em></>}</h1>
-     <p>{isPack?"Tu pago del Pack de 4 Juegos está confirmado. Te enviamos un email con el enlace privado para entrar a Trazo Cómplice, Entre Dos, Cómplices y Meme Match completos. No necesitás instalar nada.":"Tu pago está confirmado. Te enviamos un email para que entres a «Mis regalos» y personalices tu experiencia con nombres, mensajes, fotografías y audios. El recorrido y los efectos del modelo permanecen intactos."}</p>
+     <p>{isPack?"Tu pago del Pack de 4 Juegos está confirmado. Te enviamos un email con el enlace privado para entrar a Trazo Cómplice, Entre Dos, Cómplices y Meme Match completos. No necesitás instalar nada.":assisted?"Tu pago está confirmado. Recibirás una constancia por correo y nuestro equipo se comunicará con vos para reunir nombres, recuerdos, mensajes, fotos y audios. Nosotros preparamos tu experiencia conservando el modelo elegido.":"Tu pago está confirmado. Te enviamos un email para que entres a «Mis regalos» y personalices tu experiencia con nombres, mensajes, fotografías y audios. El recorrido y los efectos del modelo permanecen intactos."}</p>
      {order?.extraExperience&&purchased&&<div className="postpurchase-thanks" aria-label="Experiencia adicional incluida en tus juegos">
        <strong>✓ También agregaste una experiencia personalizada junto con tus juegos.</strong>
-       <p>Está disponible en «Mis regalos», para que edites sus nombres, recuerdos, fotos y audios. Se cobró junto con los juegos, sin un segundo pago.</p>
-       <Link href="/mis-regalos">Personalizar mi experiencia →</Link>
+       <p>{order.extraExperience.assisted?"Nuestro equipo se comunicará con vos para reunir nombres, recuerdos, fotos y audios. La experiencia adicional se pagó junto con los juegos, sin un segundo cargo.":"Está disponible en «Mis regalos», para que edites sus nombres, recuerdos, fotos y audios. Se cobró junto con los juegos, sin un segundo pago."}</p>
+       {order.extraExperience.assisted?<a href="https://wa.me/5492215653163" target="_blank" rel="noopener noreferrer">Contactar al equipo →</a>:<Link href="/mis-regalos">Personalizar mi experiencia →</Link>}
      </div>}
      {order?.hasPackAddOn&&!isPack&&<div className="postpurchase-thanks" aria-label="Juegos incluidos en tu compra">
        <strong>✓ También tenés el Pack de 4 Juegos junto con tu regalo.</strong>
@@ -104,8 +105,8 @@ export default function PostPurchase({code}:{code:string}){
        <a className="postpurchase-yes postpurchase-link" href={offer.checkoutUrl}>Continuar el pago adicional</a>
      </div>}
      {completed&&<div className="postpurchase-thanks"><strong>♡ Tu carta extra también está confirmada.</strong><p>Si elegís agregarla, vas a encontrarla dentro de «Mis regalos» una vez acreditado el pago adicional.</p></div>}
-     {isPack?<Link href="/juegos/pack/completo" className="postpurchase-my">Abrir mis cuatro juegos <span aria-hidden="true">↗</span></Link>:<Link href="/mis-regalos" className="postpurchase-my">Ir a Mis regalos y personalizar <span aria-hidden="true">↗</span></Link>}
-     <p className="postpurchase-assistance">{isPack?"El acceso privado llega al correo de compra. Usá ese mismo correo para entrar a tus juegos. Las salas de escape se venden por separado.":"El enlace de acceso privado llega al correo de tu compra. Desde «Mis regalos» podés editar el contenido, publicar tu experiencia y compartirla. Si no encontrás el mensaje, revisá spam o pedí otro acceso."}</p>
+     {isPack?<Link href="/juegos/pack/completo" className="postpurchase-my">Abrir mis cuatro juegos <span aria-hidden="true">↗</span></Link>:assisted?<a href="https://wa.me/5492215653163" target="_blank" rel="noopener noreferrer" className="postpurchase-my">Consultar al equipo <span aria-hidden="true">↗</span></a>:<Link href="/mis-regalos" className="postpurchase-my">Ir a Mis regalos y personalizar <span aria-hidden="true">↗</span></Link>}
+     <p className="postpurchase-assistance">{isPack?"El acceso privado llega al correo de compra. Usá ese mismo correo para entrar a tus juegos. Las salas de escape se venden por separado.":assisted?"Nuestro equipo preparará tu regalo con el contenido que nos compartas. Revisá el correo de confirmación y, si necesitás comunicarte, escribinos por WhatsApp. No tenés que editar una página.":"El enlace de acceso privado llega al correo de tu compra. Desde «Mis regalos» podés editar el contenido, publicar tu experiencia y compartirla. Si no encontrás el mensaje, revisá spam o pedí otro acceso."}</p>
    </section>:
    <section className="postpurchase-panel">
      <span className="postpurchase-kicker">TU COMPRA ESTÁ EN PROCESO</span>
