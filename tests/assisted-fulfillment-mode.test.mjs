@@ -18,7 +18,7 @@ test("New assisted purchases are server-selected, feature gated and versioned wi
  assert.match(order,/!\["pack-juegos","trazo-complice"\]\.includes\(slug\)/);
  assert.match(order,/mode==="assisted"\?\{fulfillmentVersion:ASSISTED_FULFILLMENT_VERSION\}/);
  assert.match(order,/purchaseStory\(\{name:customerName,email,whatsapp\}/);
- assert.match(order,/addonExperienceSlug\),/);
+ assert.match(order,/addonExperienceSlug,assistedEnabled\),/);
  assert.match(order,/clientRequestId/);
  assert.match(order,/affiliateAttributed/);
  assert.doesNotMatch(order,/body\.mode|body\.assisted|body\.fulfillmentVersion/);
