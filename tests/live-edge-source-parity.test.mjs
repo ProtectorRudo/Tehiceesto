@@ -13,10 +13,10 @@ test("All ten audited Edge Function sources stay identical to their verified pro
  const lock=JSON.parse(read("lib/release/live-edge-source-lock.json"));
  assert.ok(lock.functions["payment-bridge"]);
  assert.ok(lock.functions["guest-voice"]);
- assert.equal(lock.functions["order-status"].version,15);
+ assert.equal(lock.functions["order-status"].version,16);
 });
 
-test("Full production order-status flow includes addon and refund status fields from the actual live v14",()=>{
+test("Full production order-status flow includes addon and refund status fields from the actual live v16",()=>{
  const source=read("supabase/functions/order-status/index.ts");
  assert.match(source,/refunded_amount_minor/);
  assert.match(source,/hasPackAddOn/);
