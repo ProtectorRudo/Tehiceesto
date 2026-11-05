@@ -1,6 +1,7 @@
 import {randomUUID} from "node:crypto";
 import {NextRequest,NextResponse} from "next/server";
 import {ATTRIBUTION_COOKIE,VISITOR_COOKIE,REFERRAL_TTL_SECONDS,callAffiliateBackend} from "@/lib/affiliates/backend";
+import {referralLandingUrl} from "@/lib/affiliates/referral-landing.mjs";
 
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -15,7 +16,7 @@ export async function GET(req:NextRequest,{params}:{params:Promise<{code:string}
  const {code:input}=await params;
  const code=(input||"").trim().toLowerCase();
  const to=landing(req.nextUrl.searchParams.get("to"));
- const url=new URL(to,req.url);
+ const url=referralLandingUrl(to,req.url,process.env.VERCEL_ENV);
  const redirect=()=>NextResponse.redirect(url,302);
  if(!/^[a-z0-9][a-z0-9-]{2,49}$/.test(code))return redirect();
  const visitorValue=req.cookies.get(VISITOR_COOKIE)?.value;
