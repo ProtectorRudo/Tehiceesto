@@ -152,7 +152,7 @@ Deno.serve(async (req: Request) => {
   }
 
   // Show the optional gift only after verified full payment and activation.
-  let extraExperience:null|{slug:string;code:string}=null;
+  let extraExperience:null|{slug:string;code:string;assisted:boolean}=null;
   const secondaryReceipt=gift?.story_data?.checkout||{};
   const secondaryBase=Number(secondaryReceipt.baseAmountMinor);
   const hasSecondaryReceipt=secondaryReceipt.addonCode==="personalized_experience_v1"&&
@@ -186,21 +186,25 @@ Deno.serve(async (req: Request) => {
        Number(addon.amount_minor)===1000000&&!addon.provider_order_id&&!addon.checkout_url&&
        addon.addon_gift_id){
       const childUrl=new URL(SUPABASE_URL+"/rest/v1/gifts");
-      childUrl.searchParams.set("select","public_code,status,experience_slug");
+      childUrl.searchParams.set("select","public_code,status,experience_slug,story_data");
       childUrl.searchParams.set("id","eq."+addon.addon_gift_id);
       childUrl.searchParams.set("limit","1");
       const childResponse=await fetch(childUrl,{headers,cache:"no-store"});
       const child=childResponse.ok?(await childResponse.json())?.[0]:null;
       if(child&&["paid","published"].includes(child.status)&&
          child.experience_slug===secondaryReceipt.addonExperienceSlug){
-        extraExperience={slug:child.experience_slug,code:child.public_code};
+        extraExperience={slug:child.experience_slug,code:child.public_code,
+          assisted:child.story_data?.creator?.mode==="assisted"&&
+            child.story_data?.creator?.fulfillmentVersion==="team-managed-v1"};
       }
     }
   }
 
+  const assisted=gift.story_data?.creator?.mode==="assisted"&&
+    gift.story_data?.creator?.fulfillmentVersion==="team-managed-v1";
   let stage = "received";
   if (gift.status === "published") stage = "ready";
-  else if (order?.status === "approved" || gift.status === "paid") stage = "personalize";
+  else if (order?.status === "approved" || gift.status === "paid") stage = assisted?"preparing":"personalize";
   else if (order?.status === "pending" || gift.status === "awaiting_payment") stage = "payment";
 
   return json({
@@ -208,6 +212,7 @@ Deno.serve(async (req: Request) => {
     stage,
     giftStatus: gift.status,
     experienceSlug: gift.experience_slug,
+    assisted,
     hasPackAddOn,
     extraExperience,
     templateVersion: gift.template_version||"premium-v1",
