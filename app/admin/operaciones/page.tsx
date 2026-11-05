@@ -102,8 +102,8 @@ export default async function Operations({searchParams}:{searchParams:Promise<{e
           {paid&&<div className="ops-actions">
             {s.whatsapp&&/^\+?[0-9\s().-]{8,25}$/.test(s.whatsapp)&&<a href={"https://wa.me/"+s.whatsapp.replace(/\D/g,"")} target="_blank" rel="noopener noreferrer">WhatsApp del comprador ↗</a>}
             {s.buyerEmail&&<a href={"mailto:"+encodeURIComponent(s.buyerEmail)}>Escribir por email ↗</a>}
-            {s.code&&/^[a-z0-9-]{6,64}$/i.test(s.code)&&<a href={"/admin/gifts/"+encodeURIComponent(s.code)}>Preparar en editor privado ↗</a>}
-            {s.code&&/^[a-z0-9-]{6,64}$/i.test(s.code)&&<a href={"/admin/gifts/"+encodeURIComponent(s.code)+"/preview"}>Revisar vista previa ↗</a>}
+            {!historicalIncomplete&&s.code&&/^[a-z0-9-]{6,64}$/i.test(s.code)&&<a href={"/admin/gifts/"+encodeURIComponent(s.code)}>Preparar en editor privado ↗</a>}
+            {!historicalIncomplete&&s.code&&/^[a-z0-9-]{6,64}$/i.test(s.code)&&<a href={"/admin/gifts/"+encodeURIComponent(s.code)+"/preview"}>Revisar vista previa ↗</a>}
             {!s.contactedAt&&<form action={markContacted}>
               <input type="hidden" name="orderId" value={s.orderId}/>
               <button type="submit">✓ Marcar como contactado</button>
