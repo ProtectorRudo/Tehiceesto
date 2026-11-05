@@ -160,6 +160,7 @@ async function sendCustomAccessEmail(email:string,redirect:string,code:string,or
   // (including old "assisted" flags without this marker) stay untouched.
   const creator=gift?.story_data?.creator;
   if(code&&gift&&creator?.mode==="assisted"&&creator?.fulfillmentVersion==="team-managed-v1"){
+    if(!apiKey)return {ok:false,status:503};
     const experienceName=safeHtml(EXPERIENCE_NAMES[String(gift.experience_slug)]||"personalizada");
     const title="¡Recibimos tu pedido! ♥";
     const message="Mercado Pago confirmó tu compra de una experiencia "+experienceName+
@@ -180,7 +181,7 @@ async function sendCustomAccessEmail(email:string,redirect:string,code:string,or
         method:"POST",
         headers:{"authorization":"Bearer "+apiKey,"content-type":"application/json"},
         body:JSON.stringify({from:sender,to:[email],subject:title,html,
-          text:[title,message,"Consultas: "+support,"Con cariño, Te Hice Esto."].join("\\n\\n"),
+          text:[title,message,"Consultas: "+support,"Con cariño, Te Hice Esto."].join("\n\n"),
           reply_to:"hola@tehiceesto.com",
           tags:[{name:"product",value:"tehiceesto"},{name:"flow",value:"assisted_purchase"}]}),
         signal:AbortSignal.timeout(12000),
