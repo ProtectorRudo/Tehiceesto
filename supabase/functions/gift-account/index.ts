@@ -88,18 +88,18 @@ function safeHtml(value:unknown){
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;",
   }[character]||character));
 }
-function premiumMail(name:string,experience:string,actionLink:string,isPurchase:boolean,combined=false){
+function premiumMail(name:string,experience:string,actionLink:string,isPurchase:boolean,combined=false,combinedManaged=false){
   const firstName=safeHtml(name.trim().split(/\s+/)[0]||"");
   const experienceName=safeHtml(EXPERIENCE_NAMES[experience]||"personalizada");
   const link=safeHtml(actionLink);
   const game=experience==="trazo-complice";
   const pack=experience==="pack-juegos";
   const title=combined?"¡Tus juegos y tu regalo ya son tuyos!":pack?"¡Tu Pack de 3 Juegos ya es tuyo!":game?"¡Trazo Cómplice completo es tuyo!":isPurchase?"Tu regalo ya está listo para personalizar.":"Tus recuerdos siguen esperándote.";
-  const intro=combined?"Tu compra está confirmada: tenés acceso a los juegos y a una experiencia personalizada adicional con el descuento especial del 60%. Entrá a Mis regalos con el mismo correo para abrir tus juegos y personalizar tu experiencia con nombres, fotos, mensajes y audios.":pack?"Tu pago está confirmado. Ya tenés acceso a ENTRE DOS, CÓMPLICES y TRAZO CÓMPLICE. Tocá el botón para entrar a tu sala privada con el mismo correo de la compra. Un solo celular, tres formas de jugar y ninguna descarga.":game?"Tu compra está confirmada. Entrá a Mis regalos con este enlace privado y tocá «Jugar versión completa» para disfrutar las 1.274 palabras, 11 categorías y tres dificultades. Un solo celular para dos personas.":isPurchase
+  const intro=combinedManaged?"Tu compra está confirmada: tenés acceso a tus juegos y también sumaste una experiencia personalizada. Abrí los juegos con tu correo de compra; nuestro equipo se comunicará con vos para preparar la experiencia adicional con tus mensajes, fotos y audios.":combined?"Tu compra está confirmada: tenés acceso a los juegos y a una experiencia personalizada adicional con el descuento especial del 60%. Entrá a Mis regalos con el mismo correo para abrir tus juegos y personalizar tu experiencia con nombres, fotos, mensajes y audios.":pack?"Tu pago está confirmado. Ya tenés acceso a ENTRE DOS, CÓMPLICES y TRAZO CÓMPLICE. Tocá el botón para entrar a tu sala privada con el mismo correo de la compra. Un solo celular, tres formas de jugar y ninguna descarga.":game?"Tu compra está confirmada. Entrá a Mis regalos con este enlace privado y tocá «Jugar versión completa» para disfrutar las 1.274 palabras, 11 categorías y tres dificultades. Un solo celular para dos personas.":isPurchase
     ?"Tu pago está confirmado. Ingresá a Mis regalos para personalizar tu experiencia "+experienceName+" con tus palabras, nombres, fotos y audios. El diseño, las escenas y los efectos ya están preparados. Después podés publicar y compartir el regalo desde tu cuenta."
     :"Este acceso privado te permite continuar editando y compartiendo tus experiencias desde Mis regalos.";
   const greeting=firstName?"Hola, "+firstName+".":"Hola.";
-  const button=combined?"Ver mis juegos y editar mi regalo":pack?"Entrar a mis tres juegos":game?"Entrar y jugar completo":isPurchase?"Entrar a Mis regalos y editar":"Entrar a Mis regalos";
+  const button=combinedManaged?"Ver mis juegos":combined?"Ver mis juegos y editar mi regalo":pack?"Entrar a mis tres juegos":game?"Entrar y jugar completo":isPurchase?"Entrar a Mis regalos y editar":"Entrar a Mis regalos";
   const html=[
     '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>',
     '<body style="margin:0;background:#f5f1ec;color:#292321;font-family:Arial,Helvetica,sans-serif;">',
@@ -202,12 +202,15 @@ async function sendCustomAccessEmail(email:string,redirect:string,code:string,or
     }
     return null; // Historical self-serve buyers retain the legacy OTP fallback.
   }
-  let combined=false;
+  let combined=false,combinedManaged=false;
   if(gift&&["pack-juegos","trazo-complice"].includes(gift.experience_slug)){
     try{
       const addons=await approvedExperienceExtras(db,email);
-      combined=addons.some((x:any)=>x.parentGiftId===gift.id);
-    }catch{combined=false}
+      const fromThisOrder=addons.filter((x:any)=>x.parentGiftId===gift.id);
+      combined=fromThisOrder.length>0;
+      combinedManaged=fromThisOrder.some((x:any)=>x.gift?.story_data?.creator?.mode==="assisted"&&
+        x.gift?.story_data?.creator?.fulfillmentVersion==="team-managed-v1");
+    }catch{combined=false;combinedManaged=false}
   }
   const targetBase=combined?"https://tehiceesto.com/mis-regalos":
     portalBase==="https://tehiceesto.com/juegos/pack/completo"?portalBase:
@@ -242,7 +245,7 @@ async function sendCustomAccessEmail(email:string,redirect:string,code:string,or
   brandedAccess.hash=new URLSearchParams({token_hash:hashedToken,type:verificationType}).toString();
   const mail=premiumMail(String(gift?.giver_name||""),
     portalBase==="https://tehiceesto.com/juegos/pack/completo"?"pack-juegos":String(gift?.experience_slug||""),
-    brandedAccess.toString(),Boolean(code),combined);
+    brandedAccess.toString(),Boolean(code),combined,combinedManaged);
   const sender=(Deno.env.get("TEHICEESTO_EMAIL_FROM")||"Te Hice Esto <hola@tehiceesto.com>").trim();
   try{
     const response=await fetch("https://api.resend.com/emails",{
