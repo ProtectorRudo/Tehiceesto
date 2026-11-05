@@ -138,7 +138,7 @@ async function sendCustomAccessEmail(email:string,redirect:string,code:string,or
     }
     apiKey=String(data||"").trim();
   }
-  if(!apiKey)return null; // Legacy transport only while no provider has been configured.
+  // Resolve ownership and fulfillment before deciding whether legacy OTP fallback is safe.
   let gift:any=null;
   if(code){
     const {data}=await db.from("gifts").select("id,public_code,giver_name,experience_slug,template_version,story_data")
@@ -194,6 +194,13 @@ async function sendCustomAccessEmail(email:string,redirect:string,code:string,or
       console.error("thi_assisted_receipt_unreachable");
       return {ok:false,status:503};
     }
+  }
+  // Never send a generic editor magic link as fallback for managed gifts.
+  if(!apiKey){
+    if(code&&gift&&creator?.mode==="assisted"&&creator?.fulfillmentVersion==="team-managed-v1"){
+      return {ok:false,status:503};
+    }
+    return null; // Historical self-serve buyers retain the legacy OTP fallback.
   }
   let combined=false;
   if(gift&&["pack-juegos","trazo-complice"].includes(gift.experience_slug)){
