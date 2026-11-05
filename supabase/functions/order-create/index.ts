@@ -79,19 +79,18 @@ function objectValue(value:unknown){
     :{};
 }
 
-// New, paid personalized gifts may be fulfilled by our team. The flag is off
-// until web copy, mailer and edit-permission gates are deployed together.
+// New, paid personalized gifts may be fulfilled by our team. The database
+// flag defaults to false until web copy, mail and edit-permission gates are live.
 // Never infer this from a client-supplied request field.
 const ASSISTED_FULFILLMENT_VERSION="team-managed-v1";
-function purchaseModeForNewGift(slug:string){
-  return Deno.env.get("TEHICEESTO_ASSISTED_PURCHASES_ENABLED")==="true" &&
-    !["pack-juegos","trazo-complice"].includes(slug) ? "assisted":"selfserve";
+function purchaseModeForNewGift(slug:string,enabled:boolean){
+  return enabled&&!["pack-juegos","trazo-complice"].includes(slug)?"assisted":"selfserve";
 }
 // Purchase creation never grants browser editing credentials; only approved,
 // historical self-serve purchases may request an authenticated editor token.
 function purchaseStory(contact:{name:string;email:string;whatsapp:string},now:string,
-  fingerprint:string,templateRecipe:string[],templateVersion:string,slug:string){
-  const mode=purchaseModeForNewGift(slug);
+  fingerprint:string,templateRecipe:string[],templateVersion:string,slug:string,assistedEnabled:boolean){
+  const mode=purchaseModeForNewGift(slug,assistedEnabled);
   return {creator:{submitted:true,mode,
     ...(mode==="assisted"?{fulfillmentVersion:ASSISTED_FULFILLMENT_VERSION}:{}),
     submittedAt:now,contact,consentAt:now,ipHash:fingerprint,
@@ -229,7 +228,7 @@ Deno.serve(async(req:Request)=>{
   const db=createClient(SUPABASE_URL,SECRET,{auth:{persistSession:false,autoRefreshToken:false}});
   const {data:commerce}=await db
     .from("commerce_settings")
-    .select("default_price_minor,currency,auto_checkout_enabled")
+    .select("default_price_minor,currency,auto_checkout_enabled,assisted_purchases_enabled")
     .eq("id","default")
     .maybeSingle();
 
@@ -243,6 +242,7 @@ Deno.serve(async(req:Request)=>{
   const priceMinor=basePriceMinor+(addOnCode?addonPriceMinor:0);
 
   const now=new Date().toISOString();
+  const assistedEnabled=commerce?.assisted_purchases_enabled===true;
   const fingerprint=await requestFingerprint(req);
 
   if(clientRequestId){
@@ -375,7 +375,7 @@ Deno.serve(async(req:Request)=>{
       scene_recipe:recipes[experienceSlug],
       story_data:{
         ...purchaseStory({name:customerName,email,whatsapp},now,
-          fingerprint,recipes[experienceSlug],versionForNewGift(experienceSlug),experienceSlug),
+          fingerprint,recipes[experienceSlug],versionForNewGift(experienceSlug),experienceSlug,assistedEnabled),
         ...(addOnCode?{checkout:{baseAmountMinor:basePriceMinor,
           addonCode:addOnCode,addonAmountMinor:addonPriceMinor,totalAmountMinor:priceMinor,
           ...(addonExperienceSlug?{addonExperienceSlug}:{})}}:{}),
@@ -419,7 +419,7 @@ Deno.serve(async(req:Request)=>{
         scene_recipe:recipes[addonExperienceSlug],
         story_data:{
           ...purchaseStory({name:customerName,email,whatsapp},now,
-            fingerprint,recipes[addonExperienceSlug],addonVersion,addonExperienceSlug),
+            fingerprint,recipes[addonExperienceSlug],addonVersion,addonExperienceSlug,assistedEnabled),
           creatorAddOn:{source:"games-checkout",orderId:order.id},
         },
         theme_data:{},
