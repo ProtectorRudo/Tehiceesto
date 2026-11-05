@@ -14,7 +14,7 @@ const checkout=read("components/QuickCheckout.tsx");
 
 test("New assisted purchases are server-selected, feature gated and versioned without modifying older orders",()=>{
  assert.match(order,/TEHICEESTO_ASSISTED_PURCHASES_ENABLED/);
- assert.match(order,/!==?"true"/); // server-only environment switch
+ assert.match(order,/Deno\.env\.get\("TEHICEESTO_ASSISTED_PURCHASES_ENABLED"\)==="true"/);
  assert.match(order,/!\["pack-juegos","trazo-complice"\]\.includes\(slug\)/);
  assert.match(order,/mode==="assisted"\?\{fulfillmentVersion:ASSISTED_FULFILLMENT_VERSION\}/);
  assert.match(order,/purchaseStory\(\{name:customerName,email,whatsapp\}/);
@@ -55,7 +55,8 @@ test("Managed orders receive a receipt instead of an editor magic link, with no 
 test("Purchase status and public copy reflect exact mode while preserving older promises",()=>{
  assert.match(status,/assisted\?"preparing":"personalize"/);
  assert.match(status,/assisted,/);
- assert.match(status,/extraExperience=.*assisted/);
+ assert.match(status,/extraExperience=\{slug:child\.experience_slug,code:child\.public_code,/);
+ assert.match(status,/assisted:child\.story_data/);
  assert.match(receipt,/const assisted=order\?\.assisted===true/);
  assert.match(receipt,/Nuestro equipo preparará tu regalo/);
  assert.match(receipt,/Ir a Mis regalos y personalizar/);
