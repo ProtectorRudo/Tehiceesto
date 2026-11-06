@@ -65,10 +65,10 @@ body:has(.gal-experience) { background: #080716; }
 .gal-discover-object { appearance: none; display: block; padding: 0; border: none; background: none; position: relative; -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: transform .25s; }
 .gal-discover-object:active { transform: scale(.95); }
 .gal-discover-object:hover:not(.gal-object-discovered) { filter: brightness(1.07); }
-.gal-discover-object-1 { width: clamp(135px, 36vw, 193px); aspect-ratio: 1; margin: 50px 0 30px; animation: gal-float 4.8s ease-in-out infinite; filter: drop-shadow(0 0 25px #439aca57); }
-.gal-planet-svg { display: block; width: 100%; height: 100%; animation: gal-slowspin 26s ease-in-out infinite alternate; }
-.gal-discover-object-2 { width: clamp(195px, 55vw, 270px); aspect-ratio: 1; margin: 30px 0; animation: gal-float 4.9s ease-in-out infinite; }
-.gal-sun-wrap { position: relative; width: 100%; height: 100%; display: grid; place-items: center; }
+.gal-discover-object-1 { width: clamp(135px, 36vw, 193px); aspect-ratio: 1; margin: 50px 0 30px; filter: drop-shadow(0 0 25px #439aca57); }
+.gal-planet-svg { display: block; width: 100%; height: 100%; animation: gal-float 4.8s ease-in-out infinite; }
+.gal-discover-object-2 { width: clamp(195px, 55vw, 270px); aspect-ratio: 1; margin: 30px 0; }
+.gal-sun-wrap { position: relative; width: 100%; height: 100%; display: grid; place-items: center; animation: gal-float 4.9s ease-in-out infinite; }
 .gal-sun-wrap::before { position: absolute; inset: -34px; border-radius: 50%; content: ""; background: radial-gradient(circle, #ffcc6161, #e96e142b 42%, transparent 74%); filter: blur(12px); animation: gal-pulse 3.3s ease-in-out infinite; }
 .gal-sun-rays { position: absolute; inset: 1%; border-radius: 50%; background: repeating-conic-gradient(from 0deg, #ffbb5399 0 9deg, transparent 10deg 21deg); filter: blur(4px); animation: gal-rotate 48s linear infinite; }
 .gal-sun-disc { z-index: 1; position: relative; width: 80%; aspect-ratio: 1; border-radius: 50%; border: 2px solid #fff3c476; background: radial-gradient(circle at 33% 30%, #fff7bc, #ffc154 46%, #ff872e 80%, #dc5523); box-shadow: inset -11px -18px 35px #bf451f55, 0 0 44px #ffb74b92; }
