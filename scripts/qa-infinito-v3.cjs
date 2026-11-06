@@ -1,0 +1,67 @@
+const {chromium}=require("playwright");
+const assert=require("node:assert/strict");
+
+async function run(width,height,browser){
+  const page=await browser.newPage({viewport:{width,height},deviceScaleFactor:1,isMobile:true,hasTouch:true});
+  const errors=[];page.on("pageerror",e=>errors.push(e.message));
+  const base="http://127.0.0.1:3000/infinito/qa.html";
+  const result=await page.goto(base,{waitUntil:"domcontentloaded",timeout:25000});
+  assert.equal(result.status(),200);
+  await page.locator(".mx-intro").waitFor({timeout:12000});
+  const shots=[];
+  const screenshot=async(label)=>{const path="visual-infinito/"+width+"-"+label+".png";await page.screenshot({path,fullPage:true});shots.push(path);};
+  const check=async(step)=>{const info=await page.evaluate(()=>({width:innerWidth,scrollWidth:document.documentElement.scrollWidth,scrollHeight:document.documentElement.scrollHeight,screenHeight:innerHeight}));assert(info.scrollWidth<=info.width,"overflow "+step+" "+JSON.stringify(info));console.log("STEP",width,step,JSON.stringify(info));};
+  await check("intro");await screenshot("00-intro");
+  await page.locator(".mx-begin").click();
+  await page.locator(".mx-earth-stage").waitFor({timeout:5000});
+  await check("earth");await screenshot("01-earth");
+  const globe=await page.locator('[data-gesture="earth"]').boundingBox();
+  await page.mouse.move(globe.x+globe.width*.3,globe.y+globe.height*.52);await page.mouse.down();
+  await page.mouse.move(globe.x+globe.width*.85,globe.y+globe.height*.52,{steps:10});await page.mouse.up();
+  await page.locator(".mx-completed").waitFor({timeout:2500});
+  await page.locator('.mx-next[data-act="next"]').click();
+  await page.locator(".mx-sun-stage").waitFor({timeout:5000});
+  await check("sun");await screenshot("02-sun");
+  const sun=await page.locator('[data-gesture="sun"]').boundingBox();
+  await page.mouse.move(sun.x+sun.width*.5,sun.y+sun.height*.5);await page.mouse.down();await page.waitForTimeout(1100);await page.mouse.up();
+  await page.locator(".mx-completed").waitFor({timeout:2500});
+  await page.locator('.mx-next[data-act="next"]').click();
+  await page.locator(".mx-galaxy-stage").waitFor({timeout:5000});
+  await check("galaxy");await screenshot("03-galaxy");
+  for(let k=0;k<3;k++)await page.locator('[data-star="'+k+'"]').click();
+  await page.waitForTimeout(750);
+  await page.locator(".mx-completed").waitFor({timeout:2500});
+  await page.locator('.mx-next[data-act="next"]').click();
+  await page.locator(".mx-universe-stage").waitFor({timeout:5000});
+  await check("universe");await screenshot("04-universe");
+  await page.locator("#mx-universe-scale").evaluate(el=>{el.value="100";el.dispatchEvent(new Event("input",{bubbles:true}));});
+  await page.locator(".mx-completed").waitFor({timeout:2500});
+  await page.locator('.mx-next[data-act="next"]').click();
+  await page.locator(".mx-bureau-stage").waitFor({timeout:5000});
+  await check("bureau");await screenshot("05-bureau");
+  await page.locator(".mx-stamp").click();await page.locator(".mx-completed").waitFor({timeout:2500});
+  await page.locator('.mx-next[data-act="next"]').click();
+  await page.locator(".mx-memory-stage").waitFor({timeout:5000});
+  await check("memory");await screenshot("06-memory");
+  const curtain=await page.locator('[data-gesture="memory"]').boundingBox();
+  await page.mouse.move(curtain.x+curtain.width*.8,curtain.y+curtain.height*.5);await page.mouse.down();
+  await page.mouse.move(curtain.x+curtain.width*.12,curtain.y+curtain.height*.5,{steps:12});await page.mouse.up();
+  await page.locator(".mx-completed").waitFor({timeout:2500});
+  await page.locator('.mx-next[data-act="next"]').click();
+  await page.locator(".mx-letter-stage").waitFor({timeout:5000});
+  await check("letter");await screenshot("07-letter");
+  await page.locator(".mx-envelope-seal").click();
+  await page.locator(".mx-completed").waitFor({timeout:2500});
+  await screenshot("07-letter-open");
+  assert((await page.locator(".mx-letter-page p").innerText()).includes("No hay planeta"));
+  await page.locator('[data-act="restart"]').click();
+  await page.locator(".mx-intro").waitFor({timeout:5000});
+  assert.deepEqual(errors,[],"JS errors: "+errors.join(" / "));
+  await page.close();
+  return shots;
+}
+(async()=>{const fs=require("node:fs");fs.mkdirSync("visual-infinito",{recursive:true});
+ const b=await chromium.launch({headless:true,args:["--no-sandbox"]});
+ try{for(const v of [[390,844],[360,780]]){await run(v[0],v[1],b);}console.log("PASS — mobile tactile 7-scene journey");}
+ finally{await b.close();}
+})().catch(e=>{console.error("FAIL",e.stack||String(e));process.exitCode=1;});
