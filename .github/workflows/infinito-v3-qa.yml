@@ -1,0 +1,56 @@
+name: Infinito V3 - seven-scene mobile QA
+
+on:
+  pull_request:
+    paths:
+      - 'public/infinito/odisea.js'
+      - 'public/infinito/odisea.css'
+      - 'public/infinito/qa.html'
+      - 'scripts/qa-infinito-v3.cjs'
+      - '.github/workflows/infinito-v3-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mobile-journey:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact proposed model
+        uses: actions/checkout@v4
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate JS
+        run: |
+          node --check public/infinito/odisea.js
+          node --check scripts/qa-infinito-v3.cjs
+      - name: Install browser in isolated QA directory
+        run: |
+          mkdir -p /tmp/infinito-browser
+          npm install --no-audit --no-fund --prefix /tmp/infinito-browser playwright@1.55.0
+          /tmp/infinito-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Serve experience from static harness
+        run: |
+          python3 -m http.server 3000 --bind 127.0.0.1 --directory public > /tmp/qa-infinito-http.log 2>&1 &
+          for i in $(seq 1 20); do
+            curl -fsS http://127.0.0.1:3000/infinito/qa.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/qa-infinito-http.log
+          exit 1
+      - name: Test all seven scenes and gestures on mobile
+        env:
+          NODE_PATH: /tmp/infinito-browser/node_modules
+        run: node scripts/qa-infinito-v3.cjs
+      - name: Preserve mobile screenshots for visual audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: infinito-visual-mobile
+          path: visual-infinito/*.png
+          if-no-files-found: ignore
+          retention-days: 5
