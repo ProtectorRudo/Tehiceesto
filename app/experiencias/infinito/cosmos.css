@@ -68,7 +68,7 @@ body:has(.gal-experience) { background: #080716; }
 .gal-discover-object-1 { width: clamp(135px, 36vw, 193px); aspect-ratio: 1; margin: 50px 0 30px; filter: drop-shadow(0 0 25px #439aca57); }
 .gal-planet-svg { display: block; width: 100%; height: 100%; animation: gal-float 4.8s ease-in-out infinite; }
 .gal-discover-object-2 { width: clamp(195px, 55vw, 270px); aspect-ratio: 1; margin: 30px 0; }
-.gal-sun-wrap { position: relative; width: 100%; height: 100%; display: grid; place-items: center; animation: gal-float 4.9s ease-in-out infinite; }
+.gal-sun-wrap { animation: gal-float 4.9s ease-in-out infinite; position: relative; width: 100%; height: 100%; display: grid; place-items: center; animation: gal-float 4.9s ease-in-out infinite; }
 .gal-sun-wrap::before { position: absolute; inset: -34px; border-radius: 50%; content: ""; background: radial-gradient(circle, #ffcc6161, #e96e142b 42%, transparent 74%); filter: blur(12px); animation: gal-pulse 3.3s ease-in-out infinite; }
 .gal-sun-rays { position: absolute; inset: 1%; border-radius: 50%; background: repeating-conic-gradient(from 0deg, #ffbb5399 0 9deg, transparent 10deg 21deg); filter: blur(4px); animation: gal-rotate 48s linear infinite; }
 .gal-sun-disc { z-index: 1; position: relative; width: 80%; aspect-ratio: 1; border-radius: 50%; border: 2px solid #fff3c476; background: radial-gradient(circle at 33% 30%, #fff7bc, #ffc154 46%, #ff872e 80%, #dc5523); box-shadow: inset -11px -18px 35px #bf451f55, 0 0 44px #ffb74b92; }
@@ -122,6 +122,7 @@ body:has(.gal-experience) { background: #080716; }
 @keyframes gal-twinkle { 0% { opacity: .16; transform: scale(.7); } 100% { opacity: .87; transform: scale(1.25); } }
 @keyframes gal-enter { from { opacity: 0; transform: translateY(12px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes gal-float { 0%, 100% { translate: 0 1px; } 50% { translate: 0 -8px; } }
+@keyframes gal-earth-drift { 0%,100% {transform: translateY(2px) rotate(-5deg);} 50% {transform: translateY(-7px) rotate(8deg);} }
 @keyframes gal-slowspin { from { transform: rotate(-5deg); } to { transform: rotate(9deg); } }
 @keyframes gal-pulse { 0%, 100% { opacity: .6; transform: scale(.91); } 50% { opacity: 1; transform: scale(1.11); } }
 @keyframes gal-rotate { to { transform: rotate(360deg); } }
