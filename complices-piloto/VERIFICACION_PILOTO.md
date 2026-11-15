@@ -58,3 +58,9 @@ Verificar estado de GitHub, Supabase y Render antes de publicar. Ejecutar migrac
 - 5/5 pruebas adicionales: los datos «evitar» NO se transforman en recomendaciones positivas; solo se transmiten los temas positivos y revocables; no hay acceso directo a respuestas.
 - Pruebas automáticas añadidas para que temas no autorizados/desconocidos no afecten la selección, las pistas del otro no revelen su texto y la generación siga determinista.
 - Todavía faltan dos cuentas reales, correos de confirmación, push en teléfonos y OpenAI API conectada. No confundir tests SQL/build con prueba real de uso.
+
+
+## Exportación y borrado privado
+- 14/14 pruebas SQL (ROLLBACK) con dos cuentas: exportación no incluye mensajes, respuestas ni recuerdos escritos por el otro; borrado no afecta al otro, a los corazones previos, al chat ni a la pareja.
+- Interfaz: exportar JSON local, borrar memoria IA con doble confirmación. El borrado real solo ocurre si el usuario lo solicita desde su sesión.
+- No elimina cuenta Supabase Auth compartida con TeHiceEsto. La eliminación completa de cuenta y espacio requiere otro flujo.
