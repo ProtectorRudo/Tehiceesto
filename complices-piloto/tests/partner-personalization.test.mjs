@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {PROFILE_QUESTIONS,profileProgress,safeProfile,partnerGuidedIdeas,profileForOwnAI} from "../lib/ai-profile.mjs";
+import {PROFILE_QUESTIONS,profileProgress,safeProfile,partnerGuidedIdeas,profileForOwnAI,isIdeaCompatible} from "../lib/ai-profile.mjs";
 
 test("el cuestionario tiene nueve preguntas y respuestas estructuradas válidas",()=>{
  assert.equal(PROFILE_QUESTIONS.length,9);
@@ -68,4 +68,15 @@ test("ninguna actividad supera los límites de longitud permitidos por base",()=
  const x=partnerGuidedIdeas({plan:"paseo",detalle:"chocolate",evitar:"contacto_sin_avisar",momento:"noche",objetivo:"rutina"});
  for(const a of x.ideas){assert.ok(a.title.length<=110);assert.ok(a.body.length<=420);assert.ok(a.body.length>=8)}
  assert.ok(x.game.body.length>=8);
+});
+
+test("no aceptar regalos que requieren gastar cuando la persona pidió gratis",()=>{
+ assert.equal(isIdeaCompatible("Comprale chocolates caros para mañana",{presupuesto:"gratis"}),false);
+ assert.equal(isIdeaCompatible("Dejale una nota cariñosa en su mesa",{presupuesto:"gratis"}),true);
+});
+test("los límites de contacto, exposición pública e intimidad se aplican también a ideas generativas",()=>{
+ assert.equal(isIdeaCompatible("Abrazala por sorpresa cuando no mire",{evitar:"contacto_sin_avisar"}),false);
+ assert.equal(isIdeaCompatible("Hacé un anuncio en público para todos",{evitar:"sorpresas_publicas"}),false);
+ assert.equal(isIdeaCompatible("Proponele un juego picante",{evitar:"actividades_intimas"}),false);
+ assert.equal(isIdeaCompatible("Hablen de sus sueños con tranquilidad",{evitar:"actividades_intimas"}),true);
 });
