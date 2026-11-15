@@ -12,12 +12,14 @@ export async function POST(request){
   const client=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false},global:{headers:{Authorization:"Bearer "+token}}});
   const {data:{user},error}=await client.auth.getUser(token);
   if(error||!user)return Response.json({error:"Sesión inválida."},{status:401});
-  const [pref,membership,reflections]=await Promise.all([
+  const [pref,membership,reflections,memories]=await Promise.all([
    client.from("cp_preferences").select("favorite_treat,favorite_plan,love_language").eq("user_id",user.id).maybeSingle(),
    client.from("cp_members").select("space_id,display_name").eq("user_id",user.id).maybeSingle(),
-   client.from("cp_reflections").select("question,answer").eq("user_id",user.id).eq("ai_use_allowed",true).order("updated_at",{ascending:false}).limit(8)
+   client.from("cp_reflections").select("question,answer").eq("user_id",user.id).eq("ai_use_allowed",true).order("updated_at",{ascending:false}).limit(8),
+   client.from("cp_ai_memories").select("category,body").eq("user_id",user.id).eq("use_for_ai",true).order("updated_at",{ascending:false}).limit(10)
   ]);
   if(!membership.data)return Response.json({error:"Primero creá o aceptá un espacio privado."},{status:403});
+  if([pref,reflections,memories].some(x=>x.error))return Response.json({error:"No pude leer tus preferencias privadas para responderte de forma segura."},{status:503});
   const {data:surprise}=await client.rpc("cp_partner_surprise",{p_space:membership.data.space_id});
   const hint=(surprise?.title||"Un gesto cariñoso")+": "+(surprise?.body||"");
   const {data:slot,error:rateError}=await client.rpc("cp_claim_ai_slot");
@@ -31,7 +33,7 @@ export async function POST(request){
    else if(/pregunta|convers|hablar/.test(lower))reply="Probá preguntarle: «¿Qué gesto pequeño de esta semana te hizo sentir querido/a?». Escuchá sin interrumpir y después respondé vos también.";
    else if(/cita|salida|plan|fin de semana/.test(lower))reply="Podrían preparar una cita sencilla, con algo rico, una canción que les recuerde un momento lindo y una pregunta diferente para conversar. Elegí un lugar y una hora que a ambos les quede cómodo.";
    else if(/picante|intim|sexo/.test(lower))reply="Si ambos son adultos y están cómodos, pueden conversar sobre qué ambientes, detalles o momentos románticos disfrutan. Lo importante es que el juego sea voluntario y sin presiones.";
-   else reply="Se me ocurre esto para sorprender hoy: "+hint+" Si preferís, contame si buscás algo sin gastar, una cita, un juego o una conversación y lo enfocamos mejor.";
+   else {const p=pref.data?.favorite_plan;const ownPlan=p==="cocinar"?"preparar una receta juntos":p==="peli"?"hacer una noche de película":p==="caminar"?"compartir una caminata corta":p==="salir"?"organizar una salida sencilla":"charlar sin pantallas";reply="Con lo que elegiste contarme, te propongo "+ownPlan+". También podés probar esta sorpresa: "+hint+" Guardá más gustos en «Mi cómplice» y voy a afinar las próximas misiones.";}
    return Response.json({mode:"guiado",reply});
   }
   const system=[
@@ -42,7 +44,8 @@ export async function POST(request){
    "Esta persona se identifica en la app como "+membership.data.display_name+".",
    "Preferencias propias de esta persona: "+JSON.stringify(pref.data||{}),
    "Sugerencia segura y autorizada para la pareja: "+hint,
-   "Respuestas privadas autorizadas por esta persona para que su IA las use: "+(reflections.data||[]).map(n=>n.question+": "+n.answer.slice(0,300)).join(" | ").slice(0,1500)
+   "Respuestas privadas autorizadas por esta persona para que su IA las use: "+(reflections.data||[]).map(n=>n.question+": "+n.answer.slice(0,300)).join(" | ").slice(0,1500),
+   "Recuerdos de esta misma persona que eligió guardar para uso de la IA (NO compartir con la pareja): "+(memories.data||[]).map(n=>n.category+": "+String(n.body).slice(0,240)).join(" | ").slice(0,1200)
   ].join("\n");
   const upstream=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},body:JSON.stringify({model:"gpt-4.1-mini",instructions:system,input:message,max_output_tokens:240,store:false}),cache:"no-store",signal:AbortSignal.timeout(15000)});
   if(!upstream.ok)return Response.json({error:"El servicio de IA no está disponible ahora. Intentá más tarde."},{status:503});
