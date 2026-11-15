@@ -41,12 +41,23 @@ const TREAT=[["ninguno","Me gustan las sorpresas simples"],["chocolate","Chocola
 const PLAN=[["charlar","Conversar"],["caminar","Caminar"],["peli","Películas"],["cocinar","Cocinar juntos"],["salir","Salir"]];
 const LANG=[["tiempo","Tiempo de calidad"],["palabras","Palabras lindas"],["detalles","Pequeños detalles"],["ayuda","Ayuda cotidiana"],["contacto","Cariño físico"]];
 const TOPICS=[["romance","💕 Romance"],["humor","😄 Humor"],["profundo","🌙 Profundas"],["futuro","✨ Futuro"],["picante","🌶️ Picantes"]];
-const NAV=[["hoy","⌂","Hoy"],["misiones","♡","Misiones"],["juegos","♧","Juegos"],["preguntas","?","Preguntas"],["mensajes","✉","Chat"],["complice","✦","IA"]];
+const NAV=[["hoy","⌂","Hoy"],["misiones","♡","Misiones"],["juegos","♧","Juegos"],["mensajes","✉","Chat"],["complice","✦","Cómplice"]];
 
 function todayKey(){return new Intl.DateTimeFormat("en-CA",{timeZone:"America/Argentina/Buenos_Aires",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date())}
 function weeklyKey(){const date=new Date(todayKey()+"T12:00:00");const monday=new Date(date);monday.setDate(date.getDate()-((date.getDay()+6)%7));return monday.toISOString().slice(0,10)}
 function getError(err){return err?.message||"No se pudo completar la acción."}
 function humanTime(iso){try{return new Date(iso).toLocaleString("es-AR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}catch{return ""}}
+function NavIcon({name}){
+ const props={width:24,height:24,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:1.8,strokeLinecap:"round",strokeLinejoin:"round","aria-hidden":"true"};
+ return <svg {...props}>
+ {name==="hoy"&&<><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10Z"/></>}
+ {name==="misiones"&&<><rect x="4.5" y="5.5" width="15" height="16" rx="3"/><path d="M9 5.5V3m6 2.5V3M8 13l2.5 2.5 5-5"/></>}
+ {name==="juegos"&&<><path d="M6.5 9h11a4 4 0 0 1 3.8 3l1 4.3a2.5 2.5 0 0 1-4 2.5l-3-2.5H8.7l-3 2.5a2.5 2.5 0 0 1-4-2.5l1-4.3a4 4 0 0 1 3.8-3Z"/><path d="M7.8 11.7v5M5.3 14.2h5M16.8 12.2h.01M19.2 14.2h.01"/></>}
+ {name==="mensajes"&&<><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.5 0-3-.4-4.1-1.1L3 21l1.6-5A8.5 8.5 0 1 1 21 11.5Z"/></>}
+ {name==="complice"&&<><path d="m12 2 1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9L12 2ZM19.5 17l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z"/></>}
+ {name==="perfil"&&<><circle cx="12" cy="8" r="3.5"/><path d="M4.4 21a8 8 0 0 1 15.2 0M4 4l1.5 1.5M20 4l-1.5 1.5"/></>}
+ </svg>
+}
 function Pill({children,gold}){return <span className={"pill"+(gold?" gold":"")}>{children}</span>}
 function Button({children,secondary=false,small=false,full=false,disabled=false,onClick,type="button"}){return <button type={type} disabled={disabled} onClick={onClick} className={"btn"+(secondary?" secondary":"")+(small?" small":"")+(full?" full":"")}>{children}</button>}
 function SelectField({label,value,onChange,options}){return <div className="form-field"><label>{label}</label><select className="select" value={value} onChange={e=>onChange(e.target.value)}>{options.map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></div>}
@@ -56,7 +67,7 @@ export default function Home(){
  const [member,setMember]=useState(null),[members,setMembers]=useState([]),[space,setSpace]=useState(null),[pref,setPref]=useState(null),[surprise,setSurprise]=useState(DEFAULT_SURPRISE);
  const [activities,setActivities]=useState([]),[messages,setMessages]=useState([]),[notes,setNotes]=useState([]),[reflections,setReflections]=useState([]),[memories,setMemories]=useState([]),[aiRatings,setAiRatings]=useState([]),[notificationSettings,setNotificationSettings]=useState({enabled:false,quiet_start:"22:00",quiet_end:"08:00"});
  const [name,setName]=useState(""),[inviteInput,setInviteInput]=useState("");
- const [tab,setTab]=useState("hoy"),[messageText,setMessageText]=useState(""),[replyText,setReplyText]=useState(""),[replyTo,setReplyTo]=useState(null),[questionTopic,setQuestionTopic]=useState("romance");
+ const [tab,setTab]=useState("hoy"),[missionFilter,setMissionFilter]=useState("diarias"),[messageText,setMessageText]=useState(""),[replyText,setReplyText]=useState(""),[replyTo,setReplyTo]=useState(null),[questionTopic,setQuestionTopic]=useState("romance");
  const [aiText,setAiText]=useState(""),[aiChat,setAiChat]=useState([]),[aiBusy,setAiBusy]=useState(false),[tipMode,setTipMode]=useState("guiado"),[noteText,setNoteText]=useState("");
  const [gameAnswers,setGameAnswers]=useState({}),[gameResults,setGameResults]=useState({});
  const [aboutQuestion,setAboutQuestion]=useState("q01"),[aboutAnswer,setAboutAnswer]=useState(""),[aboutAllowAI,setAboutAllowAI]=useState(false),[aboutShare,setAboutShare]=useState(false),[aboutShareTheme,setAboutShareTheme]=useState(""),[aiAvailable,setAiAvailable]=useState(false);
@@ -311,9 +322,78 @@ async function saveMemory(){
  }
  async function saveNote(){if(!noteText.trim())return;setBusy(true);const {error}=await db.from("cp_ai_notes").insert({user_id:user.id,body:noteText.trim()});setNotice(error?getError(error):"La nota quedó guardada solo para vos.");setNoteText("");await load(user);setBusy(false)}
  if(loading)return <main className="app"><div className="brand"><span className="mark">♡</span> Cómplices</div><p className="muted" style={{marginTop:55}}>Preparando nuestro rincón…</p></main>;
- if(!user)return <main className="app"><div className="brand"><span className="mark">♡</span> CÓMPLICES <span className="muted">por TeHiceEsto</span></div><div className="hero-grid"><div><span className="tiny">UN MUNDO PRIVADO PARA DOS</span><h1>Volver a elegirnos.<br/><span style={{color:"#ff8eae"}}>Todos los días.</span></h1><p className="muted">Misiones sorpresa, preguntas que acercan, juegos y un cómplice que aprende qué hace especial a tu pareja.</p><Button onClick={()=>document.querySelector("#acceso")?.scrollIntoView({behavior:"smooth"})}>Empezar nuestra aventura →</Button></div><div className="hero-art"><span className="big-heart">💗</span><div className="float one">✦ Una sorpresa para hoy</div><div className="float two">♡ +40 corazones por tu gesto</div></div></div><div className="features"><article><h3>💌 Misiones con intención</h3><p>Un motivo nuevo para alegrarle el día a alguien.</p></article><article><h3>🎲 Siempre algo juntos</h3><p>Preguntas, juegos y pequeñas aventuras reales.</p></article><article><h3>🔒 Solo ustedes dos</h3><p>Cuentas personales y recuerdos compartidos.</p></article></div><section className="auth-card" id="acceso"><div className="glass box"><span className="tiny">ACCESO AL PILOTO</span><h2 style={{margin:"9px 0 19px"}}>Tu lugar empieza acá.</h2><div className="tabs" style={{marginBottom:20}}><button className={authMode==="entrar"?"active":""} onClick={()=>setAuthMode("entrar")}>Entrar</button><button className={authMode==="crear"?"active":""} onClick={()=>setAuthMode("crear")}>Crear cuenta</button></div><form onSubmit={login}><div className="form-field"><label>Correo electrónico</label><input className="input" type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu@email.com"/></div><div className="form-field"><label>Contraseña (mínimo 6 caracteres)</label><input className="input" type="password" minLength={6} required autoComplete={authMode==="entrar"?"current-password":"new-password"} value={pass} onChange={e=>setPass(e.target.value)}/></div><Button full type="submit" disabled={busy}>{busy?"Un momento…":authMode==="entrar"?"Entrar a nuestro espacio":"Crear mi cuenta"}</Button></form>{notice&&<div className="alert">{notice}</div>}{authMode==="crear"&&<div style={{marginTop:12}}><button className="link-button" onClick={()=>{setAuthMode("entrar");setNotice("")}}>Ya confirmé mi correo · Iniciar sesión</button></div>}<p className="subtle" style={{marginTop:14}}>Piloto privado para adultos. Cada integrante usa su propia cuenta.</p></div></section><footer className="page-bottom">Cómplices · Una experiencia independiente de TeHiceEsto · Privacidad primero.</footer></main>;
- if(!member)return <main className="app"><header className="top"><div className="brand"><span className="mark">♡</span> Cómplices</div><button className="link-button" onClick={logout}>Salir</button></header><section className="auth-card" style={{marginTop:40}}><span className="tiny">YA TENÉS TU CUENTA</span><h1>Creemos nuestro <span style={{color:"#ff8ead"}}>rincón.</span></h1><p className="muted" style={{margin:"15px 0 24px"}}>Podés crear un espacio e invitar a tu pareja o ingresar con el código que te compartió.</p><div className="glass box"><form onSubmit={inviteInput?joinSpace:createSpace}><div className="form-field"><label>¿Cómo querés que te llamemos?</label><input className="input" maxLength={40} required value={name} onChange={e=>setName(e.target.value)} placeholder="Tu nombre"/></div><div className="form-field"><label>Código de invitación (opcional)</label><input className="input" value={inviteInput} onChange={e=>setInviteInput(e.target.value)} placeholder="Si recibiste uno, pegalo acá"/></div><Button full disabled={busy} type="submit">{busy?"Guardando…":inviteInput?"Unirme a nuestra pareja":"Crear nuestro espacio"}</Button></form>{notice&&<div className="alert">{notice}</div>}</div></section></main>;
- return <main className="app"><header className="top"><div className="brand"><span className="mark">♡</span> CÓMPLICES</div><div className="row"><Pill gold>❤️ {totalHearts} corazones</Pill><button className="link-button" onClick={logout}>Salir</button></div></header><div className="welcome"><div><span className="tiny">SU HISTORIA SIGUE</span><h1>Hola, {member.display_name}. <span style={{color:"#ff9db9"}}>♡</span></h1><p className="muted">{partner?"Un espacio para "+member.display_name+" y "+partner.display_name:"Tu rincón ya está listo. Falta invitar a tu pareja."}</p></div></div><nav className="tabs desktop" aria-label="Secciones">{NAV.map(([key,emoji,title])=><button key={key} className={tab===key?"active":""} onClick={()=>{setNotice("");setTab(key)}}>{emoji} {title}</button>)}</nav>{notice&&<div className="alert">{notice}</div>}
+
+ if(!user)return <main className="app marketing">
+  <header className="top"><div className="brand"><span className="mark">♡</span> Cómplices</div><span className="status-chip">♡ Una historia para dos</span></header>
+  <section className="hero-grid">
+   <div className="hero-copy"><span className="tiny">EL LUGAR MÁS LINDO ES CON VOS</span>
+    <h1>Un poquito más cerca.<br/><span>Todos los días.</span></h1>
+    <p>Preguntas que nos hacen descubrirnos, misiones que sorprenden y pequeños momentos para seguir eligiéndose. Todo en un espacio privado para dos.</p>
+    <Button onClick={()=>document.querySelector("#acceso")?.scrollIntoView({behavior:"smooth"})}>Empezar nuestra historia ♡</Button>
+    <div className="mood-divider">Pequeños gestos · Grandes conexiones</div>
+   </div>
+   <div className="hero-art" role="img" aria-label="Ilustración de una pareja abrazada al atardecer"><div className="float one">♡ Tu desafío de hoy</div><div className="float two">+40 corazones por una sonrisa</div></div>
+  </section>
+  <div className="features">
+   <article><h3>♡ Misiones con intención</h3><p>Ideas diarias y semanales para disfrutar juntos, sin competir ni sumar obligaciones.</p></article>
+   <article><h3>✦ Preguntas que acercan</h3><p>Conversaciones, juegos cooperativos y desafíos para descubrirse un poco más.</p></article>
+   <article><h3>⌁ Tu cómplice personal</h3><p>Sugerencias pensadas para ustedes a partir de gustos que cada uno decide compartir.</p></article>
+  </div>
+  <p className="brand-story"><strong>El mejor momento pasa fuera de la pantalla.</strong> Cómplices solo ayuda a que haya más de esos momentos.</p>
+  <section className="auth-card" id="acceso">
+   <div className="glass box">
+    <span className="tiny">BIENVENIDOS AL RINCÓN DE USTEDES</span>
+    <h2 style={{margin:"10px 0 9px"}}>{authMode==="entrar"?"Qué lindo volver a verte.":"Toda historia empieza por algo."}</h2>
+    <p className="subtle" style={{marginBottom:18}}>{authMode==="entrar"?"Entrá a su espacio y descubrí qué los espera hoy.":"Creá tu cuenta personal y después invitá a tu pareja."}</p>
+    <div className="tabs" style={{marginBottom:20}}>
+     <button type="button" className={authMode==="entrar"?"active":""} onClick={()=>{setAuthMode("entrar");setNotice("")}}>Ya tengo cuenta</button>
+     <button type="button" className={authMode==="crear"?"active":""} onClick={()=>{setAuthMode("crear");setNotice("")}}>Crear cuenta</button>
+    </div>
+    <form onSubmit={login}>
+     <div className="form-field"><label htmlFor="cp-email">Correo electrónico</label><input id="cp-email" className="input" type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu@email.com"/></div>
+     <div className="form-field"><label htmlFor="cp-pass">Contraseña (mínimo 6 caracteres)</label><input id="cp-pass" className="input" type="password" minLength={6} required autoComplete={authMode==="entrar"?"current-password":"new-password"} value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••"/></div>
+     <Button full type="submit" disabled={busy}>{busy?"Un momento…":authMode==="entrar"?"Entrar a nuestro espacio →":"Crear mi cuenta →"}</Button>
+    </form>
+    {notice&&<div className="alert" role="status">{notice}</div>}
+    {authMode==="crear"&&<button type="button" className="link-button" style={{marginTop:13}} onClick={()=>{setAuthMode("entrar");setNotice("")}}>Ya confirmé mi correo · Iniciar sesión</button>}
+    <p className="auth-helper">🔒 Un espacio para dos personas adultas. Cada uno tiene su propia cuenta y sus datos personales.</p>
+   </div>
+  </section>
+  <footer className="page-bottom">Cómplices · Con cariño y respeto por su privacidad · Una experiencia de TeHiceEsto</footer>
+ </main>;
+
+ if(!member)return <main className="app onboarding-route">
+  <header className="top"><div className="brand"><span className="mark">♡</span> Cómplices</div><button type="button" className="profile-back" onClick={logout}>Cerrar sesión</button></header>
+  <section className="auth-card" style={{marginTop:36}}>
+   <span className="tiny">TU NUEVA HISTORIA COMIENZA ACÁ</span>
+   <h1>Un rincón <span style={{color:"#cf5b87"}}>para los dos.</span></h1>
+   <p className="muted" style={{margin:"13px 0 19px"}}>{inviteInput?"Recibiste una invitación para entrar a un espacio privado.":"Creá su espacio o usá el enlace que te compartió tu pareja."}</p>
+   <div className="onboarding-art" role="img" aria-label="Dos personas abrazadas mirando un atardecer"/>
+   <div className="onboarding-intro"><h3>Sus conversaciones, sus aventuras, sus recuerdos ♡</h3><p>Un espacio común, dos cuentas individuales y la libertad de compartir solo lo que cada uno elija.</p></div>
+   <div className="glass box" style={{marginTop:21}}>
+    <form onSubmit={inviteInput?joinSpace:createSpace}>
+     <div className="form-field"><label htmlFor="cp-name">¿Cómo querés que te llamemos?</label><input className="input" id="cp-name" maxLength={40} required value={name} onChange={e=>setName(e.target.value)} placeholder="Tu nombre"/></div>
+     <div className="form-field"><label htmlFor="cp-invite">Código de invitación (opcional)</label><input className="input" id="cp-invite" value={inviteInput} onChange={e=>setInviteInput(e.target.value)} placeholder="Pegá aquí el código si te invitaron"/></div>
+     <Button full disabled={busy} type="submit">{busy?"Guardando…":inviteInput?"Unirme a nuestra pareja ♡":"Crear nuestro espacio ♡"}</Button>
+    </form>
+    {notice&&<div role="status" className="alert">{notice}</div>}
+    <p className="auth-helper">🔒 Solo dos integrantes por espacio. La invitación no permite consultar recuerdos privados.</p>
+   </div>
+  </section>
+ </main>;
+
+ return <main className="app main-app">
+  <header className="top">
+   <div className="brand"><span className="mark">♡</span> Cómplices</div>
+   <div className="top-actions"><span className="heart-pill">♥ {totalHearts} corazones</span>
+    <button type="button" className={"profile-trigger"+(tab==="perfil"?" active":"")} aria-label="Perfil y privacidad" title="Perfil y privacidad" onClick={()=>{setTab("perfil");setNotice("");window.scrollTo({top:0,behavior:"smooth"})}}><NavIcon name="perfil"/></button>
+   </div>
+  </header>
+  {tab!=="perfil"&&<div className="welcome"><div><span className="tiny">SU HISTORIA SIGUE</span><h1>Hola, {member.display_name} <span style={{color:"#e85c8e"}}>♡</span></h1><p className="muted">{partner?"Un espacio para "+member.display_name+" y "+partner.display_name:"Tu rincón ya está listo. Invitá a tu pareja para empezar juntos."}</p></div></div>}
+  <nav className="tabs desktop" aria-label="Secciones">
+   {NAV.map(([key,emoji,title])=><button type="button" key={key} className={tab===key?"active":""} onClick={()=>{setNotice("");setTab(key)}}><NavIcon name={key}/>{title}</button>)}
+  </nav>
+  {notice&&<div className="alert" role="status">{notice}</div>}
  {tab==="hoy"&&<><div className="dashboard"><div className="accent-card"><span className="tiny">LA CONEXIÓN SE CONSTRUYE CADA DÍA</span><h2 style={{fontSize:42,margin:"12px 0"}}>Lo más lindo de hoy todavía puede pasar.</h2><p className="subtle">No hace falta una fecha especial para tener un gesto especial.</p><div className="row wrap" style={{marginTop:22}}><Button onClick={()=>setTab("misiones")}>Ver misiones →</Button><Button secondary onClick={()=>setTab("preguntas")}>Enviar pregunta</Button></div></div><div className="glass box stack"><div className="between row"><span className="tiny">PROGRESO COMPARTIDO</span><span>💕</span></div><h2>{totalHearts} corazones</h2><div className="progress-track"><div className="progress-bar" style={{width:(totalHearts%500)/5+"%"}}/></div><p className="subtle">Cada gesto cuenta. No hay competencia ni días perdidos.</p>{!partner?<><div className="note">Invitá a tu pareja para jugar y conversar juntos.</div><Button small onClick={shareInvite}>Compartir invitación</Button><p className="subtle">Código: {space?.invite_code}</p></>:<p className="subtle">Conectados: {member.display_name} + {partner.display_name} ♡</p>}</div></div><div className="section-title"><h2>Tus desafíos de hoy</h2><Pill>{centralLoading?"Preparando…":centralMode==="generativa"?"IA personalizada":"Selección personalizada"}</Pill></div>{centralError&&<div className="note">Mostrando desafíos de respaldo. {centralError}</div>}<div className="cards">{tasks.slice(0,2).map(task=><Task key={task.key} task={task} done={mineDone(task.key)} other={partnerDone(task.key)} partner={partner} busy={busy} rating={ratingFor(task)} onRate={value=>rateActivity(task,value)} onToggle={()=>mark(task.key)}/>)}</div><div className="section-title"><h2>Esta semana</h2><Pill gold>+120 ❤️</Pill></div><Task task={tasks[2]} done={mineDone(tasks[2].key)} other={partnerDone(tasks[2].key)} partner={partner} busy={busy} rating={ratingFor(tasks[2])} onRate={value=>rateActivity(tasks[2],value)} onToggle={()=>mark(tasks[2].key)}/><div className="section-title"><h2>Una pregunta que acerca</h2></div><div className="glass box"><p style={{fontSize:18,marginBottom:17}}>{QUESTION_BANK.romance[new Date().getDate()%QUESTION_BANK.romance.length]}</p><Button secondary onClick={()=>{setQuestionTopic("romance");setTab("preguntas")}}>Preguntársela a mi pareja</Button></div><div className="section-title"><h2>Hoy tu cómplice quiere conocerte</h2></div><div className="glass box stack"><span className="tiny">UNA PREGUNTA PERSONAL</span><h3>{dailyAbout[1]}</h3><p className="subtle">Solo vos podés ver tu respuesta. Podés decidir si tu IA la utiliza en las sugerencias.</p><Button secondary onClick={()=>{pickAbout(dailyAbout[0]);setTab("complice");window.scrollTo({top:0,behavior:"smooth"})}}>Responder en mi espacio privado →</Button></div></>}
  {tab==="misiones"&&<><div className="section-title"><div><span className="tiny">PEQUEÑOS GESTOS, GRANDES HISTORIAS</span><h2>Nuestras misiones</h2></div><Pill gold>{totalHearts} ❤️</Pill></div><div className="cards">{tasks.map(task=><Task key={task.key} task={task} done={mineDone(task.key)} other={partnerDone(task.key)} partner={partner} busy={busy} rating={ratingFor(task)} onRate={value=>rateActivity(task,value)} onToggle={()=>mark(task.key)}/>)}</div><div className="glass box" style={{marginTop:17}}><h3>Los corazones son de los dos ♡</h3><p className="muted" style={{marginTop:8}}>Marcá una misión cuando la hagas. Si la otra persona también la cumple, los dos suman. No hay castigos por no completar actividades.</p></div></>}
 
