@@ -33,7 +33,8 @@ test("si la pareja prefiere sin gastos, no se le recomienda comprar obsequios",(
 });
 test("una preferencia de evitar gastar prevalece sobre regalos",()=>{
  const v=partnerGuidedIdeas({detalle:"flores",evitar:"gastos"});
- assert.match(v.ideas[0].body,/no cuesta nada/i);
+ assert.match(v.ideas[0].title,/no cuesta nada/i);
+ assert.match(v.ideas[0].body,/nota/i);
  assert.doesNotMatch(v.ideas[0].body,/flor/i);
 });
 test("no recomienda abrazos sorpresivos cuando se rechaza el contacto sin preguntar",()=>{
