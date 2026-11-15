@@ -1,7 +1,7 @@
 import {createClient} from "@supabase/supabase-js";
 import {createHash} from "node:crypto";
 import {generateGuidedPlan,answerIsSafe} from "../../../lib/central-content.mjs";
-import {partnerGuidedIdeas,safeProfile,isIdeaCompatible} from "../../../lib/ai-profile.mjs";
+import {partnerGuidedIdeas,safeProfile,isIdeaCompatible,profileForOwnAI} from "../../../lib/ai-profile.mjs";
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
 const NO_STORE={"Cache-Control":"no-store","X-Robots-Tag":"noindex"};
@@ -26,6 +26,7 @@ async function improveWithAI(guided,user,context,db){
  const safeContext={
   who:"la persona que consulta",
   ownPreferences:context.preferences,
+  ownStructuredPreferences:context.ownProfile||{},
   partnerSharedThemes:context.partnerSignals||[],
   partnerApprovedChoices:context.partnerProfile||{},
   ownAnswers:context.reflections.filter(x=>x.ai_use_allowed).slice(0,8).map(r=>({question:r.question,answer:String(r.answer).slice(0,350)})),
@@ -73,7 +74,7 @@ export async function GET(request){
   const {data:cached,error:cachedError}=await db.from("cp_ai_activities").select("*").eq("user_id",user.id).in("period_key",periodKeys);
   if(cachedError)return send({error:"No se pudieron consultar tus actividades"},503);
   const readySlots=["daily_1","daily_2","weekly_1","game_1"];
-  const [p,reflections,memories,hint,history,feedback,partnerThemes,partnerChoices]=await Promise.all([
+  const [p,reflections,memories,hint,history,feedback,partnerThemes,partnerChoices,ownCards]=await Promise.all([
    db.from("cp_preferences").select("favorite_treat,favorite_plan,love_language").eq("user_id",user.id).maybeSingle(),
    db.from("cp_reflections").select("question_id,question,answer,ai_use_allowed").eq("user_id",user.id).eq("ai_use_allowed",true).limit(12),
    db.from("cp_ai_memories").select("category,body,use_for_ai").eq("user_id",user.id).eq("use_for_ai",true).order("created_at",{ascending:false}).limit(20),
@@ -81,13 +82,19 @@ export async function GET(request){
    db.from("cp_ai_activities").select("id,theme").eq("user_id",user.id).order("created_at",{ascending:false}).limit(20),
    db.from("cp_ai_feedback").select("activity_id,rating").eq("user_id",user.id).order("updated_at",{ascending:false}).limit(30),
    db.rpc("cp_partner_signals",{p_space:member.space_id}),
-   process.env.CP_PROFILE_INTERNAL_KEY?db.rpc("cp_partner_profile",{p_space:member.space_id,p_internal_secret:process.env.CP_PROFILE_INTERNAL_KEY}):Promise.resolve({data:{},error:null})
+   process.env.CP_PROFILE_INTERNAL_KEY?db.rpc("cp_partner_profile",{p_space:member.space_id,p_internal_secret:process.env.CP_PROFILE_INTERNAL_KEY}):Promise.resolve({data:{},error:null}),
+   db.from("cp_ai_profile_cards").select("question_key,answer_code").eq("user_id",user.id).limit(9)
   ]);
-  const failed=[p,reflections,memories,hint,history,feedback,partnerThemes,partnerChoices].some(x=>x.error);
+  const failed=[p,reflections,memories,hint,history,feedback,partnerThemes,partnerChoices,ownCards].some(x=>x.error);
   if(failed)return send({error:"No pude preparar las propuestas sin verificar tus preferencias privadas"},503);
   const themesById=new Map((history.data||[]).map(a=>[a.id,a.theme]));
   const ratingThemes=(feedback.data||[]).map(x=>({theme:themesById.get(x.activity_id),rating:x.rating})).filter(x=>x.theme);
-  const context={preferences:p.data||{},reflections:reflections.data||[],memories:memories.data||[],partnerSignals:partnerThemes.data||[],partnerProfile:safeProfile(partnerChoices.data)};
+  const ownProfile=profileForOwnAI(ownCards.data||[]);
+  const planMap={paseo:"caminar",cocinar:"cocinar",pelicula:"peli",charlar:"charlar",jugar:"charlar",salida:"salir",descanso:"charlar"};
+  const ownPreferences={...p.data};
+  if(ownProfile.plan&&planMap[ownProfile.plan])ownPreferences.favorite_plan=planMap[ownProfile.plan];
+  if(ownProfile.afecto&&["palabras","tiempo","detalles","ayuda","contacto"].includes(ownProfile.afecto))ownPreferences.love_language=ownProfile.afecto;
+  const context={preferences:ownPreferences,ownProfile,reflections:reflections.data||[],memories:memories.data||[],partnerSignals:partnerThemes.data||[],partnerProfile:safeProfile(partnerChoices.data)};
   const personallyTailored=partnerGuidedIdeas(context.partnerProfile);
   const fingerprint=createHash("sha256").update(JSON.stringify({context,hint:hint.data||null,ratings:feedback.data||[]})).digest("hex");
   const {data:done,error:doneError}=await db.from("cp_completions").select("task_key").eq("space_id",member.space_id).eq("user_id",user.id);
