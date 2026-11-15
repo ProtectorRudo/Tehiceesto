@@ -17,6 +17,8 @@ async function improveWithAI(guided,user,context,db){
  if(!process.env.OPENAI_API_KEY)return guided;
  const {data:slot,error:slotError}=await db.rpc("cp_claim_ai_slot");
  if(slotError||!slot)return guided;
+ const {data:daily,error:dailyError}=await db.rpc("cp_claim_openai_slot");
+ if(dailyError||!daily)return guided;
  const schema={
   type:"object",additionalProperties:false,required:["daily_2","weekly_1"],
   properties:{
