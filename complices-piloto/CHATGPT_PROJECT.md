@@ -69,3 +69,10 @@ No reiniciar la arquitectura ni afirmar que algo está hecho sin evidencia direc
 - Interfaz `app/page.jsx`: controles de compartir solo tema para reflexiones y recuerdos, editar, revocar y eliminar. La app no envía respuestas privadas literales ni procesa textos automáticamente como permiso de compartición.
 - Notificaciones: eliminada duplicación local desde polling; mantener opt-in explícito y posibilidad de apagar.
 - Generación realmente original por modelo sigue requiriendo `OPENAI_API_KEY`; el algoritmo guiado no es un LLM.
+
+
+## Portabilidad y control personal (15/11/2026)
+- RPC `cp_export_my_personal_data()` (SECURITY INVOKER + RLS) devuelve solo los datos personales del usuario autenticado: preferencias, recuerdos, reflexiones, notas, actividades, feedback, completados, mensajes enviados, elecciones de juego y ajustes; no incluye contenidos escritos por otra persona ni claves push.
+- RPC `cp_reset_my_ai_profile()` borra SOLO memoria y sugerencias de IA del autenticado, restablece sus preferencias y desactiva pistas; conserva cuenta y espacio, chat, juegos y corazones. Se limita por `auth.uid()`, no recibe ID externo.
+- Interfaz móvil: exportación JSON y borrado de memoria con confirmación doble y palabra BORRAR.
+- Control de base: 14/14 pruebas SQL de exportación y borrado individual, transacción revertida. Falta prueba en navegador con dos cuentas reales.
