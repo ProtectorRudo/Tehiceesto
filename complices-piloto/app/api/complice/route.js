@@ -1,8 +1,9 @@
 
 import {createClient} from "@supabase/supabase-js";
-import {partnerGuidedIdeas,safeProfile,profileForOwnAI} from "../../../lib/ai-profile.mjs";
+import {partnerGuidedIdeas,safeProfile,profileForOwnAI,isIdeaCompatible} from "../../../lib/ai-profile.mjs";
+import {callOpenAI,getOpenAIModel,isAIConfigured} from "../../../lib/openai-client.mjs";
 export const dynamic="force-dynamic";
-export async function GET(){return Response.json({mode:process.env.OPENAI_API_KEY?"ia":"guiado"},{headers:{"Cache-Control":"no-store"}})}
+export async function GET(){return Response.json({mode:isAIConfigured()?"ia":"guiado",configured:isAIConfigured()},{headers:{"Cache-Control":"no-store"}})}
 export async function POST(request){
  try{
   const token=(request.headers.get("authorization")||"").replace(/^Bearer\s+/i,"").trim();
@@ -55,10 +56,17 @@ export async function POST(request){
    "Respuestas privadas autorizadas por esta persona para que su IA las use: "+(reflections.data||[]).map(n=>n.question+": "+n.answer.slice(0,300)).join(" | ").slice(0,1500),
    "Recuerdos de esta misma persona que eligió guardar para uso de la IA (NO compartir con la pareja): "+(memories.data||[]).map(n=>n.category+": "+String(n.body).slice(0,240)).join(" | ").slice(0,1200)
   ].join("\n");
-  const upstream=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},body:JSON.stringify({model:"gpt-4.1-mini",instructions:system,input:message,max_output_tokens:240,store:false}),cache:"no-store",signal:AbortSignal.timeout(15000)});
-  if(!upstream.ok)return Response.json({error:"El servicio de IA no está disponible ahora. Intentá más tarde."},{status:503});
-  const result=await upstream.json();
-  const reply=(result.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==="output_text").map(x=>x.text).join("\n")||"No pude preparar una sugerencia por ahora.";
-  return Response.json({mode:"ia",reply});
+  const result=await callOpenAI({key,model:getOpenAIModel(),instructions:system,input:message,maxOutputTokens:500});
+  if(!result.ok){
+   const reason=result.reason;
+   const temporary=["timeout","network","limit","provider","incomplete","empty","unavailable"].includes(reason);
+   const suffix=temporary?"El servicio generativo no respondió en este momento.":"La conexión de OpenAI necesita revisar la clave o su facturación.";
+   const reply=suffix+" Mientras tanto, esta es una idea segura: "+personalized.ideas[0].title+": "+personalized.ideas[0].body;
+   return Response.json({mode:"guiado",degraded:true,reason,reply},{headers:{"Cache-Control":"no-store"}});
+  }
+  if(!isIdeaCompatible(result.text,approvedPartnerProfile)){
+   return Response.json({mode:"guiado",degraded:true,reason:"safety",reply:"Preparé una alternativa que respeta sus preferencias: "+personalized.ideas[0].title+": "+personalized.ideas[0].body},{headers:{"Cache-Control":"no-store"}});
+  }
+  return Response.json({mode:"ia",reply:result.text,model:result.model},{headers:{"Cache-Control":"no-store"}});
  }catch(e){return Response.json({error:"No se pudo procesar el mensaje."},{status:500})}
 }
