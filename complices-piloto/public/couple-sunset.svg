@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="700" viewBox="0 0 900 700" role="img" aria-labelledby="title desc">
+<title id="title">Dos personas mirando juntas un atardecer</title>
+<desc id="desc">Ilustración cálida y original de una pareja abrazada, rodeada de montañas suaves, corazones y una puesta de sol.</desc>
+<defs>
+<linearGradient id="sky" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFE9E6"/><stop offset=".43" stop-color="#F8D7E9"/><stop offset="1" stop-color="#DFC6EC"/></linearGradient>
+<linearGradient id="sun" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#FFEFCC"/><stop offset="1" stop-color="#FEBFC4"/></linearGradient>
+<linearGradient id="hills" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#E8B6CD"/><stop offset="1" stop-color="#CDA5D9"/></linearGradient>
+<linearGradient id="shirt1" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#B96D94"/><stop offset="1" stop-color="#82466D"/></linearGradient>
+<linearGradient id="shirt2" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFF6EE"/><stop offset="1" stop-color="#EDD3D8"/></linearGradient>
+<linearGradient id="hair" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#663B47"/><stop offset="1" stop-color="#3C2839"/></linearGradient>
+<radialGradient id="glow"><stop stop-color="#fff8e0" stop-opacity=".95"/><stop offset="1" stop-color="#fff8e0" stop-opacity="0"/></radialGradient>
+<filter id="softShadow"><feGaussianBlur stdDeviation="14"/></filter>
+</defs>
+<rect width="900" height="700" rx="54" fill="url(#sky)"/>
+<ellipse cx="566" cy="266" rx="298" ry="248" fill="url(#glow)"/>
+<circle cx="572" cy="300" r="172" fill="url(#sun)" opacity=".85"/>
+<path d="M0 423Q113 354 232 409T478 420T700 408T900 397V700H0Z" fill="#F5D5DF" opacity=".95"/>
+<path d="M0 494Q143 419 271 464T545 489T900 447V700H0Z" fill="url(#hills)"/>
+<path d="M0 568Q178 501 343 568T633 552T900 537V700H0Z" fill="#C3A0CA" opacity=".78"/>
+<g fill="none" stroke="#D86C91" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".9">
+<path d="M690 112c-15-18-42-6-29 19 9 19 28 29 28 29s24-16 28-32c5-25-17-31-27-16Z"/>
+<path d="M767 202c-8-10-22-4-18 10 4 10 18 18 18 18s14-9 18-19c4-13-10-17-18-9Z"/>
+<path d="M167 162c-13-16-34-7-26 13 5 13 26 28 26 28s19-13 25-27c7-20-16-30-25-14Z"/>
+</g>
+<g opacity=".75" fill="#fff3e6"><circle cx="135" cy="245" r="5"/><circle cx="728" cy="294" r="5"/><circle cx="615" cy="115" r="4"/><circle cx="205" cy="105" r="3"/></g>
+<!-- Ground shadow -->
+<ellipse cx="418" cy="665" rx="330" ry="24" fill="#7A587D" opacity=".20" filter="url(#softShadow)"/>
+<!-- Back body man -->
+<path d="M131 700V618Q141 558 188 543L269 525Q307 519 345 540L427 590L458 700Z" fill="url(#shirt1)"/>
+<path d="M180 561Q212 587 249 605M158 613Q219 641 251 691M323 560Q337 626 328 700" fill="none" stroke="#D89AB6" stroke-width="4" opacity=".42"/>
+<!-- Neck man -->
+<path d="M255 515L260 559Q292 582 312 540L301 490Z" fill="#D48D7A"/>
+<!-- Man head -->
+<path d="M203 368Q202 306 257 291Q316 286 337 341L343 428Q340 491 296 519Q256 529 218 480Q201 447 203 368Z" fill="#E5A58F" stroke="#A96264" stroke-width="2"/>
+<path d="M300 462Q324 458 332 429" fill="none" stroke="#CE847B" stroke-width="3" opacity=".65"/>
+<!-- Hair with curls -->
+<g fill="url(#hair)" stroke="#553343" stroke-width="2.5">
+<path d="M198 418Q173 386 192 355Q173 334 196 311Q183 279 220 267Q227 239 261 244Q286 225 309 249Q346 247 355 284Q375 301 355 326Q370 348 349 364Q357 398 330 412Q320 368 300 346Q251 371 223 354Q220 388 225 416Z"/>
+<circle cx="196" cy="324" r="25"/><circle cx="215" cy="287" r="27"/><circle cx="260" cy="263" r="27"/><circle cx="312" cy="279" r="31"/><circle cx="347" cy="315" r="24"/><circle cx="289" cy="308" r="27"/><circle cx="234" cy="331" r="28"/>
+</g>
+<path d="M217 352Q233 355 246 346M292 314Q309 315 315 324" stroke="#936279" stroke-width="4" opacity=".6" fill="none"/>
+<!-- Woman body -->
+<path d="M380 700Q397 588 450 557L530 530Q560 527 591 548Q662 576 700 700Z" fill="url(#shirt2)" stroke="#D4B1BD" stroke-width="2"/>
+<path d="M448 564Q465 630 459 700M573 549Q557 618 561 700M603 595Q631 627 645 695" fill="none" stroke="#D6B0BC" stroke-width="4" opacity=".66"/>
+<!-- Woman neck and face -->
+<path d="M487 503L494 552Q531 581 554 537L545 497Z" fill="#E8A790"/>
+<path d="M462 393Q453 337 508 314Q571 300 595 359L604 427Q593 484 555 512Q515 535 477 478Z" fill="#E9AB91" stroke="#B87A73" stroke-width="2"/>
+<path d="M472 459Q487 471 495 470" fill="none" stroke="#C68A81" stroke-width="3"/>
+<!-- Woman hair curls and bun -->
+<g fill="#553647" stroke="#402C40" stroke-width="2">
+<path d="M449 402Q430 356 458 327Q473 283 520 284Q577 277 603 322Q635 344 622 402Q615 460 589 484Q583 424 569 388Q536 368 506 384Q487 411 474 466Z"/>
+<circle cx="617" cy="349" r="51"/><circle cx="641" cy="367" r="32"/><circle cx="601" cy="318" r="33"/><circle cx="552" cy="307" r="30"/><circle cx="491" cy="321" r="27"/><circle cx="461" cy="362" r="25"/>
+</g>
+<path d="M472 366Q490 360 508 368M548 343Q571 336 587 349" stroke="#976A7A" stroke-width="4" fill="none" opacity=".5"/>
+<circle cx="591" cy="456" r="7.5" fill="none" stroke="#E2A560" stroke-width="3"/>
+<!-- Man arm around woman's shoulder -->
+<path d="M334 535Q402 533 459 558Q495 575 526 573Q547 575 553 590Q560 609 537 611Q509 613 485 608Q426 603 359 578L333 571Z" fill="#C88A7C" stroke="#B37371" stroke-width="2"/>
+<path d="M337 545Q420 546 461 567" stroke="#E9B4A6" stroke-width="6" opacity=".64" fill="none"/>
+<!-- Woman arm -->
+<path d="M591 555Q628 563 651 590L686 662Q698 690 682 699L654 700Q647 672 622 634Q602 611 572 607Z" fill="url(#shirt2)"/>
+<!-- Foreground mist -->
+<path d="M0 686Q230 655 430 677T900 661V700H0Z" fill="#FBE9ED" opacity=".42"/>
+</svg>
