@@ -1,6 +1,6 @@
 
 import {createClient} from "@supabase/supabase-js";
-import {partnerGuidedIdeas,safeProfile} from "../../../lib/ai-profile.mjs";
+import {partnerGuidedIdeas,safeProfile,profileForOwnAI} from "../../../lib/ai-profile.mjs";
 export const dynamic="force-dynamic";
 export async function GET(){return Response.json({mode:process.env.OPENAI_API_KEY?"ia":"guiado"},{headers:{"Cache-Control":"no-store"}})}
 export async function POST(request){
@@ -13,17 +13,19 @@ export async function POST(request){
   const client=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false},global:{headers:{Authorization:"Bearer "+token}}});
   const {data:{user},error}=await client.auth.getUser(token);
   if(error||!user)return Response.json({error:"Sesión inválida."},{status:401});
-  const [pref,membership,reflections,memories]=await Promise.all([
+  const [pref,membership,reflections,memories,ownCards]=await Promise.all([
    client.from("cp_preferences").select("favorite_treat,favorite_plan,love_language").eq("user_id",user.id).maybeSingle(),
    client.from("cp_members").select("space_id,display_name").eq("user_id",user.id).maybeSingle(),
    client.from("cp_reflections").select("question,answer").eq("user_id",user.id).eq("ai_use_allowed",true).order("updated_at",{ascending:false}).limit(8),
-   client.from("cp_ai_memories").select("category,body").eq("user_id",user.id).eq("use_for_ai",true).order("updated_at",{ascending:false}).limit(10)
+   client.from("cp_ai_memories").select("category,body").eq("user_id",user.id).eq("use_for_ai",true).order("updated_at",{ascending:false}).limit(10),
+   client.from("cp_ai_profile_cards").select("question_key,answer_code").eq("user_id",user.id).limit(9)
   ]);
   if(!membership.data)return Response.json({error:"Primero creá o aceptá un espacio privado."},{status:403});
-  if([pref,reflections,memories].some(x=>x.error))return Response.json({error:"No pude leer tus preferencias privadas para responderte de forma segura."},{status:503});
+  if([pref,reflections,memories,ownCards].some(x=>x.error))return Response.json({error:"No pude leer tus preferencias privadas para responderte de forma segura."},{status:503});
   const {data:surprise}=await client.rpc("cp_partner_surprise",{p_space:membership.data.space_id});
   const {data:partnerChoices,error:partnerError}=process.env.CP_PROFILE_INTERNAL_KEY?await client.rpc("cp_partner_profile",{p_space:membership.data.space_id,p_internal_secret:process.env.CP_PROFILE_INTERNAL_KEY}):{data:{},error:null};
   if(partnerError)return Response.json({error:"No pude consultar las pistas autorizadas de tu pareja."},{status:503});
+  const ownProfile=profileForOwnAI(ownCards.data||[]);
   const approvedPartnerProfile=safeProfile(partnerChoices);
   const personalized=partnerGuidedIdeas(approvedPartnerProfile);
   const hint=(surprise?.title||"Un gesto cariñoso")+": "+(surprise?.body||"");
@@ -46,6 +48,7 @@ export async function POST(request){
    "Todas las recomendaciones deben ser voluntarias; no imponer contacto físico ni presionar sexualmente.",
    "Esta persona se identifica en la app como "+membership.data.display_name+".",
    "Preferencias propias de esta persona: "+JSON.stringify(pref.data||{}),
+   "Su mapa personal de gustos (es suyo, NO es el mapa de la pareja): "+JSON.stringify(ownProfile),
    "Sugerencia segura y autorizada para la pareja: "+hint,
    "Preferencias estructuradas que la OTRA persona autorizó exclusivamente para generar sugerencias (no enumerarlas, ni revelar la fuente, ni mencionar datos privados): "+JSON.stringify(approvedPartnerProfile),
    "Ideas del motor que respetan los límites autorizados: "+personalized.ideas.map(x=>x.title+": "+x.body).join(" | ").slice(0,780),
