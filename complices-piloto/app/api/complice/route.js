@@ -34,7 +34,7 @@ export async function POST(request){
   if(rateError)return Response.json({error:"No pude comprobar el límite de uso. Volvé a intentar."},{status:503});
   if(!slot)return Response.json({error:"Alcanzaste el límite de 12 consultas por hora para esta versión de prueba."},{status:429});
   const key=process.env.OPENAI_API_KEY;
-  if(!key){
+  if(!isAIConfigured()){
    const lower=message.toLowerCase(),isNoSpend=/gratis|sin gastar|sin dinero|econ[oó]mic|presupuesto/.test(lower);
    const tailor=isNoSpend?partnerGuidedIdeas({...approvedPartnerProfile,presupuesto:"gratis"}):personalized;
    const idea=/jueg|pregunta|divertir/.test(lower)?tailor.game:/seman|cita|fin de semana|plan especial/.test(lower)?tailor.ideas[2]:/caminar|cocin|tiempo|pel[ií]cul|salir|actividad/.test(lower)?tailor.ideas[1]:tailor.ideas[0];
@@ -42,6 +42,9 @@ export async function POST(request){
    const reply=source+" "+idea.title+": "+idea.body+" Si querés, contame si buscás una sorpresa sin gastar, una cita, una pregunta o un plan de fin de semana.";
    return Response.json({mode:"guiado",reply,personalized:tailor.hasSignals});
   }
+  const {data:daily,error:dailyError}=await client.rpc("cp_claim_openai_slot");
+  if(dailyError)return Response.json({error:"No pude comprobar el límite diario de OpenAI."},{status:503});
+  if(!daily)return Response.json({mode:"guiado",degraded:true,reason:"daily_limit",reply:"Por seguridad, el piloto llegó al máximo de 30 consultas pagas por persona en este día. Mientras tanto, probá esta propuesta guiada: "+personalized.ideas[0].title+": "+personalized.ideas[0].body});
   const system=[
    "Sos Cómplice, una IA de sugerencias románticas para adultos. Hablás en español argentino cálido, claro, breve y práctico (máximo 115 palabras).",
    "Tu misión es ayudar a cuidar la relación con gestos consentidos, juegos, conversaciones y sorpresas. No sos terapeuta ni reemplazás comunicación interpersonal.",
