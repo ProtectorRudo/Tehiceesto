@@ -42,3 +42,20 @@ test("el contenido libre rechaza URLs y textos fuera de rango",()=>{
  assert.equal(answerIsSafe("https://malicious.example/x"),false);
  assert.equal(answerIsSafe("corto"),false);
 });
+
+test("la pista voluntaria de pareja prioriza un tema sin mostrar sus palabras",()=>{
+ const secret="NUNCA_REVELAR_TEXTO_LIBRE_DE_MI_PAREJA";
+ const activities=generateGuidedPlan({...base,partnerSignals:["paseo"],reflections:[]});
+ assert.equal(activities[0].theme,"paseo");
+ assert.equal(activities[3].theme,"paseo");
+ assert.ok(activities.every(x=>!x.body.includes(secret)&&!x.title.includes(secret)));
+});
+test("temas desconocidos o pistas no autorizadas no afectan el motor",()=>{
+ const untrusted=generateGuidedPlan({...base,partnerSignals:["NO_AUTORIZADO","nombre",""]});
+ const standard=generateGuidedPlan(base);
+ assert.deepEqual(untrusted,standard);
+});
+test("el plan sigue determinista con varios temas permitidos",()=>{
+ const config={...base,partnerSignals:["charla","cocina","humor"]};
+ assert.deepEqual(generateGuidedPlan(config),generateGuidedPlan(config));
+});
