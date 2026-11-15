@@ -1,7 +1,7 @@
 import {createClient} from "@supabase/supabase-js";
 import {createHash} from "node:crypto";
 import {generateGuidedPlan,answerIsSafe} from "../../../lib/central-content.mjs";
-import {partnerGuidedIdeas,safeProfile} from "../../../lib/ai-profile.mjs";
+import {partnerGuidedIdeas,safeProfile,isIdeaCompatible} from "../../../lib/ai-profile.mjs";
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
 const NO_STORE={"Cache-Control":"no-store","X-Robots-Tag":"noindex"};
@@ -51,7 +51,7 @@ async function improveWithAI(guided,user,context,db){
   const converted=guided.map(item=>{
    if(item.slot!=="daily_2"&&item.slot!=="weekly_1")return item;
    const proposal=generated?.[item.slot];
-   if(!proposal||!answerIsSafe(proposal.body)||typeof proposal.title!=="string"||proposal.title.trim().length<3||proposal.title.length>110)return item;
+   if(!proposal||!answerIsSafe(proposal.body)||!isIdeaCompatible(proposal.body,context.partnerProfile)||typeof proposal.title!=="string"||proposal.title.trim().length<3||proposal.title.length>110)return item;
    return {...item,title:proposal.title.trim(),body:proposal.body.trim(),mode:"generativa"};
   });
   return converted;
