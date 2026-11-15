@@ -114,7 +114,7 @@ export default function Home(){
   }catch{}
   await db.auth.signOut();setMember(null);setSpace(null);setUser(null);setTab("hoy");
  }
- async function createSpace(e){e.preventDefault();if(!name.trim())return;setBusy(true);setNotice("");const s=await db.from("cp_spaces").insert({created_by:user.id}).select("*").single();if(s.error){setBusy(false);setNotice(getError(s.error));return}const m=await db.from("cp_members").insert({user_id:user.id,space_id:s.data.id,display_name:name.trim()});if(m.error){setBusy(false);setNotice(getError(m.error));return}await db.from("cp_preferences").insert({user_id:user.id});await load(user);setBusy(false)}
+ async function createSpace(e){e.preventDefault();if(!name.trim())return;setBusy(true);setNotice("");const {error}=await db.rpc("cp_create_space",{p_name:name.trim()});if(error)setNotice(getError(error));else await load(user);setBusy(false)}
  async function joinSpace(e){e.preventDefault();if(!name.trim()||!inviteInput.trim())return;setBusy(true);setNotice("");const {error}=await db.rpc("cp_join_by_invite",{p_code:inviteInput.trim().replace(/^.*invite=/,"").split("&")[0].toLowerCase(),p_name:name.trim()});if(error)setNotice(getError(error));else {sessionStorage.removeItem("cp_pending_invite");await load(user)}setBusy(false)}
  function shareInvite(){const link=window.location.origin+"/?invite="+space.invite_code;if(navigator.share){navigator.share({title:"Nuestro espacio en Cómplices",text:"Te invito a nuestro rincón ❤️",url:link}).catch(()=>{})}else{navigator.clipboard?.writeText(link).then(()=>setNotice("Enlace copiado. Mandáselo a tu pareja por WhatsApp.")).catch(()=>setNotice("Copiá este enlace: "+link))}}
  const partner=members.find(m=>m.user_id!==user?.id), date=todayKey(), week=weeklyKey();
