@@ -99,3 +99,17 @@ export function profileForOwnAI(rows=[]){
  for(const r of rows){if(VALID.get(r.question_key)?.has(r.answer_code))source[r.question_key]=r.answer_code}
  return source;
 }
+
+
+/** Rejects generated ideas that directly conflict with explicitly authorized boundaries. */
+export function isIdeaCompatible(input,profile={}){
+ if(typeof input!=="string"||input.length<8||input.length>500)return false;
+ const text=input.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+ const p=safeProfile(profile);
+ if((p.presupuesto==="gratis"||p.evitar==="gastos")&&/\b(comprar|compra|comprale|pagale|pagar|gastar|gastate|reservar algo pago|regalale un)\b/.test(text))return false;
+ if(p.evitar==="sorpresas_publicas"&&/\b(en publico|frente a todos|delante de todos|en redes sociales|subi una foto publica)\b/.test(text))return false;
+ if(p.evitar==="contacto_sin_avisar"&&/\b(abrazal[ae] por sorpresa|besal[ae] sin|tocala sin preguntar|tocalo sin preguntar)\b/.test(text))return false;
+ if(p.evitar==="salidas_largas"&&/\b(escapada de dos dias|viaje largo|viajar todo el dia|salida de todo el dia)\b/.test(text))return false;
+ if(p.evitar==="actividades_intimas"&&/\b(sexo|sexual|juego picante|actividad intima)\b/.test(text))return false;
+ return true;
+}
