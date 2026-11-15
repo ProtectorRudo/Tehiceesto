@@ -43,3 +43,11 @@ Verificar estado de GitHub, Supabase y Render antes de publicar. Ejecutar migrac
 - Al cerrar sesión, el navegador deja de recibir notificaciones de la cuenta.
 - Creación atómica de espacios por RPC `cp_create_space`; evita alta parcialmente realizada.
 - Endpoint de diagnóstico no sensible `GET /api/status` con modo de IA y bandera de Push.
+
+
+## Motor central incorporado en esta iteración
+- Objetos nuevos: `cp_ai_memories`, `cp_ai_activities`, `cp_ai_feedback` con políticas que limitan lectura y escritura a la cuenta dueña.
+- Comprobación SQL transaccional: **9/9 controles aprobados** sobre aislamiento entre integrantes de la misma pareja, escritura y lectura privadas, retroalimentación y actualización autorizada. Pruebas revertidas sin dejar datos ficticios.
+- Recomendaciones guiadas de diario, semanal y juego, con persistencia, favoritos/descartes y cambio de actividades pendientes al actualizar el perfil.
+- **Diferencia de estados:** código implementado ≠ publicado ≠ probado desde dos móviles. Validar logs del último despliegue antes de informar LIVE.
+- La IA generativa no funciona si falta `OPENAI_API_KEY`; el motor algorítmico sí puede recomendar actividades sin llamar a la API.
