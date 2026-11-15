@@ -25,6 +25,7 @@ async function improveWithAI(guided,user,context,db){
  const safeContext={
   who:"la persona que consulta",
   ownPreferences:context.preferences,
+  partnerSharedThemes:context.partnerSignals||[],
   ownAnswers:context.reflections.filter(x=>x.ai_use_allowed).slice(0,8).map(r=>({question:r.question,answer:String(r.answer).slice(0,350)})),
   ownMemories:context.memories.filter(x=>x.use_for_ai).slice(0,8).map(r=>({category:r.category,text:String(r.body).slice(0,250)})),
   suggestedThemes:guided.filter(x=>x.slot==="daily_2"||x.slot==="weekly_1").map(x=>({slot:x.slot,theme:x.theme,existingIdea:x.title+" — "+x.body}))
@@ -70,19 +71,20 @@ export async function GET(request){
   const {data:cached,error:cachedError}=await db.from("cp_ai_activities").select("*").eq("user_id",user.id).in("period_key",periodKeys);
   if(cachedError)return send({error:"No se pudieron consultar tus actividades"},503);
   const readySlots=["daily_1","daily_2","weekly_1","game_1"];
-  const [p,reflections,memories,hint,history,feedback]=await Promise.all([
+  const [p,reflections,memories,hint,history,feedback,partnerThemes]=await Promise.all([
    db.from("cp_preferences").select("favorite_treat,favorite_plan,love_language").eq("user_id",user.id).maybeSingle(),
    db.from("cp_reflections").select("question_id,question,answer,ai_use_allowed").eq("user_id",user.id).eq("ai_use_allowed",true).limit(12),
    db.from("cp_ai_memories").select("category,body,use_for_ai").eq("user_id",user.id).eq("use_for_ai",true).order("created_at",{ascending:false}).limit(20),
    db.rpc("cp_partner_surprise",{p_space:member.space_id}),
    db.from("cp_ai_activities").select("id,theme").eq("user_id",user.id).order("created_at",{ascending:false}).limit(20),
-   db.from("cp_ai_feedback").select("activity_id,rating").eq("user_id",user.id).order("updated_at",{ascending:false}).limit(30)
+   db.from("cp_ai_feedback").select("activity_id,rating").eq("user_id",user.id).order("updated_at",{ascending:false}).limit(30),
+   db.rpc("cp_partner_signals",{p_space:member.space_id})
   ]);
-  const failed=[p,reflections,memories,hint,history,feedback].some(x=>x.error);
+  const failed=[p,reflections,memories,hint,history,feedback,partnerThemes].some(x=>x.error);
   if(failed)return send({error:"No pude preparar las propuestas sin verificar tus preferencias privadas"},503);
   const themesById=new Map((history.data||[]).map(a=>[a.id,a.theme]));
   const ratingThemes=(feedback.data||[]).map(x=>({theme:themesById.get(x.activity_id),rating:x.rating})).filter(x=>x.theme);
-  const context={preferences:p.data||{},reflections:reflections.data||[],memories:memories.data||[]};
+  const context={preferences:p.data||{},reflections:reflections.data||[],memories:memories.data||[],partnerSignals:partnerThemes.data||[]};
   const fingerprint=createHash("sha256").update(JSON.stringify({context,hint:hint.data||null,ratings:feedback.data||[]})).digest("hex");
   const {data:done,error:doneError}=await db.from("cp_completions").select("task_key").eq("space_id",member.space_id).eq("user_id",user.id);
   if(doneError)return send({error:"No se pudo verificar tu progreso"},503);
