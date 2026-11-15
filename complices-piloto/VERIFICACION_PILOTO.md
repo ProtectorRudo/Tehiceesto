@@ -12,6 +12,7 @@ Se usaron identidades de prueba transitorias en transacciones SQL, revertidas co
 - 10/10: cada pareja solo puede ver sus espacios y mensajes; preferencias y respuestas individuales inaccesibles para terceros; no se puede escribir en espacios ajenos.
 - 5/5: crear espacio con RLS; segunda persona acepta invitación; acceso privado; preferencias iniciales; rechazo de una tercera cuenta.
 - 5/5: preferencias y endpoints push invisibles para otros, horario de silencio efectivo, aviso habilitado fuera del silencio y sin duplicado.
+- 5/5: crear espacio y preferencias en una sola operación atómica, obtener invitación de 24 caracteres y bloquear un segundo espacio para el mismo usuario.
 
 **No equivalen a una prueba E2E** de navegador, correo real, notificación recibida ni IA generativa.
 
@@ -35,3 +36,10 @@ Se usaron identidades de prueba transitorias en transacciones SQL, revertidas co
 
 ## Normas de continuidad
 Verificar estado de GitHub, Supabase y Render antes de publicar. Ejecutar migraciones aditivas con RLS. No repetir tareas hechas ni exponer secretos. Distinguir compilado, publicado y probado con dos cuentas reales.
+
+## Mejoras publicadas en esta iteración
+- Código de invitación conservado durante el alta y usado en enlace de confirmación si la URL está permitida en Supabase.
+- Configuración personal de notificaciones con activación, desactivación y horario de silencio.
+- Al cerrar sesión, el navegador deja de recibir notificaciones de la cuenta.
+- Creación atómica de espacios por RPC `cp_create_space`; evita alta parcialmente realizada.
+- Endpoint de diagnóstico no sensible `GET /api/status` con modo de IA y bandera de Push.
