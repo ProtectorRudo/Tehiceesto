@@ -64,3 +64,15 @@ Verificar estado de GitHub, Supabase y Render antes de publicar. Ejecutar migrac
 - 14/14 pruebas SQL (ROLLBACK) con dos cuentas: exportación no incluye mensajes, respuestas ni recuerdos escritos por el otro; borrado no afecta al otro, a los corazones previos, al chat ni a la pareja.
 - Interfaz: exportar JSON local, borrar memoria IA con doble confirmación. El borrado real solo ocurre si el usuario lo solicita desde su sesión.
 - No elimina cuenta Supabase Auth compartida con TeHiceEsto. La eliminación completa de cuenta y espacio requiere otro flujo.
+
+
+## IA central: perfil de gustos estructurado y motor cruzado (15/11/2026)
+- La IA de cada integrante usa información privada propia (preferencias, reflexiones autorizadas, recuerdos opt-in, respuestas estructuradas). Solo usa información de la otra persona si esta habilitó pistas explícitas.
+- Nuevas 9 preguntas estructuradas en `lib/ai-profile.mjs`: afecto, detalle, plan, ritmo, presupuesto, horario, conversaciones, cosas a evitar y objetivo de pareja. `cp_ai_profile_cards` almacena solo elección codificada, con RLS por `user_id` y `share_with_partner_ai=false` por defecto. No copiar textos de confesiones.
+- Función `cp_partner_profile(p_space,p_internal_secret)` con `SECURITY DEFINER` restringido: solo dos cuentas de la misma pareja pueden invocar, exige secreto interno exclusivamente en Render (`CP_PROFILE_INTERNAL_KEY`), verifica `auth.uid()`, pertenencia y `cp_preferences.allow_surprises` del dueño. No entrega notas ni respuestas libres, únicamente códigos validados por whitelist. El cliente no recibe ese secreto.
+- Ruta `/api/central`: personaliza 2 actividades diarias, 1 semanal y 1 pregunta/juego con opciones explícitas; crea recomendaciones accionables y respeta presupuesto/ritmo/límites; mantiene intactas las actividades ya marcadas realizadas. Usa ambos perfiles de manera separada.
+- Ruta `/api/complice`: modo guiado usa ideas adaptadas a las pistas autorizadas; con `OPENAI_API_KEY` real agrega ambos perfiles autorizados a un prompt que prohíbe citar la fuente o divulgar confesiones. Un validador `isIdeaCompatible` rechaza sugerencias generativas que contradigan límites comunes.
+- La pantalla «Mi cómplice» muestra cuestionario progresivo, progreso de respuestas, selección de permiso por cada pista, edición y eliminación; advierte que además hay un permiso global para sorpresas.
+- `cp_export_my_personal_data()` incluye las respuestas codificadas propias, y `cp_reset_my_ai_profile()` también las elimina, sin afectar a la pareja.
+- **Prueba SQL transaccional: 13/13 aprobadas**, incluyendo acceso cruzado, permisos, revocación, exportación y borrado. Tests de Node en `tests/partner-personalization.test.mjs` y el resto de suites corren en el build.
+- Pendientes reales: no se probó la IA de OpenAI con una clave ni la experiencia entre dos cuentas reales en celulares. No confundir motor guiado personalizado con LLM generativo.
