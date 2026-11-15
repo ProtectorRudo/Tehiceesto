@@ -396,3 +396,33 @@ label{color:#6f5169;font-size:12.5px;font-weight:700;margin-bottom:8px}
 @media(prefers-reduced-motion:reduce){
  *,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
 }
+
+
+/* Refinamiento de las tarjetas y navegación */
+.tabs.desktop button{display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.tabs.desktop button svg{width:18px;height:18px}
+.cards{align-items:stretch}
+.task-card{min-height:unset;gap:10px}
+.task-content{display:flex;align-items:flex-start;gap:13px;min-width:0;flex:1}
+.task-content>.task-icon{flex-shrink:0}
+.task-main{min-width:0;flex:1}
+.task-main h3{margin:0 0 5px;font-size:16px}
+.task-main p{font-size:12.5px;line-height:1.47;color:#816f7d;margin:0}
+.task-content>.pill{flex-shrink:0;align-self:flex-start}
+.task-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:2px;padding-top:10px;border-top:1px solid #f3e3eb}
+.task-footer>.subtle{font-size:11.5px;line-height:1.35;flex:1}
+.task-footer>.btn{margin-top:0;min-height:36px}
+.feedback-row{padding-top:9px;margin-top:0!important;border-top:1px dashed #f2e0e9}
+.feedback-row .subtle{font-size:11px}
+@media(max-width:760px){
+ .task-card{padding:15px;border-radius:18px;gap:10px}
+ .task-main h3{font-size:15px}
+ .task-main p{font-size:12px}
+ .task-content{gap:11px}
+ .task-content>.pill{font-size:9.5px;padding:6px 7px}
+ .task-footer{padding-top:10px;gap:7px}
+ .task-footer>.subtle{font-size:10.5px}
+ .task-footer>.btn{font-size:11px;min-height:34px;padding:7px 12px}
+ .dashboard>.accent-card .btn.secondary{background:#fffafbe6;color:#ad4979;border-color:#f2dbe9}
+ .mission-filter{max-width:none}
+}
