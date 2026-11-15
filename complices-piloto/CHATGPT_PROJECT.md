@@ -49,3 +49,12 @@ Funciones objetivo:
 - Preparar gestión de cuentas, exportación/eliminación de datos y prueba de suscripción antes de comercializar.
 
 No reiniciar la arquitectura ni afirmar que algo está hecho sin evidencia directa.
+
+## IA central personalizable — ampliación 15/11/2026
+- El motor guiado vive en `lib/central-content.mjs`; ofrece sugerencias basadas en gustos declarados, respuestas explícitamente autorizadas, recuerdos guardados para IA y feedback 👍/👎. No es IA generativa en ausencia de `OPENAI_API_KEY`.
+- Nuevas tablas: `cp_ai_memories` (privadas, activación y borrado), `cp_ai_activities` (asignaciones persistentes por día/semana y usuario), `cp_ai_feedback` (preferencias por actividad). RLS individual; jamás usar material de pareja que no esté autorizado.
+- Endpoint `GET /api/central` produce 2 misiones diarias, 1 semanal y 1 juego/pregunta sugerida, los guarda, puede adaptar actividades aún no completadas si cambia el perfil; las marcadas como hechas permanecen intactas. La pregunta recomendada se comparte solo cuando la persona elige enviarla.
+- `/api/complice` utiliza, además de respuestas autorizadas, recuerdos que el usuario decidió guardar para su IA. La conversación no se guarda automáticamente como memoria; se requiere acción explícita.
+- Con clave OpenAI configurada, el endpoint está preparado para generar títulos/descripciones personalizados con restricciones de privacidad, límite de consultas y `store:false`. **No probado con API real hasta configurar la clave**.
+- El build ejecuta pruebas de contenido antes de compilar: `npm test && next build`.
+- Próximos controles: verificar compilación con pruebas, RLS de las tres tablas nuevas y prueba E2E con cuentas reales.
