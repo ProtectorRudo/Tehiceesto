@@ -36,6 +36,7 @@ const WEEKLY=[
  {title:"Nuestra cápsula del tiempo",body:"Escriban un recuerdo y un deseo para el próximo año. Guárdenlos.",icon:"🕰️"},
  {title:"Un desafío en equipo",body:"Preparen juntos algo que no hayan hecho antes: una receta, un paseo o un juego.",icon:"🎲"}
 ];
+const SHARE_THEMES=[["","Elegí un tema para la pista"],["detalles","💝 Pequeños detalles"],["charla","💬 Conversaciones"],["paseo","🌿 Paseos"],["cocina","🍓 Cocinar juntos"],["pelicula","🎬 Películas y series"],["recuerdos","📸 Recuerdos"],["planes","✨ Citas y planes"],["humor","🎲 Humor y juegos"]];
 const TREAT=[["ninguno","Me gustan las sorpresas simples"],["chocolate","Chocolates"],["cafe","Café"],["mate","Mate"],["dulce","Algo dulce"],["flores","Flores"]];
 const PLAN=[["charlar","Conversar"],["caminar","Caminar"],["peli","Películas"],["cocinar","Cocinar juntos"],["salir","Salir"]];
 const LANG=[["tiempo","Tiempo de calidad"],["palabras","Palabras lindas"],["detalles","Pequeños detalles"],["ayuda","Ayuda cotidiana"],["contacto","Cariño físico"]];
@@ -58,8 +59,8 @@ export default function Home(){
  const [tab,setTab]=useState("hoy"),[messageText,setMessageText]=useState(""),[replyText,setReplyText]=useState(""),[replyTo,setReplyTo]=useState(null),[questionTopic,setQuestionTopic]=useState("romance");
  const [aiText,setAiText]=useState(""),[aiChat,setAiChat]=useState([]),[aiBusy,setAiBusy]=useState(false),[tipMode,setTipMode]=useState("guiado"),[noteText,setNoteText]=useState("");
  const [gameAnswers,setGameAnswers]=useState({}),[gameResults,setGameResults]=useState({});
- const [aboutQuestion,setAboutQuestion]=useState("q01"),[aboutAnswer,setAboutAnswer]=useState(""),[aboutAllowAI,setAboutAllowAI]=useState(false),[aiAvailable,setAiAvailable]=useState(false);
- const [memoryText,setMemoryText]=useState(""),[memoryCategory,setMemoryCategory]=useState("gustos");
+ const [aboutQuestion,setAboutQuestion]=useState("q01"),[aboutAnswer,setAboutAnswer]=useState(""),[aboutAllowAI,setAboutAllowAI]=useState(false),[aboutShare,setAboutShare]=useState(false),[aboutShareTheme,setAboutShareTheme]=useState(""),[aiAvailable,setAiAvailable]=useState(false);
+ const [memoryText,setMemoryText]=useState(""),[memoryCategory,setMemoryCategory]=useState("gustos"),[memoryShare,setMemoryShare]=useState(false),[memoryShareTheme,setMemoryShareTheme]=useState(""),[editingMemory,setEditingMemory]=useState(null);
  const [centralActivities,setCentralActivities]=useState([]),[centralMode,setCentralMode]=useState("guiado"),[centralLoading,setCentralLoading]=useState(false),[centralError,setCentralError]=useState("");
  const lastMessage=useRef(null),firstPoll=useRef(true);
  useEffect(()=>{let active=true;db.auth.getUser().then(({data})=>{if(active){setUser(data.user||null);setLoading(false)}}).catch(()=>setLoading(false));const {data:{subscription}}=db.auth.onAuthStateChange((_event,session)=>{if(active)setUser(session?.user||null)});if(typeof window!=="undefined"){
@@ -82,9 +83,9 @@ export default function Home(){
    db.from("cp_messages").select("*").eq("space_id",m.space_id).order("created_at",{ascending:true}).limit(100),
    db.from("cp_ai_notes").select("*").eq("user_id",u.id).order("created_at",{ascending:false}).limit(12),
    db.rpc("cp_partner_surprise",{p_space:m.space_id}),
-   db.from("cp_reflections").select("id,question_id,question,answer,ai_use_allowed,updated_at").eq("user_id",u.id).order("updated_at",{ascending:false}),
+   db.from("cp_reflections").select("id,question_id,question,answer,ai_use_allowed,share_for_surprises,share_theme,updated_at").eq("user_id",u.id).order("updated_at",{ascending:false}),
    db.from("cp_notification_settings").select("enabled,quiet_start,quiet_end").eq("user_id",u.id).maybeSingle(),
-   db.from("cp_ai_memories").select("id,category,body,use_for_ai,created_at").eq("user_id",u.id).order("created_at",{ascending:false}).limit(35),
+   db.from("cp_ai_memories").select("id,category,body,use_for_ai,share_for_surprises,share_theme,created_at").eq("user_id",u.id).order("created_at",{ascending:false}).limit(35),
    db.from("cp_ai_feedback").select("activity_id,rating").eq("user_id",u.id)
   ]);
   if(s.error)setNotice(getError(s.error));
@@ -210,37 +211,57 @@ export default function Home(){
  async function askAI(e){e.preventDefault();if(!aiText.trim()||aiBusy)return;const text=aiText.trim();setAiText("");setAiChat(old=>[...old,{who:"yo",text}]);setAiBusy(true);try{const {data:{session}}=await db.auth.getSession();const resp=await fetch("/api/complice",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session?.access_token},body:JSON.stringify({message:text})});const data=await resp.json();setTipMode(data.mode||"guiado");setAiChat(old=>[...old,{who:"coach",text:data.reply||data.error||"Intentá de nuevo."}])}catch{setAiChat(old=>[...old,{who:"coach",text:"No pude responder en este momento. Probá otra vez."}])}setAiBusy(false)}
  async function saveAbout(){
   if(!aboutAnswer.trim()||!user)return;
+  if(aboutShare&&(!aboutAllowAI||!aboutShareTheme||aboutQuestion==="q07")){setNotice("Para compartir una pista elegí un tema positivo y autorizá que tu IA use la respuesta.");return}
   const q=ABOUT_QUESTIONS.find(x=>x[0]===aboutQuestion);
   if(!q)return;
   setBusy(true);setNotice("");
-  const {error}=await db.from("cp_reflections").upsert({user_id:user.id,question_id:q[0],question:q[1],answer:aboutAnswer.trim().slice(0,1200),ai_use_allowed:aboutAllowAI,updated_at:new Date().toISOString()},{onConflict:"user_id,question_id"});
+  const {error}=await db.from("cp_reflections").upsert({user_id:user.id,question_id:q[0],question:q[1],answer:aboutAnswer.trim().slice(0,1200),ai_use_allowed:aboutAllowAI,share_for_surprises:aboutShare,share_theme:aboutShare?aboutShareTheme:null,updated_at:new Date().toISOString()},{onConflict:"user_id,question_id"});
   setNotice(error?getError(error):"Tu respuesta privada quedó guardada.");
-  if(!error){setAboutAnswer("");setAboutAllowAI(false);await load(user);await refreshCentral()}
+  if(!error){setAboutAnswer("");setAboutAllowAI(false);setAboutShare(false);setAboutShareTheme("");await load(user);await refreshCentral()}
   setBusy(false);
  }
  function pickAbout(id){
   const x=reflections.find(r=>r.question_id===id);
-  setAboutQuestion(id);setAboutAnswer(x?.answer||"");setAboutAllowAI(x?.ai_use_allowed||false);
+  setAboutQuestion(id);setAboutAnswer(x?.answer||"");setAboutAllowAI(x?.ai_use_allowed||false);setAboutShare(x?.share_for_surprises||false);setAboutShareTheme(x?.share_theme||"");
  }
  async function deleteAbout(id){
   setBusy(true);const {error}=await db.from("cp_reflections").delete().eq("user_id",user.id).eq("id",id);
   setNotice(error?getError(error):"Respuesta eliminada.");
-  if(!error){setAboutAnswer("");await load(user);await refreshCentral()}setBusy(false);
+  if(!error){setAboutAnswer("");setAboutShare(false);setAboutShareTheme("");await load(user);await refreshCentral()}setBusy(false);
  }
 async function saveMemory(){
   if(!user||!memoryText.trim()||busy)return;
+  if(memoryShare&&(!memoryShareTheme||memoryCategory==="evitar")){setNotice("Para dar una pista elegí un tema positivo. Lo que preferís evitar queda únicamente en tu perfil.");return}
   setBusy(true);setNotice("");
-  const {error}=await db.from("cp_ai_memories").insert({user_id:user.id,category:memoryCategory,body:memoryText.trim().slice(0,350),use_for_ai:true});
-  if(error)setNotice(getError(error));
-  else {setMemoryText("");setNotice("Cómplice lo recordará para tus próximas propuestas. Solo vos tenés acceso.");await load(user);await refreshCentral()}
+  const payload={
+   category:memoryCategory,body:memoryText.trim().slice(0,350),use_for_ai:true,
+   share_for_surprises:memoryShare,share_theme:memoryShare?memoryShareTheme:null,updated_at:new Date().toISOString()
+  };
+  const result=editingMemory
+   ?await db.from("cp_ai_memories").update(payload).eq("id",editingMemory).eq("user_id",user.id)
+   :await db.from("cp_ai_memories").insert({user_id:user.id,...payload});
+  if(result.error)setNotice(getError(result.error));
+  else {
+   setMemoryText("");setMemoryCategory("gustos");setMemoryShare(false);setMemoryShareTheme("");setEditingMemory(null);
+   setNotice("Recuerdo guardado. Si autorizaste una pista, tu pareja solo recibirá sugerencias por tema, no tu texto.");
+   await load(user);await refreshCentral();
+  }
   setBusy(false);
  }
+ function editMemory(record){
+  setEditingMemory(record.id);setMemoryText(record.body);setMemoryCategory(record.category);
+  setMemoryShare(record.share_for_surprises||false);setMemoryShareTheme(record.share_theme||"");
+  setNotice("Editá el recuerdo en el formulario de tu cómplice.");
+ }
  async function toggleMemory(record){
-  setBusy(true);const {error}=await db.from("cp_ai_memories").update({use_for_ai:!record.use_for_ai,updated_at:new Date().toISOString()}).eq("id",record.id).eq("user_id",user.id);
+  setBusy(true);
+  const payload={use_for_ai:!record.use_for_ai,updated_at:new Date().toISOString()};
+  if(record.use_for_ai)payload.share_for_surprises=false;
+  const {error}=await db.from("cp_ai_memories").update(payload).eq("id",record.id).eq("user_id",user.id);
   if(error)setNotice(getError(error));else {await load(user);await refreshCentral()}
   setBusy(false);
  }
- async function deleteMemory(record){
+  async function deleteMemory(record){
   setBusy(true);const {error}=await db.from("cp_ai_memories").delete().eq("id",record.id).eq("user_id",user.id);
   if(error)setNotice(getError(error));else {await load(user);await refreshCentral();setNotice("Recuerdo eliminado de tu perfil.")}
   setBusy(false);
