@@ -64,7 +64,7 @@ export async function POST(request){
    const reply=suffix+" Mientras tanto, esta es una idea segura: "+personalized.ideas[0].title+": "+personalized.ideas[0].body;
    return Response.json({mode:"guiado",degraded:true,reason,reply},{headers:{"Cache-Control":"no-store"}});
   }
-  if(!isIdeaCompatible(result.text,approvedPartnerProfile)){
+  if(!isIdeaCompatible(result.text,approvedPartnerProfile,{maxLength:1000})){
    return Response.json({mode:"guiado",degraded:true,reason:"safety",reply:"Preparé una alternativa que respeta sus preferencias: "+personalized.ideas[0].title+": "+personalized.ideas[0].body},{headers:{"Cache-Control":"no-store"}});
   }
   return Response.json({mode:"ia",reply:result.text,model:result.model},{headers:{"Cache-Control":"no-store"}});
