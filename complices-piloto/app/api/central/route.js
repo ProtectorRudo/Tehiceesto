@@ -1,4 +1,5 @@
 import {createClient} from "@supabase/supabase-js";
+import {createHash} from "node:crypto";
 import {generateGuidedPlan,answerIsSafe} from "../../../lib/central-content.mjs";
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -69,7 +70,6 @@ export async function GET(request){
   const {data:cached,error:cachedError}=await db.from("cp_ai_activities").select("*").eq("user_id",user.id).in("period_key",periodKeys);
   if(cachedError)return send({error:"No se pudieron consultar tus actividades"},503);
   const readySlots=["daily_1","daily_2","weekly_1","game_1"];
-  if(readySlots.every(k=>(cached||[]).some(x=>x.slot===k)))return send({activities:cached,mode:cached.some(x=>x.mode==="generativa")?"generativa":"guiado",cached:true});
   const [p,reflections,memories,hint,history,feedback]=await Promise.all([
    db.from("cp_preferences").select("favorite_treat,favorite_plan,love_language").eq("user_id",user.id).maybeSingle(),
    db.from("cp_reflections").select("question_id,question,answer,ai_use_allowed").eq("user_id",user.id).eq("ai_use_allowed",true).limit(12),
@@ -83,12 +83,32 @@ export async function GET(request){
   const themesById=new Map((history.data||[]).map(a=>[a.id,a.theme]));
   const ratingThemes=(feedback.data||[]).map(x=>({theme:themesById.get(x.activity_id),rating:x.rating})).filter(x=>x.theme);
   const context={preferences:p.data||{},reflections:reflections.data||[],memories:memories.data||[]};
+  const fingerprint=createHash("sha256").update(JSON.stringify({context,hint:hint.data||null,ratings:feedback.data||[]})).digest("hex");
+  const {data:done,error:doneError}=await db.from("cp_completions").select("task_key").eq("space_id",member.space_id).eq("user_id",user.id);
+  if(doneError)return send({error:"No se pudo verificar tu progreso"},503);
+  const doneKeys=new Set((done||[]).map(x=>x.task_key));
+  const current=(cached||[]).filter(a=>readySlots.includes(a.slot));
+  const isFresh=(item)=>item.context_fingerprint===fingerprint||doneKeys.has(item.task_key);
+  if(readySlots.every(k=>current.some(x=>x.slot===k&&isFresh(x))))
+    return send({activities:current,mode:current.some(x=>x.mode==="generativa")?"generativa":"guiado",cached:true});
   let generated=generateGuidedPlan({userId:user.id,date,week,...context,recent:history.data||[],ratings:ratingThemes,hint:hint.data});
-  if(!(cached||[]).some(x=>x.slot==="daily_2")&&!(cached||[]).some(x=>x.slot==="weekly_1"))generated=await improveWithAI(generated,user,context,db);
-  const missing=generated.filter(x=>!(cached||[]).some(row=>row.slot===x.slot)).map(x=>({...x,user_id:user.id,space_id:member.space_id}));
+  const requiresAI=["daily_2","weekly_1"].some(slot=>{
+   const old=current.find(x=>x.slot===slot);
+   return !old||!isFresh(old);
+  });
+  if(requiresAI)generated=await improveWithAI(generated,user,context,db);
+  const missing=generated.filter(item=>!current.some(row=>row.slot===item.slot)).map(x=>({...x,user_id:user.id,space_id:member.space_id,context_fingerprint:fingerprint}));
   if(missing.length){
    const {error:writeError}=await db.from("cp_ai_activities").upsert(missing,{onConflict:"user_id,period_key,slot",ignoreDuplicates:true});
    if(writeError)return send({error:"No pude guardar tus nuevas actividades"},503);
+  }
+  for(const item of generated){
+   const old=current.find(x=>x.slot===item.slot);
+   if(!old||isFresh(old))continue;
+   const {error:updateError}=await db.from("cp_ai_activities").update({
+    title:item.title,body:item.body,theme:item.theme,icon:item.icon,mode:item.mode,context_fingerprint:fingerprint
+   }).eq("id",old.id).eq("user_id",user.id);
+   if(updateError)return send({error:"No pude adaptar las actividades a tus nuevas preferencias"},503);
   }
   const {data:activities,error:readError}=await db.from("cp_ai_activities").select("*").eq("user_id",user.id).in("period_key",periodKeys);
   if(readError||!activities)return send({error:"No pude recuperar las actividades guardadas"},503);
