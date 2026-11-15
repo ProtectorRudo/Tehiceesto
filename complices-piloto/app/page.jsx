@@ -1,6 +1,6 @@
 
 "use client";
-import {useState,useEffect,useRef,useCallback} from "react";
+import {useState,useEffect,useCallback} from "react";
 import {createClient} from "@supabase/supabase-js";
 
 const db=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
@@ -62,7 +62,6 @@ export default function Home(){
  const [aboutQuestion,setAboutQuestion]=useState("q01"),[aboutAnswer,setAboutAnswer]=useState(""),[aboutAllowAI,setAboutAllowAI]=useState(false),[aboutShare,setAboutShare]=useState(false),[aboutShareTheme,setAboutShareTheme]=useState(""),[aiAvailable,setAiAvailable]=useState(false);
  const [memoryText,setMemoryText]=useState(""),[memoryCategory,setMemoryCategory]=useState("gustos"),[memoryShare,setMemoryShare]=useState(false),[memoryShareTheme,setMemoryShareTheme]=useState(""),[editingMemory,setEditingMemory]=useState(null);
  const [centralActivities,setCentralActivities]=useState([]),[centralMode,setCentralMode]=useState("guiado"),[centralLoading,setCentralLoading]=useState(false),[centralError,setCentralError]=useState("");
- const lastMessage=useRef(null),firstPoll=useRef(true);
  useEffect(()=>{let active=true;db.auth.getUser().then(({data})=>{if(active){setUser(data.user||null);setLoading(false)}}).catch(()=>setLoading(false));const {data:{subscription}}=db.auth.onAuthStateChange((_event,session)=>{if(active)setUser(session?.user||null)});if(typeof window!=="undefined"){
  const input=new URLSearchParams(window.location.search).get("invite");
  const fromUrl=(input||"").match(/^[a-f0-9]{24}$/i)?.[0];
@@ -109,14 +108,14 @@ export default function Home(){
  useEffect(()=>{fetch("/api/complice").then(r=>r.json()).then(x=>setAiAvailable(x.mode==="ia")).catch(()=>setAiAvailable(false))},[]);
  useEffect(()=>{
   if(!user||!member)return;
-  let stopped=false;firstPoll.current=true;
+  let stopped=false;
   const poll=async()=>{
    if(document.visibilityState==="hidden")return;
    const [{data:ms},{data:ac}]=await Promise.all([
     db.from("cp_messages").select("*").eq("space_id",member.space_id).order("created_at",{ascending:true}).limit(100),
     db.from("cp_completions").select("*").eq("space_id",member.space_id)]);
    if(stopped)return;
-   if(ms){const newest=ms[ms.length-1];if(!firstPoll.current&&newest&&newest.id!==lastMessage.current&&newest.sender_id!==user.id&&"Notification" in window&&Notification.permission==="granted"){navigator.serviceWorker?.ready.then(reg=>reg.showNotification("Cómplices ❤️",{body:"Tu pareja te dejó algo especial",icon:"/icon.svg"})).catch(()=>{})}lastMessage.current=newest?.id||null;firstPoll.current=false;setMessages(ms)}
+   if(ms)setMessages(ms);
    if(ac)setActivities(ac);
   };
   poll();const timer=setInterval(poll,25000);window.addEventListener("focus",poll);return()=>{stopped=true;clearInterval(timer);window.removeEventListener("focus",poll)}
