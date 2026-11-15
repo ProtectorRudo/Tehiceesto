@@ -1,6 +1,7 @@
 import {createClient} from "@supabase/supabase-js";
 import {createHash} from "node:crypto";
 import {generateGuidedPlan,answerIsSafe} from "../../../lib/central-content.mjs";
+import {partnerGuidedIdeas,safeProfile} from "../../../lib/ai-profile.mjs";
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
 const NO_STORE={"Cache-Control":"no-store","X-Robots-Tag":"noindex"};
@@ -26,6 +27,7 @@ async function improveWithAI(guided,user,context,db){
   who:"la persona que consulta",
   ownPreferences:context.preferences,
   partnerSharedThemes:context.partnerSignals||[],
+  partnerApprovedChoices:context.partnerProfile||{},
   ownAnswers:context.reflections.filter(x=>x.ai_use_allowed).slice(0,8).map(r=>({question:r.question,answer:String(r.answer).slice(0,350)})),
   ownMemories:context.memories.filter(x=>x.use_for_ai).slice(0,8).map(r=>({category:r.category,text:String(r.body).slice(0,250)})),
   suggestedThemes:guided.filter(x=>x.slot==="daily_2"||x.slot==="weekly_1").map(x=>({slot:x.slot,theme:x.theme,existingIdea:x.title+" — "+x.body}))
@@ -71,20 +73,22 @@ export async function GET(request){
   const {data:cached,error:cachedError}=await db.from("cp_ai_activities").select("*").eq("user_id",user.id).in("period_key",periodKeys);
   if(cachedError)return send({error:"No se pudieron consultar tus actividades"},503);
   const readySlots=["daily_1","daily_2","weekly_1","game_1"];
-  const [p,reflections,memories,hint,history,feedback,partnerThemes]=await Promise.all([
+  const [p,reflections,memories,hint,history,feedback,partnerThemes,partnerChoices]=await Promise.all([
    db.from("cp_preferences").select("favorite_treat,favorite_plan,love_language").eq("user_id",user.id).maybeSingle(),
    db.from("cp_reflections").select("question_id,question,answer,ai_use_allowed").eq("user_id",user.id).eq("ai_use_allowed",true).limit(12),
    db.from("cp_ai_memories").select("category,body,use_for_ai").eq("user_id",user.id).eq("use_for_ai",true).order("created_at",{ascending:false}).limit(20),
    db.rpc("cp_partner_surprise",{p_space:member.space_id}),
    db.from("cp_ai_activities").select("id,theme").eq("user_id",user.id).order("created_at",{ascending:false}).limit(20),
    db.from("cp_ai_feedback").select("activity_id,rating").eq("user_id",user.id).order("updated_at",{ascending:false}).limit(30),
-   db.rpc("cp_partner_signals",{p_space:member.space_id})
+   db.rpc("cp_partner_signals",{p_space:member.space_id}),
+   process.env.CP_PROFILE_INTERNAL_KEY?db.rpc("cp_partner_profile",{p_space:member.space_id,p_internal_secret:process.env.CP_PROFILE_INTERNAL_KEY}):Promise.resolve({data:{},error:null})
   ]);
-  const failed=[p,reflections,memories,hint,history,feedback,partnerThemes].some(x=>x.error);
+  const failed=[p,reflections,memories,hint,history,feedback,partnerThemes,partnerChoices].some(x=>x.error);
   if(failed)return send({error:"No pude preparar las propuestas sin verificar tus preferencias privadas"},503);
   const themesById=new Map((history.data||[]).map(a=>[a.id,a.theme]));
   const ratingThemes=(feedback.data||[]).map(x=>({theme:themesById.get(x.activity_id),rating:x.rating})).filter(x=>x.theme);
-  const context={preferences:p.data||{},reflections:reflections.data||[],memories:memories.data||[],partnerSignals:partnerThemes.data||[]};
+  const context={preferences:p.data||{},reflections:reflections.data||[],memories:memories.data||[],partnerSignals:partnerThemes.data||[],partnerProfile:safeProfile(partnerChoices.data)};
+  const personallyTailored=partnerGuidedIdeas(context.partnerProfile);
   const fingerprint=createHash("sha256").update(JSON.stringify({context,hint:hint.data||null,ratings:feedback.data||[]})).digest("hex");
   const {data:done,error:doneError}=await db.from("cp_completions").select("task_key").eq("space_id",member.space_id).eq("user_id",user.id);
   if(doneError)return send({error:"No se pudo verificar tu progreso"},503);
@@ -92,8 +96,17 @@ export async function GET(request){
   const current=(cached||[]).filter(a=>readySlots.includes(a.slot));
   const isFresh=(item)=>item.context_fingerprint===fingerprint||doneKeys.has(item.task_key);
   if(readySlots.every(k=>current.some(x=>x.slot===k&&isFresh(x))))
-    return send({activities:current,mode:current.some(x=>x.mode==="generativa")?"generativa":"guiado",cached:true});
+    return send({activities:current,mode:current.some(x=>x.mode==="generativa")?"generativa":"guiado",cached:true,personalization:{partnerSharedPreferences:personallyTailored.count,realAI:Boolean(process.env.OPENAI_API_KEY)}});
   let generated=generateGuidedPlan({userId:user.id,date,week,...context,recent:history.data||[],ratings:ratingThemes,hint:hint.data});
+  if(personallyTailored.hasSignals){
+   const slots=["daily_1","daily_2","weekly_1","game_1"];
+   generated=generated.map(item=>{
+    const k=slots.indexOf(item.slot);
+    const idea=k===3?personallyTailored.game:personallyTailored.ideas[k];
+    if(!idea)return item;
+    return {...item,title:idea.title,body:idea.body,theme:idea.theme,icon:idea.icon};
+   });
+  }
   const requiresAI=["daily_2","weekly_1"].some(slot=>{
    const old=current.find(x=>x.slot===slot);
    return !old||!isFresh(old);
@@ -114,6 +127,6 @@ export async function GET(request){
   }
   const {data:activities,error:readError}=await db.from("cp_ai_activities").select("*").eq("user_id",user.id).in("period_key",periodKeys);
   if(readError||!activities)return send({error:"No pude recuperar las actividades guardadas"},503);
-  return send({activities,mode:activities.some(x=>x.mode==="generativa")?"generativa":"guiado",cached:false});
+  return send({activities,mode:activities.some(x=>x.mode==="generativa")?"generativa":"guiado",cached:false,personalization:{partnerSharedPreferences:personallyTailored.count,realAI:Boolean(process.env.OPENAI_API_KEY)}});
  }catch{return send({error:"No pude preparar la experiencia de hoy"},500)}
 }
