@@ -51,3 +51,10 @@ Verificar estado de GitHub, Supabase y Render antes de publicar. Ejecutar migrac
 - Recomendaciones guiadas de diario, semanal y juego, con persistencia, favoritos/descartes y cambio de actividades pendientes al actualizar el perfil.
 - **Diferencia de estados:** código implementado ≠ publicado ≠ probado desde dos móviles. Validar logs del último despliegue antes de informar LIVE.
 - La IA generativa no funciona si falta `OPENAI_API_KEY`; el motor algorítmico sí puede recomendar actividades sin llamar a la API.
+
+
+## Nueva verificación: pistas cruzadas, privacidad y recomendaciones
+- 8/8 pruebas SQL para que un miembro reciba solo temas autorizados, sin texto libre; sin acceso a otra pareja; revocación inmediata de permisos generales o particulares (transacciones reversibles).
+- 5/5 pruebas adicionales: los datos «evitar» NO se transforman en recomendaciones positivas; solo se transmiten los temas positivos y revocables; no hay acceso directo a respuestas.
+- Pruebas automáticas añadidas para que temas no autorizados/desconocidos no afecten la selección, las pistas del otro no revelen su texto y la generación siga determinista.
+- Todavía faltan dos cuentas reales, correos de confirmación, push en teléfonos y OpenAI API conectada. No confundir tests SQL/build con prueba real de uso.
