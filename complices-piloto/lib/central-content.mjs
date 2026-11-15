@@ -144,15 +144,17 @@ const toActivity=(slot,period,theme,index)=>{const c=CATALOG[theme],weekly=slot=
  icon:c.icon,points:game?20:weekly?120:slot==="daily_1"?40:30,mode:"guiado",
  task_key:period+":"+(game?"central-game":slot==="daily_1"?"central-1":slot==="daily_2"?"central-2":"central-1")
 }};
-export function generateGuidedPlan({userId,date,week,preferences,reflections,memories,recent,ratings,hint}){
+export function generateGuidedPlan({userId,date,week,preferences,reflections,memories,recent,ratings,hint,partnerSignals=[]}){
  const scores=deriveThemes({preferences,reflections,memories,recent,ratings}),salt=userId+"-"+date;
- const first=pickTheme(scores,salt+"daily1");
+ const safePartnerThemes=[...new Set((partnerSignals||[]).filter(x=>THEMES.includes(x)))];
+ const partnerTheme=safePartnerThemes.length?safePartnerThemes[hash(salt+"partner")%safePartnerThemes.length]:null;
+ const first=partnerTheme||pickTheme(scores,salt+"daily1");
  const second=pickTheme(scores,salt+"daily2",[first]);
  const weeklyTheme=pickTheme(scores,userId+week+"weekly",[second]);
- const gameTheme=pickTheme(scores,salt+"game",[first]);
+ const gameTheme=partnerTheme||pickTheme(scores,salt+"game",[first]);
  const safeHint=hint&&typeof hint.title==="string"&&typeof hint.body==="string"?hint:null;
  const firstActivity=toActivity("daily_1","d:"+date,first,hash(salt+"one")%3);
- if(safeHint&&safeHint.title.length<120&&safeHint.body.length<440){
+ if(!partnerTheme&&safeHint&&safeHint.title.length<120&&safeHint.body.length<440){
   firstActivity.title=safeHint.title;firstActivity.body=safeHint.body;firstActivity.theme="detalles";firstActivity.icon="💝";
  }
  return [
