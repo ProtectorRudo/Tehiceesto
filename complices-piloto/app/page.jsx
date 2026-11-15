@@ -2,6 +2,7 @@
 "use client";
 import {useState,useEffect,useCallback} from "react";
 import {createClient} from "@supabase/supabase-js";
+import {PROFILE_QUESTIONS,profileProgress} from "../lib/ai-profile.mjs";
 
 const db=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const QUESTION_BANK={
@@ -72,7 +73,8 @@ export default function Home(){
  const [gameAnswers,setGameAnswers]=useState({}),[gameResults,setGameResults]=useState({});
  const [aboutQuestion,setAboutQuestion]=useState("q01"),[aboutAnswer,setAboutAnswer]=useState(""),[aboutAllowAI,setAboutAllowAI]=useState(false),[aboutShare,setAboutShare]=useState(false),[aboutShareTheme,setAboutShareTheme]=useState(""),[aiAvailable,setAiAvailable]=useState(false);
  const [memoryText,setMemoryText]=useState(""),[memoryCategory,setMemoryCategory]=useState("gustos"),[memoryShare,setMemoryShare]=useState(false),[memoryShareTheme,setMemoryShareTheme]=useState(""),[editingMemory,setEditingMemory]=useState(null);
- const [centralActivities,setCentralActivities]=useState([]),[centralMode,setCentralMode]=useState("guiado"),[centralLoading,setCentralLoading]=useState(false),[centralError,setCentralError]=useState("");
+ const [centralActivities,setCentralActivities]=useState([]),[centralMode,setCentralMode]=useState("guiado"),[centralLoading,setCentralLoading]=useState(false),[centralError,setCentralError]=useState(""),[partnerInsightCount,setPartnerInsightCount]=useState(0);
+ const [profileCards,setProfileCards]=useState([]),[profileQuestion,setProfileQuestion]=useState("afecto"),[profileAnswer,setProfileAnswer]=useState(""),[profileShare,setProfileShare]=useState(false);
  useEffect(()=>{let active=true;db.auth.getUser().then(({data})=>{if(active){setUser(data.user||null);setLoading(false)}}).catch(()=>setLoading(false));const {data:{subscription}}=db.auth.onAuthStateChange((_event,session)=>{if(active)setUser(session?.user||null)});if(typeof window!=="undefined"){
  const input=new URLSearchParams(window.location.search).get("invite");
  const fromUrl=(input||"").match(/^[a-f0-9]{24}$/i)?.[0];
@@ -85,7 +87,7 @@ export default function Home(){
   if(e){setNotice(getError(e));return}
   if(!m){setMember(null);setMembers([]);setSpace(null);setPref(null);return}
   setMember(m);
-  const [s,mm,p,c,ms,n,t,rfl,ns,mem,feedback]=await Promise.all([
+  const [s,mm,p,c,ms,n,t,rfl,ns,mem,feedback,structured]=await Promise.all([
    db.from("cp_spaces").select("*").eq("id",m.space_id).single(),
    db.from("cp_members").select("user_id,display_name,joined_at").eq("space_id",m.space_id),
    db.from("cp_preferences").select("*").eq("user_id",u.id).maybeSingle(),
@@ -96,10 +98,11 @@ export default function Home(){
    db.from("cp_reflections").select("id,question_id,question,answer,ai_use_allowed,share_for_surprises,share_theme,updated_at").eq("user_id",u.id).order("updated_at",{ascending:false}),
    db.from("cp_notification_settings").select("enabled,quiet_start,quiet_end").eq("user_id",u.id).maybeSingle(),
    db.from("cp_ai_memories").select("id,category,body,use_for_ai,share_for_surprises,share_theme,created_at").eq("user_id",u.id).order("created_at",{ascending:false}).limit(35),
-   db.from("cp_ai_feedback").select("activity_id,rating").eq("user_id",u.id)
+   db.from("cp_ai_feedback").select("activity_id,rating").eq("user_id",u.id),
+   db.from("cp_ai_profile_cards").select("question_key,answer_code,share_with_partner_ai,updated_at").eq("user_id",u.id)
   ]);
   if(s.error)setNotice(getError(s.error));
-  setSpace(s.data||null);setMembers(mm.data||[]);setPref(p.data||null);setActivities(c.data||[]);setMessages(ms.data||[]);setNotes(n.data||[]);setReflections(rfl.data||[]);setMemories(mem.data||[]);setAiRatings(feedback.data||[]);setNotificationSettings(ns.data||{enabled:false,quiet_start:"22:00",quiet_end:"08:00"});if(t.data)setSurprise(t.data);const {data:gameRows}=await db.from("cp_game_entries").select("game_key,answer").eq("space_id",m.space_id).eq("user_id",u.id);if(gameRows)setGameAnswers(Object.fromEntries(gameRows.map(g=>[g.game_key,g.answer])));
+  setSpace(s.data||null);setMembers(mm.data||[]);setPref(p.data||null);setActivities(c.data||[]);setMessages(ms.data||[]);setNotes(n.data||[]);setReflections(rfl.data||[]);setMemories(mem.data||[]);setAiRatings(feedback.data||[]);setProfileCards(structured.data||[]);setNotificationSettings(ns.data||{enabled:false,quiet_start:"22:00",quiet_end:"08:00"});if(t.data)setSurprise(t.data);const {data:gameRows}=await db.from("cp_game_entries").select("game_key,answer").eq("space_id",m.space_id).eq("user_id",u.id);if(gameRows)setGameAnswers(Object.fromEntries(gameRows.map(g=>[g.game_key,g.answer])));
  },[]);
  useEffect(()=>{if(user){load(user)}else{setMember(null);setSpace(null)}},[user,load]);
  const refreshCentral=useCallback(async()=>{
@@ -111,7 +114,7 @@ export default function Home(){
    const response=await fetch("/api/central",{headers:{Authorization:"Bearer "+session.access_token},cache:"no-store"});
    const data=await response.json();
    if(!response.ok){setCentralError(data.error||"No pude actualizar tus misiones");return}
-   setCentralActivities(data.activities||[]);setCentralMode(data.mode||"guiado");setCentralError("");
+   setCentralActivities(data.activities||[]);setCentralMode(data.mode||"guiado");setPartnerInsightCount(data.personalization?.partnerSharedPreferences||0);setCentralError("");
   }catch{setCentralError("No pude conectar con tu cómplice central")}
   finally{setCentralLoading(false)}
  },[user?.id]);
@@ -169,6 +172,32 @@ export default function Home(){
  async function revealGame(key){const {data,error}=await db.rpc("cp_game_reveal",{p_space:member.space_id,p_key:key});if(error)setNotice(getError(error));else setGameResults(old=>({...old,[key]:data}))}
  async function playGame(key,answer){if(!partner)return;setBusy(true);setNotice("");const {error}=await db.from("cp_game_entries").upsert({space_id:member.space_id,game_key:key,user_id:user.id,answer},{onConflict:"space_id,game_key,user_id"});if(error){setNotice(getError(error))}else{if(!mineDone(key))await db.from("cp_completions").insert({space_id:member.space_id,user_id:user.id,task_key:key});await load(user);await revealGame(key)}setBusy(false)}
  async function mark(key){if(!member)return;setBusy(true);setNotice("");const was=mineDone(key);const r=was?await db.from("cp_completions").delete().eq("user_id",user.id).eq("space_id",member.space_id).eq("task_key",key):await db.from("cp_completions").insert({space_id:member.space_id,user_id:user.id,task_key:key});if(r.error)setNotice(getError(r.error));else await load(user);setBusy(false)}
+ function selectProfileQuestion(key){
+  const card=profileCards.find(p=>p.question_key===key);
+  setProfileQuestion(key);setProfileAnswer(card?.answer_code||"");setProfileShare(Boolean(card?.share_with_partner_ai));
+ }
+ async function saveStructuredProfile(){
+  if(!user||busy)return;
+  const question=PROFILE_QUESTIONS.find(q=>q.key===profileQuestion);
+  if(!question||!question.options.some(x=>x[0]===profileAnswer))return;
+  setBusy(true);setNotice("");
+  const {error}=await db.from("cp_ai_profile_cards").upsert({
+   user_id:user.id,question_key:profileQuestion,answer_code:profileAnswer,
+   share_with_partner_ai:profileShare,updated_at:new Date().toISOString()
+  },{onConflict:"user_id,question_key"});
+  if(error){setNotice("No pude guardar tu preferencia: "+getError(error));setBusy(false);return}
+  const next=PROFILE_QUESTIONS.find(q=>q.key!==profileQuestion&&!profileCards.some(c=>c.question_key===q.key));
+  setNotice(profileShare?"Preferencia guardada y autorizada como pista. La IA del otro la usará solo si activás el permiso general.":"Preferencia guardada solo en tu cuenta. Tu pareja no puede verla.");
+  if(next){setProfileQuestion(next.key);setProfileAnswer("");setProfileShare(false)}
+  await load(user);setBusy(false);
+ }
+ async function removeStructuredProfile(key){
+  if(!user||busy)return;
+  setBusy(true);
+  const {error}=await db.from("cp_ai_profile_cards").delete().eq("user_id",user.id).eq("question_key",key);
+  setBusy(false);
+  if(error)setNotice(getError(error));else{setNotice("Esa respuesta se eliminó. La IA del otro dejará de usarla en nuevas recomendaciones.");await load(user);if(key===profileQuestion){setProfileAnswer("");setProfileShare(false)}}
+ }
  async function savePref(){if(!user||!pref)return;setBusy(true);const {error}=await db.from("cp_preferences").update({favorite_treat:pref.favorite_treat,favorite_plan:pref.favorite_plan,love_language:pref.love_language,allow_surprises:pref.allow_surprises,adult_mode:pref.adult_mode,updated_at:new Date().toISOString()}).eq("user_id",user.id);setNotice(error?getError(error):"Preferencias guardadas. Actualizando propuestas para vos.");await load(user);if(!error)await refreshCentral();setBusy(false)}
  async function requestNotifications(){
   if(!("Notification" in window)||!("serviceWorker" in navigator)||!("PushManager" in window)){setNotice("Este navegador no admite todas las notificaciones. Podés seguir usando la página normalmente.");return}
@@ -312,9 +341,9 @@ async function saveMemory(){
   try{
    const {data,error}=await db.rpc("cp_reset_my_ai_profile");
    if(error)throw error;
-   setMemories([]);setReflections([]);setAiRatings([]);setNotes([]);setCentralActivities([]);setCentralMode("guiado");setCentralError("");
+   setMemories([]);setReflections([]);setAiRatings([]);setProfileCards([]);setNotes([]);setCentralActivities([]);setPartnerInsightCount(0);setCentralMode("guiado");setCentralError("");
    setAiChat([]);setNoteText("");setAboutAnswer("");setAboutAllowAI(false);setAboutShare(false);setAboutShareTheme("");
-   setMemoryText("");setMemoryShare(false);setMemoryShareTheme("");setEditingMemory(null);setSurprise(DEFAULT_SURPRISE);
+   setMemoryText("");setMemoryShare(false);setMemoryShareTheme("");setEditingMemory(null);setProfileQuestion("afecto");setProfileAnswer("");setProfileShare(false);setSurprise(DEFAULT_SURPRISE);
    await load(user);
    setNotice("Se eliminó tu memoria de IA ("+(data?.deleted_memories||0)+" recuerdos y "+(data?.deleted_reflections||0)+" respuestas). El chat compartido, tus corazones y la cuenta no cambiaron.");
   }catch(e){setNotice("No se pudo borrar la memoria: "+getError(e))}
