@@ -102,8 +102,9 @@ export function profileForOwnAI(rows=[]){
 
 
 /** Rejects generated ideas that directly conflict with explicitly authorized boundaries. */
-export function isIdeaCompatible(input,profile={}){
- if(typeof input!=="string"||input.length<8||input.length>500)return false;
+export function isIdeaCompatible(input,profile={},options={}){
+ const limit=Math.max(500,Math.min(1500,options.maxLength||500));
+ if(typeof input!=="string"||input.length<8||input.length>limit)return false;
  const text=input.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
  const p=safeProfile(profile);
  if((p.presupuesto==="gratis"||p.evitar==="gastos")&&/\b(comprar|compra|comprale|pagale|pagar|gastar|gastate|reservar algo pago|regalale un)\b/.test(text))return false;
