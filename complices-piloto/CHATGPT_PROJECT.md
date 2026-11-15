@@ -58,3 +58,14 @@ No reiniciar la arquitectura ni afirmar que algo está hecho sin evidencia direc
 - Con clave OpenAI configurada, el endpoint está preparado para generar títulos/descripciones personalizados con restricciones de privacidad, límite de consultas y `store:false`. **No probado con API real hasta configurar la clave**.
 - El build ejecuta pruebas de contenido antes de compilar: `npm test && next build`.
 - Próximos controles: verificar compilación con pruebas, RLS de las tres tablas nuevas y prueba E2E con cuentas reales.
+
+
+## Pistas privadas para generar sorpresas al otro (15/11/2026)
+- Perfil individual: las preguntas personales y memorias siguen siendo privadas y RLS impide leerlas desde el otro usuario.
+- Nuevas columnas en `cp_reflections` y `cp_ai_memories`: `share_for_surprises` (por defecto false), `share_theme` (opción estructurada: detalles, charla, paseo, cocina, pelicula, recuerdos, planes, humor). Una pista solo se comparte si el dueño habilita uso por IA, elige un tema y activa permiso compartible.
+- Función `public.cp_partner_signals(space_id)`: solo devuelve un conjunto de temas autorizados para la otra persona, **nunca el texto ni la pregunta**. Valida pertenencia a la misma pareja, exige `cp_preferences.allow_surprises` y excluye respuestas de lo que se desea evitar. No sirve para extraer respuestas íntimas.
+- `allow_surprises` empieza en false para usuarios nuevos: requiere activar explícitamente la generación de sugerencias para la otra persona.
+- Motor de actividades `lib/central-content.mjs`: prioriza temas voluntarios de la pareja en una misión diaria y una pregunta/juego; el endpoint `/api/central` incluye estas pistas en la huella de actualización. Las tareas ya completadas no se alteran al renovar el perfil.
+- Interfaz `app/page.jsx`: controles de compartir solo tema para reflexiones y recuerdos, editar, revocar y eliminar. La app no envía respuestas privadas literales ni procesa textos automáticamente como permiso de compartición.
+- Notificaciones: eliminada duplicación local desde polling; mantener opt-in explícito y posibilidad de apagar.
+- Generación realmente original por modelo sigue requiriendo `OPENAI_API_KEY`; el algoritmo guiado no es un LLM.
