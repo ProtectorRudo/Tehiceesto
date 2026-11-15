@@ -53,12 +53,14 @@ export default function Home(){
  const [user,setUser]=useState(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[notice,setNotice]=useState(""),[authMode,setAuthMode]=useState("entrar");
  const [email,setEmail]=useState(""),[pass,setPass]=useState("");
  const [member,setMember]=useState(null),[members,setMembers]=useState([]),[space,setSpace]=useState(null),[pref,setPref]=useState(null),[surprise,setSurprise]=useState(DEFAULT_SURPRISE);
- const [activities,setActivities]=useState([]),[messages,setMessages]=useState([]),[notes,setNotes]=useState([]),[reflections,setReflections]=useState([]),[notificationSettings,setNotificationSettings]=useState({enabled:false,quiet_start:"22:00",quiet_end:"08:00"});
+ const [activities,setActivities]=useState([]),[messages,setMessages]=useState([]),[notes,setNotes]=useState([]),[reflections,setReflections]=useState([]),[memories,setMemories]=useState([]),[aiRatings,setAiRatings]=useState([]),[notificationSettings,setNotificationSettings]=useState({enabled:false,quiet_start:"22:00",quiet_end:"08:00"});
  const [name,setName]=useState(""),[inviteInput,setInviteInput]=useState("");
  const [tab,setTab]=useState("hoy"),[messageText,setMessageText]=useState(""),[replyText,setReplyText]=useState(""),[replyTo,setReplyTo]=useState(null),[questionTopic,setQuestionTopic]=useState("romance");
  const [aiText,setAiText]=useState(""),[aiChat,setAiChat]=useState([]),[aiBusy,setAiBusy]=useState(false),[tipMode,setTipMode]=useState("guiado"),[noteText,setNoteText]=useState("");
  const [gameAnswers,setGameAnswers]=useState({}),[gameResults,setGameResults]=useState({});
  const [aboutQuestion,setAboutQuestion]=useState("q01"),[aboutAnswer,setAboutAnswer]=useState(""),[aboutAllowAI,setAboutAllowAI]=useState(false),[aiAvailable,setAiAvailable]=useState(false);
+ const [memoryText,setMemoryText]=useState(""),[memoryCategory,setMemoryCategory]=useState("gustos");
+ const [centralActivities,setCentralActivities]=useState([]),[centralMode,setCentralMode]=useState("guiado"),[centralLoading,setCentralLoading]=useState(false),[centralError,setCentralError]=useState("");
  const lastMessage=useRef(null),firstPoll=useRef(true);
  useEffect(()=>{let active=true;db.auth.getUser().then(({data})=>{if(active){setUser(data.user||null);setLoading(false)}}).catch(()=>setLoading(false));const {data:{subscription}}=db.auth.onAuthStateChange((_event,session)=>{if(active)setUser(session?.user||null)});if(typeof window!=="undefined"){
  const input=new URLSearchParams(window.location.search).get("invite");
@@ -72,7 +74,7 @@ export default function Home(){
   if(e){setNotice(getError(e));return}
   if(!m){setMember(null);setMembers([]);setSpace(null);setPref(null);return}
   setMember(m);
-  const [s,mm,p,c,ms,n,t,rfl,ns]=await Promise.all([
+  const [s,mm,p,c,ms,n,t,rfl,ns,mem,feedback]=await Promise.all([
    db.from("cp_spaces").select("*").eq("id",m.space_id).single(),
    db.from("cp_members").select("user_id,display_name,joined_at").eq("space_id",m.space_id),
    db.from("cp_preferences").select("*").eq("user_id",u.id).maybeSingle(),
@@ -81,12 +83,28 @@ export default function Home(){
    db.from("cp_ai_notes").select("*").eq("user_id",u.id).order("created_at",{ascending:false}).limit(12),
    db.rpc("cp_partner_surprise",{p_space:m.space_id}),
    db.from("cp_reflections").select("id,question_id,question,answer,ai_use_allowed,updated_at").eq("user_id",u.id).order("updated_at",{ascending:false}),
-   db.from("cp_notification_settings").select("enabled,quiet_start,quiet_end").eq("user_id",u.id).maybeSingle()
+   db.from("cp_notification_settings").select("enabled,quiet_start,quiet_end").eq("user_id",u.id).maybeSingle(),
+   db.from("cp_ai_memories").select("id,category,body,use_for_ai,created_at").eq("user_id",u.id).order("created_at",{ascending:false}).limit(35),
+   db.from("cp_ai_feedback").select("activity_id,rating").eq("user_id",u.id)
   ]);
   if(s.error)setNotice(getError(s.error));
-  setSpace(s.data||null);setMembers(mm.data||[]);setPref(p.data||null);setActivities(c.data||[]);setMessages(ms.data||[]);setNotes(n.data||[]);setReflections(rfl.data||[]);setNotificationSettings(ns.data||{enabled:false,quiet_start:"22:00",quiet_end:"08:00"});if(t.data)setSurprise(t.data);const {data:gameRows}=await db.from("cp_game_entries").select("game_key,answer").eq("space_id",m.space_id).eq("user_id",u.id);if(gameRows)setGameAnswers(Object.fromEntries(gameRows.map(g=>[g.game_key,g.answer])));
+  setSpace(s.data||null);setMembers(mm.data||[]);setPref(p.data||null);setActivities(c.data||[]);setMessages(ms.data||[]);setNotes(n.data||[]);setReflections(rfl.data||[]);setMemories(mem.data||[]);setAiRatings(feedback.data||[]);setNotificationSettings(ns.data||{enabled:false,quiet_start:"22:00",quiet_end:"08:00"});if(t.data)setSurprise(t.data);const {data:gameRows}=await db.from("cp_game_entries").select("game_key,answer").eq("space_id",m.space_id).eq("user_id",u.id);if(gameRows)setGameAnswers(Object.fromEntries(gameRows.map(g=>[g.game_key,g.answer])));
  },[]);
  useEffect(()=>{if(user){load(user)}else{setMember(null);setSpace(null)}},[user,load]);
+ const refreshCentral=useCallback(async()=>{
+  if(!user?.id)return;
+  setCentralLoading(true);
+  try{
+   const {data:{session}}=await db.auth.getSession();
+   if(!session?.access_token){setCentralLoading(false);return}
+   const response=await fetch("/api/central",{headers:{Authorization:"Bearer "+session.access_token},cache:"no-store"});
+   const data=await response.json();
+   if(!response.ok){setCentralError(data.error||"No pude actualizar tus misiones");return}
+   setCentralActivities(data.activities||[]);setCentralMode(data.mode||"guiado");setCentralError("");
+  }catch{setCentralError("No pude conectar con tu cómplice central")}
+  finally{setCentralLoading(false)}
+ },[user?.id]);
+ useEffect(()=>{if(user?.id&&member?.space_id)refreshCentral();else setCentralActivities([])},[user?.id,member?.space_id,refreshCentral]);
  useEffect(()=>{fetch("/api/complice").then(r=>r.json()).then(x=>setAiAvailable(x.mode==="ia")).catch(()=>setAiAvailable(false))},[]);
  useEffect(()=>{
   if(!user||!member)return;
@@ -120,21 +138,26 @@ export default function Home(){
  const partner=members.find(m=>m.user_id!==user?.id), date=todayKey(), week=weeklyKey();
  const chosen=GENERIC_DAILY[(new Date(date+"T12:00:00").getDate()+3)%GENERIC_DAILY.length];
  const weekly=WEEKLY[(new Date(week+"T12:00:00").getDate()+3)%WEEKLY.length];
- const tasks=[
+ const byCentralSlot=Object.fromEntries(centralActivities.map(item=>[item.slot,item]));
+ const taskDefaults=[
   {key:"d:"+date+":sorpresa",title:surprise.title,body:surprise.body,icon:"💝",points:40},
   {key:"d:"+date+":conexion",title:chosen.title,body:chosen.body,icon:chosen.icon,points:30},
   {key:"w:"+week+":aventura",title:weekly.title,body:weekly.body,icon:weekly.icon,points:120}
  ];
+ const tasks=taskDefaults.map((fallback,i)=>{
+  const slot=["daily_1","daily_2","weekly_1"][i],a=byCentralSlot[slot];
+  return a?{id:a.id,key:a.task_key,title:a.title,body:a.body,icon:a.icon,points:a.points,mode:a.mode,theme:a.theme}:fallback
+ });
  const mineDone=(key)=>activities.some(a=>a.task_key===key&&a.user_id===user?.id);
  const partnerDone=(key)=>activities.some(a=>a.task_key===key&&a.user_id===partner?.user_id);
- const calcPoints=(key)=>key.startsWith("w:")?120:key.startsWith("q:")?20:key.endsWith(":sorpresa")?40:key.startsWith("g:")?60:30;
+ const calcPoints=(key)=>key.startsWith("w:")?120:key.startsWith("q:")?20:key.endsWith(":sorpresa")||key.startsWith("d:")&&key.endsWith(":central-1")?40:key.startsWith("g:")?60:30;
  const totalHearts=activities.reduce((sum,a)=>sum+calcPoints(a.task_key),0);
  const dailyAbout=ABOUT_QUESTIONS.find(q=>!reflections.some(r=>r.question_id===q[0]))||ABOUT_QUESTIONS[(new Date(date+"T12:00:00").getDate())%ABOUT_QUESTIONS.length];
  const games=[{slug:"escapada",title:"Si pudiéramos escaparnos…",intro:"¿A dónde irías con tu pareja sin pensarlo demasiado?",options:[["playa","🏖️ A la playa"],["montana","⛰️ A la montaña"],["ciudad","🏙️ A una ciudad"],["campo","🌿 Al campo"]]},{slug:"cita",title:"Nuestra cita perfecta",intro:"¿Cuál de estos planes elegirías para esta noche?",options:[["cena","🍝 Una cena"],["peli","🎬 Una película"],["paseo","🌙 Un paseo"],["cocinar","👩‍🍳 Cocinar juntos"]]}];
  async function revealGame(key){const {data,error}=await db.rpc("cp_game_reveal",{p_space:member.space_id,p_key:key});if(error)setNotice(getError(error));else setGameResults(old=>({...old,[key]:data}))}
  async function playGame(key,answer){if(!partner)return;setBusy(true);setNotice("");const {error}=await db.from("cp_game_entries").upsert({space_id:member.space_id,game_key:key,user_id:user.id,answer},{onConflict:"space_id,game_key,user_id"});if(error){setNotice(getError(error))}else{if(!mineDone(key))await db.from("cp_completions").insert({space_id:member.space_id,user_id:user.id,task_key:key});await load(user);await revealGame(key)}setBusy(false)}
  async function mark(key){if(!member)return;setBusy(true);setNotice("");const was=mineDone(key);const r=was?await db.from("cp_completions").delete().eq("user_id",user.id).eq("space_id",member.space_id).eq("task_key",key):await db.from("cp_completions").insert({space_id:member.space_id,user_id:user.id,task_key:key});if(r.error)setNotice(getError(r.error));else await load(user);setBusy(false)}
- async function savePref(){if(!user||!pref)return;setBusy(true);const {error}=await db.from("cp_preferences").update({favorite_treat:pref.favorite_treat,favorite_plan:pref.favorite_plan,love_language:pref.love_language,allow_surprises:pref.allow_surprises,adult_mode:pref.adult_mode,updated_at:new Date().toISOString()}).eq("user_id",user.id);setNotice(error?getError(error):"Tus preferencias privadas quedaron guardadas.");await load(user);setBusy(false)}
+ async function savePref(){if(!user||!pref)return;setBusy(true);const {error}=await db.from("cp_preferences").update({favorite_treat:pref.favorite_treat,favorite_plan:pref.favorite_plan,love_language:pref.love_language,allow_surprises:pref.allow_surprises,adult_mode:pref.adult_mode,updated_at:new Date().toISOString()}).eq("user_id",user.id);setNotice(error?getError(error):"Preferencias guardadas. Actualizando propuestas para vos.");await load(user);if(!error)await refreshCentral();setBusy(false)}
  async function requestNotifications(){
   if(!("Notification" in window)||!("serviceWorker" in navigator)||!("PushManager" in window)){setNotice("Este navegador no admite todas las notificaciones. Podés seguir usando la página normalmente.");return}
   try{
@@ -191,7 +214,7 @@ export default function Home(){
   setBusy(true);setNotice("");
   const {error}=await db.from("cp_reflections").upsert({user_id:user.id,question_id:q[0],question:q[1],answer:aboutAnswer.trim().slice(0,1200),ai_use_allowed:aboutAllowAI,updated_at:new Date().toISOString()},{onConflict:"user_id,question_id"});
   setNotice(error?getError(error):"Tu respuesta privada quedó guardada.");
-  if(!error){setAboutAnswer("");setAboutAllowAI(false);await load(user)}
+  if(!error){setAboutAnswer("");setAboutAllowAI(false);await load(user);await refreshCentral()}
   setBusy(false);
  }
  function pickAbout(id){
@@ -201,9 +224,34 @@ export default function Home(){
  async function deleteAbout(id){
   setBusy(true);const {error}=await db.from("cp_reflections").delete().eq("user_id",user.id).eq("id",id);
   setNotice(error?getError(error):"Respuesta eliminada.");
-  if(!error){setAboutAnswer("");await load(user)}setBusy(false);
+  if(!error){setAboutAnswer("");await load(user);await refreshCentral()}setBusy(false);
  }
- async function saveNote(){if(!noteText.trim())return;setBusy(true);const {error}=await db.from("cp_ai_notes").insert({user_id:user.id,body:noteText.trim()});setNotice(error?getError(error):"La nota quedó guardada solo para vos.");setNoteText("");await load(user);setBusy(false)}
+async function saveMemory(){
+  if(!user||!memoryText.trim()||busy)return;
+  setBusy(true);setNotice("");
+  const {error}=await db.from("cp_ai_memories").insert({user_id:user.id,category:memoryCategory,body:memoryText.trim().slice(0,350),use_for_ai:true});
+  if(error)setNotice(getError(error));
+  else {setMemoryText("");setNotice("Cómplice lo recordará para tus próximas propuestas. Solo vos tenés acceso.");await load(user);await refreshCentral()}
+  setBusy(false);
+ }
+ async function toggleMemory(record){
+  setBusy(true);const {error}=await db.from("cp_ai_memories").update({use_for_ai:!record.use_for_ai,updated_at:new Date().toISOString()}).eq("id",record.id).eq("user_id",user.id);
+  if(error)setNotice(getError(error));else {await load(user);await refreshCentral()}
+  setBusy(false);
+ }
+ async function deleteMemory(record){
+  setBusy(true);const {error}=await db.from("cp_ai_memories").delete().eq("id",record.id).eq("user_id",user.id);
+  if(error)setNotice(getError(error));else {await load(user);await refreshCentral();setNotice("Recuerdo eliminado de tu perfil.")}
+  setBusy(false);
+ }
+ async function rateActivity(task,value){
+  if(!task.id||!user)return;
+  setBusy(true);
+  const {error}=await db.from("cp_ai_feedback").upsert({activity_id:task.id,user_id:user.id,rating:value,updated_at:new Date().toISOString()},{onConflict:"activity_id,user_id"});
+  if(error)setNotice(getError(error));else {await load(user);await refreshCentral()}
+  setBusy(false);
+ }
+  async function saveNote(){if(!noteText.trim())return;setBusy(true);const {error}=await db.from("cp_ai_notes").insert({user_id:user.id,body:noteText.trim()});setNotice(error?getError(error):"La nota quedó guardada solo para vos.");setNoteText("");await load(user);setBusy(false)}
  if(loading)return <main className="app"><div className="brand"><span className="mark">♡</span> Cómplices</div><p className="muted" style={{marginTop:55}}>Preparando nuestro rincón…</p></main>;
  if(!user)return <main className="app"><div className="brand"><span className="mark">♡</span> CÓMPLICES <span className="muted">por TeHiceEsto</span></div><div className="hero-grid"><div><span className="tiny">UN MUNDO PRIVADO PARA DOS</span><h1>Volver a elegirnos.<br/><span style={{color:"#ff8eae"}}>Todos los días.</span></h1><p className="muted">Misiones sorpresa, preguntas que acercan, juegos y un cómplice que aprende qué hace especial a tu pareja.</p><Button onClick={()=>document.querySelector("#acceso")?.scrollIntoView({behavior:"smooth"})}>Empezar nuestra aventura →</Button></div><div className="hero-art"><span className="big-heart">💗</span><div className="float one">✦ Una sorpresa para hoy</div><div className="float two">♡ +40 corazones por tu gesto</div></div></div><div className="features"><article><h3>💌 Misiones con intención</h3><p>Un motivo nuevo para alegrarle el día a alguien.</p></article><article><h3>🎲 Siempre algo juntos</h3><p>Preguntas, juegos y pequeñas aventuras reales.</p></article><article><h3>🔒 Solo ustedes dos</h3><p>Cuentas personales y recuerdos compartidos.</p></article></div><section className="auth-card" id="acceso"><div className="glass box"><span className="tiny">ACCESO AL PILOTO</span><h2 style={{margin:"9px 0 19px"}}>Tu lugar empieza acá.</h2><div className="tabs" style={{marginBottom:20}}><button className={authMode==="entrar"?"active":""} onClick={()=>setAuthMode("entrar")}>Entrar</button><button className={authMode==="crear"?"active":""} onClick={()=>setAuthMode("crear")}>Crear cuenta</button></div><form onSubmit={login}><div className="form-field"><label>Correo electrónico</label><input className="input" type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu@email.com"/></div><div className="form-field"><label>Contraseña (mínimo 6 caracteres)</label><input className="input" type="password" minLength={6} required autoComplete={authMode==="entrar"?"current-password":"new-password"} value={pass} onChange={e=>setPass(e.target.value)}/></div><Button full type="submit" disabled={busy}>{busy?"Un momento…":authMode==="entrar"?"Entrar a nuestro espacio":"Crear mi cuenta"}</Button></form>{notice&&<div className="alert">{notice}</div>}{authMode==="crear"&&<div style={{marginTop:12}}><button className="link-button" onClick={()=>{setAuthMode("entrar");setNotice("")}}>Ya confirmé mi correo · Iniciar sesión</button></div>}<p className="subtle" style={{marginTop:14}}>Piloto privado para adultos. Cada integrante usa su propia cuenta.</p></div></section><footer className="page-bottom">Cómplices · Una experiencia independiente de TeHiceEsto · Privacidad primero.</footer></main>;
  if(!member)return <main className="app"><header className="top"><div className="brand"><span className="mark">♡</span> Cómplices</div><button className="link-button" onClick={logout}>Salir</button></header><section className="auth-card" style={{marginTop:40}}><span className="tiny">YA TENÉS TU CUENTA</span><h1>Creemos nuestro <span style={{color:"#ff8ead"}}>rincón.</span></h1><p className="muted" style={{margin:"15px 0 24px"}}>Podés crear un espacio e invitar a tu pareja o ingresar con el código que te compartió.</p><div className="glass box"><form onSubmit={inviteInput?joinSpace:createSpace}><div className="form-field"><label>¿Cómo querés que te llamemos?</label><input className="input" maxLength={40} required value={name} onChange={e=>setName(e.target.value)} placeholder="Tu nombre"/></div><div className="form-field"><label>Código de invitación (opcional)</label><input className="input" value={inviteInput} onChange={e=>setInviteInput(e.target.value)} placeholder="Si recibiste uno, pegalo acá"/></div><Button full disabled={busy} type="submit">{busy?"Guardando…":inviteInput?"Unirme a nuestra pareja":"Crear nuestro espacio"}</Button></form>{notice&&<div className="alert">{notice}</div>}</div></section></main>;
