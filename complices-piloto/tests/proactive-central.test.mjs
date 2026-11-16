@@ -84,11 +84,11 @@ test("las propuestas están disponibles al entrar, sin escritura de mensajes ni 
  assert.ok(p.includes('fetch("/api/central"'));
  assert.ok(p.includes('document.addEventListener("visibilitychange"'));
  assert.ok(!central.includes('db.from("cp_messages")'));
- assert.ok(central.includes("weekly_three_each_dates_v5"));
+ assert.ok(central.includes("EDITORIAL_ENGINE_VERSION"));
  assert.ok(central.includes('readySlots.some(slot=>'));
 });
 test("el generador incluye tres misiones individuales y la semanal rotativa",()=>{
  const p=read("app/api/central/route.js");
  for(const key of ["mission_1","mission_2","mission_3","weekly_1"])assert.ok(p.includes(key));
- assert.ok(p.includes('maxOutputTokens:750'));
+ assert.ok(p.includes('maxOutputTokens:2200'));
 });
