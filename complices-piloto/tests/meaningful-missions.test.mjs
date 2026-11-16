@@ -90,7 +90,7 @@ test("el respaldo personalizado adapta detalles, planes y objetivos por separado
 test("el consentimiento de gasto cero se respeta sin quitar el significado",()=>{
  const x=meaningfulPartnerPlan({detalle:"chocolate",plan:"paseo",presupuesto:"gratis"});
  assert.match(x.ideas[0].body,/nota/i);
- assert.doesNotMatch(x.ideas.join(" "),/compr[aá]|pag[aá]l[eo]/i);
+ assert.doesNotMatch(x.ideas.map(v=>v.body).join(" "),/compr[aá]|pag[aá]l[eo]/i);
  assert.match(x.ideas[1].body,/gratuit|diez minutos|breve/i);
 });
 test("el respaldo no asegura conocer a la pareja sin pistas",()=>{
