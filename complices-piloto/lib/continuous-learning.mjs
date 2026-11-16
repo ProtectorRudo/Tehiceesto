@@ -58,7 +58,7 @@ export function learningFallback({userId,week,cards=[]}){
 export function validLearningQuestion(question,topic){
  const q=String(question||"").trim();
  if(!TOPICS.includes(topic)||q.length<35||q.length>250||!q.includes("?"))return false;
- if(/contraseñ|password|trauma|confesión secreta|detalles sexuales|obligatori|publicá|cambiá tu foto de perfil|médic|diagnóstic/i.test(q))return false;
+ if(/contraseñ|password|trauma|confesión secreta|detalles sexuales|obligatori|publicá|cambi(?:ar|a|á|e|ás) (?:tu|la) foto de perfil|médic|diagnóstic/i.test(q))return false;
  return true;
 }
 export function learningOptions(topic){return PROFILE_QUESTIONS.find(q=>q.key===topic)?.options||[]}
