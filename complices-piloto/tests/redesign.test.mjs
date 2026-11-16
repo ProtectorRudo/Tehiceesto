@@ -50,7 +50,7 @@ test("se atiende al tamaño de pantalla y al movimiento reducido",()=>{
 });
 
 test("Hoy no duplica la portada de marketing y ofrece una misión útil",()=>{
- assert.ok(page.includes('className="primary-mission"'));
+ assert.ok(page.includes('className="primary-mission mission-spotlight"'));
  assert.ok(page.includes("pickFocusMission({todayTasks,pendingTasks,weeklyTasks"));
  assert.ok(page.includes("OPTIONAL_GESTURE.title"));
  assert.ok(page.includes("focusMissionHeading(focusMission,date)"));
