@@ -82,7 +82,7 @@ test("IA de misiones recibe solamente fechas permitidas por RLS",()=>{
  const s=source("app/api/central/route.js");
  assert.ok(s.includes('db.from("cp_important_dates")'));
  assert.ok(s.includes("upcomingOccasions"));
- assert.ok(s.includes("importantDates:context.importantDates"));
+ assert.ok(s.includes("upcomingImportantDates:context.importantDates"));
  assert.ok(s.includes("occasionMission"));
 });
 test("cron privado no responde a llamadas sin autenticación interna",async()=>{
