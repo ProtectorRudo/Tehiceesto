@@ -148,3 +148,24 @@ Cómplices debe hacerse útil con el tiempo sin invadir la vida de la pareja. No
 - Cron activo: `cp_proactive_weekly_nudges` con horario UTC `30 13,19,22 * * 1-6`. El cron histórico `cp_weekly_private_question` fue desprogramado, para no duplicar la pregunta. Una tabla privada `comp_private.cp_proactive_dispatches` impide un segundo envío del mismo tipo en la misma semana, incluso si el cron se reintenta. Se respeta el periodo de silencio de cada usuario, y la persona puede desactivar solo las preguntas o todos los avisos cuando quiera.
 - Las notificaciones Push enviadas tienen texto genérico, sin preguntas íntimas, respuestas, deseos ni nombres. El Push requiere autorización del navegador y no está garantizado en navegadores embebidos; sugerir abrir la web en Chrome o instalar la PWA.
 - **Verificación**: 6/6 pruebas SQL en transacción reversible con cuentas falsas (2 avisos/semana, no duplicación, domingo, silencio, solo misión si se apagan preguntas, ninguno si se apagan avisos). El próximo paso es la prueba completa desde un teléfono real con app cerrada y dos cuentas reales vinculadas. El último control de la base registró **0 usuarios habilitados**, por lo que no se han enviado notificaciones reales en esta revisión.
+
+
+## Juegos completos de TeHiceEsto integrados en Cómplices — 16/11/2026
+
+Objetivo: reutilizar los tres títulos existentes sin modificar \`main\`, TeHiceEsto.com, sus compras ni endpoints comerciales. Siempre desde la cuenta autenticada del piloto, accesibles dentro de **Juegos**.
+
+### Implementación disponible en código
+1. **Entre Dos**: 90 cartas completas de la fuente original \`supabase/functions/pack-juegos-content/index.ts\`, replicadas en \`complices-piloto/lib/private-entre-dos.mjs\`. Modalidad histórica de **un celular compartido**, más nueva modalidad **dos celulares** con selección privada, espera de ambos, revelación cooperativa y avance sincronizado. Cada persona abre Cómplices con su propia cuenta dentro del mismo espacio. Su progreso online queda aislado del juego comercial y no genera comparaciones afectivas ni puntos competitivos.
+2. **Meme Match**: 48 parejas originales, imágenes locales en la HTML completa original (\`private-meme-match.mjs\`). El modo disponible es el juego original de **un celular compartido**; la sincronización de memoria entre dos dispositivos NO está implementada.
+3. **Trazo Cómplice**: motor táctil original \`public/juegos/trazo-complice/game.js\`, CSS original y banco íntegro de **1.274 palabras** obtenido de \`supabase/functions/trazo-complice-words/index.ts\`, copiadas únicamente a \`complices-piloto/\`. El modo disponible es el original de **un celular compartido**; dibujo remoto entre dos dispositivos NO está implementado.
+
+### Seguridad
+- \`GET /api/games?game=...\` verifica **token de Supabase Auth** con \`auth.getUser()\` y membresía en \`cp_members\`, sin usar credenciales service-role en cliente ni acceder a la compra comercial. El contenido completo NO reside bajo \`public/\`; los recursos públicos del motor Trazo son solo código CSS/JS, no el banco de palabras.
+- \`cp_entre_dos_rooms\` permite lectura solo a integrantes del espacio; escrituras del estado sólo por RPC con verificación explícita. \`cp_entre_dos_answers\` concede SELECT/INSERT/UPDATE de las respuestas **únicamente al autor** bajo RLS. La función \`cp_entre_dos_reveal\` no entrega una respuesta ajena hasta que existan dos respuestas válidas y distintas de integrantes del mismo espacio; \`cp_entre_dos_next\` permite avanzar únicamente después de que ambos respondieron. Seguridad probada con 7/7 checks SQL transaccionales: espera, privacidad, bloqueo de avance prematuro, sincronización y terceros.
+- Los originales mantienen su lógica de un solo dispositivo dentro de un \`iframe\` con \`sandbox="allow-scripts allow-downloads"\`; el botón «Volver a Cómplices» permite cerrarlo sin perder sesión ni salir a la tienda.
+- Las claves, los contenidos privados de las fichas y los mensajes entre integrantes nunca se incluyen en el juego. Ninguna actividad nueva modifica \`cp_completions\` ni misiones semanales; no se convierte el juego en una obligación.
+
+### Límites honestos del piloto
+- El texto «dos celulares» es correcto exclusivamente para la nueva modalidad de **Entre Dos**. Los otros dos reutilizan los originales completos de un único teléfono, pasando el dispositivo. No prometer sincronización para Trazo ni Meme Match hasta desarrollarla y probarla.
+- No se ha hecho aún una prueba manual real entre dos celulares activos; la base tenía **solo un integrante** al último control. Test SQL con usuarios ficticios se revirtió.
+- La integración de los archivos no equivale a confirmar que Render haya publicado o cargado correctamente los iframe. Validar status Render LIVE, entrar desde Android y probar dibujo, selección, memes, regreso y partida online cuando se una la segunda persona.
