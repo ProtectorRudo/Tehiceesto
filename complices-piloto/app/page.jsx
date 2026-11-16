@@ -131,6 +131,28 @@ export default function Home(){
  useEffect(()=>{if(user?.id&&member?.space_id)refreshCentral();else setCentralActivities([])},[user?.id,member?.space_id,refreshCentral]);
  useEffect(()=>{
   if(!user?.id||!member?.space_id)return;
+  const initialComplete=DEEP_QUESTIONS.every(q=>reflections.some(r=>r.question_id===q[0]));
+  if(!initialComplete){setOngoingQuestion(null);return}
+  const today=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Argentina/Buenos_Aires",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+  const state=learningStatus({week:today,reflections});
+  if(state.answeredThisWeek){setOngoingQuestion(null);setOngoingError("");return}
+  let active=true;
+  (async()=>{
+   setOngoingLoading(true);setOngoingError("");
+   try{
+    const {data:{session}}=await db.auth.getSession();
+    if(!session?.access_token)throw new Error("Sesión vencida");
+    const response=await fetch("/api/learn-question",{headers:{Authorization:"Bearer "+session.access_token},cache:"no-store"});
+    const payload=await response.json();
+    if(!response.ok||!payload.question)throw new Error(payload.error||"No pude recuperar la pregunta");
+    if(active){setOngoingQuestion(payload.question);setLearningChoice("")}
+   }catch(e){if(active)setOngoingError("No pude cargar la nueva pregunta: "+getError(e))}
+   finally{if(active)setOngoingLoading(false)}
+  })();
+  return()=>{active=false};
+ },[user?.id,member?.space_id,reflections.length]);
+ useEffect(()=>{
+  if(!user?.id||!member?.space_id)return;
   let lastCheck=Date.now();
   const refreshWhenBack=()=>{
    if(document.visibilityState!=="visible"||Date.now()-lastCheck<300000)return;
@@ -191,6 +213,8 @@ export default function Home(){
  const dailyAbout=ABOUT_QUESTIONS.find(q=>!reflections.some(r=>r.question_id===q[0]))||ABOUT_QUESTIONS[(new Date(date+"T12:00:00").getDate())%ABOUT_QUESTIONS.length];
  const profileCompletion=profileProgress(profileCards);
  const nextDeepQuestion=DEEP_QUESTIONS.find(q=>!reflections.some(r=>r.question_id===q[0]));
+ const continuingQuestion=!nextDeepQuestion&&ongoingQuestion&&!reflections.some(r=>r.question_id===ongoingQuestion.id)?ongoingQuestion:null;
+ const learningSummary=learningStatus({week,reflections});
  const knowledge=profileKnowledge({cards:profileCards,reflections,importantDates,feedback:aiRatings,completions:activities.filter(x=>x.user_id===user?.id)});
  const upcomingDates=upcomingOccasions(importantDates,date,30);
  const weeklyPrompt=weeklyPersonalQuestion({userId:user?.id||"",week,partnerName:partner?.display_name||"tu pareja",missionDays:centralSchedule?.dayNumbers||[]});
@@ -606,7 +630,8 @@ async function saveMemory(){
     <strong className="complice-percent">{knowledge.percent}%</strong>
    </div>
    <div className="progress-track" role="progressbar" aria-valuenow={knowledge.percent} aria-valuemin={0} aria-valuemax={100} aria-label="Conocimiento estimado"><div className="progress-bar" style={{width:knowledge.percent+"%"}}/></div>
-   <p className="subtle">Cuánto contexto útil tiene tu IA, no una nota sobre tu relación.</p>
+   <p className="subtle">{knowledge.initialComplete?"Perfil inicial completo. Seguimos aprendiendo de vos cada semana.":"Cuánto contexto útil tiene tu IA, no una nota sobre tu relación."}</p>
+   {knowledge.ongoingAnswers>0&&<span className="tiny">♡ {knowledge.ongoingAnswers} {knowledge.ongoingAnswers===1?"aprendizaje nuevo":"aprendizajes nuevos"} después del perfil inicial</span>}
   </section>
   <nav className="complice-section-tabs" aria-label="Qué querés hacer en Cómplice">
    <button type="button" aria-pressed={compliceView==="conocerme"} className={compliceView==="conocerme"?"selected":""} onClick={()=>setCompliceView("conocerme")}>Conocerme</button>
@@ -615,12 +640,12 @@ async function saveMemory(){
   </nav>
   {compliceView==="conocerme"&&<section className="complice-main-panel">
    <div className="row between wrap"><span className="tiny">UNA PREGUNTA CON SENTIDO</span><span className="complice-count">{knowledge.deep} reflexiones</span></div>
-   {nextDeepQuestion?<><h3>{nextDeepQuestion[1]}</h3>
-    <p className="subtle">Contá lo que pasó y qué significó para vos. No hace falta responder todo de una vez.</p>
-    <textarea className="textarea" maxLength={1200} value={deepAnswer} onChange={e=>setDeepAnswer(e.target.value)} placeholder="Tu respuesta, con tus palabras…" aria-label="Mi respuesta privada"/>
-    <p className="complice-data-note">🔒 Al guardar, tu IA personal puede usar esta respuesta para conocerte mejor. El texto es privado y no se comparte con tu pareja. Podés borrarlo desde tu perfil.</p>
-    <Button full disabled={busy||!deepAnswer.trim()} onClick={saveDeepAnswer}>Guardar y seguir ♡</Button>
-   </>:<><h3>¡Cuánto aprendimos de vos!</h3><p className="subtle">Ya respondiste todas las preguntas de esta serie. Podés seguir agregando gustos y recuerdos cuando te nazca.</p><Button secondary small onClick={()=>setCompliceView("gustos")}>Ir a mis gustos</Button></>}
+   {nextDeepQuestion||continuingQuestion?<><h3>{nextDeepQuestion?nextDeepQuestion[1]:continuingQuestion.question}</h3>
+    <p className="subtle">{continuingQuestion?"Una pregunta nueva esta semana para ajustar tus gustos y preparar misiones más acertadas.":"Contá lo que pasó y qué significó para vos. No hace falta responder todo de una vez."}</p>
+    {continuingQuestion&&<div className="ongoing-learning-choice"><p className="tiny">¿QUÉ TE REPRESENTA MEJOR HOY?</p><div className="profile-answer-grid" role="group" aria-label="Actualizar mi preferencia">{learningOptions(continuingQuestion.topic_key).map(([value,label])=><button type="button" key={value} className={"choice"+(learningChoice===value?" selected":"")} aria-pressed={learningChoice===value} disabled={busy} onClick={()=>setLearningChoice(value)}>{label}</button>)}</div><p className="subtle">Esta elección actualiza lo que tu IA sabe de tus gustos. Si habilitaste la personalización para los dos, también podrá inspirar las misiones de tu pareja, sin mostrar tus palabras.</p></div>}<textarea className="textarea" maxLength={1200} value={deepAnswer} onChange={e=>setDeepAnswer(e.target.value)} placeholder="Tu respuesta, con tus palabras…" aria-label="Mi respuesta privada"/>
+    <p className="complice-data-note">🔒 El texto es privado y no se muestra a tu pareja. Tu IA puede usarlo para aprender. Las pistas para las misiones del otro son solamente elecciones estructuradas, si las habilitaste en Privacidad.</p>
+    <Button full disabled={busy||!deepAnswer.trim()||Boolean(continuingQuestion&&!learningChoice)} onClick={saveDeepAnswer}>{continuingQuestion?"Guardar lo que aprendiste de mí ♡":"Guardar y seguir ♡"}</Button>
+   </>:<><h3>{ongoingLoading?"Preparando una nueva pregunta…":learningSummary.answeredThisWeek?"Esta semana ya aprendí algo nuevo de vos ♡":"Tu perfil sigue creciendo"}</h3><p className="subtle">{learningSummary.answeredThisWeek?"La próxima semana tendremos otra pregunta diferente. Tu IA no deja de aprender al llegar al 100 %.":ongoingError||"Completaste las preguntas iniciales. Cada semana aparece una nueva, según lo que vayamos conociendo."}</p>{ongoingError&&<Button secondary small onClick={()=>{setOngoingQuestion(null);setReflections(x=>[...x])}}>Reintentar</Button>}</>}
   </section>}
   {compliceView==="gustos"&&<section className="complice-main-panel complice-gustos">
    <div className="row between wrap"><span className="tiny">MI PERFIL DE GUSTOS</span><span className="complice-count">{profileCompletion.answered}/{profileCompletion.total}</span></div>
