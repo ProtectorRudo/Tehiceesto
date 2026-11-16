@@ -12,7 +12,7 @@ const base=generateGuidedPlan({userId:"e8f88715-66d3-4c32-b700-18ac878d0001",dat
 const generated={
  daily_1:{title:"Una nota alegre",body:"Dejale una nota a tu pareja con un agradecimiento concreto y sencillo."},
  daily_2:{title:"Un paseo breve",body:"Invitá a tu pareja a una caminata corta por un lugar cercano, sin apuros."},
- weekly_1:{title:"Una cita tranquila",body:"Elijan juntos una actividad simple para realizar durante esta semana."},
+ weekly_1:{title:"Una cita con sentido",body:"Elijan juntos una canción que les recuerde una tarde linda y cuenten qué detalle recuerdan de ese día."},
  game_1:{title:"Una pregunta para conocerse",body:"¿Qué momento de esta semana te hizo sonreír?"}
 };
 test("la IA central crea cuatro slots distintos para la pareja",()=>{
@@ -84,7 +84,7 @@ test("las propuestas están disponibles al entrar, sin escritura de mensajes ni 
  assert.ok(p.includes('fetch("/api/central"'));
  assert.ok(p.includes('document.addEventListener("visibilitychange"'));
  assert.ok(!central.includes('db.from("cp_messages")'));
- assert.ok(central.includes("proactive_four_slots_v2"));
+ assert.ok(central.includes("meaningful_missions_v3"));
  assert.ok(central.includes('readySlots.some(slot=>'));
 });
 test("el generador exige las cuatro propuestas de OpenAI",()=>{
