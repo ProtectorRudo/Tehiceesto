@@ -4,6 +4,7 @@ import {useState,useEffect,useCallback} from "react";
 import {createClient} from "@supabase/supabase-js";
 import {PROFILE_QUESTIONS,profileProgress} from "../lib/ai-profile.mjs";
 import {taskDayFromKey} from "../lib/mission-schedule.mjs";
+import {DEEP_QUESTIONS,DATE_TYPES,weeklyPersonalQuestion,profileKnowledge,upcomingOccasions} from "../lib/relationship-intelligence.mjs";
 
 const db=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const QUESTION_BANK={
@@ -13,7 +14,7 @@ const QUESTION_BANK={
  futuro:["¿Qué aventura te gustaría que hagamos este año?","¿Qué sueño pequeño podríamos cumplir juntos pronto?","¿Cómo imaginás un domingo perfecto dentro de cinco años?"],
  picante:["¿Qué momento a solas te gustaría repetir?","¿Qué plan romántico íntimo te gustaría que organicemos?","¿Qué detalle o ambiente te hace sentir más deseado/a?"]
 };
-const ABOUT_QUESTIONS=[
+const ABOUT_QUESTIONS=[...DEEP_QUESTIONS,
  ["q01","¿Qué gesto cotidiano te hace sentir especialmente querido/a?"],
  ["q02","¿Qué actividad te gustaría compartir más seguido?"],
  ["q03","¿Qué sorpresa pequeña te alegraría esta semana?"],
@@ -67,15 +68,16 @@ export default function Home(){
  const [user,setUser]=useState(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[notice,setNotice]=useState(""),[authMode,setAuthMode]=useState("entrar");
  const [email,setEmail]=useState(""),[pass,setPass]=useState("");
  const [member,setMember]=useState(null),[members,setMembers]=useState([]),[space,setSpace]=useState(null),[pref,setPref]=useState(null),[surprise,setSurprise]=useState(DEFAULT_SURPRISE);
- const [activities,setActivities]=useState([]),[messages,setMessages]=useState([]),[notes,setNotes]=useState([]),[reflections,setReflections]=useState([]),[memories,setMemories]=useState([]),[aiRatings,setAiRatings]=useState([]),[notificationSettings,setNotificationSettings]=useState({enabled:false,quiet_start:"22:00",quiet_end:"08:00"});
+ const [activities,setActivities]=useState([]),[messages,setMessages]=useState([]),[notes,setNotes]=useState([]),[reflections,setReflections]=useState([]),[memories,setMemories]=useState([]),[aiRatings,setAiRatings]=useState([]),[notificationSettings,setNotificationSettings]=useState({enabled:false,reflection_prompts_enabled:false,quiet_start:"22:00",quiet_end:"08:00"});
  const [name,setName]=useState(""),[inviteInput,setInviteInput]=useState("");
  const [tab,setTab]=useState("hoy"),[missionFilter,setMissionFilter]=useState("diarias"),[messageText,setMessageText]=useState(""),[replyText,setReplyText]=useState(""),[replyTo,setReplyTo]=useState(null),[questionTopic,setQuestionTopic]=useState("romance");
  const [noteText,setNoteText]=useState("");
  const [aiCheck,setAiCheck]=useState(null),[checkingAI,setCheckingAI]=useState(false);
  const [gameAnswers,setGameAnswers]=useState({}),[gameResults,setGameResults]=useState({});
- const [aboutQuestion,setAboutQuestion]=useState("q01"),[aboutAnswer,setAboutAnswer]=useState(""),[aboutAllowAI,setAboutAllowAI]=useState(false),[aboutShare,setAboutShare]=useState(false),[aboutShareTheme,setAboutShareTheme]=useState("");
+ const [aboutQuestion,setAboutQuestion]=useState("q09"),[aboutAnswer,setAboutAnswer]=useState(""),[aboutAllowAI,setAboutAllowAI]=useState(false),[aboutShare,setAboutShare]=useState(false),[aboutShareTheme,setAboutShareTheme]=useState("");
  const [memoryText,setMemoryText]=useState(""),[memoryCategory,setMemoryCategory]=useState("gustos"),[memoryShare,setMemoryShare]=useState(false),[memoryShareTheme,setMemoryShareTheme]=useState(""),[editingMemory,setEditingMemory]=useState(null);
  const [centralActivities,setCentralActivities]=useState([]),[centralMode,setCentralMode]=useState("guiado"),[centralLoading,setCentralLoading]=useState(false),[centralError,setCentralError]=useState(""),[partnerInsightCount,setPartnerInsightCount]=useState(0),[centralSchedule,setCentralSchedule]=useState(null);
+ const [importantDates,setImportantDates]=useState([]),[importantDateLabel,setImportantDateLabel]=useState(""),[importantDateKind,setImportantDateKind]=useState("aniversario"),[importantDateOn,setImportantDateOn]=useState(""),[importantDateRepeats,setImportantDateRepeats]=useState(true),[importantDateShare,setImportantDateShare]=useState(false);
  const [profileCards,setProfileCards]=useState([]),[profileQuestion,setProfileQuestion]=useState("afecto"),[profileAnswer,setProfileAnswer]=useState(""),[profileShare,setProfileShare]=useState(false);
  useEffect(()=>{let active=true;db.auth.getUser().then(({data})=>{if(active){setUser(data.user||null);setLoading(false)}}).catch(()=>setLoading(false));const {data:{subscription}}=db.auth.onAuthStateChange((_event,session)=>{if(active)setUser(session?.user||null)});if(typeof window!=="undefined"){
  const input=new URLSearchParams(window.location.search).get("invite");
@@ -89,7 +91,7 @@ export default function Home(){
   if(e){setNotice(getError(e));return}
   if(!m){setMember(null);setMembers([]);setSpace(null);setPref(null);return}
   setMember(m);
-  const [s,mm,p,c,ms,n,t,rfl,ns,mem,feedback,structured]=await Promise.all([
+  const [s,mm,p,c,ms,n,t,rfl,ns,mem,feedback,structured,dateRows]=await Promise.all([
    db.from("cp_spaces").select("*").eq("id",m.space_id).single(),
    db.from("cp_members").select("user_id,display_name,joined_at").eq("space_id",m.space_id),
    db.from("cp_preferences").select("*").eq("user_id",u.id).maybeSingle(),
@@ -98,13 +100,14 @@ export default function Home(){
    db.from("cp_ai_notes").select("*").eq("user_id",u.id).order("created_at",{ascending:false}).limit(12),
    db.rpc("cp_partner_surprise",{p_space:m.space_id}),
    db.from("cp_reflections").select("id,question_id,question,answer,ai_use_allowed,share_for_surprises,share_theme,updated_at").eq("user_id",u.id).order("updated_at",{ascending:false}),
-   db.from("cp_notification_settings").select("enabled,quiet_start,quiet_end").eq("user_id",u.id).maybeSingle(),
+   db.from("cp_notification_settings").select("enabled,quiet_start,quiet_end,reflection_prompts_enabled").eq("user_id",u.id).maybeSingle(),
    db.from("cp_ai_memories").select("id,category,body,use_for_ai,share_for_surprises,share_theme,created_at").eq("user_id",u.id).order("created_at",{ascending:false}).limit(35),
    db.from("cp_ai_feedback").select("activity_id,rating").eq("user_id",u.id),
-   db.from("cp_ai_profile_cards").select("question_key,answer_code,share_with_partner_ai,updated_at").eq("user_id",u.id)
+   db.from("cp_ai_profile_cards").select("question_key,answer_code,share_with_partner_ai,updated_at").eq("user_id",u.id),
+   db.from("cp_important_dates").select("id,space_id,user_id,kind,label,event_on,repeat_yearly,share_with_partner").eq("space_id",m.space_id).order("event_on",{ascending:true})
   ]);
   if(s.error)setNotice(getError(s.error));
-  setSpace(s.data||null);setMembers(mm.data||[]);setPref(p.data||null);setActivities(c.data||[]);setMessages(ms.data||[]);setNotes(n.data||[]);setReflections(rfl.data||[]);setMemories(mem.data||[]);setAiRatings(feedback.data||[]);setProfileCards(structured.data||[]);setNotificationSettings(ns.data||{enabled:false,quiet_start:"22:00",quiet_end:"08:00"});if(t.data)setSurprise(t.data);const {data:gameRows}=await db.from("cp_game_entries").select("game_key,answer").eq("space_id",m.space_id).eq("user_id",u.id);if(gameRows)setGameAnswers(Object.fromEntries(gameRows.map(g=>[g.game_key,g.answer])));
+  setSpace(s.data||null);setMembers(mm.data||[]);setPref(p.data||null);setActivities(c.data||[]);setMessages(ms.data||[]);setNotes(n.data||[]);setReflections(rfl.data||[]);setMemories(mem.data||[]);setAiRatings(feedback.data||[]);setProfileCards(structured.data||[]);setImportantDates(dateRows.data||[]);if(dateRows.error)setNotice("No pude cargar las fechas guardadas: "+getError(dateRows.error));setNotificationSettings(ns.data||{enabled:false,reflection_prompts_enabled:false,quiet_start:"22:00",quiet_end:"08:00"});if(t.data)setSurprise(t.data);const {data:gameRows}=await db.from("cp_game_entries").select("game_key,answer").eq("space_id",m.space_id).eq("user_id",u.id);if(gameRows)setGameAnswers(Object.fromEntries(gameRows.map(g=>[g.game_key,g.answer])));
  },[]);
  useEffect(()=>{if(user){load(user)}else{setMember(null);setSpace(null)}},[user,load]);
  const refreshCentral=useCallback(async()=>{
