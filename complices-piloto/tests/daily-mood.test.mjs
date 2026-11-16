@@ -43,3 +43,19 @@ test("no hay puntos, diagnósticos ni promesas de terapia por responder",()=>{
  assert.doesNotMatch(component,/puntos|diagnóstic|terapia|racha/i);
  assert.match(page,/share_care_hint/);
 });
+
+test("Hoy prioriza misiones y deja Mi momento de hoy al final",()=>{
+ const start=page.indexOf('{tab==="hoy"&&<>');
+ const end=page.indexOf('{tab==="misiones"&&<>',start);
+ assert.ok(start>=0&&end>start);
+ const hoy=page.slice(start,end);
+ const mission=hoy.indexOf('<h2>Tu misión de hoy</h2>');
+ const weekly=hoy.indexOf('<h2>La misión semanal</h2>');
+ const dashboard=hoy.indexOf('<div className="dashboard">');
+ const question=hoy.indexOf('<h2>Una pregunta que acerca</h2>');
+ const mood=hoy.indexOf('<DailyMoodCard');
+ const hint=hoy.indexOf('partnerCareHint&&<section');
+ assert.ok(mission>=0&&mission<weekly&&weekly<dashboard);
+ assert.ok(dashboard<question&&question<mood&&mood<hint);
+ assert.equal(hoy.split('<DailyMoodCard').length-1,1);
+});
