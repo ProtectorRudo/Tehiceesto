@@ -82,5 +82,5 @@ test("la IA trabaja sin tapar la misión y conserva el respaldo ante errores",()
  assert.match(page,/if\(!cancelled\)refreshCentral\(\)/);
  assert.match(page,/a\.period_key==="w:"\+week/);
  assert.match(central,/doneKeys\.has\(item\.task_key\)/);
- assert.match(central,/if\(old\.mode==="generativa"&&item\.mode!=="generativa"\)continue/);
+ assert.match(central,/if\(old\.mode==="generativa"&&item\.mode!=="generativa"&&!isClearlyWeakMission\(old\)\)/);
 });
