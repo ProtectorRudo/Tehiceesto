@@ -22,6 +22,18 @@ export function meaningfulPartnerPlan(raw){
    else if(p.plan==="cocinar")first=idea("Un sabor para recordar","Con ingredientes que ya tengan, proponé preparar algo sencillo juntos. Mientras cocinan, contale qué comida te recuerda a un momento de ustedes.","cocina","🍓");
    else first=idea("Un detalle que se siente","Escribí en una nota algo concreto que admirás de tu pareja y cuándo lo notaste. Dejala en privado, sin esperar una reacción.");
  }
+ const emotionalIntention={
+  reconocimiento:"Un detalle auténtico de lo que construyen juntos también puede hacer sentir elegido al otro.",
+  iniciativa:"Prepará el gesto por tu cuenta, sin pedirle que organice todo.",
+  prioridad:"Ofrecé un momento de atención real y dejá que la otra persona decida cuándo disfrutarlo.",
+  complicidad:"Incluí un guiño privado o un recuerdo que solo ustedes entiendan.",
+  seguridad:"Elegí un gesto confiable y tranquilo, sin exigir una reacción.",
+  escucha:"Hacé una pregunta concreta y prestá atención sin resolverle todo."
+ };
+ if(p.deseo&&emotionalIntention[p.deseo]){
+  const meaning=emotionalIntention[p.deseo];
+  first.body=(first.body+" "+meaning).slice(0,260);
+ }
  first={...first,body:first.body+extra};
  let second;
  switch(p.plan){
@@ -47,6 +59,12 @@ export function meaningfulPartnerPlan(raw){
  else if(p.objetivo==="equipo")weekly=idea("Somos un equipo de verdad","Elijan una pequeña tarea que esté pendiente. Háganla juntos quince minutos y después cuenten qué apreciaron de cómo colaboró cada uno.","planes","✨");
  else if(p.objetivo==="diversion"||p.plan==="jugar")weekly=idea("Tres pistas para reír","Inventen un juego de adivinar tres anécdotas de ustedes. Dedíquenle quince minutos y guarden la respuesta que más los hizo reír.","humor","🎲");
  else weekly=idea("Un recuerdo que vale guardar","Elijan una foto o recuerdo que ya tengan. Durante quince minutos escriban una frase cada uno sobre por qué ese momento les quedó grabado.","recuerdos","📸");
+ if(p.deseo==="reconocimiento"&&p.plan!=="cocinar"&&p.plan!=="pelicula"){
+  weekly=idea("La historia que elegimos construir","Elegí tres fotos o recuerdos propios de momentos compartidos. Prepará una pequeña secuencia con frases que expliquen qué valorás de lo que construyen juntos. Regalásela en privado, sin pedir que publique nada.","recuerdos","📸");
+ }
+ if(p.deseo==="iniciativa"&&p.plan!=="cocinar"){
+  weekly=idea("Una sorpresa que ya resolviste","Organizá vos un plan sencillo con dos alternativas gratuitas. Prepará los detalles antes de ofrecerlas y dejá que tu pareja elija si quiere hacerlo esta semana.","planes","✨");
+ }
  if(p.evitar==="actividades_intimas")weekly.body+=" Sin propuestas íntimas.";
  const questions={risas:"¿Qué anécdota nuestra te sigue haciendo reír aunque haya pasado mucho tiempo?",planes:"¿Qué pequeño plan gratuito te haría ilusión concretar este mes?",recuerdos:"¿Cuál es un recuerdo nuestro que te gustaría volver a vivir por cinco minutos?",profundo:"¿Qué gesto mío te hizo sentir cuidado/a esta semana?",curiosidades:"Si hoy tuviéramos diez minutos libres, ¿qué harías primero conmigo?"};
  const game=idea("Una pregunta para conocernos",questions[p.charla]||"¿Qué detalle pequeño te alegró el día y te gustaría volver a compartir?","charla","💬");
