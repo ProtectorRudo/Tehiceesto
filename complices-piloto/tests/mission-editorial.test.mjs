@@ -99,6 +99,6 @@ test("cupo en Supabase no puede superar dos ediciones diarias ni lo llama el cli
  assert.match(central,/if\(editorError\|\|!editorSlot\)return guided/);
 });
 test("si Terra no produce mejora, no reemplaza misiones generativas ya creadas",()=>{
- assert.match(central,/if\(old\.mode==="generativa"&&item\.mode!=="generativa"\)continue/);
+ assert.match(central,/if\(old\.mode==="generativa"&&item\.mode!=="generativa"&&!isClearlyWeakMission\(old\)\)/);
  assert.match(central,/doneKeys\.has\(item\.task_key\)/);
 });
