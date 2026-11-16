@@ -117,7 +117,7 @@ test("el motor pide cuatro misiones concretas y rechaza propuestas vagas",()=>{
  const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
  const central=readFileSync(resolve(root,"app/api/central/route.js"),"utf8");
  assert.ok(central.includes("MISSION_EXAMPLES"));
- assert.ok(central.includes("RECHAZADO"));
+ assert.ok(central.includes("Prohibido"));
  assert.ok(central.includes("weekly_three_each_v4"));
  assert.ok(central.includes("buildWeeklyMissions"));
  assert.ok(central.includes("recentTitles"));
