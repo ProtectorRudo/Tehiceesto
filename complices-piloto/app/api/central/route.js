@@ -1,6 +1,6 @@
 import {createClient} from "@supabase/supabase-js";
 import {createHash} from "node:crypto";
-import {generateGuidedPlan,answerIsSafe} from "../../../lib/central-content.mjs";
+import {generateGuidedPlan,mergeGeneratedIdeas} from "../../../lib/central-content.mjs";
 import {partnerGuidedIdeas,safeProfile,isIdeaCompatible,profileForOwnAI} from "../../../lib/ai-profile.mjs";
 import {callOpenAI,getOpenAIModel} from "../../../lib/openai-client.mjs";
 export const dynamic="force-dynamic";
@@ -51,14 +51,7 @@ async function improveWithAI(guided,user,context,db){
   });
   if(!ai.ok)return guided;
   const generated=JSON.parse(ai.text);
-
-  const converted=guided.map(item=>{
-   if(!["daily_1","daily_2","weekly_1","game_1"].includes(item.slot))return item;
-   const proposal=generated?.[item.slot];
-   if(!proposal||!answerIsSafe(proposal.body)||!isIdeaCompatible(proposal.body,context.partnerProfile)||typeof proposal.title!=="string"||proposal.title.trim().length<3||proposal.title.length>90||item.slot==="game_1"&&!/[¿?]/.test(proposal.body))return item;
-   return {...item,title:proposal.title.trim(),body:proposal.body.trim(),mode:"generativa"};
-  });
-  return converted;
+  return mergeGeneratedIdeas(guided,generated,text=>isIdeaCompatible(text,context.partnerProfile));
  }catch{return guided}
 }
 export async function GET(request){
@@ -99,7 +92,7 @@ export async function GET(request){
   if(ownProfile.afecto&&["palabras","tiempo","detalles","ayuda","contacto"].includes(ownProfile.afecto))ownPreferences.love_language=ownProfile.afecto;
   const context={preferences:ownPreferences,ownProfile,reflections:reflections.data||[],memories:memories.data||[],partnerSignals:partnerThemes.data||[],partnerProfile:safeProfile(partnerChoices.data)};
   const personallyTailored=partnerGuidedIdeas(context.partnerProfile);
-  const fingerprint=createHash("sha256").update(JSON.stringify({context,hint:hint.data||null,ratings:feedback.data||[]})).digest("hex");
+  const fingerprint=createHash("sha256").update(JSON.stringify({engine:"proactive_four_slots_v2",context,hint:hint.data||null,ratings:feedback.data||[]})).digest("hex");
   const {data:done,error:doneError}=await db.from("cp_completions").select("task_key").eq("space_id",member.space_id).eq("user_id",user.id);
   if(doneError)return send({error:"No se pudo verificar tu progreso"},503);
   const doneKeys=new Set((done||[]).map(x=>x.task_key));
