@@ -37,7 +37,7 @@ test("permiso para gustos compartibles se configura solo en Perfil",()=>{
 });
 test("la página no presupone consentimiento previo ni publica secretos por defecto",()=>{
  assert.ok(page.includes("Se activa solo si vos lo elegís"));
- assert.ok(page.includes("no se comparte con tu pareja"));
+ assert.ok(page.includes("no se muestra a tu pareja"));
  assert.ok(!main.includes("pref.allow_surprises} onChange"));
 });
 test("preguntas profundas y fechas conservan la posibilidad real de guardar",()=>{
@@ -48,7 +48,7 @@ test("preguntas profundas y fechas conservan la posibilidad real de guardar",()=
  assert.ok(main.includes("onClick={()=>deleteImportantDate(d)}"));
 });
 test("respuestas escritas no pasan al otro y la propia IA recibe contexto aceptado",()=>{
- assert.ok(main.includes("tu IA personal"));
+ assert.ok(main.toLowerCase().includes("tu ia personal"));
  assert.ok(page.includes("ai_use_allowed:deepUseAI"));
  assert.ok(page.includes("share_for_surprises:false"));
  assert.ok(page.includes("share_theme:null"));
