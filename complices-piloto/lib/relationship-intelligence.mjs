@@ -72,3 +72,14 @@ export const DATE_TYPES=[
  ["tradicion","Una tradición nuestra"],
  ["otro","Otra fecha especial"]
 ];
+
+
+export function occasionMission(occasion){
+ if(!occasion||typeof occasion.days_until!=="number"||occasion.days_until<0||occasion.days_until>14)return null;
+ const label=String(occasion.label||"un momento especial").trim().slice(0,70);
+ return {
+  title:occasion.days_until===0?"Hoy tiene una historia especial":"Prepará una sorpresa para esa fecha",
+  body:"Se acerca «"+label+"». Elegí una foto o anécdota auténtica de ustedes y prepará una nota con dos detalles que recuerdes de ese momento. Entregala en privado cuando sea oportuno, sin pedir nada a cambio.",
+  theme:"recuerdos",icon:"📸"
+ };
+}
