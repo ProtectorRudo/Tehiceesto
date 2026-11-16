@@ -12,14 +12,21 @@ const shallowPatterns=[
  /\b(?:bocad|comida|merienda)[^.!?]{0,85}\b(?:fantasia|nombres? graciosos?|personaje|imaginario)\b/,
  /\b(?:un|el) torneo de tonterias\b/
 ];
+const vagueTasks=[
+ /\b(?:un|el) juego que (?:tu |su )?pareja disfrute\b/,
+ /\b(?:un|el) plan sencillo que (?:tu |su )?pareja (?:pueda )?disfrut\w*\b/,
+ /\bsuma (?:un |alg[uú]n )?gui[nñ]o a una historia real\b/,
+ /\b(?:un|el) juego breve que (?:tu |su )?pareja (?:realmente )?disfrut\w*\b/
+];
 const connection=/\b(?:admir|agradec|reconoc|valor|cuid|alivi|ayud|escuch|eleg|acompan|descans|tranquil|apoyo|recuerd|histori|import|apreci|detalle real|rato libre|disfrut|algo que le guste|algo que disfruta|gustos? que conoce|una tarea|momento compartido|a su gusto|como le gusta)\w*/;
 const partner=/\b(?:pareja|juntos|ambos|ustedes|su historia|compart|para los dos|del otro|la otra persona|le guste|como le gusta|le sirva)\w*/;
-export const QUALITY_STANDARD_VERSION="mission-substance-20261116-v3";
+export const QUALITY_STANDARD_VERSION="mission-substance-20261116-v4-concrete";
 
 export function auditMissionSubstance({slot,title,body}={}){
  const text=norm(title+" "+body),issues=[];
  if(!/^mission_[123]$/.test(String(slot))&&slot!=="weekly_1")return {pass:true,issues};
  if(shallowPatterns.some(pattern=>pattern.test(text)))issues.push("shallow_activity_not_care");
+ if(vagueTasks.some(pattern=>pattern.test(text)))issues.push("vague_instruction");
  if(!connection.test(text))issues.push("without_relationship_value");
  // La misión semanal debe proponer algo que construya conexión, cuidado o
  // iniciativa; un pasatiempo arbitrario no alcanza para 120 corazones.
