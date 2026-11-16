@@ -56,7 +56,7 @@ export const PUBLIC_INSPIRATION=Object.freeze([
  }
 ]);
 
-export function selectInspiration({partnerProfile={},slot="mission_1",recentIds=[]}={}){
+export function selectInspiration({partnerProfile={},slot="mission_1",recentIds=[],limit=4}={}){
  const p=safeProfile(partnerProfile),recent=new Set(recentIds);
  const scored=PUBLIC_INSPIRATION.map((pattern,index)=>{
   let score=0;
@@ -68,7 +68,7 @@ export function selectInspiration({partnerProfile={},slot="mission_1",recentIds=
   score-=(slot==="weekly_1"?Math.abs(index-3):index)*.01;
   return {pattern,score};
  }).sort((a,b)=>b.score-a.score);
- return scored.slice(0,4).map(({pattern})=>({
+ return scored.slice(0,Math.min(4,Math.max(1,limit|0))).map(({pattern})=>({
   id:pattern.id,mechanism:pattern.mechanism,action:pattern.action,care:pattern.care
  }));
 }
