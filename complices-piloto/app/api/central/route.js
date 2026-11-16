@@ -4,6 +4,7 @@ import {generateGuidedPlan,mergeGeneratedIdeas} from "../../../lib/central-conte
 import {partnerGuidedIdeas,safeProfile,isIdeaCompatible,profileForOwnAI} from "../../../lib/ai-profile.mjs";
 import {callOpenAI,getOpenAIModel} from "../../../lib/openai-client.mjs";
 import {MISSION_EDITORIAL_RULES,MISSION_EXAMPLES} from "../../../lib/mission-quality.mjs";
+import {meaningfulPartnerPlan} from "../../../lib/meaningful-partner.mjs";
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
 const NO_STORE={"Cache-Control":"no-store","X-Robots-Tag":"noindex"};
@@ -96,6 +97,7 @@ export async function GET(request){
   if(ownProfile.afecto&&["palabras","tiempo","detalles","ayuda","contacto"].includes(ownProfile.afecto))ownPreferences.love_language=ownProfile.afecto;
   const context={preferences:ownPreferences,ownProfile,reflections:reflections.data||[],memories:memories.data||[],partnerSignals:partnerThemes.data||[],partnerProfile:safeProfile(partnerChoices.data)};
   const personallyTailored=partnerGuidedIdeas(context.partnerProfile);
+  const meaningfulPlan=meaningfulPartnerPlan(context.partnerProfile);
   const fingerprint=createHash("sha256").update(JSON.stringify({engine:"meaningful_missions_v3",context,hint:hint.data||null,ratings:feedback.data||[]})).digest("hex");
   const {data:done,error:doneError}=await db.from("cp_completions").select("task_key").eq("space_id",member.space_id).eq("user_id",user.id);
   if(doneError)return send({error:"No se pudo verificar tu progreso"},503);
@@ -112,7 +114,7 @@ export async function GET(request){
    const slots=["daily_1","daily_2","weekly_1","game_1"];
    generated=generated.map(item=>{
     const k=slots.indexOf(item.slot);
-    const idea=k===3?personallyTailored.game:personallyTailored.ideas[k];
+    const idea=k===3?meaningfulPlan.game:meaningfulPlan.ideas[k];
     if(!idea)return item;
     return {...item,title:idea.title,body:idea.body,theme:idea.theme,icon:idea.icon};
    });
