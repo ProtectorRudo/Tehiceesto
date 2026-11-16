@@ -64,7 +64,7 @@ test("el perfil aparece en el inicio y es editable sin conversación de IA",()=>
  assert.ok(p.includes("central-daily-checkin"));
  assert.ok(p.includes("profileCompletion.remaining[0].question"));
  assert.ok(p.includes("Guardar y continuar"));
- assert.ok(p.includes("await load(user);await refreshCentral();setBusy(false)"));
+ assert.ok(p.includes('await load(user);'));assert.ok(p.includes('.select("question_key,answer_code").single()'));
  assert.ok(!p.includes("Conversá con tu cómplice"));
  assert.ok(!p.includes("async function askAI("));
  assert.ok(!p.includes("onSubmit={askAI}"));
