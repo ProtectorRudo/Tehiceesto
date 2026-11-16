@@ -123,3 +123,14 @@ test("el motor pide cuatro misiones concretas y rechaza propuestas vagas",()=>{
  assert.ok(central.includes("recentTitles"));
  assert.ok(central.includes("maxOutputTokens:750"));
 });
+
+test("la IA no impone compras para completar misiones",()=>{
+ const x=evaluateMission({title:"Compra un regalo",body:"Comprale una caja de chocolates para mostrarle tu cariño.",slot:"daily_1"});
+ assert.equal(x.pass,false);
+ assert.ok(x.issues.includes("requires_spending"));
+});
+test("la IA no propone contacto sin preguntar",()=>{
+ const x=evaluateMission({title:"Un abrazo sorpresa",body:"Abrazala por sorpresa cuando no lo espere para mostrarle cuánto te importa.",slot:"daily_1"});
+ assert.equal(x.pass,false);
+ assert.ok(x.issues.includes("unconsented_contact"));
+});
