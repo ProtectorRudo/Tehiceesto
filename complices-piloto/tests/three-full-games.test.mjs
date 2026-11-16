@@ -72,7 +72,7 @@ test("API informa que los motores originales son para compartir un teléfono",()
 });
 test("Cómplices muestra tres botones, carga el juego privado y permite volver",()=>{
  const page=source("app/page.jsx");
- for(const k of ["Trazo Cómplice","Meme Match","Entre Dos","/api/games?game=","Jugar ahora ♡","Volver a Cómplices","fullGame.html"])assert.ok(page.includes(k),k);
+ for(const k of ["Trazo Cómplice","Meme Match","Entre Dos","/api/games?game=","Jugar en un celular","Volver a Cómplices","fullGame.html"])assert.ok(page.includes(k),k);
  assert.ok(page.includes('sandbox="allow-scripts allow-downloads"'));
  assert.ok(page.includes("getSession()"));
  assert.ok(page.includes("role=\"dialog\""));
