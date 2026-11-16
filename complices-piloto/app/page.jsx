@@ -1,6 +1,6 @@
 
 "use client";
-import {useState,useEffect,useCallback} from "react";
+import {useState,useEffect,useCallback,useRef} from "react";
 import EntreDosOnline from "../components/EntreDosOnline.jsx";
 import AvatarPicker,{AvatarCircle} from "../components/AvatarPicker.jsx";
 import DailyMoodCard from "../components/DailyMoodCard.jsx";
@@ -11,6 +11,7 @@ import {PROFILE_QUESTIONS,profileProgress} from "../lib/ai-profile.mjs";
 import {taskDayFromKey} from "../lib/mission-schedule.mjs";
 import {pickFocusMission,focusMissionHeading,OPTIONAL_GESTURE} from "../lib/today-focus.mjs";
 import {buildMissionHistory,missionDateLabel} from "../lib/mission-history.mjs";
+import {selectCachedWeeklyActivities,hasCachedMissions} from "../lib/mission-cache.mjs";
 import {DEEP_QUESTIONS,DATE_TYPES,weeklyPersonalQuestion,profileKnowledge,upcomingOccasions} from "../lib/relationship-intelligence.mjs";
 import {learningOptions,learningStatus} from "../lib/continuous-learning.mjs";
 import {pointsForTask,heartsFor,sharedHearts} from "../lib/couple-hearts.mjs";
@@ -93,6 +94,7 @@ export default function Home(){
  const [aboutQuestion,setAboutQuestion]=useState("q09"),[aboutAnswer,setAboutAnswer]=useState(""),[aboutAllowAI,setAboutAllowAI]=useState(false),[aboutShare,setAboutShare]=useState(false),[aboutShareTheme,setAboutShareTheme]=useState("");
  const [memoryText,setMemoryText]=useState(""),[memoryCategory,setMemoryCategory]=useState("gustos"),[memoryShare,setMemoryShare]=useState(false),[memoryShareTheme,setMemoryShareTheme]=useState(""),[editingMemory,setEditingMemory]=useState(null);
  const [centralActivities,setCentralActivities]=useState([]),[centralMode,setCentralMode]=useState("guiado"),[centralLoading,setCentralLoading]=useState(false),[centralError,setCentralError]=useState(""),[partnerInsightCount,setPartnerInsightCount]=useState(0),[centralSchedule,setCentralSchedule]=useState(null);
+ const centralRequestRef=useRef(0),centralAppliedRef=useRef(0);
  const [deepAnswer,setDeepAnswer]=useState(""),[deepUseAI,setDeepUseAI]=useState(true);
  const [ongoingQuestion,setOngoingQuestion]=useState(null),[ongoingLoading,setOngoingLoading]=useState(false),[ongoingError,setOngoingError]=useState(""),[learningChoice,setLearningChoice]=useState(""),[retryLearning,setRetryLearning]=useState(0);
  const [profileSaveState,setProfileSaveState]=useState("");
@@ -187,20 +189,67 @@ export default function Home(){
   })();
   return()=>{cancelled=true};
  },[user?.id,member?.space_id,notificationSettings.enabled]);
+ // La agenda guardada tiene prioridad: esta consulta RLS no llama a la IA.
+ // La solicitud generativa se hace DESPUÉS y jamás bloquea una misión existente.
  const refreshCentral=useCallback(async()=>{
-  if(!user?.id)return;
+  if(!user?.id||!member?.space_id)return;
+  const requestId=++centralRequestRef.current;
+  const isCurrent=()=>requestId===centralRequestRef.current;
   setCentralLoading(true);
   try{
    const {data:{session}}=await db.auth.getSession();
-   if(!session?.access_token){setCentralLoading(false);return}
+   if(!isCurrent())return;
+   if(!session?.access_token){setCentralError("Iniciá sesión para actualizar tus misiones");return}
    const response=await fetch("/api/central",{headers:{Authorization:"Bearer "+session.access_token},cache:"no-store"});
+   if(!isCurrent())return;
    const data=await response.json();
+   if(!isCurrent())return;
    if(!response.ok){setCentralError(data.error||"No pude actualizar tus misiones");return}
-   setCentralActivities(data.activities||[]);setCentralMode(data.mode||"guiado");setCentralSchedule(data.schedule||null);setPartnerInsightCount(data.personalization?.partnerSharedPreferences||0);setCarePlan(data.careSuggestion||null);setCentralError("");
-  }catch{setCentralError("No pude conectar con tu cómplice central")}
-  finally{setCentralLoading(false)}
- },[user?.id]);
- useEffect(()=>{if(user?.id&&member?.space_id)refreshCentral();else{setCentralActivities([]);setCarePlan(null)}},[user?.id,member?.space_id,refreshCentral]);
+   const fresh=selectCachedWeeklyActivities(data.activities,{
+    userId:user.id,spaceId:member.space_id,week:weeklyKey()
+   });
+   // Una respuesta vacía transitoria no borra misiones válidas ya visibles.
+   setCentralActivities(prev=>fresh.length?fresh:prev);
+   if(fresh.length)setCentralMode(data.mode||"guiado");
+   setCentralSchedule(data.schedule||null);
+   setPartnerInsightCount(data.personalization?.partnerSharedPreferences||0);
+   setCarePlan(data.careSuggestion||null);
+   centralAppliedRef.current++;
+   setCentralError("");
+  }catch{if(isCurrent())setCentralError("No pude conectar con tu cómplice central")}
+  finally{if(isCurrent())setCentralLoading(false)}
+ },[user?.id,member?.space_id]);
+ useEffect(()=>{
+  if(!user?.id||!member?.space_id){
+   centralRequestRef.current++;
+   setCentralActivities([]);setCarePlan(null);setCentralLoading(false);
+   return;
+  }
+  let cancelled=false;
+  const ownerId=user.id,spaceId=member.space_id,week=weeklyKey();
+  const before=centralAppliedRef.current;
+  setCentralLoading(true);
+  (async()=>{
+   try{
+    const {data,error}=await db.from("cp_ai_activities")
+     .select("*").eq("user_id",ownerId).eq("space_id",spaceId)
+     .eq("period_key","w:"+week).order("slot",{ascending:true});
+    if(cancelled)return;
+    if(error)throw error;
+    const saved=selectCachedWeeklyActivities(data,{userId:ownerId,spaceId,week});
+    if(hasCachedMissions(saved)&&centralAppliedRef.current===before){
+     setCentralActivities(saved);
+     setCentralMode(saved.some(item=>item.mode==="generativa")?"generativa":"guiado");
+     setCentralError("");
+    }
+   }catch{
+    // Falló la carga rápida: el motor central continúa normalmente.
+   }finally{
+    if(!cancelled)refreshCentral();
+   }
+  })();
+  return()=>{cancelled=true;centralRequestRef.current++};
+ },[user?.id,member?.space_id,refreshCentral]);
  // Las pistas son una señal temporal; sólo recargamos si cambian, no en cada
  // sondeo de 25 segundos. Si se revoca, ocultamos la idea antes de volver a consultar.
  const careHintSignature=careHints.map(x=>[x.user_id,x.day,x.care_need].join(":")).sort().join("|");
@@ -332,7 +381,7 @@ export default function Home(){
  const partner=members.find(m=>m.user_id!==user?.id), date=todayKey(), week=weeklyKey();
  const partnerCareHint=careHints.find(row=>partner&&row.user_id===partner.user_id&&row.day===date&&validCareNeed(row.care_need));
  const byCentralSlot=Object.fromEntries(centralActivities.map(item=>[item.slot,item]));
- const tasks=centralActivities.filter(a=>/^mission_[123]$/.test(a.slot)||a.slot==="weekly_1").map(a=>({
+ const tasks=centralActivities.filter(a=>a.period_key==="w:"+week&&(/^mission_[123]$/.test(a.slot)||a.slot==="weekly_1")).map(a=>({
   id:a.id,slot:a.slot,key:a.task_key,title:a.title,body:a.body,icon:a.icon,points:a.points,
   mode:a.mode,theme:a.theme,due:taskDayFromKey(a.task_key)
  }));
@@ -867,10 +916,10 @@ async function saveMemory(){
   <span className="mission-spotlight-watermark" aria-hidden="true">♡</span>
   <div className="section-title primary-mission-heading">
    <div><span className="tiny">EL CORAZÓN DE CÓMPLICES</span><h2>{focusMissionHeading(focusMission,date)}</h2></div>
-   <Pill>{centralLoading?"Preparando…":centralMode==="generativa"?(partnerInsightCount>0?"IA con gustos":"IA creativa"):"Ideas guiadas"}</Pill>
+   <Pill>{centralLoading?(focusMission?"Afinando ideas…":"Buscando misiones…"):centralMode==="generativa"?(partnerInsightCount>0?"IA con gustos":"IA creativa"):"Ideas guiadas"}</Pill>
   </div>
   <p className="mission-spotlight-lede">Las mejores historias se construyen con pequeños gestos. Esta es tu oportunidad de hoy, sin presiones.</p>
-  {centralError&&<div className="note">No pude actualizar la agenda. {centralError}</div>}
+  {centralError&&<div className="note">{focusMission?"Tu misión guardada sigue disponible. ":""}No pude actualizar la agenda. {centralError}</div>}
   {focusMission?
    <div className="cards primary-mission-cards">
     <Task key={focusMission.key} task={focusMission} done={mineDone(focusMission.key)}
@@ -878,7 +927,7 @@ async function saveMemory(){
      rating={ratingFor(focusMission)} onRate={value=>rateActivity(focusMission,value)}
      onToggle={()=>mark(focusMission.key)}/>
    </div>:
-   centralLoading?<div className="mission-rest-note">Preparando tus próximos gestos…</div>:
+   centralLoading?<div className="mission-rest-note">Preparando tus próximos gestos… Mientras tanto, podés elegir algo simple: {OPTIONAL_GESTURE.body}</div>:
    <div className="optional-gesture">
     <span className="tiny">HOY SIN MISIONES PENDIENTES</span>
     <h3>{OPTIONAL_GESTURE.title}</h3>
