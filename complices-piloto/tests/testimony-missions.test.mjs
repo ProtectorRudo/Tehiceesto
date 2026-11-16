@@ -42,7 +42,7 @@ test("el respaldo ahora ofrece nombres y pasos concretos sin inventar gustos esp
  const p=meaningfulPartnerPlan({plan:"jugar",objetivo:"diversion",presupuesto:"gratis"});
  assert.match(p.ideas[1].body,/Trazo o Entre Dos/);
  assert.match(p.ideas[2].body,/Trazo o Entre Dos/);
- assert.match(p.ideas[2].body,/Abrí Juegos en Cómplices/);
+ assert.match(p.ideas[2].body,/abrí Juegos en Cómplices/i);
  assert.match(p.ideas[2].body,/Al terminar/);
  assert.equal(auditMissionSubstance({...p.ideas[2],slot:"weekly_1"}).pass,true);
  assert.equal(auditMissionSubstance({...p.ideas[1],slot:"mission_2"}).pass,true);
@@ -60,7 +60,7 @@ test("inspiraciones llegan al editor generativo con los códigos autorizados sol
  assert.match(central,/selectInspiration\(\{partnerProfile:context\.partnerProfile,slot,limit:2\}\)/);
  assert.match(central,/Las inspiraciones editoriales son mecanismos abstraídos de testimonios públicos/);
  assert.match(central,/No dejes que el usuario tenga que inventar el plan/);
- assert.match(central,/no inventes una favorita/i);
+ assert.match(central,/sin inventar una favorita/i);
  assert.doesNotMatch(central,/db\.from\("cp_today_moods"\)/);
 });
 test("las propuestas generativas incomprensibles son descartadas aunque estén bien escritas",()=>{
