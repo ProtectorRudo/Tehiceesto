@@ -84,11 +84,11 @@ test("las propuestas están disponibles al entrar, sin escritura de mensajes ni 
  assert.ok(p.includes('fetch("/api/central"'));
  assert.ok(p.includes('document.addEventListener("visibilitychange"'));
  assert.ok(!central.includes('db.from("cp_messages")'));
- assert.ok(central.includes("meaningful_missions_v3"));
+ assert.ok(central.includes("weekly_three_each_v4"));
  assert.ok(central.includes('readySlots.some(slot=>'));
 });
-test("el generador exige las cuatro propuestas de OpenAI",()=>{
+test("el generador incluye tres misiones individuales y la semanal rotativa",()=>{
  const p=read("app/api/central/route.js");
- for(const key of CENTRAL_SLOTS)assert.ok(p.includes('"' + key + '"'));
+ for(const key of ["mission_1","mission_2","mission_3","weekly_1"])assert.ok(p.includes(key));
  assert.ok(p.includes('maxOutputTokens:750'));
 });
