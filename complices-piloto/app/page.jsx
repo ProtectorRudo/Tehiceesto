@@ -337,7 +337,7 @@ export default function Home(){
  }
  async function saveAbout(){
   if(!aboutAnswer.trim()||!user)return;
-  if(aboutShare&&(!aboutAllowAI||!aboutShareTheme||aboutQuestion==="q07"||aboutQuestion.startsWith("pulse:")){setNotice("Para compartir una pista elegí un tema positivo y autorizá que tu IA use la respuesta.");return}
+  if(aboutShare&&(!aboutAllowAI||!aboutShareTheme||aboutQuestion==="q07"||aboutQuestion.startsWith("pulse:"))){setNotice("Para compartir una pista elegí un tema positivo y autorizá que tu IA use la respuesta.");return}
   const q=aboutQuestion===weeklyPrompt.id?[weeklyPrompt.id,weeklyPrompt.question]:ABOUT_QUESTIONS.find(x=>x[0]===aboutQuestion);
   if(!q)return;
   setBusy(true);setNotice("");
