@@ -6,6 +6,7 @@ import {partnerGuidedIdeas,safeProfile,profileForOwnAI} from "../../../lib/ai-pr
 import {callOpenAI,getMissionEditorialModel} from "../../../lib/openai-client.mjs";
 import {MISSION_EDITORIAL_RULES,MISSION_EXAMPLES} from "../../../lib/mission-quality.mjs";
 import {upcomingOccasions,occasionMission} from "../../../lib/relationship-intelligence.mjs";
+import {selectAuthorizedCareHint,buildContextualCareIdea} from "../../../lib/contextual-care.mjs";
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
 const NO_STORE={"Cache-Control":"no-store","X-Robots-Tag":"noindex"};
@@ -88,7 +89,7 @@ export async function GET(request){
   if(cachedError)return send({error:"No se pudieron consultar tus actividades"},503);
   const membersList=await db.from("cp_members").select("user_id,joined_at").eq("space_id",member.space_id);
   if(membersList.error||!membersList.data?.some(x=>x.user_id===user.id))return send({error:"No pude verificar el calendario de la pareja"},503);
-  const [p,reflections,memories,hint,history,feedback,partnerThemes,partnerChoices,ownCards,dateRows]=await Promise.all([
+  const [p,reflections,memories,hint,history,feedback,partnerThemes,partnerChoices,ownCards,dateRows,careHintRows]=await Promise.all([
    db.from("cp_preferences").select("favorite_treat,favorite_plan,love_language").eq("user_id",user.id).maybeSingle(),
    db.from("cp_reflections").select("question_id,question,answer,ai_use_allowed").eq("user_id",user.id).eq("ai_use_allowed",true).limit(12),
    db.from("cp_ai_memories").select("category,body,use_for_ai").eq("user_id",user.id).eq("use_for_ai",true).order("created_at",{ascending:false}).limit(20),
@@ -98,9 +99,12 @@ export async function GET(request){
    db.rpc("cp_partner_signals",{p_space:member.space_id}),
    process.env.CP_PROFILE_INTERNAL_KEY?db.rpc("cp_partner_profile",{p_space:member.space_id,p_internal_secret:process.env.CP_PROFILE_INTERNAL_KEY}):Promise.resolve({data:{},error:null}),
    db.from("cp_ai_profile_cards").select("question_key,answer_code").eq("user_id",user.id).limit(16),
-   db.from("cp_important_dates").select("id,user_id,kind,label,event_on,repeat_yearly,share_with_partner").eq("space_id",member.space_id).limit(40)
+   db.from("cp_important_dates").select("id,user_id,kind,label,event_on,repeat_yearly,share_with_partner").eq("space_id",member.space_id).limit(40),
+   // RLS sólo devuelve necesidades que otra persona AUTORIZÓ para el día actual.
+   // Nunca consultamos cp_today_moods ni incluimos emociones originales en la IA.
+   db.from("cp_partner_care_hints").select("user_id,day,care_need").eq("space_id",member.space_id).eq("day",date)
   ]);
-  const failed=[p,reflections,memories,hint,history,feedback,partnerThemes,partnerChoices,ownCards,dateRows].some(x=>x.error);
+  const failed=[p,reflections,memories,hint,history,feedback,partnerThemes,partnerChoices,ownCards,dateRows,careHintRows].some(x=>x.error);
   if(failed)return send({error:"No pude preparar las propuestas sin verificar tus preferencias privadas"},503);
   const themesById=new Map((history.data||[]).map(a=>[a.id,a.theme]));
   const ratingThemes=(feedback.data||[]).map(x=>({theme:themesById.get(x.activity_id),rating:x.rating,updatedAt:x.updated_at})).filter(x=>x.theme);
@@ -118,6 +122,15 @@ export async function GET(request){
   const importantDates=upcomingOccasions(dateRows.data||[],date,45);
   const context={preferences:ownPreferences,ownProfile,reflections:reflections.data||[],memories:memories.data||[],partnerSignals:partnerThemes.data||[],partnerProfile:safeProfile(partnerChoices.data),importantDates};
   const personallyTailored=partnerGuidedIdeas(context.partnerProfile);
+  const authorizedHint=selectAuthorizedCareHint(careHintRows.data,{
+   today:date,recipientId:user.id,memberIds:(membersList.data||[]).map(m=>m.user_id)
+  });
+  // Recomendación contextual efímera: no se envía el ánimo al modelo ni se
+  // persiste en actividades. Si se revoca la pista o cambia el día, desaparece.
+  const contextualCare=buildContextualCareIdea({
+   hint:authorizedHint,partnerProfile:context.partnerProfile,
+   feedback:freshRatings,recentThemes:(history.data||[]).slice(0,8).map(x=>x.theme)
+  });
   const prepared=buildWeeklyMissions({userId:user.id,spaceId:member.space_id,week,members:membersList.data,partnerProfile:context.partnerProfile,recentTitles:[],avoidThemes,preferThemes});
   const schedule=prepared.schedule;
   const readySlots=prepared.activities.map(x=>x.slot);
@@ -131,7 +144,7 @@ export async function GET(request){
   const current=(cached||[]).filter(a=>readySlots.includes(a.slot));
   const isFresh=(item)=>item.context_fingerprint===fingerprint||doneKeys.has(item.task_key);
   if(readySlots.every(k=>current.some(x=>x.slot===k&&isFresh(x))))
-    return send({activities:current,mode:current.some(x=>x.mode==="generativa")?"generativa":"guiado",cached:true,schedule,personalization:{ownAnswers:Object.keys(ownProfile).length,partnerSharedPreferences:personallyTailored.count,realAI:Boolean(process.env.OPENAI_API_KEY)}});
+    return send({activities:current,mode:current.some(x=>x.mode==="generativa")?"generativa":"guiado",cached:true,schedule,careSuggestion:contextualCare,personalization:{ownAnswers:Object.keys(ownProfile).length,partnerSharedPreferences:personallyTailored.count,realAI:Boolean(process.env.OPENAI_API_KEY)}});
   const generatedFallback=buildWeeklyMissions({userId:user.id,spaceId:member.space_id,week,members:membersList.data,partnerProfile:context.partnerProfile,recentTitles,avoidThemes,preferThemes});
   let generated=generatedFallback.activities;
   const occasion=importantDates.find(x=>x.days_until<=14);
@@ -162,6 +175,6 @@ export async function GET(request){
   }
   const {data:activities,error:readError}=await db.from("cp_ai_activities").select("*").eq("user_id",user.id).in("period_key",periodKeys);
   if(readError||!activities)return send({error:"No pude recuperar las actividades guardadas"},503);
-  return send({activities:activities.filter(x=>readySlots.includes(x.slot)),mode:activities.some(x=>readySlots.includes(x.slot)&&x.mode==="generativa")?"generativa":"guiado",cached:false,schedule,personalization:{ownAnswers:Object.keys(ownProfile).length,partnerSharedPreferences:personallyTailored.count,realAI:Boolean(process.env.OPENAI_API_KEY)}});
+  return send({activities:activities.filter(x=>readySlots.includes(x.slot)),mode:activities.some(x=>readySlots.includes(x.slot)&&x.mode==="generativa")?"generativa":"guiado",cached:false,schedule,careSuggestion:contextualCare,personalization:{ownAnswers:Object.keys(ownProfile).length,partnerSharedPreferences:personallyTailored.count,realAI:Boolean(process.env.OPENAI_API_KEY)}});
  }catch{return send({error:"No pude preparar la experiencia de hoy"},500)}
 }
