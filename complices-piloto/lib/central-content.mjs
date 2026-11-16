@@ -1,3 +1,4 @@
+import {evaluateMission} from "./mission-quality.mjs";
 // Motor guiado de Cómplices. Nunca devuelve las respuestas privadas originales.
 export const THEMES=["detalles","charla","paseo","cocina","pelicula","recuerdos","planes","humor"];
 const KEYWORDS={
@@ -171,8 +172,9 @@ export function answerIsSafe(v){return typeof v==="string"&&v.length>=8&&v.lengt
 // Mantiene el catálogo original como respaldo. Se aplica solamente a propuestas
 // válidas para la persona de esta sesión; nunca altera datos de la otra cuenta.
 export const CENTRAL_SLOTS=["daily_1","daily_2","weekly_1","game_1"];
-export function mergeGeneratedIdeas(guided,proposals,isCompatible=()=>true){
+export function mergeGeneratedIdeas(guided,proposals,isCompatible=()=>true,options={}){
  if(!Array.isArray(guided)||!proposals||typeof proposals!=="object"||Array.isArray(proposals))return guided;
+ const usedTitles=[...(options.recentTitles||[])];
  return guided.map(item=>{
   if(!CENTRAL_SLOTS.includes(item.slot))return item;
   const suggestion=proposals[item.slot];
@@ -180,7 +182,9 @@ export function mergeGeneratedIdeas(guided,proposals,isCompatible=()=>true){
   const title=suggestion.title.trim(),body=suggestion.body.trim();
   if(title.length<3||title.length>85||body.length<8||body.length>260)return item;
   if(!answerIsSafe(body)||!isCompatible(title+" "+body))return item;
-  if(item.slot==="game_1"&&!body.includes("?"))return item;
+  const quality=evaluateMission({title,body,slot:item.slot,partnerProfile:options.partnerProfile||{},recentTitles:usedTitles});
+  if(!quality.pass)return item;
+  usedTitles.push(title);
   return {...item,title,body,mode:"generativa"};
  });
 }
