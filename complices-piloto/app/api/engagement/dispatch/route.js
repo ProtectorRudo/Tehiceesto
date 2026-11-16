@@ -24,16 +24,17 @@ export async function POST(request){
   const db=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,{
    auth:{persistSession:false,autoRefreshToken:false}
   });
-  // La base controla opt-in doble, ventanas de silencio, 1 por semana y privacidad.
-  const {data,error}=await db.rpc("cp_claim_weekly_question_push",{p_secret:internal});
+  // La base selecciona hasta una misión y una pregunta por semana, con horarios, autorización y límite por usuario.
+  const {data,error}=await db.rpc("cp_claim_proactive_push",{p_secret:internal});
   if(error)return send({error:"No se pudo seleccionar el envío permitido"},503);
   const targets=Array.isArray(data)?data.slice(0,60).filter(t=>allowedEndpoint(t.endpoint)):[];
   if(!targets.length)return send({attempted:0,delivered:0});
   webpush.setVapidDetails("https://complices-piloto.onrender.com",process.env.VAPID_PUBLIC_KEY,process.env.VAPID_PRIVATE_KEY);
-  const payload=JSON.stringify({title:"Cómplices ❤️",body:"Esta semana tengo una pregunta especial para vos. Respondé solo si te nace."});
-  const results=await Promise.allSettled(targets.map(t=>webpush.sendNotification({
-   endpoint:t.endpoint,keys:{p256dh:t.p256dh,auth:t.auth_key}
-  },payload,{TTL:3600,timeout:8000,urgency:"low"})));
+  const results=await Promise.allSettled(targets.map(t=>{
+   const isQuestion=t.kind==="question";
+   const payload=JSON.stringify({title:"Cómplices ❤️",body:isQuestion?"Hay una pregunta especial para vos esta semana. Respondé cuando quieras.":"Cómplices preparó una idea para fortalecer su historia. Descubrila cuando tengas un rato."});
+   return webpush.sendNotification({endpoint:t.endpoint,keys:{p256dh:t.p256dh,auth:t.auth_key}},payload,{TTL:3600,timeout:8000,urgency:"low"});
+  }));
   return send({attempted:results.length,delivered:results.filter(x=>x.status==="fulfilled").length});
  }catch{return send({error:"No se pudo completar el envío programado"},503)}
 }
