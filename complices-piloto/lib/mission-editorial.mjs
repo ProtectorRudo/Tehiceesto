@@ -3,8 +3,9 @@
 import {evaluateMission} from "./mission-quality.mjs";
 import {isIdeaCompatible} from "./ai-profile.mjs";
 import {mergeGeneratedIdeas} from "./central-content.mjs";
+import {auditMissionSubstance,QUALITY_STANDARD_VERSION} from "./mission-substance.mjs";
 
-export const EDITORIAL_ENGINE_VERSION="meaningful-editorial-20261116-v2";
+export const EDITORIAL_ENGINE_VERSION="meaningful-editorial-20261116-v3-"+QUALITY_STANDARD_VERSION;
 export const EDITORIAL_MECHANICS=Object.freeze([
  "alivio","sorpresa","experiencia","humor","recuerdo","palabras","atencion"
 ]);
@@ -27,7 +28,7 @@ export function evaluateEditorialCandidate(candidate,{slot,partnerProfile={},rec
   return {pass:false,score:0,issues:["schema"]};
  const title=candidate.title.trim(),body=candidate.body.trim(),normalized=normalize(title+" "+body);
  const quality=evaluateMission({title,body,slot,partnerProfile,recentTitles});
- const issues=[...quality.issues];
+ const issues=[...quality.issues,...auditMissionSubstance({slot,title,body}).issues];
  if(!isIdeaCompatible(title+" "+body,partnerProfile))issues.push("consent_boundary");
  if(forbiddenAssumptions.test(normalized))issues.push("invented_emotional_fact");
  if(selectedTexts.some(s=>similarity(s,title+" "+body)>.66))issues.push("near_duplicate");
