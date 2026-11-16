@@ -62,7 +62,7 @@ async function improveWithAI(guided,context,db){
   examples:MISSION_EXAMPLES,
   // Patrones originales abstraídos de relatos públicos; sin texto ni identidad de terceros.
   testimonyInspiredPatternsBySlot:Object.fromEntries(slots.map(slot=>[
-   slot,selectInspiration({partnerProfile:context.partnerProfile,slot})
+   slot,selectInspiration({partnerProfile:context.partnerProfile,slot,limit:2})
   ])),
   testimonyLibraryVersion:TESTIMONY_LIBRARY_VERSION
  };
