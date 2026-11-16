@@ -79,7 +79,7 @@ export async function GET(request){
    db.from("cp_ai_memories").select("category,body,use_for_ai").eq("user_id",user.id).eq("use_for_ai",true).order("created_at",{ascending:false}).limit(20),
    db.rpc("cp_partner_surprise",{p_space:member.space_id}),
    db.from("cp_ai_activities").select("id,theme,task_key,title").eq("user_id",user.id).order("created_at",{ascending:false}).limit(60),
-   db.from("cp_ai_feedback").select("activity_id,rating").eq("user_id",user.id).order("updated_at",{ascending:false}).limit(30),
+   db.from("cp_ai_feedback").select("activity_id,rating,updated_at").eq("user_id",user.id).order("updated_at",{ascending:false}).limit(30),
    db.rpc("cp_partner_signals",{p_space:member.space_id}),
    process.env.CP_PROFILE_INTERNAL_KEY?db.rpc("cp_partner_profile",{p_space:member.space_id,p_internal_secret:process.env.CP_PROFILE_INTERNAL_KEY}):Promise.resolve({data:{},error:null}),
    db.from("cp_ai_profile_cards").select("question_key,answer_code").eq("user_id",user.id).limit(16),
@@ -88,7 +88,13 @@ export async function GET(request){
   const failed=[p,reflections,memories,hint,history,feedback,partnerThemes,partnerChoices,ownCards,dateRows].some(x=>x.error);
   if(failed)return send({error:"No pude preparar las propuestas sin verificar tus preferencias privadas"},503);
   const themesById=new Map((history.data||[]).map(a=>[a.id,a.theme]));
-  const ratingThemes=(feedback.data||[]).map(x=>({theme:themesById.get(x.activity_id),rating:x.rating})).filter(x=>x.theme);
+  const ratingThemes=(feedback.data||[]).map(x=>({theme:themesById.get(x.activity_id),rating:x.rating,updatedAt:x.updated_at})).filter(x=>x.theme);
+  // Solo las últimas tres semanas influyen en la elección guiada.
+  // No se comparte con la pareja: este aprendizaje pertenece al autor de la misión.
+  const recentRatingCutoff=Date.now()-21*86400000;
+  const freshRatings=ratingThemes.filter(x=>Date.parse(x.updatedAt)>=recentRatingCutoff);
+  const avoidThemes=[...new Set(freshRatings.filter(x=>x.rating===-1).map(x=>x.theme))];
+  const preferThemes=[...new Set(freshRatings.filter(x=>x.rating===1&&!avoidThemes.includes(x.theme)).map(x=>x.theme))];
   const ownProfile=profileForOwnAI(ownCards.data||[]);
   const planMap={paseo:"caminar",cocinar:"cocinar",pelicula:"peli",charlar:"charlar",jugar:"charlar",salida:"salir",descanso:"charlar"};
   const ownPreferences={...p.data};
@@ -97,7 +103,7 @@ export async function GET(request){
   const importantDates=upcomingOccasions(dateRows.data||[],date,45);
   const context={preferences:ownPreferences,ownProfile,reflections:reflections.data||[],memories:memories.data||[],partnerSignals:partnerThemes.data||[],partnerProfile:safeProfile(partnerChoices.data),importantDates};
   const personallyTailored=partnerGuidedIdeas(context.partnerProfile);
-  const prepared=buildWeeklyMissions({userId:user.id,spaceId:member.space_id,week,members:membersList.data,partnerProfile:context.partnerProfile,recentTitles:[]});
+  const prepared=buildWeeklyMissions({userId:user.id,spaceId:member.space_id,week,members:membersList.data,partnerProfile:context.partnerProfile,recentTitles:[],avoidThemes,preferThemes});
   const schedule=prepared.schedule;
   const readySlots=prepared.activities.map(x=>x.slot);
   const fingerprint=createHash("sha256").update(JSON.stringify({engine:"weekly_three_each_dates_v5",context:{...context,importantDates:importantDates.map(({days_until,...row})=>row)},week,schedule,participants:membersList.data.map(x=>x.user_id),ratings:feedback.data||[]})).digest("hex");
@@ -111,7 +117,7 @@ export async function GET(request){
   const isFresh=(item)=>item.context_fingerprint===fingerprint||doneKeys.has(item.task_key);
   if(readySlots.every(k=>current.some(x=>x.slot===k&&isFresh(x))))
     return send({activities:current,mode:current.some(x=>x.mode==="generativa")?"generativa":"guiado",cached:true,schedule,personalization:{ownAnswers:Object.keys(ownProfile).length,partnerSharedPreferences:personallyTailored.count,realAI:Boolean(process.env.OPENAI_API_KEY)}});
-  const generatedFallback=buildWeeklyMissions({userId:user.id,spaceId:member.space_id,week,members:membersList.data,partnerProfile:context.partnerProfile,recentTitles});
+  const generatedFallback=buildWeeklyMissions({userId:user.id,spaceId:member.space_id,week,members:membersList.data,partnerProfile:context.partnerProfile,recentTitles,avoidThemes,preferThemes});
   let generated=generatedFallback.activities;
   const occasion=importantDates.find(x=>x.days_until<=14);
   if(occasion&&schedule.weeklyAssigned&&!schedule.cooperative){
