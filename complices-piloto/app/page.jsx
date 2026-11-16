@@ -71,6 +71,7 @@ export default function Home(){
  const [member,setMember]=useState(null),[members,setMembers]=useState([]),[space,setSpace]=useState(null),[pref,setPref]=useState(null),[surprise,setSurprise]=useState(DEFAULT_SURPRISE);
  const [activities,setActivities]=useState([]),[messages,setMessages]=useState([]),[notes,setNotes]=useState([]),[reflections,setReflections]=useState([]),[memories,setMemories]=useState([]),[aiRatings,setAiRatings]=useState([]),[notificationSettings,setNotificationSettings]=useState({enabled:false,reflection_prompts_enabled:true,quiet_start:"22:00",quiet_end:"08:00"}),[pushPromptDismissed,setPushPromptDismissed]=useState(false);
  const [name,setName]=useState(""),[inviteInput,setInviteInput]=useState("");
+ const [fullGame,setFullGame]=useState(null),[fullGameBusy,setFullGameBusy]=useState(false),[fullGameError,setFullGameError]=useState("");
  const [tab,setTab]=useState("hoy"),[compliceView,setCompliceView]=useState("conocerme"),[missionFilter,setMissionFilter]=useState("diarias"),[messageText,setMessageText]=useState(""),[replyText,setReplyText]=useState(""),[replyTo,setReplyTo]=useState(null),[questionTopic,setQuestionTopic]=useState("romance");
  const [noteText,setNoteText]=useState("");
  const [aiCheck,setAiCheck]=useState(null),[checkingAI,setCheckingAI]=useState(false);
@@ -227,6 +228,26 @@ export default function Home(){
  const currentProfileQuestion=PROFILE_QUESTIONS.find(q=>q.key===profileQuestion)||PROFILE_QUESTIONS[0];
  const games=[{slug:"escapada",title:"Si pudiéramos escaparnos…",intro:"¿A dónde irías con tu pareja sin pensarlo demasiado?",options:[["playa","🏖️ A la playa"],["montana","⛰️ A la montaña"],["ciudad","🏙️ A una ciudad"],["campo","🌿 Al campo"]]},{slug:"cita",title:"Nuestra cita perfecta",intro:"¿Cuál de estos planes elegirías para esta noche?",options:[["cena","🍝 Una cena"],["peli","🎬 Una película"],["paseo","🌙 Un paseo"],["cocinar","👩‍🍳 Cocinar juntos"]]}];
  async function revealGame(key){const {data,error}=await db.rpc("cp_game_reveal",{p_space:member.space_id,p_key:key});if(error)setNotice(getError(error));else setGameResults(old=>({...old,[key]:data}))}
+
+ async function openCompleteGame(slug){
+  if(!user||fullGameBusy)return;
+  const available=["entre-dos","meme-match","trazo-complice"];
+  if(!available.includes(slug))return;
+  setFullGameError("");setFullGameBusy(true);
+  try{
+   const {data:{session},error}=await db.auth.getSession();
+   if(error||!session?.access_token)throw new Error("Volvé a iniciar sesión para jugar");
+   const response=await fetch("/api/games?game="+encodeURIComponent(slug),{
+    headers:{Authorization:"Bearer "+session.access_token},
+    cache:"no-store"
+   });
+   const result=await response.json();
+   if(!response.ok||result.game!==slug||typeof result.html!=="string"||result.html.length<1000)
+    throw new Error(result.error||"No se pudo cargar el juego");
+   setFullGame({slug,title:{"entre-dos":"Entre Dos","meme-match":"Meme Match","trazo-complice":"Trazo Cómplice"}[slug],html:result.html,detail:result.detail});
+  }catch(error){setFullGameError(error?.message||"No se pudo cargar el juego")}
+  finally{setFullGameBusy(false)}
+ }
  async function playGame(key,answer){if(!partner)return;setBusy(true);setNotice("");const {error}=await db.from("cp_game_entries").upsert({space_id:member.space_id,game_key:key,user_id:user.id,answer},{onConflict:"space_id,game_key,user_id"});if(error){setNotice(getError(error))}else{if(!mineDone(key))await db.from("cp_completions").insert({space_id:member.space_id,user_id:user.id,task_key:key});await load(user);await revealGame(key)}setBusy(false)}
  async function mark(key){if(!member)return;setBusy(true);setNotice("");const was=mineDone(key);const r=was?await db.from("cp_completions").delete().eq("user_id",user.id).eq("space_id",member.space_id).eq("task_key",key):await db.from("cp_completions").insert({space_id:member.space_id,user_id:user.id,task_key:key});if(r.error)setNotice(getError(r.error));else await load(user);setBusy(false)}
  function selectProfileQuestion(key){
@@ -659,8 +680,26 @@ async function saveMemory(){
   {missionFilter==="semanales"&&<><div className="cards">{weeklyTasks.map(task=><Task key={task.key} task={task} done={mineDone(task.key)} other={partnerDone(task.key)} partner={partner} busy={busy} rating={ratingFor(task)} onRate={value=>rateActivity(task,value)} onToggle={()=>mark(task.key)}/>)}</div>{weeklyTasks.length===0&&<div className="mission-rest-note">{centralSchedule?.weeklyMode==="solo"&&partner?"Esta semana la misión semanal está a cargo de tu pareja.":"La misión semanal se está preparando."}</div>}</>}
   <div className="faq-soft" style={{marginTop:19}}><h3>♡ Con significado, sin obligación</h3><p>Las misiones no son una competencia ni una prueba de amor. Podés realizarlas otro día o pasarlas; los corazones ya ganados nunca se pierden.</p></div>
  </>}
- {tab==="juegos"&&<><div className="section-title"><div><span className="tiny">UN RATO JUNTOS PUEDE CAMBIAR EL DÍA</span><h2>Juguemos ♡</h2></div><Pill>Conocerse jugando</Pill></div><p className="subtle" style={{marginBottom:20}}>Preguntas, elecciones secretas y pequeñas aventuras para descubrirse más.</p>{byCentralSlot.game_1&&<div className="glass box stack" style={{marginBottom:16}}><span className="tiny">EL JUEGO QUE TU CÓMPLICE ELIGIÓ PARA HOY</span><h2>💞 {byCentralSlot.game_1.title}</h2><p className="muted">{byCentralSlot.game_1.body}</p><p className="subtle">Esta pregunta fue elegida a partir de tus gustos; el texto no revela tus respuestas privadas.</p><Button disabled={busy||!partner} onClick={()=>sendMessage("pregunta",byCentralSlot.game_1.body,"romance")}>Enviar este juego a mi pareja</Button></div>}<div className="grid2">{games.map(game=>{const key="g:"+date+":"+game.slug,own=gameAnswers[key],result=gameResults[key];return <div className="glass box stack" key={game.slug}><span className="tiny">JUEGO COOPERATIVO</span><h2>{game.title}</h2><p className="muted">{game.intro}</p><div className="choice-grid">{game.options.map(([val,label])=><button className={"choice"+(own===val?" selected":"")} key={val} disabled={busy||!partner} onClick={()=>playGame(key,val)}>{label}</button>)}</div>{own&&<div className="note">Tu elección quedó guardada en privado. La otra persona no la verá hasta que ambos jueguen.</div>}{result?.ready?<div className="accent-card"><span className="tiny">¡LOS DOS JUGARON!</span><h3 style={{margin:"12px 0"}}>Descubran sus respuestas 💞</h3>{result.answers?.map((a,i)=><p key={i} style={{marginTop:5}}><strong>{a.user_id===user.id?member.display_name:partner?.display_name||"Tu pareja"}:</strong> {game.options.find(o=>o[0]===a.answer)?.[1]||"Respuesta"}</p>)}</div>:result?<p className="subtle">Aún falta la respuesta de tu pareja.</p>:null}<Button small secondary onClick={()=>revealGame(key)} disabled={!partner}>Ver si ya respondió mi pareja</Button></div>})}</div><div className="section-title"><h2>¿Cuánto nos conocemos?</h2></div><div className="glass box stack"><p className="muted">Respondan preguntas sobre gustos y recuerdos. Pueden descubrir las respuestas en la sección Preguntas, y charlar sobre lo que cada uno eligió.</p><Button secondary onClick={()=>{setTab("preguntas");setQuestionTopic("romance")}}>Empezar una ronda de preguntas →</Button></div></>}
-
+ {tab==="juegos"&&<><div className="section-title"><div><span className="tiny">UN RATO JUNTOS PUEDE CAMBIAR EL DÍA</span><h2>Juguemos ♡</h2></div><Pill>Conocerse jugando</Pill></div><p className="subtle" style={{marginBottom:20}}>Preguntas, elecciones secretas y pequeñas aventuras para descubrirse más.</p>
+ <div className="teh-games-intro"><span className="tiny">TRES EXPERIENCIAS COMPLETAS</span><h3>Elegí cómo quieren jugar</h3><p>Los tres juegos originales de TeHiceEsto, ahora incluidos en el espacio privado de Cómplices.</p></div>
+ <div className="teh-games-grid">
+  {[
+   {slug:"entre-dos",icon:"💌",title:"Entre Dos",label:"90 preguntas originales",description:"Descubran cuánto se conocen y abran conversaciones que valen la pena."},
+   {slug:"meme-match",icon:"🧠",title:"Meme Match",label:"48 parejas de memes",description:"Un desafío visual para reírse, recordar y jugar sin ponerse serios."},
+   {slug:"trazo-complice",icon:"🎨",title:"Trazo Cómplice",label:"1.274 palabras originales",description:"Dibujá, adiviná y sorprendete con lo que sale en la pantalla."}
+  ].map(g=><article className="teh-game-card" key={g.slug}>
+   <div className="teh-game-icon" aria-hidden="true">{g.icon}</div>
+   <div className="teh-game-copy"><span className="tiny">{g.label}</span><h3>{g.title}</h3><p>{g.description}</p><span className="teh-game-mode">Dos personas · Un celular compartido</span></div>
+   <Button small disabled={fullGameBusy} onClick={()=>openCompleteGame(g.slug)}>{fullGameBusy?"Preparando…":"Jugar ahora ♡"}</Button>
+  </article>)}
+ </div>
+ {fullGameError&&<p className="teh-game-error" role="alert">{fullGameError}</p>}
+ {fullGame&&<div className="teh-game-overlay" role="dialog" aria-modal="true" aria-label={"Juego "+fullGame.title}>
+  <div className="teh-game-header"><button type="button" className="teh-game-back" onClick={()=>setFullGame(null)}>← Volver a Cómplices</button><strong>{fullGame.title}</strong><span className="teh-game-header-caption">Juego completo · 1 celular</span></div>
+  <iframe title={fullGame.title+" — juego completo"} srcDoc={fullGame.html} className="teh-game-frame" sandbox="allow-scripts allow-downloads" referrerPolicy="no-referrer"/>
+ </div>}
+ <details className="teh-other-games"><summary>Más juegos y desafíos rápidos <span aria-hidden="true">⌄</span></summary><div className="teh-other-games-inside">
+{byCentralSlot.game_1&&<div className="glass box stack" style={{marginBottom:16}}><span className="tiny">EL JUEGO QUE TU CÓMPLICE ELIGIÓ PARA HOY</span><h2>💞 {byCentralSlot.game_1.title}</h2><p className="muted">{byCentralSlot.game_1.body}</p><p className="subtle">Esta pregunta fue elegida a partir de tus gustos; el texto no revela tus respuestas privadas.</p><Button disabled={busy||!partner} onClick={()=>sendMessage("pregunta",byCentralSlot.game_1.body,"romance")}>Enviar este juego a mi pareja</Button></div>}<div className="grid2">{games.map(game=>{const key="g:"+date+":"+game.slug,own=gameAnswers[key],result=gameResults[key];return <div className="glass box stack" key={game.slug}><span className="tiny">JUEGO COOPERATIVO</span><h2>{game.title}</h2><p className="muted">{game.intro}</p><div className="choice-grid">{game.options.map(([val,label])=><button className={"choice"+(own===val?" selected":"")} key={val} disabled={busy||!partner} onClick={()=>playGame(key,val)}>{label}</button>)}</div>{own&&<div className="note">Tu elección quedó guardada en privado. La otra persona no la verá hasta que ambos jueguen.</div>}{result?.ready?<div className="accent-card"><span className="tiny">¡LOS DOS JUGARON!</span><h3 style={{margin:"12px 0"}}>Descubran sus respuestas 💞</h3>{result.answers?.map((a,i)=><p key={i} style={{marginTop:5}}><strong>{a.user_id===user.id?member.display_name:partner?.display_name||"Tu pareja"}:</strong> {game.options.find(o=>o[0]===a.answer)?.[1]||"Respuesta"}</p>)}</div>:result?<p className="subtle">Aún falta la respuesta de tu pareja.</p>:null}<Button small secondary onClick={()=>revealGame(key)} disabled={!partner}>Ver si ya respondió mi pareja</Button></div>})}</div><div className="section-title"><h2>¿Cuánto nos conocemos?</h2></div><div className="glass box stack"><p className="muted">Respondan preguntas sobre gustos y recuerdos. Pueden descubrir las respuestas en la sección Preguntas, y charlar sobre lo que cada uno eligió.</p><Button secondary onClick={()=>{setTab("preguntas");setQuestionTopic("romance")}}>Empezar una ronda de preguntas →</Button></div></div></details></>}
  {tab==="preguntas"&&<>
   <div className="section-title"><div><span className="tiny">CONVERSACIONES QUE NOS ACERCAN</span><h2>Preguntame algo ♡</h2></div><Pill>+20 ♥ al responder</Pill></div>
   <p className="subtle" style={{marginBottom:17}}>Descúbranse, rían y anímense a conversar de cosas diferentes.</p>
