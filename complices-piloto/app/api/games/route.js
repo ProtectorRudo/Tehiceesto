@@ -23,6 +23,13 @@ export async function GET(request){
   if(game==="entre-dos"){
    ({html}=await import("../../../lib/private-entre-dos.mjs"));
    count=90;detail="90 preguntas originales · se pasan el celular";
+   if(url.searchParams.get("mode")==="online"){
+    const found=html.match(/const BANK=(\[[\s\S]*?\]);/);
+    if(!found)return answer({error:"No pude cargar las cartas"},503);
+    const cards=JSON.parse(found[1]).map(x=>({id:x.id,q:x.q,a:x.a,b:x.b,talk:x.talk}));
+    if(cards.length!==90)return answer({error:"No pude validar las cartas originales"},503);
+    return answer({game,cards,mode:"two-devices",version:"entre-dos-pareja-v1"});
+   }
   }else if(game==="meme-match"){
    ({html}=await import("../../../lib/private-meme-match.mjs"));
    count=48;detail="48 parejas originales · se pasan el celular";
