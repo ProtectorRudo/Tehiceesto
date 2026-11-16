@@ -8,6 +8,7 @@ import {validMood,validCareNeed,careSuggestion} from "../lib/today-care.mjs";
 import {createClient} from "@supabase/supabase-js";
 import {PROFILE_QUESTIONS,profileProgress} from "../lib/ai-profile.mjs";
 import {taskDayFromKey} from "../lib/mission-schedule.mjs";
+import {pickFocusMission,focusMissionHeading,OPTIONAL_GESTURE} from "../lib/today-focus.mjs";
 import {DEEP_QUESTIONS,DATE_TYPES,weeklyPersonalQuestion,profileKnowledge,upcomingOccasions} from "../lib/relationship-intelligence.mjs";
 import {learningOptions,learningStatus} from "../lib/continuous-learning.mjs";
 import {pointsForTask,heartsFor,sharedHearts} from "../lib/couple-hearts.mjs";
@@ -50,7 +51,7 @@ const TREAT=[["ninguno","Me gustan las sorpresas simples"],["chocolate","Chocola
 const PLAN=[["charlar","Conversar"],["caminar","Caminar"],["peli","Películas"],["cocinar","Cocinar juntos"],["salir","Salir"]];
 const LANG=[["tiempo","Tiempo de calidad"],["palabras","Palabras lindas"],["detalles","Pequeños detalles"],["ayuda","Ayuda cotidiana"],["contacto","Cariño físico"]];
 const TOPICS=[["romance","💕 Romance"],["humor","😄 Humor"],["profundo","🌙 Profundas"],["futuro","✨ Futuro"],["picante","🌶️ Picantes"]];
-const NAV=[["hoy","⌂","Hoy"],["misiones","♡","Misiones"],["juegos","♧","Juegos"],["nosotros","♡","Nosotros"],["mensajes","✉","Chat"],["complice","✦","Cómplice"]];
+const NAV=[["hoy","⌂","Hoy"],["juegos","♧","Juegos"],["nosotros","♡","Nosotros"],["mensajes","✉","Chat"],["complice","✦","Cómplice"]];
 
 function todayKey(){return new Intl.DateTimeFormat("en-CA",{timeZone:"America/Argentina/Buenos_Aires",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date())}
 function weeklyKey(){const date=new Date(todayKey()+"T12:00:00");const monday=new Date(date);monday.setDate(date.getDate()-((date.getDay()+6)%7));return monday.toISOString().slice(0,10)}
@@ -320,7 +321,7 @@ export default function Home(){
  const todayTasks=dailyTasks.filter(x=>x.due===date);
  const pendingTasks=dailyTasks.filter(x=>x.due<date);
  const weeklyTasks=tasks.filter(x=>x.slot==="weekly_1");
- const focusMission=todayTasks[0]||pendingTasks.find(x=>!activities.some(a=>a.task_key===x.key&&a.user_id===user?.id))||weeklyTasks[0]||null;
+ const focusMission=pickFocusMission({todayTasks,pendingTasks,weeklyTasks,isDone:key=>activities.some(a=>a.task_key===key&&a.user_id===user?.id)});
  const dayLabels=centralSchedule?.days?.map(x=>x.label)||[];
  const missionCount=tasks.filter(x=>x.slot.startsWith("mission_")).length;
  const mineDone=(key)=>activities.some(a=>a.task_key===key&&a.user_id===user?.id);
@@ -736,7 +737,12 @@ async function saveMemory(){
     <Button onClick={()=>document.querySelector("#acceso")?.scrollIntoView({behavior:"smooth"})}>Empezar nuestra historia ♡</Button>
     <div className="mood-divider">Pequeños gestos · Grandes conexiones</div>
    </div>
-   <div className="hero-art" role="img" aria-label="Ilustración de una pareja abrazada al atardecer"><div className="float one">♡ Tu desafío de hoy</div><div className="float two">+40 corazones por una sonrisa</div></div>
+   <div className="hero-art hero-abstract" aria-label="Dos personas, pequeños gestos" role="img">
+    <span className="hero-orbit orbit-one" aria-hidden="true"/><span className="hero-orbit orbit-two" aria-hidden="true"/>
+    <span className="hero-core" aria-hidden="true">♡</span>
+    <span className="hero-spark hero-spark-one" aria-hidden="true">✦</span><span className="hero-spark hero-spark-two" aria-hidden="true">✧</span>
+    <div className="float one">Un gesto que importa</div><div className="float two">Un ratito para ustedes</div>
+   </div>
   </section>
   <div className="features">
    <article><h3>♡ Misiones con intención</h3><p>Ideas diarias y semanales para disfrutar juntos, sin competir ni sumar obligaciones.</p></article>
@@ -772,7 +778,10 @@ async function saveMemory(){
    <span className="tiny">TU NUEVA HISTORIA COMIENZA ACÁ</span>
    <h1>Un rincón <span style={{color:"#cf5b87"}}>para los dos.</span></h1>
    <p className="muted" style={{margin:"13px 0 19px"}}>{inviteInput?"Recibiste una invitación para entrar a un espacio privado.":"Creá su espacio o usá el enlace que te compartió tu pareja."}</p>
-   <div className="onboarding-art" role="img" aria-label="Dos personas abrazadas mirando un atardecer"/>
+   <div className="onboarding-art onboarding-abstract">
+    <span aria-hidden="true">♡</span>
+    <p>Dos personas. Un espacio para elegirse cada día.</p>
+   </div>
    <div className="onboarding-intro"><h3>Sus conversaciones, sus aventuras, sus recuerdos ♡</h3><p>Un espacio común, dos cuentas individuales y la libertad de compartir solo lo que cada uno elija.</p></div>
    <div className="glass box" style={{marginTop:21}}>
     <form onSubmit={inviteInput?joinSpace:createSpace}>
@@ -793,64 +802,41 @@ async function saveMemory(){
     <button type="button" className={"profile-trigger"+(tab==="perfil"?" active":"")} aria-label="Perfil y privacidad" title="Perfil y privacidad" onClick={()=>{setTab("perfil");setNotice("");window.scrollTo({top:0,behavior:"smooth"})}}><NavIcon name="perfil"/></button>
    </div>
   </header>
-  {tab==="hoy"&&<div className="welcome"><div><span className="tiny">SU HISTORIA SIGUE</span><h1>Hola, {member.display_name} <span style={{color:"#e85c8e"}}>♡</span></h1><p className="muted">{partner?"Un espacio para "+member.display_name+" y "+partner.display_name:"Tu rincón ya está listo. Invitá a tu pareja para empezar juntos."}</p></div></div>}
+  {tab==="hoy"&&<div className="welcome today-welcome"><div>
+    <span className="tiny">SU ESPACIO, A SU MANERA</span>
+    <h1>Hola, {member.display_name} <span aria-hidden="true" style={{color:"#d96996"}}>♡</span></h1>
+    <p className="muted">{partner?"Un gesto para cuidar lo que construyen vos y "+partner.display_name+".":"Tu espacio está listo. Cuando quieras, invitá a tu pareja."}</p>
+   </div></div>}
   <nav className="tabs desktop" aria-label="Secciones">
    {NAV.map(([key,emoji,title])=><button type="button" key={key} className={(tab===key||(tab==="preguntas"&&key==="juegos"))?"active":""} onClick={()=>{setNotice("");setTab(key)}}><NavIcon name={key}/>{title}</button>)}
   </nav>
   {notice&&<div className="alert" role="status">{notice}</div>}
  {tab==="hoy"&&<>
-<div className="section-title"><h2>Tu misión de hoy</h2><Pill>{centralLoading?"Preparando…":centralMode==="generativa"?"IA personalizada":"Misiones con intención"}</Pill></div>{centralError&&<div className="note">No pude actualizar la agenda. {centralError}</div>}
- <p className="subtle" style={{marginBottom:12}}>Tres días de misión para vos en cada semana. Los días asignados no son plazos: podés completarlas después si lo necesitás.</p>
- <div className="cards">{todayTasks.map(task=><Task key={task.key} task={task} done={mineDone(task.key)} other={partnerDone(task.key)} partner={partner} busy={busy} rating={ratingFor(task)} onRate={value=>rateActivity(task,value)} onToggle={()=>mark(task.key)}/>)}</div>
- {todayTasks.length===0&&<div className="mission-rest-note">♡ Hoy no tenés una misión nueva. El cariño no necesita marcar casillas todos los días.</div>}
- {pendingTasks.length>0&&<div className="mission-catchup"><p className="tiny">MISIONES ANTERIORES DE ESTA SEMANA</p><div className="cards">{pendingTasks.map(task=><Task key={task.key} task={task} done={mineDone(task.key)} other={partnerDone(task.key)} partner={partner} busy={busy} rating={ratingFor(task)} onRate={value=>rateActivity(task,value)} onToggle={()=>mark(task.key)}/>)}</div></div>}
- <div className="section-title"><h2>La misión semanal</h2><Pill gold>+120 ❤️</Pill></div>
- {weeklyTasks.map(task=><Task key={task.key} task={task} done={mineDone(task.key)} other={partnerDone(task.key)} partner={partner} busy={busy} rating={ratingFor(task)} onRate={value=>rateActivity(task,value)} onToggle={()=>mark(task.key)}/>)}
- {!weeklyTasks.length&&<div className="mission-rest-note">{centralSchedule?.weeklyMode==="solo"&&partner?"Esta semana la misión semanal está a cargo de tu pareja. Ya tendrás tu turno.":"La misión semanal se está preparando."}</div>}
-
- {notificationSettings.enabled&&!pushReady&&!pushPromptDismissed&&<section className="push-onboarding" aria-label="Activar notificaciones">
-  <div className="push-onboarding-icon" aria-hidden="true">🔔</div>
-  <div className="push-onboarding-copy"><strong>Las notificaciones ya están preparadas ♡</strong>
-   <p>Cómplices elige los días y horarios automáticamente. Falta permitir los avisos en este celular para poder recibirlos, si todavía no lo hiciste.</p>
+ <section className="primary-mission" aria-label="Tu próximo gesto de cariño">
+  <div className="section-title primary-mission-heading">
+   <div><span className="tiny">UN GESTO PARA HOY, SIN PRESIÓN</span><h2>{focusMissionHeading(focusMission,date)}</h2></div>
+   <Pill>{centralLoading?"Preparando…":centralMode==="generativa"?"IA personalizada":"Pensado para ustedes"}</Pill>
   </div>
-  <div className="push-onboarding-actions"><Button small disabled={busy} onClick={requestNotifications}>Activar avisos ♡</Button>
-   <button type="button" className="link-button" onClick={()=>{setPushPromptDismissed(true);try{localStorage.setItem("cp_push_not_now_"+user.id,"yes")}catch{}}}>Ahora no</button></div>
- </section>}
- <div className="dashboard">
-  <section className="accent-card today-hero" aria-label="Tu momento de hoy">
-   <div className="today-hero-content">
-    <span className="tiny">UN MOMENTO PARA USTEDES</span>
-    <h2>Lo más lindo de hoy todavía puede pasar.</h2>
-    <p className="subtle">Una pregunta, una misión, un gesto inesperado. Lo importante pasa entre ustedes.</p>
-    <div className="row wrap today-actions">
-     <Button onClick={()=>setTab("misiones")}>Ver misiones →</Button>
-     <Button secondary onClick={()=>setTab("preguntas")}>Enviar pregunta</Button>
-    </div>
-   </div>
-   <span className="today-hero-mark" aria-hidden="true">♡</span>
-  </section>
-  <div className="glass box stack today-hearts">
-   <div className="between row"><span className="tiny">PROGRESO COMPARTIDO</span><span aria-hidden="true">♡</span></div>
-   <h2>{totalHearts} corazones</h2>
-   <div className="progress-track"><div className="progress-bar" style={{width:(totalHearts%500)/5+"%"}}/></div>
-   <p className="subtle">Cada gesto cuenta. No hay competencia ni días perdidos.</p>
-   {!partner?<><div className="note">Invitá a tu pareja para jugar y conversar juntos.</div><Button small onClick={shareInvite}>Compartir invitación</Button><p className="subtle">Código: {space?.invite_code}</p></>:<p className="subtle">Conectados: {member.display_name} + {partner.display_name} ♡</p>}
-  </div>
- </div>
- {upcomingDates.length>0&&<div className="upcoming-date-card"><div className="row between"><span className="tiny">SU HISTORIA TIENE FECHAS IMPORTANTES</span><span aria-hidden="true">🗓️</span></div>{upcomingDates.slice(0,2).map(d=><p key={d.id}><strong>{d.days_until===0?"Hoy":d.days_until===1?"Mañana":"En "+d.days_until+" días"}</strong> · {d.label}</p>)}<Button secondary small onClick={()=>{setTab("complice");window.scrollTo({top:0,behavior:"smooth"})}}>Ver nuestras fechas</Button></div>}
- {weeklyPromptReady&&<div className="weekly-pulse-card"><div className="row between"><span className="tiny">UNA PREGUNTA ESPECIAL DE ESTA SEMANA</span><span aria-hidden="true">💌</span></div><h3>{weeklyPrompt.question}</h3><p className="subtle">No es una misión. Solo un momento para reflexionar, si te nace. La respuesta es privada.</p><textarea className="textarea" value={weeklyAnswer} onChange={e=>setWeeklyAnswer(e.target.value)} maxLength={1200} placeholder="Una respuesta que solo vos vas a poder leer…"/><label className="toggle"><input type="checkbox" checked={weeklyAllowAI} onChange={e=>setWeeklyAllowAI(e.target.checked)}/> Mi IA puede recordar lo que escriba para recomendarme mejor</label><div className="row wrap"><Button small disabled={busy||!weeklyAnswer.trim()} onClick={answerWeeklyPrompt}>Guardar respuesta</Button><Button small secondary onClick={()=>setDismissedPulse(weeklyPrompt.id)}>Ahora no</Button></div></div>}
- {profileCompletion.remaining.length>0&&knowledge.percent<25&&!weeklyPromptReady&&<div className="central-daily-checkin"><div className="central-checkin-symbol" aria-hidden="true">✦</div><div className="grow"><span className="tiny">TU IA APRENDE DE VOS</span><h3>Una pregunta para conocerte mejor</h3><p className="subtle">{profileCompletion.remaining[0].question} Respondé cuando quieras: tus gustos ayudan a elegir mejores ideas.</p></div><Button small secondary onClick={()=>{selectProfileQuestion(profileCompletion.remaining[0].key);setTab("complice");window.scrollTo({top:0,behavior:"smooth"})}}>Responder ♡</Button></div>}<div className="section-title"><h2>Una pregunta que acerca</h2></div><div className="glass box"><p style={{fontSize:18,marginBottom:17}}>{QUESTION_BANK.romance[new Date().getDate()%QUESTION_BANK.romance.length]}</p><Button secondary onClick={()=>{setQuestionTopic("romance");setTab("preguntas")}}>Preguntársela a mi pareja</Button></div>
-<DailyMoodCard current={todayMood} today={date} busy={moodBusy} notice={moodNotice} onSave={saveDailyMood} onClear={clearDailyMood}/>
- {partnerCareHint&&<section className="partner-care-idea" aria-label="Una idea de cuidado para tu pareja">
-  <span className="tiny">UNA IDEA PARA CUIDAR SU DÍA ✦</span>
-  <h3>Un pequeño gesto para {partner.display_name}</h3>
-  <p>{careSuggestion(partnerCareHint.care_need)}</p>
-  <span className="partner-care-privacy">Esta sugerencia nace de una pista que tu pareja eligió compartir. No revela cómo se siente.</span>
- </section>}
-</>}
-
- {tab==="misiones"&&<>
-  <div className="section-title"><div><span className="tiny">MISIONES QUE CONSTRUYEN ALGO REAL</span><h2>Nuestras misiones ♡</h2></div><Pill gold>{totalHearts} corazones</Pill></div>
+  {centralError&&<div className="note">No pude actualizar la agenda. {centralError}</div>}
+  {focusMission?
+   <div className="cards primary-mission-cards">
+    <Task key={focusMission.key} task={focusMission} done={mineDone(focusMission.key)}
+     other={partnerDone(focusMission.key)} partner={partner} busy={busy}
+     rating={ratingFor(focusMission)} onRate={value=>rateActivity(focusMission,value)}
+     onToggle={()=>mark(focusMission.key)}/>
+   </div>:
+   centralLoading?<div className="mission-rest-note">Preparando tus próximos gestos…</div>:
+   <div className="optional-gesture">
+    <span className="tiny">HOY SIN MISIONES PENDIENTES</span>
+    <h3>{OPTIONAL_GESTURE.title}</h3>
+    <p>{OPTIONAL_GESTURE.body}</p>
+    <Button secondary small onClick={()=>{setQuestionTopic("romance");setTab("preguntas");window.scrollTo({top:0,behavior:"smooth"})}}>Empezar una conversación</Button>
+   </div>}
+ </section>
+ <details className="mission-archive" id="todas-las-misiones">
+  <summary>Calendario y todas mis misiones <span aria-hidden="true">⌄</span></summary>
+  <div className="mission-archive-body">
+<div className="section-title"><div><span className="tiny">MISIONES QUE CONSTRUYEN ALGO REAL</span><h2>Nuestras misiones ♡</h2></div><Pill gold>{totalHearts} corazones</Pill></div>
   <p className="subtle">Cada integrante recibe tres misiones diferentes durante la semana. Se alternan los días y el domingo no hay misión diaria. La misión semanal puede ser tuya, de tu pareja o para hacer juntos.</p>
   {centralSchedule&&<div className="mission-week-overview"><span className="tiny">TUS TRES DÍAS ESTA SEMANA</span><div className="mission-days">{dayLabels.map((label,i)=><span className="mission-day" key={i}>♡ {label}</span>)}</div><p className="subtle">{centralSchedule.weeklyMode==="juntos"?"Esta semana la misión semanal es para los dos.":centralSchedule.weeklyAssigned?"Esta semana la misión semanal está a tu cargo.":"Esta semana tu pareja tiene la misión semanal."}</p></div>}
   <div className="mission-filter" role="group" aria-label="Filtrar misiones">
@@ -860,7 +846,33 @@ async function saveMemory(){
   {missionFilter==="diarias"&&<><div className="cards">{dailyTasks.map(task=><Task key={task.key} task={task} done={mineDone(task.key)} other={partnerDone(task.key)} partner={partner} busy={busy} rating={ratingFor(task)} onRate={value=>rateActivity(task,value)} onToggle={()=>mark(task.key)}/>)}</div>{dailyTasks.length===0&&<div className="mission-rest-note">♡ Todavía no llegó tu primer turno de misión esta semana.</div>}{futureTasks.length>0&&<div className="mission-rest-note">Hay {futureTasks.length} {futureTasks.length===1?"misión":"misiones"} preparada{futureTasks.length===1?"":"s"} para tus próximos días asignados. Las descubrirás cuando llegue el momento.</div>}</>}
   {missionFilter==="semanales"&&<><div className="cards">{weeklyTasks.map(task=><Task key={task.key} task={task} done={mineDone(task.key)} other={partnerDone(task.key)} partner={partner} busy={busy} rating={ratingFor(task)} onRate={value=>rateActivity(task,value)} onToggle={()=>mark(task.key)}/>)}</div>{weeklyTasks.length===0&&<div className="mission-rest-note">{centralSchedule?.weeklyMode==="solo"&&partner?"Esta semana la misión semanal está a cargo de tu pareja.":"La misión semanal se está preparando."}</div>}</>}
   <div className="faq-soft" style={{marginTop:19}}><h3>♡ Con significado, sin obligación</h3><p>Las misiones no son una competencia ni una prueba de amor. Podés realizarlas otro día o pasarlas; los corazones ya ganados nunca se pierden.</p></div>
- </>}
+  </div>
+ </details>
+
+ {notificationSettings.enabled&&!pushReady&&!pushPromptDismissed&&<section className="push-onboarding" aria-label="Activar notificaciones">
+  <div className="push-onboarding-icon" aria-hidden="true">🔔</div>
+  <div className="push-onboarding-copy"><strong>Las notificaciones ya están preparadas ♡</strong>
+   <p>Cómplices elige los días y horarios automáticamente. Falta permitir los avisos en este celular para poder recibirlos, si todavía no lo hiciste.</p>
+  </div>
+  <div className="push-onboarding-actions"><Button small disabled={busy} onClick={requestNotifications}>Activar avisos ♡</Button>
+   <button type="button" className="link-button" onClick={()=>{setPushPromptDismissed(true);try{localStorage.setItem("cp_push_not_now_"+user.id,"yes")}catch{}}}>Ahora no</button></div>
+ </section>}
+ {upcomingDates.length>0&&<div className="upcoming-date-card"><div className="row between"><span className="tiny">SU HISTORIA TIENE FECHAS IMPORTANTES</span><span aria-hidden="true">🗓️</span></div>{upcomingDates.slice(0,2).map(d=><p key={d.id}><strong>{d.days_until===0?"Hoy":d.days_until===1?"Mañana":"En "+d.days_until+" días"}</strong> · {d.label}</p>)}<Button secondary small onClick={()=>{setTab("complice");window.scrollTo({top:0,behavior:"smooth"})}}>Ver nuestras fechas</Button></div>}
+ {weeklyPromptReady&&<div className="weekly-pulse-card"><div className="row between"><span className="tiny">UNA PREGUNTA ESPECIAL DE ESTA SEMANA</span><span aria-hidden="true">💌</span></div><h3>{weeklyPrompt.question}</h3><p className="subtle">No es una misión. Solo un momento para reflexionar, si te nace. La respuesta es privada.</p><textarea className="textarea" value={weeklyAnswer} onChange={e=>setWeeklyAnswer(e.target.value)} maxLength={1200} placeholder="Una respuesta que solo vos vas a poder leer…"/><label className="toggle"><input type="checkbox" checked={weeklyAllowAI} onChange={e=>setWeeklyAllowAI(e.target.checked)}/> Mi IA puede recordar lo que escriba para recomendarme mejor</label><div className="row wrap"><Button small disabled={busy||!weeklyAnswer.trim()} onClick={answerWeeklyPrompt}>Guardar respuesta</Button><Button small secondary onClick={()=>setDismissedPulse(weeklyPrompt.id)}>Ahora no</Button></div></div>}
+ {profileCompletion.remaining.length>0&&knowledge.percent<25&&!weeklyPromptReady&&<div className="central-daily-checkin"><div className="central-checkin-symbol" aria-hidden="true">✦</div><div className="grow"><span className="tiny">TU IA APRENDE DE VOS</span><h3>Una pregunta para conocerte mejor</h3><p className="subtle">{profileCompletion.remaining[0].question} Respondé cuando quieras: tus gustos ayudan a elegir mejores ideas.</p></div><Button small secondary onClick={()=>{selectProfileQuestion(profileCompletion.remaining[0].key);setTab("complice");window.scrollTo({top:0,behavior:"smooth"})}}>Responder ♡</Button></div>}<div className="section-title"><h2>Una pregunta que acerca</h2></div><div className="glass box"><p style={{fontSize:18,marginBottom:17}}>{QUESTION_BANK.romance[new Date().getDate()%QUESTION_BANK.romance.length]}</p><Button secondary onClick={()=>{setQuestionTopic("romance");setTab("preguntas")}}>Preguntársela a mi pareja</Button></div>
+ {partnerCareHint&&<section className="partner-care-idea" aria-label="Una idea de cuidado para tu pareja">
+  <span className="tiny">UNA IDEA PARA CUIDAR SU DÍA ✦</span>
+  <h3>Un pequeño gesto para {partner.display_name}</h3>
+  <p>{careSuggestion(partnerCareHint.care_need)}</p>
+  <span className="partner-care-privacy">Esta sugerencia nace de una pista que tu pareja eligió compartir. No revela cómo se siente.</span>
+ </section>}
+<DailyMoodCard current={todayMood} today={date} busy={moodBusy} notice={moodNotice} onSave={saveDailyMood} onClear={clearDailyMood}/>
+</>}
+
+ {(tab==="juegos"||tab==="preguntas")&&<nav className="play-hub-nav" aria-label="Elegir juegos o preguntas">
+   <button type="button" className={tab==="juegos"?"active":""} aria-pressed={tab==="juegos"} onClick={()=>{setTab("juegos");setNotice("")}}>Juegos</button>
+   <button type="button" className={tab==="preguntas"?"active":""} aria-pressed={tab==="preguntas"} onClick={()=>{setTab("preguntas");setNotice("")}}>Preguntas</button>
+  </nav>}
  {tab==="juegos"&&<><div className="section-title"><div><span className="tiny">UN RATO JUNTOS PUEDE CAMBIAR EL DÍA</span><h2>Juguemos ♡</h2></div><Pill>Conocerse jugando</Pill></div><p className="subtle" style={{marginBottom:20}}>Preguntas, elecciones secretas y pequeñas aventuras para descubrirse más.</p>
  <div className="teh-games-intro"><span className="tiny">TRES EXPERIENCIAS COMPLETAS</span><h3>Elegí cómo quieren jugar</h3><p>Los tres juegos originales de TeHiceEsto, ahora incluidos en el espacio privado de Cómplices.</p></div>
  <div className="teh-games-grid">
