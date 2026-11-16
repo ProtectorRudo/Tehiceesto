@@ -90,6 +90,11 @@ export default function Home(){
  if(fromUrl){setInviteInput(fromUrl);sessionStorage.setItem("cp_pending_invite",fromUrl)}
  else {const pending=sessionStorage.getItem("cp_pending_invite");if(pending&&/^[a-f0-9]{24}$/i.test(pending))setInviteInput(pending)}
 }if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});return()=>{active=false;subscription.unsubscribe()}},[]);
+ useEffect(()=>{
+  if(!user?.id)return;
+  try{setPushPromptDismissed(localStorage.getItem("cp_push_not_now_"+user.id)==="yes")}
+  catch{setPushPromptDismissed(false)}
+ },[user?.id]);
  const load=useCallback(async(u)=>{
   if(!u)return;
   const {data:m,error:e}=await db.from("cp_members").select("*").eq("user_id",u.id).maybeSingle();
@@ -627,7 +632,7 @@ async function saveMemory(){
    <p>Una misión y una pregunta especial por semana, cuando sea buen momento. Sin mensajes insistentes ni avisos durante el descanso.</p>
   </div>
   <div className="push-onboarding-actions"><Button small disabled={busy} onClick={requestNotifications}>Activar avisos ♡</Button>
-   <button type="button" className="link-button" onClick={()=>setPushPromptDismissed(true)}>Ahora no</button></div>
+   <button type="button" className="link-button" onClick={()=>{setPushPromptDismissed(true);try{localStorage.setItem("cp_push_not_now_"+user.id,"yes")}catch{}}}>Ahora no</button></div>
  </section>}
  <div className="dashboard"><div className="accent-card"><span className="tiny">LA CONEXIÓN SE CONSTRUYE CADA DÍA</span><h2 style={{fontSize:42,margin:"12px 0"}}>Lo más lindo de hoy todavía puede pasar.</h2><p className="subtle">No hace falta una fecha especial para tener un gesto especial.</p><div className="row wrap" style={{marginTop:22}}><Button onClick={()=>setTab("misiones")}>Ver misiones →</Button><Button secondary onClick={()=>setTab("preguntas")}>Enviar pregunta</Button></div></div><div className="glass box stack"><div className="between row"><span className="tiny">PROGRESO COMPARTIDO</span><span>💕</span></div><h2>{totalHearts} corazones</h2><div className="progress-track"><div className="progress-bar" style={{width:(totalHearts%500)/5+"%"}}/></div><p className="subtle">Cada gesto cuenta. No hay competencia ni días perdidos.</p>{!partner?<><div className="note">Invitá a tu pareja para jugar y conversar juntos.</div><Button small onClick={shareInvite}>Compartir invitación</Button><p className="subtle">Código: {space?.invite_code}</p></>:<p className="subtle">Conectados: {member.display_name} + {partner.display_name} ♡</p>}</div></div>
  {upcomingDates.length>0&&<div className="upcoming-date-card"><div className="row between"><span className="tiny">SU HISTORIA TIENE FECHAS IMPORTANTES</span><span aria-hidden="true">🗓️</span></div>{upcomingDates.slice(0,2).map(d=><p key={d.id}><strong>{d.days_until===0?"Hoy":d.days_until===1?"Mañana":"En "+d.days_until+" días"}</strong> · {d.label}</p>)}<Button secondary small onClick={()=>{setTab("complice");window.scrollTo({top:0,behavior:"smooth"})}}>Ver nuestras fechas</Button></div>}
