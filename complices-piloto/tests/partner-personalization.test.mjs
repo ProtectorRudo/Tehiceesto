@@ -2,15 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {PROFILE_QUESTIONS,profileProgress,safeProfile,partnerGuidedIdeas,profileForOwnAI,isIdeaCompatible} from "../lib/ai-profile.mjs";
 
-test("el cuestionario tiene nueve preguntas y respuestas estructuradas válidas",()=>{
- assert.equal(PROFILE_QUESTIONS.length,9);
- assert.equal(new Set(PROFILE_QUESTIONS.map(q=>q.key)).size,9);
+test("el cuestionario incluye diez preguntas y respuestas estructuradas válidas",()=>{
+ assert.equal(PROFILE_QUESTIONS.length,10);
+ assert.equal(new Set(PROFILE_QUESTIONS.map(q=>q.key)).size,10);
  for(const q of PROFILE_QUESTIONS){assert.ok(q.question.length>20);assert.ok(q.options.length>=3);assert.equal(new Set(q.options.map(x=>x[0])).size,q.options.length)}
 });
 test("el progreso cuenta respuestas válidas una sola vez",()=>{
- assert.deepEqual(profileProgress([]),{answered:0,total:9,remaining:PROFILE_QUESTIONS});
+ assert.deepEqual(profileProgress([]),{answered:0,total:10,remaining:PROFILE_QUESTIONS});
  const x=profileProgress([{question_key:"plan",answer_code:"cocinar"},{question_key:"plan",answer_code:"cocinar"},{question_key:"detalle",answer_code:"no_existe"}]);
- assert.equal(x.answered,1);assert.equal(x.remaining.length,8);
+ assert.equal(x.answered,1);assert.equal(x.remaining.length,9);
 });
 test("la validación elimina datos libres, códigos inventados y categorías ajenas",()=>{
  assert.deepEqual(safeProfile({plan:"cocinar",presupuesto:"gratis",email:"no",detalle:"malicioso"}),{plan:"cocinar",presupuesto:"gratis"});
