@@ -12,6 +12,7 @@ import {taskDayFromKey} from "../lib/mission-schedule.mjs";
 import {pickFocusMission,focusMissionHeading,OPTIONAL_GESTURE} from "../lib/today-focus.mjs";
 import {buildMissionHistory,missionDateLabel} from "../lib/mission-history.mjs";
 import {selectCachedWeeklyActivities,hasCachedMissions} from "../lib/mission-cache.mjs";
+import {isClearlyWeakMission} from "../lib/mission-substance.mjs";
 import {DEEP_QUESTIONS,DATE_TYPES,weeklyPersonalQuestion,profileKnowledge,upcomingOccasions} from "../lib/relationship-intelligence.mjs";
 import {learningOptions,learningStatus} from "../lib/continuous-learning.mjs";
 import {pointsForTask,heartsFor,sharedHearts} from "../lib/couple-hearts.mjs";
@@ -381,7 +382,10 @@ export default function Home(){
  const partner=members.find(m=>m.user_id!==user?.id), date=todayKey(), week=weeklyKey();
  const partnerCareHint=careHints.find(row=>partner&&row.user_id===partner.user_id&&row.day===date&&validCareNeed(row.care_need));
  const byCentralSlot=Object.fromEntries(centralActivities.map(item=>[item.slot,item]));
- const tasks=centralActivities.filter(a=>a.period_key==="w:"+week&&(/^mission_[123]$/.test(a.slot)||a.slot==="weekly_1")).map(a=>({
+ // Una misión defectuosa aún puede seguir en la base mientras se renueva.
+ // No mostrarla si está pendiente; si ya se cumplió, preservar su historial.
+ const tasks=centralActivities.filter(a=>a.period_key==="w:"+week&&(/^mission_[123]$/.test(a.slot)||a.slot==="weekly_1")&&
+  (!isClearlyWeakMission(a)||activities.some(c=>c.user_id===user?.id&&c.task_key===a.task_key))).map(a=>({
   id:a.id,slot:a.slot,key:a.task_key,title:a.title,body:a.body,icon:a.icon,points:a.points,
   mode:a.mode,theme:a.theme,due:taskDayFromKey(a.task_key)
  }));
