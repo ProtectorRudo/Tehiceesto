@@ -760,7 +760,27 @@ async function saveMemory(){
   <div className="push-onboarding-actions"><Button small disabled={busy} onClick={requestNotifications}>Activar avisos ♡</Button>
    <button type="button" className="link-button" onClick={()=>{setPushPromptDismissed(true);try{localStorage.setItem("cp_push_not_now_"+user.id,"yes")}catch{}}}>Ahora no</button></div>
  </section>}
- <div className="dashboard"><div className="accent-card"><span className="tiny">LA CONEXIÓN SE CONSTRUYE CADA DÍA</span><h2 style={{fontSize:42,margin:"12px 0"}}>Lo más lindo de hoy todavía puede pasar.</h2><p className="subtle">No hace falta una fecha especial para tener un gesto especial.</p><div className="row wrap" style={{marginTop:22}}><Button onClick={()=>setTab("misiones")}>Ver misiones →</Button><Button secondary onClick={()=>setTab("preguntas")}>Enviar pregunta</Button></div></div><div className="glass box stack"><div className="between row"><span className="tiny">PROGRESO COMPARTIDO</span><span>💕</span></div><h2>{totalHearts} corazones</h2><div className="progress-track"><div className="progress-bar" style={{width:(totalHearts%500)/5+"%"}}/></div><p className="subtle">Cada gesto cuenta. No hay competencia ni días perdidos.</p>{!partner?<><div className="note">Invitá a tu pareja para jugar y conversar juntos.</div><Button small onClick={shareInvite}>Compartir invitación</Button><p className="subtle">Código: {space?.invite_code}</p></>:<p className="subtle">Conectados: {member.display_name} + {partner.display_name} ♡</p>}</div></div>
+ <div className="dashboard">
+  <section className="accent-card today-hero" aria-label="Tu momento de hoy">
+   <div className="today-hero-content">
+    <span className="tiny">UN MOMENTO PARA USTEDES</span>
+    <h2>Lo más lindo de hoy todavía puede pasar.</h2>
+    <p className="subtle">Una pregunta, una misión, un gesto inesperado. Lo importante pasa entre ustedes.</p>
+    <div className="row wrap today-actions">
+     <Button onClick={()=>setTab("misiones")}>Ver misiones →</Button>
+     <Button secondary onClick={()=>setTab("preguntas")}>Enviar pregunta</Button>
+    </div>
+   </div>
+   <span className="today-hero-mark" aria-hidden="true">♡</span>
+  </section>
+  <div className="glass box stack today-hearts">
+   <div className="between row"><span className="tiny">PROGRESO COMPARTIDO</span><span aria-hidden="true">♡</span></div>
+   <h2>{totalHearts} corazones</h2>
+   <div className="progress-track"><div className="progress-bar" style={{width:(totalHearts%500)/5+"%"}}/></div>
+   <p className="subtle">Cada gesto cuenta. No hay competencia ni días perdidos.</p>
+   {!partner?<><div className="note">Invitá a tu pareja para jugar y conversar juntos.</div><Button small onClick={shareInvite}>Compartir invitación</Button><p className="subtle">Código: {space?.invite_code}</p></>:<p className="subtle">Conectados: {member.display_name} + {partner.display_name} ♡</p>}
+  </div>
+ </div>
  {upcomingDates.length>0&&<div className="upcoming-date-card"><div className="row between"><span className="tiny">SU HISTORIA TIENE FECHAS IMPORTANTES</span><span aria-hidden="true">🗓️</span></div>{upcomingDates.slice(0,2).map(d=><p key={d.id}><strong>{d.days_until===0?"Hoy":d.days_until===1?"Mañana":"En "+d.days_until+" días"}</strong> · {d.label}</p>)}<Button secondary small onClick={()=>{setTab("complice");window.scrollTo({top:0,behavior:"smooth"})}}>Ver nuestras fechas</Button></div>}
  {weeklyPromptReady&&<div className="weekly-pulse-card"><div className="row between"><span className="tiny">UNA PREGUNTA ESPECIAL DE ESTA SEMANA</span><span aria-hidden="true">💌</span></div><h3>{weeklyPrompt.question}</h3><p className="subtle">No es una misión. Solo un momento para reflexionar, si te nace. La respuesta es privada.</p><textarea className="textarea" value={weeklyAnswer} onChange={e=>setWeeklyAnswer(e.target.value)} maxLength={1200} placeholder="Una respuesta que solo vos vas a poder leer…"/><label className="toggle"><input type="checkbox" checked={weeklyAllowAI} onChange={e=>setWeeklyAllowAI(e.target.checked)}/> Mi IA puede recordar lo que escriba para recomendarme mejor</label><div className="row wrap"><Button small disabled={busy||!weeklyAnswer.trim()} onClick={answerWeeklyPrompt}>Guardar respuesta</Button><Button small secondary onClick={()=>setDismissedPulse(weeklyPrompt.id)}>Ahora no</Button></div></div>}
  {profileCompletion.remaining.length>0&&knowledge.percent<25&&!weeklyPromptReady&&<div className="central-daily-checkin"><div className="central-checkin-symbol" aria-hidden="true">✦</div><div className="grow"><span className="tiny">TU IA APRENDE DE VOS</span><h3>Una pregunta para conocerte mejor</h3><p className="subtle">{profileCompletion.remaining[0].question} Respondé cuando quieras: tus gustos ayudan a elegir mejores ideas.</p></div><Button small secondary onClick={()=>{selectProfileQuestion(profileCompletion.remaining[0].key);setTab("complice");window.scrollTo({top:0,behavior:"smooth"})}}>Responder ♡</Button></div>}<div className="section-title"><h2>Tu misión de hoy</h2><Pill>{centralLoading?"Preparando…":centralMode==="generativa"?"IA personalizada":"Misiones con intención"}</Pill></div>{centralError&&<div className="note">No pude actualizar la agenda. {centralError}</div>}
