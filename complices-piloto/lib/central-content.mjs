@@ -118,7 +118,7 @@ const CATALOG={
 };
 function hash(s){let value=2166136261;for(const char of String(s)){value^=char.charCodeAt(0);value=Math.imul(value,16777619)}return value>>>0}
 const normalized=(v)=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
-export function deriveThemes({preferences={},reflections=[],memories=[],recent=[],ratings=[]}={}){
+export function deriveThemes({preferences={},reflections=[],memories=[],recent=[],ratings=[],completedThemes=[]}={}){
  const score=Object.fromEntries(THEMES.map(t=>[t,0]));
  const keyMap={charlar:"charla",caminar:"paseo",peli:"pelicula",cocinar:"cocina",salir:"paseo"};
  if(keyMap[preferences.favorite_plan])score[keyMap[preferences.favorite_plan]]+=7;
@@ -135,6 +135,7 @@ export function deriveThemes({preferences={},reflections=[],memories=[],recent=[
   for(const v of negative)if(re.test(normalized(v)))score[t]-=20;
   for(const act of (recent||[]).slice(0,18))if(act.theme===t)score[t]-=1.6;
   for(const item of (ratings||[])){if(item.theme===t)score[t]+=item.rating===1?2.3:-4}
+  score[t]+=Math.min(3,(completedThemes||[]).filter(v=>v===t).length*0.7)
  }
  return score;
 }
@@ -144,8 +145,8 @@ const toActivity=(slot,period,theme,index)=>{const c=CATALOG[theme],weekly=slot=
  icon:c.icon,points:game?20:weekly?120:slot==="daily_1"?40:30,mode:"guiado",
  task_key:period+":"+(game?"central-game":slot==="daily_1"?"central-1":slot==="daily_2"?"central-2":"central-1")
 }};
-export function generateGuidedPlan({userId,date,week,preferences,reflections,memories,recent,ratings,hint,partnerSignals=[]}){
- const scores=deriveThemes({preferences,reflections,memories,recent,ratings}),salt=userId+"-"+date;
+export function generateGuidedPlan({userId,date,week,preferences,reflections,memories,recent,ratings,completedThemes=[],hint,partnerSignals=[]}){
+ const scores=deriveThemes({preferences,reflections,memories,recent,ratings,completedThemes}),salt=userId+"-"+date;
  const safePartnerThemes=[...new Set((partnerSignals||[]).filter(x=>THEMES.includes(x)))];
  const partnerTheme=safePartnerThemes.length?safePartnerThemes[hash(salt+"partner")%safePartnerThemes.length]:null;
  const first=partnerTheme||pickTheme(scores,salt+"daily1");
