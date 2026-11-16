@@ -59,7 +59,7 @@ async function improveWithAI(guided,context,db){
  };
  try{
   const ai=await callOpenAI({
-   key:process.env.OPENAI_API_KEY,model:getMissionEditorialModel(),maxOutputTokens:2200,timeoutMs:18000,
+   key:process.env.OPENAI_API_KEY,model:getMissionEditorialModel(),maxOutputTokens:2200,timeoutMs:18000,editorial:true,
    instructions:EDITORIAL_INSTRUCTIONS,
    input:JSON.stringify(safeContext),
    schema
