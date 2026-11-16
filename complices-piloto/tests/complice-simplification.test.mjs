@@ -48,7 +48,7 @@ test("preguntas profundas y fechas conservan la posibilidad real de guardar",()=
  assert.ok(main.includes("onClick={()=>deleteImportantDate(d)}"));
 });
 test("respuestas escritas no pasan al otro y la propia IA recibe contexto aceptado",()=>{
- assert.ok(main.includes("Tu IA personal"));
+ assert.ok(main.includes("tu IA personal"));
  assert.ok(page.includes("ai_use_allowed:deepUseAI"));
  assert.ok(page.includes("share_for_surprises:false"));
  assert.ok(page.includes("share_theme:null"));
