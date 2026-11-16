@@ -163,15 +163,40 @@ label{color:#6f5169;font-size:12.5px;font-weight:700;margin-bottom:8px}
 .accent-card .subtle{color:#744d68}
 .accent-card .btn{box-shadow:0 6px 15px #ce6c982b}
 .accent-card>.row,.accent-card>.stack,.accent-card>p,.accent-card>h2,.accent-card>h3,.accent-card>.tiny{position:relative;z-index:2}
-.dashboard>.accent-card{min-height:294px;padding-right:33%;position:relative}
-.dashboard>.accent-card:after{
- content:"";position:absolute;right:-11%;bottom:-16%;width:64%;height:98%;
- background:url('/couple-sunset.svg') center/contain no-repeat;
- pointer-events:none;z-index:0;filter:drop-shadow(0 9px 9px #bc84a230);
+/* Portada «Hoy»: ilustración abstracta, nunca personas ni recortes anatómicos. */
+.dashboard>.today-hero{
+ min-height:294px;display:flex;align-items:center;position:relative;
+ padding:35px 38px;border:1px solid #efd3e3;border-radius:28px;
+ background:radial-gradient(circle at 90% 12%,rgba(255,255,255,.82),transparent 32%),linear-gradient(125deg,#ffe8f0,#f7e3f2 58%,#f0e8f5);
+ box-shadow:0 18px 44px #8c496c18;overflow:hidden;
 }
-.dashboard>.accent-card h2{font-size:clamp(33px,4.2vw,46px)!important;line-height:1.11;max-width:330px}
-.dashboard>.accent-card .subtle{max-width:270px}
-.dashboard>.accent-card .row{max-width:330px}
+.dashboard>.today-hero:before{
+ display:block;content:"";position:absolute;right:-95px;top:-118px;
+ width:280px;height:280px;border-radius:50%;
+ background:radial-gradient(circle,#fffbfd 0%,#fbe8f1 45%,transparent 73%);
+ z-index:0;pointer-events:none;
+}
+.dashboard>.today-hero:after{display:none;content:none;background:none}
+.dashboard>.today-hero .today-hero-content{position:relative;z-index:2;width:100%;max-width:520px}
+.dashboard>.today-hero .tiny{font-size:10px;letter-spacing:.14em;color:#a3477b}
+.dashboard>.today-hero h2{
+ font-size:clamp(34px,4.3vw,47px)!important;line-height:1.06;letter-spacing:-.025em;
+ max-width:460px;margin:14px 0!important;color:#653052;
+}
+.dashboard>.today-hero .subtle{max-width:440px;color:#79576d;font-size:14px;line-height:1.55}
+.dashboard>.today-hero .today-actions{max-width:none;display:flex;align-items:stretch;gap:10px;margin-top:22px!important}
+.dashboard>.today-hero .today-actions .btn{
+ min-height:43px;min-width:0;padding:10px 18px;border-radius:12px;
+ font-size:13px;line-height:1.25;white-space:normal;text-align:center;
+}
+.dashboard>.today-hero .today-actions .btn.secondary{background:#fffafcec;color:#973c6c;border:1px solid #ecd0de;box-shadow:0 4px 12px #af809524}
+.today-hero-mark{
+ position:absolute;right:5%;top:14%;z-index:1;pointer-events:none;
+ color:#cb80a51c;font:150px/.9 'Instrument Serif',Georgia,serif;transform:rotate(-9deg);
+ user-select:none;
+}
+.dashboard>.today-hearts{min-height:294px}
+.dashboard>.today-hearts h2{font-size:clamp(31px,3.8vw,39px);overflow-wrap:anywhere}
 .dashboard .glass.box{border-radius:25px;min-height:294px;display:flex;flex-direction:column;justify-content:center;background:linear-gradient(160deg,#fff,#fff5fa)}
 .dashboard .glass.box h2{font-size:37px;color:#a74875;line-height:1.15;margin:3px 0 8px}
 .dashboard .glass.box .note{font-size:12px}
@@ -291,7 +316,7 @@ label{color:#6f5169;font-size:12.5px;font-weight:700;margin-bottom:8px}
 .faq-soft p{font-size:13px;line-height:1.5}
 @media(max-width:850px){
  .dashboard{grid-template-columns:1fr}
- .dashboard>.accent-card{min-height:270px}
+ .dashboard>.today-hero{min-height:270px}
  .dashboard .glass.box{min-height:190px}
  .app{padding-left:24px;padding-right:24px}
 }
@@ -315,14 +340,15 @@ label{color:#6f5169;font-size:12.5px;font-weight:700;margin-bottom:8px}
  .section-title .pill{font-size:9.5px;padding:6px 9px}
  .glass.box,.box{padding:20px}
  .dashboard{margin-top:18px;gap:12px}
- .dashboard>.accent-card{min-height:257px;padding:22px 39% 21px 19px;border-radius:23px}
- .dashboard>.accent-card h2{font-size:clamp(28px,7vw,37px)!important;line-height:1.08;max-width:230px;margin:9px 0!important}
- .dashboard>.accent-card .tiny{font-size:9px;line-height:1.4;max-width:190px}
- .dashboard>.accent-card .subtle{font-size:11px;line-height:1.4;max-width:205px}
- .dashboard>.accent-card .row{margin-top:15px!important;gap:6px;flex-wrap:wrap}
- .dashboard>.accent-card .btn{padding:9px 11px;min-height:35px;border-radius:10px;font-size:10.5px;white-space:nowrap}
- .dashboard>.accent-card:after{right:-15%;bottom:-16%;width:76%;height:104%;opacity:.87}
- .dashboard .glass.box{padding:19px 21px;min-height:153px;border-radius:20px}
+  .dashboard>.today-hero{min-height:0;padding:25px 22px 23px;border-radius:23px;align-items:flex-start}
+ .dashboard>.today-hero h2{font-size:clamp(32px,8.7vw,39px)!important;line-height:1.07;max-width:100%;margin:12px 0!important}
+ .dashboard>.today-hero .tiny{font-size:10px;line-height:1.4;max-width:100%}
+ .dashboard>.today-hero .subtle{font-size:13px;line-height:1.5;max-width:100%}
+ .dashboard>.today-hero .today-actions{margin-top:19px!important;gap:9px;flex-wrap:wrap}
+ .dashboard>.today-hero .today-actions .btn{flex:1 1 132px;min-height:43px;padding:10px 12px;font-size:12px}
+ .today-hero-mark{right:9px;top:6px;font-size:78px;color:#cb80a51a}
+ .dashboard>.today-hearts{min-height:0;justify-content:flex-start}
+.dashboard .glass.box{padding:19px 21px;min-height:153px;border-radius:20px}
  .dashboard .glass.box h2{font-size:32px;margin:0}
  .dashboard .glass.box .subtle{font-size:12px}
  .cards{grid-template-columns:1fr;gap:10px}
@@ -386,9 +412,9 @@ label{color:#6f5169;font-size:12.5px;font-weight:700;margin-bottom:8px}
  .brand{font-size:24px}
  .top .brand{font-size:22px}
  .top .heart-pill{font-size:10.5px}
- .dashboard>.accent-card{padding-right:42%}
- .dashboard>.accent-card h2{font-size:28px!important}
- .dashboard>.accent-card:after{width:81%;right:-22%}
+ .dashboard>.today-hero{padding:23px 19px 21px}
+ .dashboard>.today-hero h2{font-size:31px!important}
+ .dashboard>.today-hero .today-actions .btn{flex-basis:100%}
  .section-title h2{font-size:25px}
  .bottom-nav button{font-size:8.5px}
  .bottom-nav button svg{width:21px;height:21px}
@@ -423,7 +449,7 @@ label{color:#6f5169;font-size:12.5px;font-weight:700;margin-bottom:8px}
  .task-footer{padding-top:10px;gap:7px}
  .task-footer>.subtle{font-size:10.5px}
  .task-footer>.btn{font-size:11px;min-height:34px;padding:7px 12px}
- .dashboard>.accent-card .btn.secondary{background:#fffafbe6;color:#ad4979;border-color:#f2dbe9}
+ .dashboard>.today-hero .btn.secondary{background:#fffafbe6;color:#ad4979;border-color:#f2dbe9}
  .mission-filter{max-width:none}
 }
 
