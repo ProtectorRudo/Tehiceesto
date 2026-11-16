@@ -33,6 +33,8 @@ export function evaluateEditorialCandidate(candidate,{slot,partnerProfile={},rec
  if(selectedTexts.some(s=>similarity(s,title+" "+body)>.66))issues.push("near_duplicate");
  const meaningful=emotion.test(normalized)&&followThrough.test(normalized);
  const original=!generic.test(normalized);
+ if(!meaningful)issues.push("no_emotional_intention");
+ if(!original)issues.push("generic_idea");
  // No confundir un gesto bien escrito con una misión verdaderamente memorable.
  const score=quality.score
   +(meaningful?3:-1)
