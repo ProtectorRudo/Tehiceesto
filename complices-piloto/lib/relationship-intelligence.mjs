@@ -37,9 +37,11 @@ export function profileKnowledge({cards=[],reflections=[],importantDates=[],feed
  const structured=new Set(cards.filter(x=>typeof x.answer_code==="string"&&x.answer_code.length>0).map(x=>x.question_key));
  const deep=new Set(reflections.filter(x=>x.ai_use_allowed===true&&/^q(?:0[9]|1\d|20)$/.test(x.question_id)).map(x=>x.question_id));
  const history=feedback.length+completions.length;
+ const ongoingAnswers=reflections.filter(x=>x.ai_use_allowed===true&&/^learn:\d{4}-\d{2}-\d{2}$/.test(x.question_id)).length;
  // Es cobertura de señales autorizadas para la IA propia, no mide amor ni exactitud.
  const dimensions={preferences:Math.min(40,structured.size*4),depth:Math.min(32,deep.size*8),dates:Math.min(12,importantDates.length*6),experience:Math.min(16,history*4)};
- return {percent:Object.values(dimensions).reduce((sum,x)=>sum+x,0),dimensions,structured:structured.size,deep:deep.size,dates:importantDates.length,signals:history,meaning:"Cobertura aproximada de información autorizada, no precisión garantizada ni puntaje de relación."};
+ const percent=Object.values(dimensions).reduce((sum,x)=>sum+x,0);
+ return {percent,initialComplete:percent===100,ongoingAnswers,dimensions,structured:structured.size,deep:deep.size,dates:importantDates.length,signals:history,meaning:"El 100 % indica cobertura inicial, no el fin del aprendizaje ni precisión garantizada."};
 }
 function validISO(s){if(!/^\d{4}-\d{2}-\d{2}$/.test(String(s||"")))return false;const d=new Date(s+"T12:00:00Z");return !Number.isNaN(d.getTime())&&d.toISOString().slice(0,10)===s}
 function dateForYear(monthDay,year){
