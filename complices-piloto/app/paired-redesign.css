@@ -744,3 +744,66 @@ label{color:#6f5169;font-size:12.5px;font-weight:700;margin-bottom:8px}
 .two-phone-error{border:1px solid #ff99af;background:#5f2840;color:#ffe4ec;border-radius:12px;padding:13px 15px;font-size:12px;line-height:1.5;margin-top:13px}
 @media(max-width:860px){.teh-game-actions{margin-left:0;flex:1 0 100%;}.teh-game-actions .btn{min-height:42px}}
 @media(max-width:540px){.teh-game-actions{margin-left:0;width:100%}.teh-game-actions .btn{flex:1 1 calc(50% - 5px)}.two-phone-card{padding:22px 16px}.two-phone-content{padding:23px 14px}.two-phone-top>span{display:none}}
+
+
+/* Nosotros: identidad personal y corazones compartidos, no competitivos. */
+.our-page{padding:5px 0 38px;display:flex;flex-direction:column;gap:17px}
+.our-heading{margin:5px 0 3px}
+.our-heading .tiny{font-size:11px;letter-spacing:.1em;color:#b44c7e}
+.our-heading h2{font:400 clamp(38px,5vw,47px)/1.1 'Instrument Serif',Georgia,serif;color:#5d2b50;margin:11px 0 9px}
+.our-heading p{font-size:14px;color:#8a7381;line-height:1.5;margin:0}
+.our-hearts-total{border:1px solid #efd2df;border-radius:25px;padding:22px 24px;background:linear-gradient(135deg,#fff3f8,#f6e9fa);text-align:center}
+.our-hearts-total .tiny{font-size:11px;color:#a85a80;letter-spacing:.12em}
+.our-hearts-total strong{display:block;font:400 59px/1.18 'Instrument Serif',Georgia,serif;color:#be487d;margin:8px 0}
+.our-hearts-total p{font-size:12px;color:#846c7c;line-height:1.5;margin:0}
+.our-members{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.our-member-card{min-width:0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:7px;border:1px solid #ecd6e3;border-radius:24px;background:#fffbfd;padding:24px 14px 20px;box-shadow:0 7px 22px #74445c0a}
+.cp-avatar{display:inline-flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;background:linear-gradient(140deg,#f8dce8,#eeddf7);color:#b64b7f;border:2px solid #f6d7e6;box-shadow:0 4px 15px #a56e981a}
+.cp-avatar-large{width:96px;height:96px;border-radius:50%}
+.cp-avatar-medium{width:55px;height:55px;border-radius:17px}
+.cp-avatar img{width:100%;height:100%;display:block;object-fit:cover}
+.cp-avatar>span{font-size:48px;font-weight:300}
+.cp-avatar-medium>span{font-size:30px}
+.our-member-card .tiny{font-size:10px;color:#a57291;letter-spacing:.1em;margin-top:5px}
+.our-member-card h3{font-size:19px;color:#5a2a50;line-height:1.27;margin:0;overflow-wrap:anywhere}
+.our-personal-hearts{font:400 35px/1.2 'Instrument Serif',Georgia,serif;color:#cb4b82}
+.our-member-card p{font-size:12px;line-height:1.45;color:#8a7181;margin:0;max-width:200px}
+.our-no-competition{font-size:12px;line-height:1.55;color:#946b81;text-align:center;margin:0;padding:4px 12px}
+.our-avatar-section,.our-invite{background:#fffbfd;border:1px solid #eed9e5;border-radius:21px;padding:20px 22px}
+.our-avatar-section h3,.our-invite h3{font-size:18px;color:#68345a;margin:0 0 13px}
+.our-invite p{font-size:13px;line-height:1.5;color:#906f83}
+.cp-photo-picker{display:flex;align-items:center;gap:15px;flex-wrap:wrap}
+.cp-photo-picker .cp-avatar{width:80px;height:80px}
+.cp-photo-picker .cp-avatar>span{font-size:39px}
+.cp-photo-picker-actions{display:flex;flex:1;flex-wrap:wrap;gap:6px 10px;align-items:center;min-width:170px}
+.cp-photo-picker-actions strong,.cp-photo-picker-actions>span{width:100%}
+.cp-photo-picker-actions strong{color:#6e3c60;font-size:15px}
+.cp-photo-picker-actions>span{color:#957787;font-size:12px}
+.cp-photo-action,.cp-photo-remove{border:1px solid #eebcd3;border-radius:13px;background:#fce8f2;color:#a44372;padding:10px 14px;font-size:12px;font-weight:750;cursor:pointer}
+.cp-photo-action:hover,.cp-photo-remove:hover{background:#f7d9e9}
+.cp-photo-remove{background:transparent}
+.cp-photo-action:disabled,.cp-photo-remove:disabled{opacity:.5;cursor:default}
+.cp-photo-error{width:100%;color:#b73d65;font-size:12px}
+.profile-hero .cp-avatar{width:55px;height:55px;border-radius:17px}
+.profile-hero .cp-avatar>span{font-size:29px}
+.profile-hero .profile-change-photo{margin-left:auto;white-space:nowrap;border:1px solid #e9bed3;background:#fff5fa;color:#a54379;padding:10px 13px;font-size:12px;font-weight:700;border-radius:12px;cursor:pointer}
+.push-pending-chip{font-size:11px;color:#93627f;background:#f8e8f1;padding:8px 11px;border-radius:999px}
+@media(max-width:760px){
+ .bottom-nav button{font-size:9px}
+ .bottom-nav{gap:1px;padding-left:max(5px,env(safe-area-inset-left));padding-right:max(5px,env(safe-area-inset-right))}
+ .our-page{gap:14px}
+ .our-members{gap:10px}
+ .our-member-card{padding:19px 9px;border-radius:19px}
+ .our-member-card .cp-avatar{width:79px;height:79px}
+ .our-member-card h3{font-size:17px}
+ .our-personal-hearts{font-size:32px}
+ .our-hearts-total strong{font-size:51px}
+ .our-avatar-section,.our-invite{padding:18px 16px}
+ .profile-hero{flex-wrap:wrap}
+ .profile-hero .profile-change-photo{margin-left:70px}
+}
+@media(max-width:375px){
+ .bottom-nav button{font-size:8px}
+ .bottom-nav button svg{width:20px;height:20px}
+ .our-member-card .cp-avatar{width:72px;height:72px}
+}
