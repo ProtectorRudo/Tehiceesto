@@ -1,6 +1,7 @@
 
 "use client";
 import {useState,useEffect,useCallback} from "react";
+import EntreDosOnline from "../components/EntreDosOnline.jsx";
 import {createClient} from "@supabase/supabase-js";
 import {PROFILE_QUESTIONS,profileProgress} from "../lib/ai-profile.mjs";
 import {taskDayFromKey} from "../lib/mission-schedule.mjs";
@@ -71,7 +72,7 @@ export default function Home(){
  const [member,setMember]=useState(null),[members,setMembers]=useState([]),[space,setSpace]=useState(null),[pref,setPref]=useState(null),[surprise,setSurprise]=useState(DEFAULT_SURPRISE);
  const [activities,setActivities]=useState([]),[messages,setMessages]=useState([]),[notes,setNotes]=useState([]),[reflections,setReflections]=useState([]),[memories,setMemories]=useState([]),[aiRatings,setAiRatings]=useState([]),[notificationSettings,setNotificationSettings]=useState({enabled:false,reflection_prompts_enabled:true,quiet_start:"22:00",quiet_end:"08:00"}),[pushPromptDismissed,setPushPromptDismissed]=useState(false);
  const [name,setName]=useState(""),[inviteInput,setInviteInput]=useState("");
- const [fullGame,setFullGame]=useState(null),[fullGameBusy,setFullGameBusy]=useState(false),[fullGameError,setFullGameError]=useState("");
+ const [fullGame,setFullGame]=useState(null),[fullGameBusy,setFullGameBusy]=useState(false),[fullGameError,setFullGameError]=useState(""),[onlineEntre,setOnlineEntre]=useState(null);
  const [tab,setTab]=useState("hoy"),[compliceView,setCompliceView]=useState("conocerme"),[missionFilter,setMissionFilter]=useState("diarias"),[messageText,setMessageText]=useState(""),[replyText,setReplyText]=useState(""),[replyTo,setReplyTo]=useState(null),[questionTopic,setQuestionTopic]=useState("romance");
  const [noteText,setNoteText]=useState("");
  const [aiCheck,setAiCheck]=useState(null),[checkingAI,setCheckingAI]=useState(false);
@@ -229,6 +230,24 @@ export default function Home(){
  const games=[{slug:"escapada",title:"Si pudiéramos escaparnos…",intro:"¿A dónde irías con tu pareja sin pensarlo demasiado?",options:[["playa","🏖️ A la playa"],["montana","⛰️ A la montaña"],["ciudad","🏙️ A una ciudad"],["campo","🌿 Al campo"]]},{slug:"cita",title:"Nuestra cita perfecta",intro:"¿Cuál de estos planes elegirías para esta noche?",options:[["cena","🍝 Una cena"],["peli","🎬 Una película"],["paseo","🌙 Un paseo"],["cocinar","👩‍🍳 Cocinar juntos"]]}];
  async function revealGame(key){const {data,error}=await db.rpc("cp_game_reveal",{p_space:member.space_id,p_key:key});if(error)setNotice(getError(error));else setGameResults(old=>({...old,[key]:data}))}
 
+ async function openOnlineEntre(){
+  if(!user||!member||fullGameBusy)return;
+  if(!partner){setFullGameError("Para jugar desde dos celulares primero debe unirse tu pareja al mismo espacio.");return}
+  setFullGameError("");setFullGameBusy(true);
+  try{
+   const {data:{session},error}=await db.auth.getSession();
+   if(error||!session?.access_token)throw new Error("Volvé a iniciar sesión");
+   const response=await fetch("/api/games?game=entre-dos&mode=online",{
+    cache:"no-store",headers:{Authorization:"Bearer "+session.access_token}
+   });
+   const payload=await response.json();
+   if(!response.ok||payload.mode!=="two-devices"||payload.cards?.length!==90)
+    throw new Error(payload.error||"No pudimos abrir la partida de Entre Dos");
+   setFullGame(null);
+   setOnlineEntre({cards:payload.cards});
+  }catch(e){setFullGameError(e?.message||"No pudimos abrir la partida")}
+  finally{setFullGameBusy(false)}
+ }
  async function openCompleteGame(slug){
   if(!user||fullGameBusy)return;
   const available=["entre-dos","meme-match","trazo-complice"];
@@ -689,11 +708,12 @@ async function saveMemory(){
    {slug:"trazo-complice",icon:"🎨",title:"Trazo Cómplice",label:"1.274 palabras originales",description:"Dibujá, adiviná y sorprendete con lo que sale en la pantalla."}
   ].map(g=><article className="teh-game-card" key={g.slug}>
    <div className="teh-game-icon" aria-hidden="true">{g.icon}</div>
-   <div className="teh-game-copy"><span className="tiny">{g.label}</span><h3>{g.title}</h3><p>{g.description}</p><span className="teh-game-mode">Dos personas · Un celular compartido</span></div>
-   <Button small disabled={fullGameBusy} onClick={()=>openCompleteGame(g.slug)}>{fullGameBusy?"Preparando…":"Jugar ahora ♡"}</Button>
+   <div className="teh-game-copy"><span className="tiny">{g.label}</span><h3>{g.title}</h3><p>{g.description}</p><span className="teh-game-mode">{g.slug==="entre-dos"?"Un celular o dos celulares en línea":"Dos personas · Un celular compartido"}</span></div>
+   <div className="teh-game-actions"><Button small disabled={fullGameBusy} onClick={()=>openCompleteGame(g.slug)}>{fullGameBusy?"Preparando…":"Jugar en un celular"}</Button>{g.slug==="entre-dos"&&<Button small secondary disabled={fullGameBusy||!partner} onClick={openOnlineEntre}>Dos celulares ↗</Button>}</div>
   </article>)}
  </div>
  {fullGameError&&<p className="teh-game-error" role="alert">{fullGameError}</p>}
+ {onlineEntre&&<EntreDosOnline db={db} user={user} member={member} partner={partner} cards={onlineEntre.cards} onExit={()=>setOnlineEntre(null)}/>}
  {fullGame&&<div className="teh-game-overlay" role="dialog" aria-modal="true" aria-label={"Juego "+fullGame.title}>
   <div className="teh-game-header"><button type="button" className="teh-game-back" onClick={()=>setFullGame(null)}>← Volver a Cómplices</button><strong>{fullGame.title}</strong><span className="teh-game-header-caption">Juego completo · 1 celular</span></div>
   <iframe title={fullGame.title+" — juego completo"} srcDoc={fullGame.html} className="teh-game-frame" sandbox="allow-scripts allow-downloads" referrerPolicy="no-referrer"/>
