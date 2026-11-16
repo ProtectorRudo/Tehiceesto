@@ -11,11 +11,12 @@ const personalMap={
  detalle:{chocolate:/\b(chocolate|cacao|dulce)\w*/,flores:/\b(flor|planta|jardin|hoja)\w*/,cafe:/\b(cafe|taza)\w*/,mate:/\b(mate|ceb[aá]r|termo)\w*/,nota:/\b(nota|mensaje|papel|carta|frase)\w*/,comida:/\b(comida|merienda|cocin|receta|desayuno|bocado)\w*/,sin_regalos:/\b(sin gastar|sin comprar|gratuito|nota|tiempo|ayuda|escuchar)\w*/},
  plan:{paseo:/\b(paseo|camina|vuelta|plaza|parque|recorrido|aire libre)\w*/,cocinar:/\b(cocin|receta|ingrediente|merienda|comida|horno)\w*/,pelicula:/\b(pelicula|serie|capitulo|escena|cine|pantalla)\w*/,charlar:/\b(convers|charla|pregunta|escuch|habla)\w*/,jugar:/\b(juego|jugar|adivina|pista|reir|reto|divert)\w*/,salida:/\b(salida|paseo|lugar|plaza|cafe|recorrido|camina)\w*/,descanso:/\b(descanso|pausa|tranquil|rato|descans|relaja)\w*/},
  charla:{risas:/\b(risa|gracios|divert|chiste|humor|reir|anecdota)\w*/,planes:/\b(plan|futuro|sueno|proximo|viaje|deseo)\w*/,recuerdos:/\b(recuerdo|foto|anecdota|esa vez|historia)\w*/,profundo:/\b(sent|necesit|escuch|acompan|agradec|admir)\w*/,curiosidades:/\b(pregunta|imagin|si pudieras|curios|adivin)\w*/},
- objetivo:{diversion:/\b(jugar|risa|divert|juego|chiste|sorpresa)\w*/,romance:/\b(carino|romant|detalle|nota|admir|recuerdo|mensaje)\w*/,conversacion:/\b(charla|convers|escuch|pregunt|habla)\w*/,equipo:/\b(juntos|equipo|ayuda|repart|colabor|acompan)\w*/,sorpresas:/\b(sorpresa|nota|dejale|regalale|detalle)\w*/,rutina:/\b(nuevo|distinto|cambia|variar|primera vez|otra forma)\w*/}
+ objetivo:{diversion:/\b(jugar|risa|divert|juego|chiste|sorpresa)\w*/,romance:/\b(carino|romant|detalle|nota|admir|recuerdo|mensaje)\w*/,conversacion:/\b(charla|convers|escuch|pregunt|habla)\w*/,equipo:/\b(juntos|equipo|ayuda|repart|colabor|acompan)\w*/,sorpresas:/\b(sorpresa|nota|dejale|regalale|detalle)\w*/,rutina:/\b(nuevo|distinto|cambia|variar|primera vez|otra forma)\w*/},
+ deseo:{reconocimiento:/\b(valor|admir|elegir|constru|orgullo|nosotros|aprecio|recuerdo|gracias|reconoc|equipo|historia)\w*/,iniciativa:/\b(prepara|organiza|propone|elegi|arm[aá]|sorprende|plan)\w*/,prioridad:/\b(atencion|tiempo|prioridad|elegir|escuch|dedica|rato)\w*/,complicidad:/\b(gui[nñ]o|solo nosotros|recuerdo|broma|anecdota|secreto compartido|risa|juego)\w*/,seguridad:/\b(apoyo|confianza|acompan|tranquil|cuidado|escucha)\w*/,escucha:/\b(pregunt|escuch|conversa|charla|atencion|contale)\w*/}
 };
 function anchorsFor(profile,slot){
  const p=safeProfile(profile);
- const keys=slot==="game_1"?["charla","plan","objetivo"]:["detalle","plan","afecto","objetivo"];
+ const keys=slot==="game_1"?["charla","plan","objetivo"]:["detalle","plan","afecto","objetivo","deseo"];
  return keys.flatMap(k=>personalMap[k]?.[p[k]]?[personalMap[k][p[k]]]:[]);
 }
 export function evaluateMission({title,body,slot,partnerProfile={},recentTitles=[]}={}){
@@ -25,6 +26,7 @@ export function evaluateMission({title,body,slot,partnerProfile={},recentTitles=
  if(!isAction(joined) && slot!=="game_1")issues.push("no_clear_action");
  if(platitudes.test(joined))issues.push("platitude");
  if(overEffort.test(joined))issues.push("too_difficult");
+ if(/\b(foto de perfil|perfil de whatsapp|estado de whatsapp|subi (una |la )?foto de ustedes|publica.*(foto|relacion|pareja)|cambia.*(foto de perfil|estado)|actualiza.*perfil)\b/.test(joined))issues.push("literal_wish_echo");
  if(slot!=="game_1"&&/\b(comprar|compra|comprale|pagar|paga|pagale|adquirir|reserva una mesa|reservar hotel)\b/.test(joined))issues.push("requires_spending");
  if(/\b(abraza(?:la|lo|le)?|besalo|besala|besale|tocala|tocalo|beso sorpresa)\b/.test(joined)&&!/\b(pregunt|consent|si ambos quieren|si le gusta|si le resulta comodo|si le nace)\b/.test(joined))issues.push("unconsented_contact");
  if(/\b(pedir permiso|sin consentimiento|sin preguntar)\b/.test(joined)&&/\b(abraz|toca|besa)\w*/.test(joined))issues.push("contact_without_consent");
