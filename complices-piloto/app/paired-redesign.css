@@ -833,3 +833,97 @@ label{color:#6f5169;font-size:12.5px;font-weight:700;margin-bottom:8px}
  .bottom-nav button svg{width:20px;height:20px}
  .our-member-card .cp-avatar{width:72px;height:72px}
 }
+
+
+/* Mi momento de hoy: una tarjeta dentro de Hoy, sin nueva pestaña ni puntos. */
+.daily-moment{
+ margin:16px 0 18px;padding:23px 25px;border-radius:23px;
+ background:linear-gradient(140deg,#fffefd,#fff7fa 70%,#fcf3ff);
+ border:1px solid #eed7e3;box-shadow:0 9px 29px #8252730e;
+ color:#603555;
+}
+.daily-moment-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}
+.daily-moment-head .tiny{font-size:10px;color:#ac567e;letter-spacing:.12em}
+.daily-moment-head h2{font:400 clamp(27px,3.2vw,35px)/1.12 'Instrument Serif',Georgia,serif;margin:5px 0 8px;color:#612c54;letter-spacing:-.02em}
+.daily-moment-head h2 span{color:#d46f9d}
+.daily-moment-head p{font-size:12.5px;color:#84687b;line-height:1.45;max-width:570px}
+.daily-moment-edit,.daily-moment-remove,.daily-moment-cancel{
+ border:1px solid #edc7da;background:#fff5fa;color:#9d4573;
+ border-radius:12px;min-height:39px;padding:8px 13px;font-size:12px;font-weight:700;cursor:pointer;
+}
+.daily-moment-choices{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:7px}
+.daily-mood-choice{
+ border:1px solid #efdfeb;border-radius:14px;min-width:0;min-height:86px;
+ background:#fffafc;color:#77536b;padding:10px 4px;
+ display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;cursor:pointer;
+ transition:border-color .15s,background .15s,box-shadow .15s;
+}
+.daily-mood-choice>span{font-size:27px;line-height:1.15}
+.daily-mood-choice small{font-size:10px;font-weight:650;line-height:1.2;text-align:center;overflow-wrap:anywhere}
+.daily-mood-choice.active,.daily-need-choice.active{
+ background:#fae7f1;border-color:#cd7da7;color:#81395e;
+ box-shadow:inset 0 0 0 1px #da8fb4;
+}
+.daily-mood-choice:focus-visible,.daily-need-choice:focus-visible,.daily-moment-edit:focus-visible,
+.daily-moment-remove:focus-visible,.daily-moment-cancel:focus-visible{
+ outline:3px solid #9f3c81;outline-offset:2px
+}
+.daily-moment-more{margin-top:16px;padding-top:16px;border-top:1px solid #f0e1eb}
+.daily-moment-label{font-size:13px;font-weight:800;margin:0 0 10px;color:#66385a}
+.daily-moment-label span{font-weight:500;color:#997a8d}
+.daily-needs{display:flex;gap:8px;flex-wrap:wrap}
+.daily-need-choice{
+ min-height:40px;border:1px solid #ecd7e5;border-radius:999px;background:#fff;color:#754c69;
+ padding:8px 12px;font-size:12px;font-weight:700;text-align:center;cursor:pointer;
+}
+.daily-moment-consent{
+ margin:18px 0 8px;display:flex;gap:11px;align-items:flex-start;
+ font-size:12px;line-height:1.48;font-weight:500;color:#64435c;cursor:pointer;
+}
+.daily-moment-consent strong{font-weight:750}
+.daily-moment-consent input{flex:none;width:19px;height:19px;margin:0;accent-color:#bf4b82}
+.daily-moment-privacy{color:#92758a;font-size:11px;line-height:1.5}
+.daily-moment-footer{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:16px}
+.daily-moment-footer .btn{border-radius:12px;min-height:43px;padding:10px 17px;font-size:12px}
+.daily-moment-saved{
+ display:flex;align-items:center;gap:13px;padding:13px 15px;
+ border:1px solid #f0dbe7;border-radius:16px;background:#fff9fc;
+}
+.daily-moment-saved>span{font-size:34px;line-height:1}
+.daily-moment-saved>div{flex:1;min-width:0}
+.daily-moment-saved strong{font-size:15px;color:#672d56}
+.daily-moment-saved p{font-size:12px;color:#7d5b71;margin:2px 0}
+.daily-moment-saved small{display:block;font-size:11px;color:#94758a}
+.daily-moment-remove{background:transparent;border-color:#efdfeb;color:#9b627d}
+.daily-moment-notice{margin:13px 0 0;font-size:12px;line-height:1.45;color:#894367}
+.partner-care-idea{
+ margin:15px 0 18px;padding:21px 24px;border-radius:20px;
+ background:radial-gradient(circle at 95% 0,#fff7f8,transparent 45%),linear-gradient(115deg,#fff9f2,#f9eff8);
+ border:1px solid #ead2dc;color:#673950;
+}
+.partner-care-idea .tiny{color:#a14c78;font-size:10px}
+.partner-care-idea h3{font-size:20px;line-height:1.28;margin:7px 0;color:#663052}
+.partner-care-idea p{font-size:14px;line-height:1.55;max-width:700px;color:#6e4f65}
+.partner-care-privacy{display:block;margin-top:10px;color:#936e82;font-size:11px;line-height:1.45}
+@media(max-width:760px){
+ .daily-moment{padding:19px 17px;border-radius:21px;margin:14px 0 16px}
+ .daily-moment-head h2{font-size:29px}
+ .daily-moment-head p{font-size:12px}
+ .daily-moment-choices{grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+ .daily-mood-choice{min-height:74px;border-radius:13px;padding:8px 3px;gap:4px}
+ .daily-mood-choice>span{font-size:25px}
+ .daily-mood-choice small{font-size:10px}
+ .daily-needs{gap:7px}
+ .daily-need-choice{font-size:11px;padding:8px 11px}
+ .daily-moment-saved{padding:12px 10px;gap:9px;flex-wrap:wrap}
+ .daily-moment-remove{margin-left:auto}
+ .partner-care-idea{padding:17px 19px}
+ .partner-care-idea h3{font-size:18px}
+ .partner-care-idea p{font-size:13px}
+}
+@media(max-width:375px){
+ .daily-moment-choices{gap:5px}
+ .daily-mood-choice small{font-size:9px}
+ .daily-moment-head h2{font-size:27px}
+ .daily-moment-footer .btn{width:100%}
+}
