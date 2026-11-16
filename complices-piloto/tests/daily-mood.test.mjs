@@ -49,7 +49,7 @@ test("Hoy tiene una misión primero y Mi momento de hoy queda estrictamente al f
  const end=page.indexOf('{tab==="juegos"&&<>',start);
  assert.ok(start>=0&&end>start);
  const hoy=page.slice(start,end);
- const primary=hoy.indexOf('className="primary-mission"');
+ const primary=hoy.indexOf('className="primary-mission mission-spotlight"');
  const archive=hoy.indexOf('className="mission-archive"');
  const question=hoy.indexOf('<h2>Una pregunta que acerca</h2>');
  const hint=hoy.indexOf('partnerCareHint&&<section');
