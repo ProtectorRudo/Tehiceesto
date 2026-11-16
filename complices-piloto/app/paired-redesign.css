@@ -464,3 +464,63 @@ label{color:#6f5169;font-size:12.5px;font-weight:700;margin-bottom:8px}
  .profile-answer-grid{grid-template-columns:1fr}
  .profile-saved-item{flex-wrap:wrap}
 }
+
+
+/* Cómplices IA Central: las recomendaciones aparecen solas; nada de chat con IA. */
+.central-daily-checkin{
+ display:flex;align-items:center;gap:15px;margin:21px 0 9px;
+ border-radius:21px;padding:17px 19px;
+ border:1px solid #f2d8e5;background:linear-gradient(125deg,#fffafc,#f9eafb);
+ box-shadow:var(--shadow)
+}
+.central-daily-checkin .grow{flex:1;min-width:0}
+.central-daily-checkin h3{font-size:15px;margin:3px 0}
+.central-daily-checkin .subtle{font-size:12px}
+.central-checkin-symbol{
+ display:grid;place-items:center;flex-shrink:0;
+ width:43px;height:43px;border-radius:14px;background:#f5d9ec;color:#bd4c89;font-size:26px
+}
+.central-intro-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:17px 0}
+.central-intro-grid>.glass{display:flex;flex-direction:column;justify-content:start;min-height:207px;padding:22px}
+.central-intro-grid h3{font-size:18px}
+.central-intro-grid .subtle{font-size:12px;line-height:1.52}
+.central-intro-grid .btn{margin-top:auto;align-self:flex-start}
+.central-intro-grid .progress-track{margin:5px 0}
+.central-recommendation{border-radius:24px;min-height:220px;padding:28px;background:linear-gradient(120deg,#ffdbeb,#f4dbf6 65%,#f7e6fa);margin:20px 0}
+.central-recommendation h2{font-family:'Instrument Serif',Georgia,serif;font-size:clamp(27px,4vw,39px);font-weight:400;line-height:1.15;max-width:650px}
+.central-recommendation .subtle{max-width:720px;color:#71536a;font-size:14px;margin-bottom:18px}
+.central-consent{margin-bottom:18px;background:linear-gradient(140deg,#fffdfd,#fff4f9)}
+.central-consent h3{font-size:17px}
+.central-consent .toggle{padding:13px;background:#fff7fb;border:1px solid #f4dae9;border-radius:15px}
+.central-consent .btn{align-self:flex-start}
+.central-advanced{
+ margin-top:14px;padding:0;border:1px solid #efdce8;
+ background:#fffafccc;border-radius:19px;overflow:hidden;
+ box-shadow:0 4px 14px rgba(125,58,89,.04);
+}
+.central-advanced summary{
+ list-style:none;cursor:pointer;padding:17px 20px;
+ color:#81436b;font-weight:700;font-size:13.5px;
+ display:flex;align-items:center;justify-content:space-between;gap:11px;
+}
+.central-advanced summary::-webkit-details-marker{display:none}
+.central-advanced summary:after{content:"⌄";color:#c35d94;font-size:23px;line-height:1}
+.central-advanced[open] summary:after{transform:rotate(180deg)}
+.central-advanced[open] summary{border-bottom:1px solid #eddce6;background:#fff3f8}
+.central-advanced-body{padding:18px 19px}
+.central-advanced-body .section-title{margin-top:16px}
+.central-advanced-body .section-title:first-child{margin-top:5px}
+.central-advanced-body .glass{box-shadow:none}
+@media(max-width:760px){
+ .central-daily-checkin{padding:14px;gap:10px;flex-wrap:wrap}
+ .central-daily-checkin .grow{flex:1 1 calc(100% - 53px)}
+ .central-daily-checkin .btn{margin-left:auto}
+ .central-checkin-symbol{width:40px;height:40px}
+ .central-intro-grid{grid-template-columns:1fr;gap:10px}
+ .central-intro-grid>.glass{min-height:0;padding:19px}
+ .central-intro-grid h3{font-size:16px}
+ .central-recommendation{padding:23px 20px;min-height:0}
+ .central-recommendation h2{font-size:30px}
+ .central-advanced summary{padding:16px}
+ .central-advanced-body{padding:12px}
+}
