@@ -850,7 +850,7 @@ async function saveMemory(){
   <span className="mission-spotlight-watermark" aria-hidden="true">♡</span>
   <div className="section-title primary-mission-heading">
    <div><span className="tiny">EL CORAZÓN DE CÓMPLICES</span><h2>{focusMissionHeading(focusMission,date)}</h2></div>
-   <Pill>{centralLoading?"Preparando…":centralMode==="generativa"?"IA personalizada":"Pensado para ustedes"}</Pill>
+   <Pill>{centralLoading?"Preparando…":centralMode==="generativa"?(partnerInsightCount>0?"IA con gustos":"IA creativa"):"Ideas guiadas"}</Pill>
   </div>
   <p className="mission-spotlight-lede">Las mejores historias se construyen con pequeños gestos. Esta es tu oportunidad de hoy, sin presiones.</p>
   {centralError&&<div className="note">No pude actualizar la agenda. {centralError}</div>}
