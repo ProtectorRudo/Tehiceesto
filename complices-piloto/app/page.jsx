@@ -4,7 +4,8 @@ import {useState,useEffect,useCallback} from "react";
 import EntreDosOnline from "../components/EntreDosOnline.jsx";
 import AvatarPicker,{AvatarCircle} from "../components/AvatarPicker.jsx";
 import DailyMoodCard from "../components/DailyMoodCard.jsx";
-import {validMood,validCareNeed,careSuggestion} from "../lib/today-care.mjs";
+import {validMood,validCareNeed} from "../lib/today-care.mjs";
+import {pickCareAwareMission} from "../lib/contextual-care.mjs";
 import {createClient} from "@supabase/supabase-js";
 import {PROFILE_QUESTIONS,profileProgress} from "../lib/ai-profile.mjs";
 import {taskDayFromKey} from "../lib/mission-schedule.mjs";
@@ -83,6 +84,7 @@ export default function Home(){
  const [activities,setActivities]=useState([]),[messages,setMessages]=useState([]),[notes,setNotes]=useState([]),[reflections,setReflections]=useState([]),[memories,setMemories]=useState([]),[aiRatings,setAiRatings]=useState([]),[notificationSettings,setNotificationSettings]=useState({enabled:true,reflection_prompts_enabled:true,quiet_start:"22:00",quiet_end:"08:00"}),[pushPromptDismissed,setPushPromptDismissed]=useState(false);
  const [name,setName]=useState(""),[inviteInput,setInviteInput]=useState("");
  const [todayMood,setTodayMood]=useState(null),[careHints,setCareHints]=useState([]),[moodBusy,setMoodBusy]=useState(false),[moodNotice,setMoodNotice]=useState("");
+ const [carePlan,setCarePlan]=useState(null);
  const [fullGame,setFullGame]=useState(null),[fullGameBusy,setFullGameBusy]=useState(false),[fullGameError,setFullGameError]=useState(""),[onlineEntre,setOnlineEntre]=useState(null);
  const [tab,setTab]=useState("hoy"),[compliceView,setCompliceView]=useState("conocerme"),[missionFilter,setMissionFilter]=useState("diarias"),[messageText,setMessageText]=useState(""),[replyText,setReplyText]=useState(""),[replyTo,setReplyTo]=useState(null),[questionTopic,setQuestionTopic]=useState("romance");
  const [noteText,setNoteText]=useState("");
@@ -113,7 +115,7 @@ export default function Home(){
   if(!u)return;
   const {data:m,error:e}=await db.from("cp_members").select("*").eq("user_id",u.id).maybeSingle();
   if(e){setNotice(getError(e));return}
-  if(!m){setMember(null);setMembers([]);setSpace(null);setPref(null);setTodayMood(null);setCareHints([]);setMissionHistoryDetails(null);setMissionHistoryError("");return}
+  if(!m){setMember(null);setMembers([]);setSpace(null);setPref(null);setTodayMood(null);setCareHints([]);setCarePlan(null);setMissionHistoryDetails(null);setMissionHistoryError("");return}
   setMember(m);
   const [s,mm,p,c,historyRows,ms,n,t,rfl,ns,mem,feedback,structured,dateRows]=await Promise.all([
    db.from("cp_spaces").select("*").eq("id",m.space_id).single(),
@@ -149,7 +151,7 @@ export default function Home(){
   if(s.error)setNotice(getError(s.error));
   setSpace(s.data||null);setMembers(mm.data||[]);setPref(p.data||null);setActivities(c.data||[]);setMessages(ms.data||[]);setNotes(n.data||[]);setReflections(rfl.data||[]);setMemories(mem.data||[]);setAiRatings(feedback.data||[]);if(structured.error)setNotice("No pude leer tus gustos guardados: "+getError(structured.error));else setProfileCards(structured.data||[]);setImportantDates(dateRows.data||[]);if(dateRows.error)setNotice("No pude cargar las fechas guardadas: "+getError(dateRows.error));setNotificationSettings(ns.data||{enabled:true,reflection_prompts_enabled:true,quiet_start:"22:00",quiet_end:"08:00"});if(t.data)setSurprise(t.data);const {data:gameRows}=await db.from("cp_game_entries").select("game_key,answer").eq("space_id",m.space_id).eq("user_id",u.id);if(gameRows)setGameAnswers(Object.fromEntries(gameRows.map(g=>[g.game_key,g.answer])));
  },[]);
- useEffect(()=>{if(user){load(user)}else{setMember(null);setSpace(null);setTodayMood(null);setCareHints([]);setMoodNotice("");setMissionHistoryDetails(null);setMissionHistoryError("");setShowAllMissionHistory(false)}},[user,load]);
+ useEffect(()=>{if(user){load(user)}else{setMember(null);setSpace(null);setTodayMood(null);setCareHints([]);setCarePlan(null);setMoodNotice("");setMissionHistoryDetails(null);setMissionHistoryError("");setShowAllMissionHistory(false)}},[user,load]);
 
  // Solo imágenes del propio espacio; la descarga privada exige RLS de Supabase.
  const avatarKey=members.map(m=>m.user_id+":"+(m.avatar_path||"")).join("|");
@@ -194,11 +196,19 @@ export default function Home(){
    const response=await fetch("/api/central",{headers:{Authorization:"Bearer "+session.access_token},cache:"no-store"});
    const data=await response.json();
    if(!response.ok){setCentralError(data.error||"No pude actualizar tus misiones");return}
-   setCentralActivities(data.activities||[]);setCentralMode(data.mode||"guiado");setCentralSchedule(data.schedule||null);setPartnerInsightCount(data.personalization?.partnerSharedPreferences||0);setCentralError("");
+   setCentralActivities(data.activities||[]);setCentralMode(data.mode||"guiado");setCentralSchedule(data.schedule||null);setPartnerInsightCount(data.personalization?.partnerSharedPreferences||0);setCarePlan(data.careSuggestion||null);setCentralError("");
   }catch{setCentralError("No pude conectar con tu cómplice central")}
   finally{setCentralLoading(false)}
  },[user?.id]);
- useEffect(()=>{if(user?.id&&member?.space_id)refreshCentral();else setCentralActivities([])},[user?.id,member?.space_id,refreshCentral]);
+ useEffect(()=>{if(user?.id&&member?.space_id)refreshCentral();else{setCentralActivities([]);setCarePlan(null)}},[user?.id,member?.space_id,refreshCentral]);
+ // Las pistas son una señal temporal; sólo recargamos si cambian, no en cada
+ // sondeo de 25 segundos. Si se revoca, ocultamos la idea antes de volver a consultar.
+ const careHintSignature=careHints.map(x=>[x.user_id,x.day,x.care_need].join(":")).sort().join("|");
+ useEffect(()=>{
+  if(!user?.id||!member?.space_id)return;
+  if(!careHintSignature){setCarePlan(null);return}
+  refreshCentral();
+ },[careHintSignature,user?.id,member?.space_id,refreshCentral]);
  useEffect(()=>{
   if(!user?.id||!member?.space_id)return;
   const initialComplete=DEEP_QUESTIONS.every(q=>reflections.some(r=>r.question_id===q[0]));
@@ -331,7 +341,14 @@ export default function Home(){
  const todayTasks=dailyTasks.filter(x=>x.due===date);
  const pendingTasks=dailyTasks.filter(x=>x.due<date);
  const weeklyTasks=tasks.filter(x=>x.slot==="weekly_1");
- const focusMission=pickFocusMission({todayTasks,pendingTasks,weeklyTasks,isDone:key=>activities.some(a=>a.task_key===key&&a.user_id===user?.id)});
+ const isOwnTaskDone=key=>activities.some(a=>a.task_key===key&&a.user_id===user?.id);
+ const usualFocus=pickFocusMission({todayTasks,pendingTasks,weeklyTasks,isDone:isOwnTaskDone});
+ const ratedThemes=aiRatings.map(r=>({
+  theme:centralActivities.find(a=>a.id===r.activity_id)?.theme,rating:r.rating
+ })).filter(r=>r.theme);
+ const focusMission=partnerCareHint?
+  pickCareAwareMission({todayTasks,pendingTasks,weeklyTasks,isDone:isOwnTaskDone,careNeed:partnerCareHint.care_need,feedback:ratedThemes})
+  :usualFocus;
  const dayLabels=centralSchedule?.days?.map(x=>x.label)||[];
  const missionCount=tasks.filter(x=>x.slot.startsWith("mission_")).length;
  const mineDone=(key)=>activities.some(a=>a.task_key===key&&a.user_id===user?.id);
@@ -868,6 +885,14 @@ async function saveMemory(){
     <p>{OPTIONAL_GESTURE.body}</p>
     <Button secondary small onClick={()=>{setQuestionTopic("romance");setTab("preguntas");window.scrollTo({top:0,behavior:"smooth"})}}>Empezar una conversación</Button>
    </div>}
+  {partnerCareHint&&carePlan?.source_user_id===partnerCareHint.user_id&&
+   carePlan?.source_code===partnerCareHint.care_need&&carePlan?.day===date&&
+   <aside className="mission-care-cue" aria-label="Otra idea de cuidado para hoy">
+    <div className="mission-care-heading"><span aria-hidden="true">✦</span><span className="tiny">UN DETALLE PARA CUIDAR SU DÍA</span></div>
+    <h3>{carePlan.title}</h3>
+    <p>{carePlan.body}</p>
+    <small>Idea opcional basada en una pista que tu pareja eligió compartir, sus gustos autorizados y los gestos anteriores. No revela cómo se siente ni suma puntos.</small>
+   </aside>}
   <p className="mission-spotlight-footnote">♡ Las misiones son invitaciones, nunca pruebas de amor. Ustedes deciden cuándo compartirlas.</p>
  </section>
  <section className="mission-history" aria-label="Historial personal de misiones realizadas">
@@ -919,12 +944,6 @@ async function saveMemory(){
  {upcomingDates.length>0&&<div className="upcoming-date-card"><div className="row between"><span className="tiny">SU HISTORIA TIENE FECHAS IMPORTANTES</span><span aria-hidden="true">🗓️</span></div>{upcomingDates.slice(0,2).map(d=><p key={d.id}><strong>{d.days_until===0?"Hoy":d.days_until===1?"Mañana":"En "+d.days_until+" días"}</strong> · {d.label}</p>)}<Button secondary small onClick={()=>{setTab("complice");window.scrollTo({top:0,behavior:"smooth"})}}>Ver nuestras fechas</Button></div>}
  {weeklyPromptReady&&<div className="weekly-pulse-card"><div className="row between"><span className="tiny">UNA PREGUNTA ESPECIAL DE ESTA SEMANA</span><span aria-hidden="true">💌</span></div><h3>{weeklyPrompt.question}</h3><p className="subtle">No es una misión. Solo un momento para reflexionar, si te nace. La respuesta es privada.</p><textarea className="textarea" value={weeklyAnswer} onChange={e=>setWeeklyAnswer(e.target.value)} maxLength={1200} placeholder="Una respuesta que solo vos vas a poder leer…"/><label className="toggle"><input type="checkbox" checked={weeklyAllowAI} onChange={e=>setWeeklyAllowAI(e.target.checked)}/> Mi IA puede recordar lo que escriba para recomendarme mejor</label><div className="row wrap"><Button small disabled={busy||!weeklyAnswer.trim()} onClick={answerWeeklyPrompt}>Guardar respuesta</Button><Button small secondary onClick={()=>setDismissedPulse(weeklyPrompt.id)}>Ahora no</Button></div></div>}
  {profileCompletion.remaining.length>0&&knowledge.percent<25&&!weeklyPromptReady&&<div className="central-daily-checkin"><div className="central-checkin-symbol" aria-hidden="true">✦</div><div className="grow"><span className="tiny">TU IA APRENDE DE VOS</span><h3>Una pregunta para conocerte mejor</h3><p className="subtle">{profileCompletion.remaining[0].question} Respondé cuando quieras: tus gustos ayudan a elegir mejores ideas.</p></div><Button small secondary onClick={()=>{selectProfileQuestion(profileCompletion.remaining[0].key);setTab("complice");window.scrollTo({top:0,behavior:"smooth"})}}>Responder ♡</Button></div>}<div className="section-title today-question-title"><h2>Una pregunta que acerca</h2></div><div className="glass box today-question-card"><p style={{fontSize:18,marginBottom:17}}>{QUESTION_BANK.romance[new Date().getDate()%QUESTION_BANK.romance.length]}</p><Button secondary onClick={()=>{setQuestionTopic("romance");setTab("preguntas")}}>Preguntársela a mi pareja</Button></div>
- {partnerCareHint&&<section className="partner-care-idea" aria-label="Una idea de cuidado para tu pareja">
-  <span className="tiny">UNA IDEA PARA CUIDAR SU DÍA ✦</span>
-  <h3>Un pequeño gesto para {partner.display_name}</h3>
-  <p>{careSuggestion(partnerCareHint.care_need)}</p>
-  <span className="partner-care-privacy">Esta sugerencia nace de una pista que tu pareja eligió compartir. No revela cómo se siente.</span>
- </section>}
 <DailyMoodCard current={todayMood} today={date} busy={moodBusy} notice={moodNotice} onSave={saveDailyMood} onClear={clearDailyMood}/>
 </>}
 
