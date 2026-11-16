@@ -1006,3 +1006,181 @@ label{color:#6f5169;font-size:12.5px;font-weight:700;margin-bottom:8px}
  .onboarding-abstract>span{font-size:76px}
 }
 @media(prefers-reduced-motion:reduce){.mission-archive>summary span{transition:none}}
+
+
+/* Jerarquía emocional: misión protagonista e historia real */
+.mission-spotlight{
+ position:relative;isolation:isolate;overflow:hidden;
+ margin-top:11px;padding:23px 24px 19px;
+ background:radial-gradient(circle at 94% 8%,rgba(255,190,221,.28),transparent 36%),
+ linear-gradient(129deg,#592844 2%,#804066 57%,#a05b81 100%);
+ border:1px solid #a7668b;border-radius:27px;
+ box-shadow:0 18px 42px rgba(88,38,69,.22);
+}
+.mission-spotlight>*:not(.mission-spotlight-watermark){position:relative;z-index:2}
+.mission-spotlight-watermark{
+ position:absolute;z-index:0;top:-74px;right:-29px;pointer-events:none;
+ color:rgba(255,229,243,.095);font:400 240px/1 'Instrument Serif',Georgia,serif;
+ user-select:none;transform:rotate(13deg);
+}
+.mission-spotlight .primary-mission-heading{margin:0 0 7px;align-items:flex-start}
+.mission-spotlight .primary-mission-heading .tiny{color:#f6cbdf;font-size:10px;letter-spacing:.15em}
+.mission-spotlight .primary-mission-heading h2{color:#fff9fc;font-size:clamp(32px,4vw,40px);line-height:1.05;font-weight:400;margin:7px 0 0}
+.mission-spotlight .primary-mission-heading .pill{
+ color:#fff2f9;background:rgba(255,241,250,.16);
+ border:1px solid rgba(255,241,250,.38);padding:7px 11px;
+}
+.mission-spotlight-lede{font-size:13px;line-height:1.5;color:#f9dfed;margin:0 0 19px;max-width:650px}
+.mission-spotlight .primary-mission-cards{margin:0}
+.mission-spotlight .primary-mission-cards .task-card{
+ min-height:0;border:1px solid #fff7fb;border-radius:21px;padding:23px;
+ background:linear-gradient(142deg,#ffffff,#fff9fc);
+ box-shadow:0 12px 27px rgba(62,18,45,.13);
+}
+.mission-spotlight .primary-mission-cards .task-card:hover{transform:none}
+.mission-spotlight .primary-mission-cards .task-card.done{
+ background:linear-gradient(142deg,#fffbfd,#fff0f7);border-color:#fce4ef;
+}
+.mission-spotlight .primary-mission-cards .task-card .task-icon{
+ width:59px;height:59px;flex-shrink:0;display:grid;place-items:center;
+ border-radius:17px;background:#ffe4ef;font-size:31px;
+}
+.mission-spotlight .primary-mission-cards .task-card .task-main h3{
+ font-size:clamp(20px,2.6vw,25px);line-height:1.16;
+ font-weight:800;color:#582a4e;letter-spacing:-.025em;
+}
+.mission-spotlight .primary-mission-cards .task-card .task-main p{
+ font-size:14px;line-height:1.58;color:#74576e;margin-top:10px;
+}
+.mission-spotlight .primary-mission-cards .task-card .pill.gold{
+ background:#fce2ee;border-color:#f2bdd6;color:#a83b70;
+ font-size:13px;padding:7px 10px;
+}
+.mission-spotlight .primary-mission-cards .task-card .task-footer{
+ margin-top:18px;padding-top:16px;border-top:1px solid #f0e1e9;gap:13px;
+}
+.mission-spotlight .primary-mission-cards .task-card .task-footer>.btn{
+ border-radius:13px;min-height:48px;padding:11px 19px;
+ background:linear-gradient(125deg,#e95186,#bc3974);
+ color:#fff;font-size:14px;font-weight:800;
+ box-shadow:0 8px 21px #be448132;
+}
+.mission-spotlight .primary-mission-cards .task-card.done .task-footer>.btn{
+ background:#fff9fc;border:1px solid #e7c7d8;color:#9a4972;box-shadow:none;
+}
+.mission-spotlight .primary-mission-cards .mission-outcome{
+ background:#fff6fb;border:1px solid #f5dfeb;margin-top:16px;
+}
+.mission-spotlight .optional-gesture{background:#fff8fc;border-color:#f4e1ec;box-shadow:0 12px 27px rgba(62,18,45,.11)}
+.mission-spotlight-footnote{font-size:11px;line-height:1.4;margin:16px 2px 0;color:#f5d1e4}
+
+.mission-history{
+ margin:16px 0 12px;padding:19px 21px 18px;
+ border:1px solid #efdae6;border-radius:23px;
+ background:linear-gradient(140deg,#fffdfd,#fff9fc);
+ box-shadow:0 6px 22px rgba(114,60,89,.05);
+}
+.mission-history-heading{display:flex;gap:14px;align-items:center;justify-content:space-between}
+.mission-history-heading .tiny{font-size:10px;color:#b15c84;letter-spacing:.12em}
+.mission-history-heading h3{
+ font:400 clamp(23px,3vw,29px)/1.08 'Instrument Serif',Georgia,serif;
+ color:#633154;margin:5px 0 6px;
+}
+.mission-history-heading p{font-size:11.5px;color:#906e82;line-height:1.4;max-width:440px}
+.mission-history-count{
+ flex:none;white-space:normal;text-align:center;max-width:155px;
+ background:#fbe8f2;border:1px solid #f1cddd;color:#a34470;
+ border-radius:999px;font-size:11px;font-weight:800;padding:9px 13px;
+}
+.mission-history-list{
+ padding:0;margin:17px 0 2px;list-style:none;
+ display:flex;flex-direction:column;gap:9px;
+}
+.mission-history-entry{
+ display:flex;gap:12px;align-items:center;padding:11px 13px;
+ border:1px solid #f1e3eb;border-radius:14px;background:#fff;
+}
+.mission-history-symbol{
+ width:38px;height:38px;flex-shrink:0;border-radius:12px;
+ background:#fcebf3;display:grid;place-items:center;
+ color:#ba5d8b;font-size:21px;
+}
+.mission-history-entry-content{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.mission-history-entry-content strong{
+ color:#633952;font-size:12.5px;line-height:1.3;overflow-wrap:anywhere;
+}
+.mission-history-entry-content>span{color:#9b7c8d;font-size:11px;line-height:1.3}
+.mission-history-check{
+ flex:none;border-radius:50%;width:27px;height:27px;
+ background:#f8e4ef;display:grid;place-items:center;color:#a34774;
+ font-weight:900;font-size:13px;
+}
+.mission-history-empty,.mission-history-error{
+ font-size:12px;line-height:1.55;color:#947287;margin:14px 0 0;
+}
+.mission-history-error{color:#a12f65}
+.mission-history-toggle{
+ margin:13px 0 0;display:inline-flex;gap:8px;align-items:center;
+ min-height:40px;border:1px solid #eecddf;border-radius:12px;
+ padding:8px 14px;background:#fff5fa;color:#904368;font-size:12px;
+ font-weight:800;cursor:pointer;
+}
+.mission-history-toggle:focus-visible{outline:3px solid #a6417d;outline-offset:2px}
+
+.today-question-title{margin-top:25px}
+.today-question-title h2{font-size:clamp(24px,3.2vw,29px);color:#673d5d}
+.today-question-card{
+ border-radius:19px!important;padding:18px 22px!important;
+ box-shadow:0 4px 14px #a56a8510!important;
+ border:1px solid #f0e4eb!important;background:#fffdfd!important;
+}
+.today-question-card>p{font-size:16px!important;line-height:1.4}
+.today-question-card>.btn{min-height:39px;font-size:12px;padding:9px 15px}
+
+@media(max-width:760px){
+ .mission-spotlight{padding:18px 15px 16px;border-radius:23px;margin-top:10px}
+ .mission-spotlight-watermark{font-size:175px;top:-36px;right:-38px}
+ .mission-spotlight .primary-mission-heading{gap:7px;margin-bottom:5px}
+ .mission-spotlight .primary-mission-heading .tiny{font-size:9px}
+ .mission-spotlight .primary-mission-heading h2{font-size:32px}
+ .mission-spotlight .primary-mission-heading .pill{font-size:10px;padding:6px 9px}
+ .mission-spotlight-lede{font-size:12px;margin-bottom:14px;line-height:1.45}
+ .mission-spotlight .primary-mission-cards .task-card{
+  padding:18px 15px;border-radius:18px;gap:10px;
+ }
+ .mission-spotlight .primary-mission-cards .task-card .task-icon{
+  width:49px;height:49px;border-radius:14px;font-size:26px;
+ }
+ .mission-spotlight .primary-mission-cards .task-card .task-main h3{font-size:20px;line-height:1.15}
+ .mission-spotlight .primary-mission-cards .task-card .task-main p{
+  font-size:13px;line-height:1.48;margin-top:7px;
+ }
+ .mission-spotlight .primary-mission-cards .task-card .pill.gold{font-size:11px;padding:6px 8px}
+ .mission-spotlight .primary-mission-cards .task-card .task-footer{
+  margin-top:13px;padding-top:13px;flex-wrap:wrap;
+ }
+ .mission-spotlight .primary-mission-cards .task-card .task-footer>.btn{
+  width:100%;justify-content:center;min-height:46px;font-size:13px;
+ }
+ .mission-spotlight-footnote{font-size:10px;margin-top:13px}
+ .mission-history{margin:13px 0 11px;padding:16px 14px;border-radius:20px}
+ .mission-history-heading{align-items:flex-start;flex-wrap:wrap;gap:9px}
+ .mission-history-heading h3{font-size:25px}
+ .mission-history-heading p{font-size:11px}
+ .mission-history-count{font-size:10px;padding:7px 10px}
+ .mission-history-list{margin-top:12px;gap:8px}
+ .mission-history-entry{padding:9px 10px;gap:9px}
+ .mission-history-symbol{width:33px;height:33px;font-size:19px}
+ .mission-history-entry-content strong{font-size:12px}
+ .today-question-title{margin-top:22px}
+ .today-question-title h2{font-size:24px}
+ .today-question-card{padding:17px 17px!important}
+ .today-question-card>p{font-size:15px!important}
+}
+@media(max-width:375px){
+ .mission-spotlight{padding:15px 11px 12px}
+ .mission-spotlight .primary-mission-heading h2{font-size:29px}
+ .mission-spotlight .primary-mission-cards .task-card{padding:15px 11px}
+ .mission-spotlight .primary-mission-cards .task-card .task-main h3{font-size:18px}
+ .mission-history-heading h3{font-size:23px}
+}
