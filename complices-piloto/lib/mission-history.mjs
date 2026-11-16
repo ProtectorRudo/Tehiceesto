@@ -23,5 +23,7 @@ export function buildMissionHistory(completions=[],ownActivities=[],userId){
 }
 export function missionDateLabel(date){
  if(!date||!Number.isFinite(Date.parse(date)))return "Fecha no registrada";
- return new Intl.DateTimeFormat("es-AR",{timeZone:"America/Argentina/Buenos_Aires",day:"numeric",month:"short",year:"numeric"}).format(new Date(date));
+ const parts=new Intl.DateTimeFormat("es-AR",{timeZone:"America/Argentina/Buenos_Aires",day:"numeric",month:"short",year:"numeric"}).formatToParts(new Date(date));
+ const get=type=>parts.find(part=>part.type===type)?.value||"";
+ return [get("day"),get("month"),get("year")].filter(Boolean).join(" ");
 }
