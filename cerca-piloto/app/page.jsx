@@ -132,7 +132,7 @@ export default function Home(){
   ]);
   if(moodRows.error||missionRows.error||entryRows.error){setMessage("No se pudo exportar todo el historial.");return}
   const blob=new Blob([JSON.stringify({exported_at:new Date().toISOString(),family,children:kids,moods:moodRows.data,missions:missionRows.data,entries:entryRows.data},null,2)],{type:"application/json"});
-  const url=URL.createObjectURL(blob),anchor=document.createElement("a");anchor.href=url;anchor.download="cerca-mis-datos.json";anchor.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
+  const url=globalThis.URL.createObjectURL(blob),anchor=document.createElement("a");anchor.href=url;anchor.download="cerca-mis-datos.json";anchor.click();setTimeout(()=>globalThis.URL.revokeObjectURL(url),2000);
  }
  async function deleteFamilyData(){
   if(!family||!confirm("¿Eliminar definitivamente perfiles, misiones y recuerdos de CERCA? La cuenta de acceso seguirá existiendo."))return;
