@@ -26,15 +26,15 @@ export function getSafeReason(status){
  if(status>=500)return "provider";
  return "unavailable";
 }
-export async function callOpenAI({key,model=OPENAI_DEFAULT_MODEL,instructions,input,maxOutputTokens=500,schema=null,timeoutMs=16000,fetcher=fetch}){
+export async function callOpenAI({key,model=OPENAI_DEFAULT_MODEL,instructions,input,maxOutputTokens=500,schema=null,timeoutMs=16000,editorial=false,fetcher=fetch}){
  if(typeof key!=="string"||key.trim().length<11)return {ok:false,reason:"not_configured"};
- const maxTokens=Math.max(200,Math.min(2400,Math.round(maxOutputTokens)));
+ const maxTokens=Math.max(200,Math.min(editorial?2400:750,Math.round(maxOutputTokens)));
  const json={
   model:ALLOWED_MODELS.has(model)?model:OPENAI_DEFAULT_MODEL,
   instructions:String(instructions||"").slice(0,8500),
-  input:typeof input==="string"?input.slice(0,8500):JSON.stringify(input).slice(0,8500),
+  input:typeof input==="string"?input.slice(0,editorial?8500:6000):JSON.stringify(input).slice(0,editorial?8500:6000),
   max_output_tokens:maxTokens,
-  reasoning:{effort:model==="gpt-6.1-terra"?"low":"none"},
+  reasoning:{effort:editorial&&model==="gpt-6.1-terra"?"low":"none"},
   store:false
  };
  if(schema)json.text={format:{type:"json_schema",name:"complices_activity_ideas",strict:true,schema}};
@@ -51,7 +51,7 @@ export async function callOpenAI({key,model=OPENAI_DEFAULT_MODEL,instructions,in
   if(payload?.status==="incomplete")return {ok:false,reason:"incomplete"};
   if(payload?.error)return {ok:false,reason:"provider"};
   const text=parseOutput(payload);
-  if(!text||text.length>12000)return {ok:false,reason:"empty"};
+  if(!text||text.length>(editorial?12000:7000))return {ok:false,reason:"empty"};
   return {ok:true,text,model:json.model};
  }catch(e){
   return {ok:false,reason:e?.name==="TimeoutError"||e?.name==="AbortError"?"timeout":"network"};
