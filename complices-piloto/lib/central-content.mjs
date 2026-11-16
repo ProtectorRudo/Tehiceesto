@@ -1,4 +1,5 @@
 import {evaluateMission} from "./mission-quality.mjs";
+import {MEANINGFUL_PLAYBOOK} from "./meaningful-playbook.mjs";
 // Motor guiado de Cómplices. Nunca devuelve las respuestas privadas originales.
 export const THEMES=["detalles","charla","paseo","cocina","pelicula","recuerdos","planes","humor"];
 const KEYWORDS={
@@ -141,7 +142,7 @@ export function deriveThemes({preferences={},reflections=[],memories=[],recent=[
  return score;
 }
 function pickTheme(scores,seed,exclude=[]){const pool=THEMES.filter(t=>!exclude.includes(t));return pool.sort((a,b)=>(scores[b]+(hash(seed+b)%110)/100)-(scores[a]+(hash(seed+a)%110)/100))[0]||"charla"}
-const toActivity=(slot,period,theme,index)=>{const c=CATALOG[theme],weekly=slot==="weekly_1",game=slot==="game_1";const variant=game?c.game[index%c.game.length]:weekly?c.weekly[index%c.weekly.length]:c.daily[index%c.daily.length];return {
+const toActivity=(slot,period,theme,index)=>{const c={...CATALOG[theme],...MEANINGFUL_PLAYBOOK[theme]},weekly=slot==="weekly_1",game=slot==="game_1";const variant=game?c.game[index%c.game.length]:weekly?c.weekly[index%c.weekly.length]:c.daily[index%c.daily.length];return {
  period_key:period,slot,kind:game?"game":"mission",theme,title:game?"Una pregunta que conecta":variant[0],body:game?variant:variant[1],
  icon:c.icon,points:game?20:weekly?120:slot==="daily_1"?40:30,mode:"guiado",
  task_key:period+":"+(game?"central-game":slot==="daily_1"?"central-1":slot==="daily_2"?"central-2":"central-1")
