@@ -6,6 +6,11 @@ export function getOpenAIModel(env=process.env){
  const requested=String(env.OPENAI_MODEL||"").trim();
  return ALLOWED_MODELS.has(requested)?requested:OPENAI_DEFAULT_MODEL;
 }
+// Modelo de escritura superior reservado SOLO a misiones; no afecta el chat ni el resto.
+export function getMissionEditorialModel(env=process.env){
+ const choice=String(env.CP_MISSION_MODEL||"").trim();
+ return choice==="gpt-6-luna"||choice==="gpt-6.1-terra"?choice:"gpt-6.1-terra";
+}
 export function isAIConfigured(env=process.env){
  return Boolean(typeof env.OPENAI_API_KEY==="string"&&env.OPENAI_API_KEY.trim().length>10);
 }
@@ -23,13 +28,13 @@ export function getSafeReason(status){
 }
 export async function callOpenAI({key,model=OPENAI_DEFAULT_MODEL,instructions,input,maxOutputTokens=500,schema=null,timeoutMs=16000,fetcher=fetch}){
  if(typeof key!=="string"||key.trim().length<11)return {ok:false,reason:"not_configured"};
- const maxTokens=Math.max(200,Math.min(750,Math.round(maxOutputTokens)));
+ const maxTokens=Math.max(200,Math.min(2400,Math.round(maxOutputTokens)));
  const json={
   model:ALLOWED_MODELS.has(model)?model:OPENAI_DEFAULT_MODEL,
   instructions:String(instructions||"").slice(0,8500),
-  input:typeof input==="string"?input.slice(0,6000):JSON.stringify(input).slice(0,6000),
+  input:typeof input==="string"?input.slice(0,8500):JSON.stringify(input).slice(0,8500),
   max_output_tokens:maxTokens,
-  reasoning:{effort:"none"},
+  reasoning:{effort:model==="gpt-6.1-terra"?"low":"none"},
   store:false
  };
  if(schema)json.text={format:{type:"json_schema",name:"complices_activity_ideas",strict:true,schema}};
@@ -46,7 +51,7 @@ export async function callOpenAI({key,model=OPENAI_DEFAULT_MODEL,instructions,in
   if(payload?.status==="incomplete")return {ok:false,reason:"incomplete"};
   if(payload?.error)return {ok:false,reason:"provider"};
   const text=parseOutput(payload);
-  if(!text||text.length>7000)return {ok:false,reason:"empty"};
+  if(!text||text.length>12000)return {ok:false,reason:"empty"};
   return {ok:true,text,model:json.model};
  }catch(e){
   return {ok:false,reason:e?.name==="TimeoutError"||e?.name==="AbortError"?"timeout":"network"};
