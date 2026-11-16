@@ -69,10 +69,10 @@ export default function Home(){
  const [activities,setActivities]=useState([]),[messages,setMessages]=useState([]),[notes,setNotes]=useState([]),[reflections,setReflections]=useState([]),[memories,setMemories]=useState([]),[aiRatings,setAiRatings]=useState([]),[notificationSettings,setNotificationSettings]=useState({enabled:false,quiet_start:"22:00",quiet_end:"08:00"});
  const [name,setName]=useState(""),[inviteInput,setInviteInput]=useState("");
  const [tab,setTab]=useState("hoy"),[missionFilter,setMissionFilter]=useState("diarias"),[messageText,setMessageText]=useState(""),[replyText,setReplyText]=useState(""),[replyTo,setReplyTo]=useState(null),[questionTopic,setQuestionTopic]=useState("romance");
- const [aiText,setAiText]=useState(""),[aiChat,setAiChat]=useState([]),[aiBusy,setAiBusy]=useState(false),[tipMode,setTipMode]=useState("guiado"),[noteText,setNoteText]=useState("");
+ const [noteText,setNoteText]=useState("");
  const [aiCheck,setAiCheck]=useState(null),[checkingAI,setCheckingAI]=useState(false);
  const [gameAnswers,setGameAnswers]=useState({}),[gameResults,setGameResults]=useState({});
- const [aboutQuestion,setAboutQuestion]=useState("q01"),[aboutAnswer,setAboutAnswer]=useState(""),[aboutAllowAI,setAboutAllowAI]=useState(false),[aboutShare,setAboutShare]=useState(false),[aboutShareTheme,setAboutShareTheme]=useState(""),[aiAvailable,setAiAvailable]=useState(false);
+ const [aboutQuestion,setAboutQuestion]=useState("q01"),[aboutAnswer,setAboutAnswer]=useState(""),[aboutAllowAI,setAboutAllowAI]=useState(false),[aboutShare,setAboutShare]=useState(false),[aboutShareTheme,setAboutShareTheme]=useState("");
  const [memoryText,setMemoryText]=useState(""),[memoryCategory,setMemoryCategory]=useState("gustos"),[memoryShare,setMemoryShare]=useState(false),[memoryShareTheme,setMemoryShareTheme]=useState(""),[editingMemory,setEditingMemory]=useState(null);
  const [centralActivities,setCentralActivities]=useState([]),[centralMode,setCentralMode]=useState("guiado"),[centralLoading,setCentralLoading]=useState(false),[centralError,setCentralError]=useState(""),[partnerInsightCount,setPartnerInsightCount]=useState(0);
  const [profileCards,setProfileCards]=useState([]),[profileQuestion,setProfileQuestion]=useState("afecto"),[profileAnswer,setProfileAnswer]=useState(""),[profileShare,setProfileShare]=useState(false);
@@ -270,11 +270,9 @@ export default function Home(){
    const data=await response.json();
    if(!response.ok)throw new Error(data.error||"No se pudo comprobar OpenAI");
    setAiCheck(data);
-   if(data.configured&&data.reachable)setAiAvailable(true);
   }catch(e){setNotice("No se pudo comprobar OpenAI: "+getError(e))}
   finally{setCheckingAI(false)}
  }
- async function askAI(e){e.preventDefault();if(!aiText.trim()||aiBusy)return;const text=aiText.trim();setAiText("");setAiChat(old=>[...old,{who:"yo",text}]);setAiBusy(true);try{const {data:{session}}=await db.auth.getSession();const resp=await fetch("/api/complice",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session?.access_token},body:JSON.stringify({message:text})});const data=await resp.json();setTipMode(data.mode||"guiado");setAiChat(old=>[...old,{who:"coach",text:data.reply||data.error||"Intentá de nuevo."}])}catch{setAiChat(old=>[...old,{who:"coach",text:"No pude responder en este momento. Probá otra vez."}])}setAiBusy(false)}
  async function saveAbout(){
   if(!aboutAnswer.trim()||!user)return;
   if(aboutShare&&(!aboutAllowAI||!aboutShareTheme||aboutQuestion==="q07")){setNotice("Para compartir una pista elegí un tema positivo y autorizá que tu IA use la respuesta.");return}
@@ -369,7 +367,7 @@ async function saveMemory(){
    const {data,error}=await db.rpc("cp_reset_my_ai_profile");
    if(error)throw error;
    setMemories([]);setReflections([]);setAiRatings([]);setProfileCards([]);setNotes([]);setCentralActivities([]);setPartnerInsightCount(0);setCentralMode("guiado");setCentralError("");
-   setAiChat([]);setNoteText("");setAboutAnswer("");setAboutAllowAI(false);setAboutShare(false);setAboutShareTheme("");
+   setNoteText("");setAboutAnswer("");setAboutAllowAI(false);setAboutShare(false);setAboutShareTheme("");
    setMemoryText("");setMemoryShare(false);setMemoryShareTheme("");setEditingMemory(null);setProfileQuestion("afecto");setProfileAnswer("");setProfileShare(false);setSurprise(DEFAULT_SURPRISE);
    await load(user);
    setNotice("Se eliminó tu memoria de IA ("+(data?.deleted_memories||0)+" recuerdos, "+(data?.deleted_reflections||0)+" respuestas y "+(data?.deleted_profile_cards||0)+" gustos estructurados). El chat compartido, tus corazones y la cuenta no cambiaron.");
