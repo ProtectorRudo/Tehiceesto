@@ -26,7 +26,7 @@ export function evaluateMission({title,body,slot,partnerProfile={},recentTitles=
  if(platitudes.test(joined))issues.push("platitude");
  if(overEffort.test(joined))issues.push("too_difficult");
  if(slot!=="game_1"&&/\b(comprar|compra|comprale|pagar|paga|pagale|adquirir|reserva una mesa|reservar hotel)\b/.test(joined))issues.push("requires_spending");
- if(/\b(abraza|abrazale|besalo|besala|besale|tocala|tocalo|beso sorpresa)\b/.test(joined)&&!/\b(pregunt|consent|si ambos quieren|si le gusta|si le resulta comodo|si le nace)\b/.test(joined))issues.push("unconsented_contact");
+ if(/\b(abraza(?:la|lo|le)?|besalo|besala|besale|tocala|tocalo|beso sorpresa)\b/.test(joined)&&!/\b(pregunt|consent|si ambos quieren|si le gusta|si le resulta comodo|si le nace)\b/.test(joined))issues.push("unconsented_contact");
  if(/\b(pedir permiso|sin consentimiento|sin preguntar)\b/.test(joined)&&/\b(abraz|toca|besa)\w*/.test(joined))issues.push("contact_without_consent");
  if(slot==="game_1"&&!safeBody.includes("?"))issues.push("not_a_question");
  const anchors=anchorsFor(partnerProfile,slot),personalized=anchors.length>0;
