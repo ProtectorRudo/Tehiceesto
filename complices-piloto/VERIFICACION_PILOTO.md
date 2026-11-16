@@ -76,3 +76,22 @@ Verificar estado de GitHub, Supabase y Render antes de publicar. Ejecutar migrac
 - `cp_export_my_personal_data()` incluye las respuestas codificadas propias, y `cp_reset_my_ai_profile()` también las elimina, sin afectar a la pareja.
 - **Prueba SQL transaccional: 13/13 aprobadas**, incluyendo acceso cruzado, permisos, revocación, exportación y borrado. Tests de Node en `tests/partner-personalization.test.mjs` y el resto de suites corren en el build.
 - Pendientes reales: no se probó la IA de OpenAI con una clave ni la experiencia entre dos cuentas reales en celulares. No confundir motor guiado personalizado con LLM generativo.
+
+
+## Evolución de producto: IA central invisible, sin chat (16/11/2026)
+Decisión explícita: Cómplices **NO** debe presentar conversaciones de una persona con la IA. La IA trabaja como motor central que aprende mediante preguntas de perfil, preferencias autorizadas, misiones realizadas, opiniones sobre recomendaciones y recuerdos personales voluntarios.
+
+Implementado en código:
+- «Mi cómplice» muestra un tablero de inteligencia, el mapa de 9 preguntas, progreso, permisos por pista y sugerencia automática. La conversación directa con IA fue retirada. El endpoint POST \`/api/complice\` responde **410**; se conserva por separado el chat privado entre dos integrantes.
+- Inicio: si faltan respuestas del perfil, ofrece una sola pregunta de conocimiento, sin obligar a contestarla.
+- Motor \`/api/central\`: al ingresar o regresar a la aplicación obtiene cuatro actividades personalizadas para la persona autenticada (dos diarias, una semanal y un juego/pregunta). OpenAI puede generar las cuatro en JSON estricto; ante límites, respuesta no válida o indisponibilidad, conserva su equivalente guiado seguro. Las tareas ya realizadas no se reescriben.
+- Aprendizaje pasivo: los temas de misiones **realizadas por el propio usuario** aportan una señal pequeña al motor, separada de los 👍/👎 explícitos. No se interpretan como consentimiento para compartir la información con la pareja.
+- El sistema revisa las propuestas cuando se ingresa y al volver al navegador, con un intervalo mínimo de cinco minutos para evitar consultas redundantes; también al guardar o borrar preferencias propias.
+- Las respuestas de cada cuenta quedan bajo RLS. Las pistas cruzadas requieren el permiso global y el permiso particular; el otro nunca recibe respuestas literales. Se auditó y endureció \`cp_partner_surprise\`: dejó de inferir regalos basados en campos generales de preferencias sin la autorización de una pista específica.
+- Se agregaron pruebas automáticas del motor proactivo, chat IA deshabilitado y fallback para propuestas inválidas; validación transaccional SQL 5/5 para el permiso de sorpresas, incluida su revocación y exclusión de terceros.
+
+Límites honestos:
+- El sitio aún no realiza generación diaria programada mientras está cerrado, ni envía por sí solo recordatorios diarios de fondo.
+- No se han realizado pruebas reales de personalización cruzada con dos cuentas activas: la última verificación de Supabase informó **1 integrante, 1 espacio, 0 respuestas estructuradas**. Las pruebas SQL anteriores usaron usuarios sintéticos y se revirtieron.
+- La sola compilación y publicación **no** prueban la calidad de las cuatro propuestas de OpenAI. Es necesaria prueba en teléfono y revisión de recomendaciones reales.
+- No modificar TeHiceEsto.com, \`main\` ni sus tablas comerciales. Todos los cambios siguen aislados en \`complices-piloto/\` y \`cp_*\`.
