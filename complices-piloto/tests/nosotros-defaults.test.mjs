@@ -45,7 +45,7 @@ test("perfil muestra corazones propios, de la pareja y los comunes",()=>{
 test("cada integrante puede elegir, actualizar y quitar su foto",()=>{
  for(const term of ["type=\"file\"","image/jpeg","image/png","image/webp","avatar.jpg","upsert:true","Cambiar foto","Quitar foto","onSaved"])assert.ok(picker.includes(term),term);
  assert.ok(app.includes('AvatarPicker db={db} user={user}'));
- assert.ok(app.includes('src={avatarUrls[partner.user_id]}'));
+ assert.ok(app.includes('partner?avatarUrls[partner.user_id]:null'));
 });
 test("las fotos se descargan desde el bucket privado con sesión, nunca por URL pública",()=>{
  assert.ok(app.includes('db.storage.from("cp-avatars").download('));
