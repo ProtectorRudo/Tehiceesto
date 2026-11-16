@@ -524,3 +524,21 @@ label{color:#6f5169;font-size:12.5px;font-weight:700;margin-bottom:8px}
  .central-advanced summary{padding:16px}
  .central-advanced-body{padding:12px}
 }
+
+
+/* Calendario 3+3+1: la misión conserva entidad sin convertirse en obligación */
+.mission-week-overview{border:1px solid #ecd7e3;background:linear-gradient(135deg,#fffcfd,#fbf1f8);padding:18px 19px;margin:17px 0 20px;border-radius:21px;box-shadow:var(--shadow)}
+.mission-week-overview .tiny{display:block;margin-bottom:12px;color:#a15f8b}
+.mission-week-overview .subtle{font-size:12px;margin-top:10px;line-height:1.5}
+.mission-days{display:flex;flex-wrap:wrap;gap:9px}
+.mission-day{display:inline-flex;align-items:center;gap:7px;padding:9px 13px;background:#f6dce9;border:1px solid #efc8db;border-radius:999px;color:#743858;font-size:12px;font-weight:700}
+.mission-rest-note{border:1px dashed #d8b9ce;border-radius:17px;background:#fff9fc;padding:17px 19px;color:#895b77;font-size:13px;line-height:1.55;margin:10px 0 16px}
+.mission-catchup{margin:16px 0 20px}
+.mission-catchup>.tiny{display:block;margin:7px 0 12px;color:#9a6987}
+.mission-filter button{white-space:normal}
+@media(max-width:760px){
+.mission-week-overview{padding:16px 15px}
+.mission-days{gap:7px}
+.mission-day{padding:8px 11px;font-size:11px}
+.mission-rest-note{padding:14px 16px}
+}
