@@ -84,7 +84,7 @@ test("las propuestas están disponibles al entrar, sin escritura de mensajes ni 
  assert.ok(p.includes('fetch("/api/central"'));
  assert.ok(p.includes('document.addEventListener("visibilitychange"'));
  assert.ok(!central.includes('db.from("cp_messages")'));
- assert.ok(central.includes("weekly_three_each_v4"));
+ assert.ok(central.includes("weekly_three_each_dates_v5"));
  assert.ok(central.includes('readySlots.some(slot=>'));
 });
 test("el generador incluye tres misiones individuales y la semanal rotativa",()=>{
