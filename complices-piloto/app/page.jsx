@@ -1037,9 +1037,16 @@ function Task({task,done,other,partner,busy,onToggle,rating,onRate}){
    <span className="subtle">{done?"♡ ¡Qué lindo! Ya la marcaste como realizada":partner&&other?"♡ Tu pareja también hizo esta misión":"Un pequeño gesto que suma"}</span>
    <Button secondary={done} disabled={busy} small onClick={onToggle}>{done?"✓ Hecha":"Marcar hecho ✓"}</Button>
   </div>
-  {task.id&&<div className="row between wrap feedback-row"><span className="subtle">¿Te gustó esta idea?</span><div className="row">
-   <button type="button" disabled={busy} onClick={()=>onRate?.(1)} className={"feedback-btn"+(rating===1?" active":"")} aria-label="Me gustó esta idea">👍</button>
-   <button type="button" disabled={busy} onClick={()=>onRate?.(-1)} className={"feedback-btn"+(rating===-1?" active":"")} aria-label="No me gustó esta idea">👎</button>
-  </div></div>}
+  {task.id&&done&&<div className="mission-outcome" aria-label="Aprender del gesto que hiciste">
+   <strong>¿Cómo sentís que salió este gesto?</strong>
+   <p>Tu impresión es privada. Ayuda a elegir futuras misiones sin ponerle notas a tu pareja.</p>
+   <div className="mission-outcome-actions">
+    <button type="button" disabled={busy} aria-pressed={rating===1} onClick={()=>onRate?.(1)}
+     className={"mission-outcome-button"+(rating===1?" active":"")}>♡ Nos acercó</button>
+    <button type="button" disabled={busy} aria-pressed={rating===-1} onClick={()=>onRate?.(-1)}
+     className={"mission-outcome-button"+(rating===-1?" active":"")}>No era el momento</button>
+   </div>
+   {rating!==0&&<span className="mission-outcome-recorded" role="status">Gracias. Lo tendré en cuenta para tus próximas ideas. Podés cambiar tu respuesta.</span>}
+  </div>}
  </article>
 }
