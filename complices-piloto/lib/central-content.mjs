@@ -177,7 +177,8 @@ export function mergeGeneratedIdeas(guided,proposals,isCompatible=()=>true,optio
  if(!Array.isArray(guided)||!proposals||typeof proposals!=="object"||Array.isArray(proposals))return guided;
  const usedTitles=[...(options.recentTitles||[])];
  return guided.map(item=>{
-  if(!CENTRAL_SLOTS.includes(item.slot))return item;
+  if(!CENTRAL_SLOTS.includes(item.slot)&&!/^mission_[123]$/.test(item.slot))return item;
+  if((options.protectedSlots||[]).includes(item.slot))return item;
   const suggestion=proposals[item.slot];
   if(!suggestion||typeof suggestion.title!=="string"||typeof suggestion.body!=="string")return item;
   const title=suggestion.title.trim(),body=suggestion.body.trim();
