@@ -53,11 +53,11 @@ export const MEANINGFUL_PLAYBOOK={
   daily:[
    ["Una escena que es nuestra","Elegí una escena de una película o serie que les recuerde algo divertido. Mostrala si la tienen a mano y contale a tu pareja por qué la elegiste."],
    ["Dos escenas, una elección","Proponé dos escenas cortas de historias que ya conozcan y dejá que tu pareja elija. Después compartí qué detalle de esa escena te hizo pensar."],
-   ["Un título para hoy","Inventá el título de una película sobre algo que les pasó esta semana y contáselo a tu pareja. Pedile que invente el suyo."]
+   ["Una escena que te recuerda a vos","Elegí una escena de una película o serie que ya disfruten y contale qué gesto de un personaje te recuerda algo lindo que valorás de tu pareja. Compartila solo si le interesa."]
   ],
   weekly:[
    ["Cine hecho a nuestra medida","Elijan juntos una película disponible que ambos quieran ver. Prepará un rincón cómodo con lo que tengan y reservá un rato sin interrupciones."],
-   ["Nuestra historia en tres escenas","Elijan tres momentos que recordarían si su relación fuera una película. Compartan uno cada uno y elijan un título divertido."]
+   ["Cine a su gusto, preparado por vos","Esta semana elegí dos películas o capítulos que tu pareja disfrute y que ya puedan ver. Prepará un rincón cómodo con lo que tengan; dejale elegir qué mirar y compartí un detalle que admirás de su compañía."]
   ],
   game:["¿Qué escena de una película te hace pensar en nosotros y por qué?","Si nuestra semana fuera una película, ¿qué título le pondrías?"]
  },
@@ -89,11 +89,11 @@ export const MEANINGFUL_PLAYBOOK={
   daily:[
    ["Nuestro chiste secreto","Recordá una anécdota que solo ustedes entiendan y mandale una frase que se la recuerde. Dejá que la sonrisa llegue cuando pueda."],
    ["El doblaje de cinco minutos","Elijan una escena muda de un video que ya tengan y pónganle voces inventadas durante cinco minutos. No hay ganadores, solo risas."],
-   ["El título absurdo","Inventá un título disparatado para algo que les pasó hoy y pedile a tu pareja que haga su versión. Comparen cuál los hace reír."]
+   ["Un guiño nuestro","Recordá una situación real que a los dos les cause gracia. Mandale un mensaje con una frase que le recuerde ese instante y contale por qué te alegra tener ese recuerdo juntos."]
   ],
   weekly:[
-   ["Una noche de tres preguntas","Inventá tres preguntas absurdas sobre su historia. Compartan las respuestas durante quince minutos y guarden la más graciosa."],
-   ["Premios inventados","Prepará tres premios divertidos sobre cosas cotidianas que compartieron esta semana. Entregalos como si fuera una ceremonia de cinco minutos."]
+   ["Una cita preparada para su diversión","Elegí un juego que tu pareja realmente disfrute y dejá preparado un rato de veinte minutos sin pantallas ni interrupciones. Invitá a tu pareja a jugar si tiene ganas; el gesto es haber pensado en lo que le divierte."],
+   ["La sorpresa de nuestro humor","Recuperá un recuerdo auténtico que los haga reír y prepará un pequeño guiño privado con ese momento. Ofrecé compartir una actividad divertida que les guste, sin exigir que el otro participe."]
   ],
   game:["¿Cuál es el momento más absurdo que compartimos y todavía nos hace reír?","Si tuviéramos que inventar un premio para nuestra semana, ¿cómo se llamaría?"]
  }
