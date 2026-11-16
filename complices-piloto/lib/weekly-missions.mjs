@@ -18,44 +18,55 @@ const SHAREABLE_WEEKLY=[
 const a=(slot,period,task_key,theme,title,body,icon,points,kind="mission")=>({
  period_key:period,slot,task_key,kind,theme,title,body,icon,points,mode:"guiado"
 });
-function chooseAlternate({week,userId,seed,avoid=[]}){
+function chooseAlternate({week,userId,seed,avoid=[],preferred=[]}){
  const scores=deriveThemes({preferences:{},reflections:[],memories:[],ratings:[],recent:[]});
  const ordered=THEMES.filter(t=>!avoid.includes(t)).sort((a,b)=>{
-  const aa=(scores[b]||0)+(hash(seed+b)%100)/100,bb=(scores[a]||0)+(hash(seed+a)%100)/100;
+  const aa=(scores[b]||0)+(preferred.includes(b)?5:0)+(hash(seed+b)%100)/100,bb=(scores[a]||0)+(preferred.includes(a)?5:0)+(hash(seed+a)%100)/100;
   return aa-bb;
  });
  const theme=ordered[0]||"recuerdos",variants=MEANINGFUL_PLAYBOOK[theme].daily;
  const choice=variants[hash(userId+week+seed)%variants.length];
  return {theme,title:choice[0],body:choice[1],icon:{"recuerdos":"📸","cocina":"🍓","detalles":"💝","humor":"🎲","paseo":"🌿","pelicula":"🎬","charla":"💬","planes":"✨"}[theme]};
 }
-export function buildWeeklyMissions({userId,spaceId,week,members=[],partnerProfile={},themes=[],recentTitles=[]}){
+export function buildWeeklyMissions({userId,spaceId,week,members=[],partnerProfile={},themes=[],recentTitles=[],avoidThemes=[],preferThemes=[]}){
  const schedule=scheduleFor({members,userId,week}),p=safeProfile(partnerProfile);
  const tailored=meaningfulPartnerPlan(p);
+ // La persona valora la experiencia de sus propias misiones: solo afecta sus propuestas.
+ const noRepeatThemes=[...new Set(avoidThemes.filter(t=>THEMES.includes(t)))];
+ const lovedThemes=[...new Set(preferThemes.filter(t=>THEMES.includes(t)&&!noRepeatThemes.includes(t)))];
  const slots=[],seenThemes=[];
  const fullWeek="w:"+schedule.week;
  schedule.days.forEach((day,i)=>{
-  const fromTailored=tailored.hasSignals&&i<2?tailored.ideas[i]:null;
-  let proposal=fromTailored||chooseAlternate({week,userId,seed:"mission:"+i,avoid:seenThemes});
-  if(seenThemes.includes(proposal.theme)&&!fromTailored)proposal=chooseAlternate({week,userId,seed:"alternate:"+i,avoid:seenThemes});
+  const preferredTailored=tailored.hasSignals&&i<2?tailored.ideas[i]:null;
+  const fromTailored=preferredTailored&&!noRepeatThemes.includes(preferredTailored.theme)
+   ?preferredTailored:tailored.hasSignals&&i<2
+    ?tailored.ideas.find(idea=>!noRepeatThemes.includes(idea.theme)&&!seenThemes.includes(idea.theme))||null:null;
+  let proposal=fromTailored||chooseAlternate({week,userId,seed:"mission:"+i,avoid:[...seenThemes,...noRepeatThemes],preferred:lovedThemes});
+  if(seenThemes.includes(proposal.theme)&&!fromTailored)proposal=chooseAlternate({week,userId,seed:"alternate:"+i,avoid:[...seenThemes,...noRepeatThemes],preferred:lovedThemes});
   seenThemes.push(proposal.theme);
   // Evita copiar el mismo título de la semana pasada, incluso en el respaldo.
   if(recentTitles.some(x=>String(x||"").trim().toLowerCase()===proposal.title.toLowerCase())){
-   const alt=chooseAlternate({week,userId,seed:"avoidRepeat:"+i,avoid:seenThemes});
+   const alt=chooseAlternate({week,userId,seed:"avoidRepeat:"+i,avoid:[...seenThemes,...noRepeatThemes],preferred:lovedThemes});
    if(alt.title!==proposal.title)proposal=alt;
   }
   slots.push(a(day.slot,fullWeek,"d:"+day.date+":mission-"+(i+1),proposal.theme,proposal.title,proposal.body,proposal.icon,40));
  });
  if(schedule.weeklyAssigned){
+  // La misión compartida sigue siendo idéntica para ambos y no usa feedback privado.
+  const tailoredWeekly=tailored.hasSignals&&tailored.ideas[2]&&!noRepeatThemes.includes(tailored.ideas[2].theme)?tailored.ideas[2]:null;
   const proposal=schedule.cooperative?SHAREABLE_WEEKLY[hash(spaceId+"|"+schedule.week)%SHAREABLE_WEEKLY.length]:
-    tailored.hasSignals?tailored.ideas[2]:chooseWeeklySolo({userId,week,schedule});
+    tailoredWeekly||chooseWeeklySolo({userId,week,schedule,avoidThemes:noRepeatThemes,preferThemes:lovedThemes});
   slots.push(a("weekly_1",fullWeek,fullWeek+":central-week",proposal.theme,proposal.title,proposal.body,proposal.icon,120));
  }
  const question=tailored.game;
  slots.push(a("game_1",fullWeek,"g:"+schedule.week+":central-game",question.theme,question.title,question.body,question.icon,20,"game"));
  return {schedule,activities:slots};
 }
-function chooseWeeklySolo({userId,week}){
- const theme=THEMES[hash(userId+week+"weekly_solo")%THEMES.length];
+function chooseWeeklySolo({userId,week,avoidThemes=[],preferThemes=[]}){
+ const available=THEMES.filter(t=>!avoidThemes.includes(t));
+ const preferred=available.filter(t=>preferThemes.includes(t));
+ const pool=preferred.length?preferred:(available.length?available:THEMES);
+ const theme=pool[hash(userId+week+"weekly_solo")%pool.length];
  const pair=MEANINGFUL_PLAYBOOK[theme].weekly[hash(userId+"alt")%2];
  const icons={recuerdos:"📸",cocina:"🍓",detalles:"💝",humor:"🎲",paseo:"🌿",pelicula:"🎬",charla:"💬",planes:"✨"};
  return {theme,title:pair[0],body:pair[1],icon:icons[theme]};
