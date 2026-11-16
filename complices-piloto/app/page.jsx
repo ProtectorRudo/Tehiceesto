@@ -8,6 +8,7 @@ import {PROFILE_QUESTIONS,profileProgress} from "../lib/ai-profile.mjs";
 import {taskDayFromKey} from "../lib/mission-schedule.mjs";
 import {DEEP_QUESTIONS,DATE_TYPES,weeklyPersonalQuestion,profileKnowledge,upcomingOccasions} from "../lib/relationship-intelligence.mjs";
 import {learningOptions,learningStatus} from "../lib/continuous-learning.mjs";
+import {pointsForTask,heartsFor,sharedHearts} from "../lib/couple-hearts.mjs";
 
 const db=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const QUESTION_BANK={
@@ -252,10 +253,10 @@ export default function Home(){
  const missionCount=tasks.filter(x=>x.slot.startsWith("mission_")).length;
  const mineDone=(key)=>activities.some(a=>a.task_key===key&&a.user_id===user?.id);
  const partnerDone=(key)=>activities.some(a=>a.task_key===key&&a.user_id===partner?.user_id);
- const calcPoints=(key)=>key.startsWith("w:")?120:key.startsWith("q:")?20:key.startsWith("d:")&&/:(mission-[123]|central-1|sorpresa)$/.test(key)?40:key.startsWith("g:")?60:30;
- const totalHearts=activities.reduce((sum,a)=>sum+calcPoints(a.task_key),0);
- const ownHearts=activities.filter(a=>a.user_id===user?.id).reduce((sum,a)=>sum+calcPoints(a.task_key),0);
- const partnerHearts=activities.filter(a=>a.user_id===partner?.user_id).reduce((sum,a)=>sum+calcPoints(a.task_key),0);
+ const calcPoints=pointsForTask;
+ const totalHearts=sharedHearts(activities);
+ const ownHearts=heartsFor(activities,user?.id);
+ const partnerHearts=heartsFor(activities,partner?.user_id);
  const ratingFor=(task)=>aiRatings.find(f=>f.activity_id===task.id)?.rating||0;
  const dailyAbout=ABOUT_QUESTIONS.find(q=>!reflections.some(r=>r.question_id===q[0]))||ABOUT_QUESTIONS[(new Date(date+"T12:00:00").getDate())%ABOUT_QUESTIONS.length];
  const profileCompletion=profileProgress(profileCards);
