@@ -1,6 +1,7 @@
 import {createClient} from "@supabase/supabase-js";
 import {createHash} from "node:crypto";
 import {buildEditorialSchema,selectEditorialMissions,EDITORIAL_ENGINE_VERSION} from "../../../lib/mission-editorial.mjs";
+import {isClearlyWeakMission} from "../../../lib/mission-substance.mjs";
 import {buildWeeklyMissions} from "../../../lib/weekly-missions.mjs";
 import {partnerGuidedIdeas,safeProfile,profileForOwnAI} from "../../../lib/ai-profile.mjs";
 import {callOpenAI,getMissionEditorialModel} from "../../../lib/openai-client.mjs";
@@ -14,15 +15,15 @@ const send=(data,status=200)=>Response.json(data,{status,headers:NO_STORE});
 const EDITORIAL_INSTRUCTIONS=[
  "Sos editora creativa de misiones para una pareja adulta: tu trabajo es proponer gestos que hagan sentir visto, conocido y cuidado al destinatario. NO sos terapeuta.",
  "Generá EXACTAMENTE DOS candidatos diferentes por cada slot solicitado, identificados como a y b. Los slots mission_1, mission_2 y mission_3 son tres misiones individuales distintas; weekly_1 es la misión semanal cuando corresponde. Cada candidato contiene title, body y mechanic; el último es uno de los valores del esquema. No escribas explicación externa.",
- "Las misiones individuales son propuestas para que la persona autenticada sorprenda a su pareja, sin pedir trabajo a la otra. Cada una lleva entre 5 y 15 minutos; la semanal entre 15 y 45. Si la misión es cooperativa, el servidor la protege y no te la pide.",
+ "Las misiones individuales deben ser gestos iniciados por el usuario que cuiden a su pareja sin exigirle nada a cambio, realizables en 5 a 15 minutos. La misión semanal dura de 15 a 45 minutos y debe ser una experiencia o una iniciativa con intención y un resultado real: aliviar una carga, mostrar gratitud o aprecio concreto, preparar una cita elegida para el otro o disfrutar una actividad que REALMENTE le gusta. Una ocurrencia inventada no es una misión. Si es cooperativa, el servidor la protege y no te la pide.",
  "Antes de redactar: identificá mentalmente qué gusto o necesidad AFECTIVA autorizada se podría cuidar, pensá dos maneras genuinamente distintas y elegí acciones observables que tengan un detalle personal y un pequeño desenlace emotivo.",
  "Cada candidato debe contener una ACCIÓN clara y específica, un detalle reconocible y una forma de ofrecerla sin presionar. Si el perfil aprobado incluye un gusto concreto, usalo naturalmente: no te conformes con frases genéricas como disfrutar juntos o recordar anécdotas.",
  "La variante a debe centrarse en un detalle personal; b debe utilizar un mecanismo diferente (alivio, sorpresa, experiencia, humor, recuerdo, palabras, atención). Evitá repetir el mismo recurso entre días: no tres notas ni tres juegos de pistas.",
- "Descartá lugares comunes: rondas de adivinanzas, tres pistas sobre anécdotas, listas de recuerdos, cartas genéricas, preguntas que podría hacer cualquiera, 'un momento especial', frases hechas.",
+ "Descartá lugares comunes: rondas de adivinanzas, tres pistas sobre anécdotas, listas de recuerdos, cartas genéricas, preguntas que podría hacer cualquiera, 'un momento especial', frases hechas. RECHAZÁ expresamente misiones basadas solamente en inventar nombres graciosos, menús de fantasía, apodos, premios absurdos o juegos improvisados sin un gesto real de cuidado. Los juegos sueltos pertenecen a Juegos, no a misiones de 120 corazones.",
  "Cuando no haya gustos autorizados, proponé una atención universal respetuosa y sin atribuir preferencias o sentimientos no informados. Los códigos de gustos son señales limitadas, no permisos para citar confesiones.",
  "Jamás reveles respuestas, recuerdos privados o secretos de la otra persona. No digas 'sé que necesita' ni aludas a su estado emocional sin autorización. No atribuyas emociones ni inventes fechas, comidas, canciones, lugares o historias personales.",
  "Prohibido imponer compras, mostrar afecto en público por obligación, manipular, forzar contacto corporal sin consentimiento o proponer terapia. La opción de pasar la misión siempre existe.",
- "Redactá en español argentino natural, sin tono infantil ni cursilería vacía. Títulos de 4 a 85 caracteres, descripciones de 45 a 260 caracteres. Escribí solamente JSON válido."
+ "Aplicá el mismo estándar a las misiones diarias. La semanal NO es una diaria estirada: requiere preparar, ofrecer y compartir una experiencia concreta, con posibilidad de declinar. Si no hay gustos explícitos, no inventes gustos, días memorables, comidas preferidas ni emociones. Redactá en español argentino natural, sin tono infantil ni cursilería vacía. Títulos de 4 a 85 caracteres, descripciones de 45 a 260 caracteres. Escribí solamente JSON válido."
 ].join(" ");
 function dates(){
  const now=new Date();
@@ -54,7 +55,8 @@ async function improveWithAI(guided,context,db){
   upcomingImportantDates:context.importantDates||[],
   feedback:context.learning||[],
   recentTitles:context.recentTitles||[],
-  guidedExamples:guided.filter(x=>slots.includes(x.slot)).map(x=>({slot:x.slot,example:x.title+" — "+x.body})),
+  requestedSlots:slots,
+  // No enviar el texto de los respaldos: si son pobres, contaminan las propuestas.
   quality:MISSION_EDITORIAL_RULES,
   examples:MISSION_EXAMPLES
  };
@@ -142,7 +144,7 @@ export async function GET(request){
   const learning=[...completedThemes.slice(0,12).map(theme=>({theme,signal:"completada"})),...ratingThemes.slice(0,12).map(x=>({theme:x.theme,signal:x.rating===1?"me_gusto":"no_me_gusto"}))];
   const recentTitles=(history.data||[]).filter(x=>!periodKeys.some(prefix=>x.task_key?.startsWith(prefix+":"))).slice(0,24).map(x=>x.title).filter(Boolean);
   const current=(cached||[]).filter(a=>readySlots.includes(a.slot));
-  const isFresh=(item)=>item.context_fingerprint===fingerprint||doneKeys.has(item.task_key);
+  const isFresh=(item)=>doneKeys.has(item.task_key)||(item.context_fingerprint===fingerprint&&!isClearlyWeakMission(item));
   if(readySlots.every(k=>current.some(x=>x.slot===k&&isFresh(x))))
     return send({activities:current,mode:current.some(x=>x.mode==="generativa")?"generativa":"guiado",cached:true,schedule,careSuggestion:contextualCare,personalization:{ownAnswers:Object.keys(ownProfile).length,partnerSharedPreferences:personallyTailored.count,realAI:Boolean(process.env.OPENAI_API_KEY)}});
   const generatedFallback=buildWeeklyMissions({userId:user.id,spaceId:member.space_id,week,members:membersList.data,partnerProfile:context.partnerProfile,recentTitles,avoidThemes,preferThemes});
@@ -166,8 +168,14 @@ export async function GET(request){
   for(const item of generated){
    const old=current.find(x=>x.slot===item.slot);
    if(!old||isFresh(old))continue;
-   // Si se agotó el cupo o falló la llamada, no degradar una misión generativa anterior.
-   if(old.mode==="generativa"&&item.mode!=="generativa")continue;
+   // Respetamos las generativas buenas, pero NO preservamos una mala
+   // sólo porque antes la creó el modelo. Nunca tocamos las cumplidas.
+   if(old.mode==="generativa"&&item.mode!=="generativa"&&!isClearlyWeakMission(old)){
+    const {error:stampError}=await db.from("cp_ai_activities")
+     .update({context_fingerprint:fingerprint}).eq("id",old.id).eq("user_id",user.id);
+    if(stampError)return send({error:"No pude confirmar la vigencia de tu misión"},503);
+    continue;
+   }
    const {error:updateError}=await db.from("cp_ai_activities").update({
     title:item.title,body:item.body,theme:item.theme,icon:item.icon,mode:item.mode,context_fingerprint:fingerprint
    }).eq("id",old.id).eq("user_id",user.id);
