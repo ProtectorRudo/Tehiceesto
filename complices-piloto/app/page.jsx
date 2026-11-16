@@ -382,7 +382,29 @@ export default function Home(){
   finally{setFullGameBusy(false)}
  }
  async function playGame(key,answer){if(!partner)return;setBusy(true);setNotice("");const {error}=await db.from("cp_game_entries").upsert({space_id:member.space_id,game_key:key,user_id:user.id,answer},{onConflict:"space_id,game_key,user_id"});if(error){setNotice(getError(error))}else{if(!mineDone(key))await db.from("cp_completions").insert({space_id:member.space_id,user_id:user.id,task_key:key});await load(user);await revealGame(key)}setBusy(false)}
- async function mark(key){if(!member)return;setBusy(true);setNotice("");const was=mineDone(key);const r=was?await db.from("cp_completions").delete().eq("user_id",user.id).eq("space_id",member.space_id).eq("task_key",key):await db.from("cp_completions").insert({space_id:member.space_id,user_id:user.id,task_key:key});if(r.error)setNotice(getError(r.error));else await load(user);setBusy(false)}
+ async function mark(key){
+  if(!member||busy)return;
+  setBusy(true);setNotice("");
+  const was=mineDone(key);
+  const r=was
+   ?await db.from("cp_completions").delete().eq("user_id",user.id).eq("space_id",member.space_id).eq("task_key",key)
+   :await db.from("cp_completions").insert({space_id:member.space_id,user_id:user.id,task_key:key});
+  if(r.error)setNotice(getError(r.error));
+  else{
+   if(was){
+    // Si se desmarca una misión no tiene sentido seguir aprendiendo de un gesto no realizado.
+    const task=tasks.find(x=>x.key===key);
+    if(task?.id){
+     const {error:feedbackError}=await db.from("cp_ai_feedback")
+      .delete().eq("activity_id",task.id).eq("user_id",user.id);
+     if(feedbackError)setNotice("Se desmarcó la misión, pero no pude borrar su valoración: "+getError(feedbackError));
+    }
+   }
+   await load(user);
+   if(was)await refreshCentral();
+  }
+  setBusy(false);
+ }
  function selectProfileQuestion(key){
   setProfileSaveState("");
   const card=profileCards.find(p=>p.question_key===key);
