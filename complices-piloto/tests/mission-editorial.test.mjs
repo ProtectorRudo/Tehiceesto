@@ -80,7 +80,7 @@ test("solo la edición de misiones utiliza Terra; el resto conserva modelo previ
 });
 test("Terra dispone de cupo de salida con razonamiento bajo",async()=>{
  let captured;
- const result=await callOpenAI({key:"sk-test-not-real-1234567",model:"gpt-6.1-terra",maxOutputTokens:2200,input:"a",instructions:"b",fetcher:async(_url,config)=>{
+ const result=await callOpenAI({key:"sk-test-not-real-1234567",model:"gpt-6.1-terra",maxOutputTokens:2200,editorial:true,input:"a",instructions:"b",fetcher:async(_url,config)=>{
   captured=JSON.parse(config.body);
   return Response.json({output:[{content:[{type:"output_text",text:"{}"}]}]});
  }});
