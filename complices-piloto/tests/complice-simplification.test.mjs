@@ -35,9 +35,11 @@ test("permiso para gustos compartibles se configura solo en Perfil",()=>{
  assert.ok(page.includes("allow_surprises:false"));
  assert.ok(page.includes("allow_surprises:true"));
 });
-test("la página no presupone consentimiento previo ni publica secretos por defecto",()=>{
- assert.ok(page.includes("Se activa solo si vos lo elegís"));
- assert.ok(page.includes("no se muestra a tu pareja"));
+test("el registro explica la personalización predeterminada y protege respuestas privadas",()=>{
+ assert.ok(page.includes("la personalización de gustos y los recordatorios quedan preparados por defecto"));
+ assert.ok(page.includes("La personalización de gustos está disponible desde el registro"));
+ assert.ok(page.includes("Tus respuestas escritas y secretos siempre quedan privados"));
+ assert.ok(page.includes("Desactivar personalización compartible"));
  assert.ok(!main.includes("pref.allow_surprises} onChange"));
 });
 test("preguntas profundas y fechas conservan la posibilidad real de guardar",()=>{
