@@ -57,7 +57,7 @@ test("sigue exigiendo cuidado relacional y consentimiento, no un juego por sí s
 });
 test("inspiraciones llegan al editor generativo con los códigos autorizados solamente",()=>{
  assert.match(central,/testimonyInspiredPatternsBySlot:/);
- assert.match(central,/selectInspiration\(\{partnerProfile:context\.partnerProfile,slot\}\)/);
+ assert.match(central,/selectInspiration\(\{partnerProfile:context\.partnerProfile,slot,limit:2\}\)/);
  assert.match(central,/Las inspiraciones editoriales son mecanismos abstraídos de testimonios públicos/);
  assert.match(central,/No dejes que el usuario tenga que inventar el plan/);
  assert.match(central,/no inventes una favorita/i);
