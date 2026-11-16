@@ -1184,3 +1184,30 @@ label{color:#6f5169;font-size:12.5px;font-weight:700;margin-bottom:8px}
  .mission-spotlight .primary-mission-cards .task-card .task-main h3{font-size:18px}
  .mission-history-heading h3{font-size:23px}
 }
+
+
+/* Cuidado contextual: una opción efímera integrada en la misión principal.
+   No sugiere conocer emociones privadas ni agrega rachas/puntos. */
+.mission-care-cue{
+ position:relative;margin:16px 0 0;padding:17px 19px;
+ border-radius:18px;border:1px solid rgba(255,236,247,.34);
+ background:rgba(255,247,251,.13);color:#fff8fc;
+}
+.mission-care-heading{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.mission-care-heading>span:first-child{font-size:21px;line-height:1;color:#ffdce9}
+.mission-care-heading .tiny{font-size:10px;letter-spacing:.13em;color:#ffdaea}
+.mission-care-cue h3{
+ font:400 clamp(22px,3.1vw,27px)/1.14 'Instrument Serif',Georgia,serif;
+ letter-spacing:-.01em;color:#fff8fc;margin:3px 0 9px
+}
+.mission-care-cue p{font-size:13px;line-height:1.6;color:#fff1f8;margin:0 0 11px;max-width:680px}
+.mission-care-cue small{
+ display:block;color:#f8dce9;font-size:10.5px;line-height:1.5
+}
+@media(max-width:760px){
+ .mission-care-cue{margin-top:13px;padding:15px 14px;border-radius:15px}
+ .mission-care-heading .tiny{font-size:9px}
+ .mission-care-cue h3{font-size:23px}
+ .mission-care-cue p{font-size:12px;line-height:1.55}
+ .mission-care-cue small{font-size:10px}
+}
