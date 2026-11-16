@@ -5,8 +5,6 @@ import {buildWeeklyMissions} from "../../../lib/weekly-missions.mjs";
 import {partnerGuidedIdeas,safeProfile,isIdeaCompatible,profileForOwnAI} from "../../../lib/ai-profile.mjs";
 import {callOpenAI,getOpenAIModel} from "../../../lib/openai-client.mjs";
 import {MISSION_EDITORIAL_RULES,MISSION_EXAMPLES} from "../../../lib/mission-quality.mjs";
-import {meaningfulPartnerPlan} from "../../../lib/meaningful-partner.mjs";
-import {MISSION_SLOTS} from "../../../lib/mission-schedule.mjs";
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
 const NO_STORE={"Cache-Control":"no-store","X-Robots-Tag":"noindex"};
@@ -95,7 +93,7 @@ export async function GET(request){
   if(ownProfile.afecto&&["palabras","tiempo","detalles","ayuda","contacto"].includes(ownProfile.afecto))ownPreferences.love_language=ownProfile.afecto;
   const context={preferences:ownPreferences,ownProfile,reflections:reflections.data||[],memories:memories.data||[],partnerSignals:partnerThemes.data||[],partnerProfile:safeProfile(partnerChoices.data)};
   const personallyTailored=partnerGuidedIdeas(context.partnerProfile);
-  const prepared=buildWeeklyMissions({userId:user.id,spaceId:member.space_id,week,members:membersList.data,partnerProfile:context.partnerProfile,tools:[],recentTitles:[]});
+  const prepared=buildWeeklyMissions({userId:user.id,spaceId:member.space_id,week,members:membersList.data,partnerProfile:context.partnerProfile,recentTitles:[]});
   const schedule=prepared.schedule;
   const readySlots=prepared.activities.map(x=>x.slot);
   const fingerprint=createHash("sha256").update(JSON.stringify({engine:"weekly_three_each_v4",context,week,schedule,participants:membersList.data.map(x=>x.user_id),ratings:feedback.data||[]})).digest("hex");
