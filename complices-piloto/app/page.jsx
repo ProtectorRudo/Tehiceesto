@@ -69,7 +69,7 @@ export default function Home(){
  const [user,setUser]=useState(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[notice,setNotice]=useState(""),[authMode,setAuthMode]=useState("entrar");
  const [email,setEmail]=useState(""),[pass,setPass]=useState("");
  const [member,setMember]=useState(null),[members,setMembers]=useState([]),[space,setSpace]=useState(null),[pref,setPref]=useState(null),[surprise,setSurprise]=useState(DEFAULT_SURPRISE);
- const [activities,setActivities]=useState([]),[messages,setMessages]=useState([]),[notes,setNotes]=useState([]),[reflections,setReflections]=useState([]),[memories,setMemories]=useState([]),[aiRatings,setAiRatings]=useState([]),[notificationSettings,setNotificationSettings]=useState({enabled:false,reflection_prompts_enabled:false,quiet_start:"22:00",quiet_end:"08:00"});
+ const [activities,setActivities]=useState([]),[messages,setMessages]=useState([]),[notes,setNotes]=useState([]),[reflections,setReflections]=useState([]),[memories,setMemories]=useState([]),[aiRatings,setAiRatings]=useState([]),[notificationSettings,setNotificationSettings]=useState({enabled:false,reflection_prompts_enabled:true,quiet_start:"22:00",quiet_end:"08:00"}),[pushPromptDismissed,setPushPromptDismissed]=useState(false);
  const [name,setName]=useState(""),[inviteInput,setInviteInput]=useState("");
  const [tab,setTab]=useState("hoy"),[compliceView,setCompliceView]=useState("conocerme"),[missionFilter,setMissionFilter]=useState("diarias"),[messageText,setMessageText]=useState(""),[replyText,setReplyText]=useState(""),[replyTo,setReplyTo]=useState(null),[questionTopic,setQuestionTopic]=useState("romance");
  const [noteText,setNoteText]=useState("");
@@ -112,7 +112,7 @@ export default function Home(){
    db.from("cp_important_dates").select("id,space_id,user_id,kind,label,event_on,repeat_yearly,share_with_partner").eq("space_id",m.space_id).order("event_on",{ascending:true})
   ]);
   if(s.error)setNotice(getError(s.error));
-  setSpace(s.data||null);setMembers(mm.data||[]);setPref(p.data||null);setActivities(c.data||[]);setMessages(ms.data||[]);setNotes(n.data||[]);setReflections(rfl.data||[]);setMemories(mem.data||[]);setAiRatings(feedback.data||[]);if(structured.error)setNotice("No pude leer tus gustos guardados: "+getError(structured.error));else setProfileCards(structured.data||[]);setImportantDates(dateRows.data||[]);if(dateRows.error)setNotice("No pude cargar las fechas guardadas: "+getError(dateRows.error));setNotificationSettings(ns.data||{enabled:false,reflection_prompts_enabled:false,quiet_start:"22:00",quiet_end:"08:00"});if(t.data)setSurprise(t.data);const {data:gameRows}=await db.from("cp_game_entries").select("game_key,answer").eq("space_id",m.space_id).eq("user_id",u.id);if(gameRows)setGameAnswers(Object.fromEntries(gameRows.map(g=>[g.game_key,g.answer])));
+  setSpace(s.data||null);setMembers(mm.data||[]);setPref(p.data||null);setActivities(c.data||[]);setMessages(ms.data||[]);setNotes(n.data||[]);setReflections(rfl.data||[]);setMemories(mem.data||[]);setAiRatings(feedback.data||[]);if(structured.error)setNotice("No pude leer tus gustos guardados: "+getError(structured.error));else setProfileCards(structured.data||[]);setImportantDates(dateRows.data||[]);if(dateRows.error)setNotice("No pude cargar las fechas guardadas: "+getError(dateRows.error));setNotificationSettings(ns.data||{enabled:false,reflection_prompts_enabled:true,quiet_start:"22:00",quiet_end:"08:00"});if(t.data)setSurprise(t.data);const {data:gameRows}=await db.from("cp_game_entries").select("game_key,answer").eq("space_id",m.space_id).eq("user_id",u.id);if(gameRows)setGameAnswers(Object.fromEntries(gameRows.map(g=>[g.game_key,g.answer])));
  },[]);
  useEffect(()=>{if(user){load(user)}else{setMember(null);setSpace(null)}},[user,load]);
  const refreshCentral=useCallback(async()=>{
@@ -284,36 +284,69 @@ export default function Home(){
  }
  async function savePref(){if(!user||!pref)return;setBusy(true);const {error}=await db.from("cp_preferences").update({favorite_treat:pref.favorite_treat,favorite_plan:pref.favorite_plan,love_language:pref.love_language,allow_surprises:pref.allow_surprises,adult_mode:pref.adult_mode,updated_at:new Date().toISOString()}).eq("user_id",user.id);setNotice(error?getError(error):"Preferencias guardadas. Actualizando propuestas para vos.");await load(user);if(!error)await refreshCentral();setBusy(false)}
  async function requestNotifications(){
-  if(!("Notification" in window)||!("serviceWorker" in navigator)||!("PushManager" in window)){setNotice("Este navegador no admite todas las notificaciones. Podés seguir usando la página normalmente.");return}
+  if(!user||!member||busy)return;
+  if(!("Notification" in window)||!("serviceWorker" in navigator)||!("PushManager" in window)){
+   setNotice("Este navegador no permite las notificaciones Web Push. Probá abrir Cómplices desde Chrome o instalá la aplicación desde el navegador.");
+   return;
+  }
+  if(Notification.permission==="denied"){
+   setNotice("El teléfono tiene bloqueados los avisos. Habilitá las notificaciones para este sitio desde la configuración del navegador y volvé a intentarlo.");
+   return;
+  }
+  setBusy(true);setNotice("");
   try{
-   const permission=await Notification.requestPermission();
-   if(permission!=="granted"){setNotice("No se habilitaron los avisos. Podés activarlos cuando quieras desde los ajustes del navegador.");return}
-   const response=await fetch("/api/push",{cache:"no-store"});const config=await response.json();
-   if(!config.available||!config.publicKey){setNotice("Las notificaciones todavía no están disponibles en el servidor.");return}
+   // El permiso nativo solo se solicita tras el toque de la persona.
+   const permission=Notification.permission==="granted"?"granted":await Notification.requestPermission();
+   if(permission!=="granted"){
+    setNotice("No se activaron los avisos. Cómplices no enviará nada hasta que lo autorices desde tu celular.");
+    return;
+   }
+   const response=await fetch("/api/push",{cache:"no-store"});
+   const config=await response.json();
+   if(!config.available||!config.publicKey)throw new Error("Las notificaciones todavía no están disponibles en el servidor");
    const registration=await navigator.serviceWorker.ready;
    const key=config.publicKey.replace(/-/g,"+").replace(/_/g,"/");
    const binary=atob(key.padEnd(Math.ceil(key.length/4)*4,"="));
    const applicationServerKey=Uint8Array.from(binary,c=>c.charCodeAt(0));
    let subscription=await registration.pushManager.getSubscription();
-   if(!subscription){subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey})}
+   if(!subscription)subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey});
    const json=subscription.toJSON();
-   const {data:existing,error:existingError}=await db.from("cp_push_subscriptions").select("id").eq("user_id",user.id).eq("endpoint",subscription.endpoint).maybeSingle();
+   if(!json.keys?.p256dh||!json.keys?.auth)throw new Error("El navegador no devolvió una suscripción válida");
+   const {data:existing,error:existingError}=await db.from("cp_push_subscriptions").select("id")
+    .eq("user_id",user.id).eq("endpoint",subscription.endpoint).maybeSingle();
    if(existingError)throw existingError;
-   if(!existing){const {error}=await db.from("cp_push_subscriptions").insert({user_id:user.id,endpoint:subscription.endpoint,p256dh:json.keys?.p256dh,auth_key:json.keys?.auth});if(error)throw error}
-   const {error:settingsError}=await db.from("cp_notification_settings").upsert({user_id:user.id,enabled:true,reflection_prompts_enabled:notificationSettings.reflection_prompts_enabled,reflection_prompts_enabled:notificationSettings.reflection_prompts_enabled,quiet_start:notificationSettings.quiet_start,quiet_end:notificationSettings.quiet_end,updated_at:new Date().toISOString()},{onConflict:"user_id"});
-   if(settingsError)throw settingsError;
+   if(!existing){
+    const {error:insertError}=await db.from("cp_push_subscriptions").insert({
+     user_id:user.id,endpoint:subscription.endpoint,p256dh:json.keys.p256dh,auth_key:json.keys.auth
+    });
+    if(insertError)throw insertError;
+   }
+   // Una autorización en el teléfono activa de una vez los dos tipos de aviso.
+   // La persona conserva el interruptor de desactivación y horario de silencio.
+   const {data:saved,error:settingsError}=await db.from("cp_notification_settings").upsert({
+    user_id:user.id,enabled:true,reflection_prompts_enabled:true,
+    quiet_start:notificationSettings.quiet_start,quiet_end:notificationSettings.quiet_end,
+    updated_at:new Date().toISOString()
+   },{onConflict:"user_id"}).select("enabled,reflection_prompts_enabled").single();
+   if(settingsError||!saved?.enabled)throw settingsError||new Error("No se pudo confirmar que los avisos quedaron activos");
+   setNotificationSettings(p=>({...p,enabled:true,reflection_prompts_enabled:true}));
+   setPushPromptDismissed(true);
    await load(user);
-   setNotice("Avisos activados en este celular, respetando tus horas de silencio. La entrega depende de los permisos del teléfono.");
-  }catch(e){setNotice("No se pudieron activar las notificaciones: "+getError(e))}
+   setNotice("✓ Avisos activados en este celular. Cómplices elegirá los momentos adecuados para una misión y una pregunta semanal, sin molestarte durante tus horas de silencio.");
+  }catch(e){setNotice("No pude activar las notificaciones: "+getError(e))}
+  finally{setBusy(false)}
  }
  async function saveNotificationSettings(enabled=notificationSettings.enabled){
-  if(!user)return;
+  if(!user||busy)return;
   setBusy(true);setNotice("");
-  const {error}=await db.from("cp_notification_settings").upsert({user_id:user.id,enabled,quiet_start:notificationSettings.quiet_start,quiet_end:notificationSettings.quiet_end,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+  const {error}=await db.from("cp_notification_settings").upsert({
+   user_id:user.id,enabled,reflection_prompts_enabled:Boolean(notificationSettings.reflection_prompts_enabled),
+   quiet_start:notificationSettings.quiet_start,quiet_end:notificationSettings.quiet_end,updated_at:new Date().toISOString()
+  },{onConflict:"user_id"});
   setBusy(false);
-  if(error){setNotice(getError(error));return}
+  if(error){setNotice("No pude guardar los horarios: "+getError(error));return}
   setNotificationSettings(old=>({...old,enabled}));
-  setNotice(enabled?"Horario de silencio guardado.":"Avisos desactivados para tu cuenta.");
+  setNotice(enabled?"Horarios y preferencias guardados.":"Avisos desactivados para tu cuenta.");
  }
  async function disableNotifications(){
   if(!user)return;
@@ -587,7 +620,16 @@ async function saveMemory(){
    {NAV.map(([key,emoji,title])=><button type="button" key={key} className={(tab===key||(tab==="preguntas"&&key==="juegos"))?"active":""} onClick={()=>{setNotice("");setTab(key)}}><NavIcon name={key}/>{title}</button>)}
   </nav>
   {notice&&<div className="alert" role="status">{notice}</div>}
- {tab==="hoy"&&<><div className="dashboard"><div className="accent-card"><span className="tiny">LA CONEXIÓN SE CONSTRUYE CADA DÍA</span><h2 style={{fontSize:42,margin:"12px 0"}}>Lo más lindo de hoy todavía puede pasar.</h2><p className="subtle">No hace falta una fecha especial para tener un gesto especial.</p><div className="row wrap" style={{marginTop:22}}><Button onClick={()=>setTab("misiones")}>Ver misiones →</Button><Button secondary onClick={()=>setTab("preguntas")}>Enviar pregunta</Button></div></div><div className="glass box stack"><div className="between row"><span className="tiny">PROGRESO COMPARTIDO</span><span>💕</span></div><h2>{totalHearts} corazones</h2><div className="progress-track"><div className="progress-bar" style={{width:(totalHearts%500)/5+"%"}}/></div><p className="subtle">Cada gesto cuenta. No hay competencia ni días perdidos.</p>{!partner?<><div className="note">Invitá a tu pareja para jugar y conversar juntos.</div><Button small onClick={shareInvite}>Compartir invitación</Button><p className="subtle">Código: {space?.invite_code}</p></>:<p className="subtle">Conectados: {member.display_name} + {partner.display_name} ♡</p>}</div></div>
+ {tab==="hoy"&&<>
+ {!notificationSettings.enabled&&!pushPromptDismissed&&<section className="push-onboarding" aria-label="Activar notificaciones">
+  <div className="push-onboarding-icon" aria-hidden="true">🔔</div>
+  <div className="push-onboarding-copy"><strong>Que Cómplices te acompañe también fuera de la app</strong>
+   <p>Una misión y una pregunta especial por semana, cuando sea buen momento. Sin mensajes insistentes ni avisos durante el descanso.</p>
+  </div>
+  <div className="push-onboarding-actions"><Button small disabled={busy} onClick={requestNotifications}>Activar avisos ♡</Button>
+   <button type="button" className="link-button" onClick={()=>setPushPromptDismissed(true)}>Ahora no</button></div>
+ </section>}
+ <div className="dashboard"><div className="accent-card"><span className="tiny">LA CONEXIÓN SE CONSTRUYE CADA DÍA</span><h2 style={{fontSize:42,margin:"12px 0"}}>Lo más lindo de hoy todavía puede pasar.</h2><p className="subtle">No hace falta una fecha especial para tener un gesto especial.</p><div className="row wrap" style={{marginTop:22}}><Button onClick={()=>setTab("misiones")}>Ver misiones →</Button><Button secondary onClick={()=>setTab("preguntas")}>Enviar pregunta</Button></div></div><div className="glass box stack"><div className="between row"><span className="tiny">PROGRESO COMPARTIDO</span><span>💕</span></div><h2>{totalHearts} corazones</h2><div className="progress-track"><div className="progress-bar" style={{width:(totalHearts%500)/5+"%"}}/></div><p className="subtle">Cada gesto cuenta. No hay competencia ni días perdidos.</p>{!partner?<><div className="note">Invitá a tu pareja para jugar y conversar juntos.</div><Button small onClick={shareInvite}>Compartir invitación</Button><p className="subtle">Código: {space?.invite_code}</p></>:<p className="subtle">Conectados: {member.display_name} + {partner.display_name} ♡</p>}</div></div>
  {upcomingDates.length>0&&<div className="upcoming-date-card"><div className="row between"><span className="tiny">SU HISTORIA TIENE FECHAS IMPORTANTES</span><span aria-hidden="true">🗓️</span></div>{upcomingDates.slice(0,2).map(d=><p key={d.id}><strong>{d.days_until===0?"Hoy":d.days_until===1?"Mañana":"En "+d.days_until+" días"}</strong> · {d.label}</p>)}<Button secondary small onClick={()=>{setTab("complice");window.scrollTo({top:0,behavior:"smooth"})}}>Ver nuestras fechas</Button></div>}
  {weeklyPromptReady&&<div className="weekly-pulse-card"><div className="row between"><span className="tiny">UNA PREGUNTA ESPECIAL DE ESTA SEMANA</span><span aria-hidden="true">💌</span></div><h3>{weeklyPrompt.question}</h3><p className="subtle">No es una misión. Solo un momento para reflexionar, si te nace. La respuesta es privada.</p><textarea className="textarea" value={weeklyAnswer} onChange={e=>setWeeklyAnswer(e.target.value)} maxLength={1200} placeholder="Una respuesta que solo vos vas a poder leer…"/><label className="toggle"><input type="checkbox" checked={weeklyAllowAI} onChange={e=>setWeeklyAllowAI(e.target.checked)}/> Mi IA puede recordar lo que escriba para recomendarme mejor</label><div className="row wrap"><Button small disabled={busy||!weeklyAnswer.trim()} onClick={answerWeeklyPrompt}>Guardar respuesta</Button><Button small secondary onClick={()=>setDismissedPulse(weeklyPrompt.id)}>Ahora no</Button></div></div>}
  {profileCompletion.remaining.length>0&&knowledge.percent<25&&!weeklyPromptReady&&<div className="central-daily-checkin"><div className="central-checkin-symbol" aria-hidden="true">✦</div><div className="grow"><span className="tiny">TU IA APRENDE DE VOS</span><h3>Una pregunta para conocerte mejor</h3><p className="subtle">{profileCompletion.remaining[0].question} Respondé cuando quieras: tus gustos ayudan a elegir mejores ideas.</p></div><Button small secondary onClick={()=>{selectProfileQuestion(profileCompletion.remaining[0].key);setTab("complice");window.scrollTo({top:0,behavior:"smooth"})}}>Responder ♡</Button></div>}<div className="section-title"><h2>Tu misión de hoy</h2><Pill>{centralLoading?"Preparando…":centralMode==="generativa"?"IA personalizada":"Misiones con intención"}</Pill></div>{centralError&&<div className="note">No pude actualizar la agenda. {centralError}</div>}
@@ -718,7 +760,7 @@ async function saveMemory(){
   </div></details>
   <details className="central-advanced"><summary>Estado técnico de OpenAI</summary><div className="central-advanced-body"><div className="glass box stack"><p className="subtle">La IA genera propuestas automáticamente al entrar a Cómplices y después de actualizar tus gustos. No hace falta escribirle. Las propuestas ya preparadas pueden mantenerse hasta que cambien los datos o llegue un nuevo día.</p><Button secondary small disabled={checkingAI} onClick={checkOpenAI}>{checkingAI?"Comprobando…":"Comprobar conexión OpenAI"}</Button>{aiCheck&&<p className="subtle" role="status">{!aiCheck.configured?"Falta configurar OpenAI":aiCheck.reachable?"Modelo accesible · no equivale a una prueba de generación":aiCheck.reason==="invalid_key"?"Clave incorrecta o sin permiso":aiCheck.reason==="billing"?"Revisar facturación":"No se pudo acceder al modelo: "+(aiCheck.reason||"error")}</p>}</div></div></details>
 </div>
-<div className="section-title"><h2>Tu espacio</h2></div><div className="glass box stack"><div className="row between wrap"><div><h3>Notificaciones privadas</h3><p className="subtle">Avisos de mensajes y preguntas, sin mostrar el contenido en la pantalla bloqueada.</p></div><div className="row wrap"><Button secondary small onClick={requestNotifications}>Activar en este celular</Button>{notificationSettings.enabled&&<Button secondary small disabled={busy} onClick={disableNotifications}>Desactivar avisos</Button>}</div></div><div className="row wrap"><label className="grow">Desde qué hora no molestar<input className="input" type="time" value={notificationSettings.quiet_start?.slice(0,5)||"22:00"} onChange={e=>setNotificationSettings(p=>({...p,quiet_start:e.target.value}))}/></label><label className="grow">Hasta qué hora no molestar<input className="input" type="time" value={notificationSettings.quiet_end?.slice(0,5)||"08:00"} onChange={e=>setNotificationSettings(p=>({...p,quiet_end:e.target.value}))}/></label></div><div className="engagement-notifications"><label className="toggle"><input type="checkbox" checked={Boolean(notificationSettings.reflection_prompts_enabled)} onChange={e=>setNotificationSettings(p=>({...p,reflection_prompts_enabled:e.target.checked}))}/> Quiero recibir, como máximo, una pregunta especial por semana en mis notificaciones</label><p className="subtle">Es opcional y está desactivado por defecto. No revelamos respuestas ni confesiones en las notificaciones. Solo se envían si también tenés activados los avisos del celular y fuera del horario de silencio.</p></div><Button secondary small disabled={busy} onClick={()=>saveNotificationSettings()}>Guardar preferencias de avisos</Button><p className="subtle">Horario de Argentina. Si los dos horarios son iguales, no se aplica un período de silencio. Cada integrante configura sus propios avisos.</p>{!partner&&<div className="stack"><p className="subtle">Invitación privada: {space?.invite_code}</p><Button secondary onClick={shareInvite}>Compartir invitación con mi pareja</Button></div>}<p className="subtle">Piloto sin cobros. Sin mensajes WhatsApp automáticos ni recordatorios diarios con la web cerrada todavía. No compartas información especialmente sensible.</p></div>
+<div className="section-title"><h2>Tu espacio</h2></div><div className="glass box stack"><div className="row between wrap"><div><h3>Notificaciones privadas</h3><p className="subtle">Si los habilitás una vez en el teléfono, Cómplices programará automáticamente una misión y una pregunta por semana. No muestra respuestas privadas en la pantalla bloqueada.</p></div><div className="row wrap">{!notificationSettings.enabled&&<Button secondary small disabled={busy} onClick={requestNotifications}>Activar avisos en este celular</Button>}{notificationSettings.enabled&&<span className="push-enabled-chip">✓ Avisos activos</span>}{notificationSettings.enabled&&<Button secondary small disabled={busy} onClick={disableNotifications}>Desactivar avisos</Button>}</div></div><div className="row wrap"><label className="grow">Desde qué hora no molestar<input className="input" type="time" value={notificationSettings.quiet_start?.slice(0,5)||"22:00"} onChange={e=>setNotificationSettings(p=>({...p,quiet_start:e.target.value}))}/></label><label className="grow">Hasta qué hora no molestar<input className="input" type="time" value={notificationSettings.quiet_end?.slice(0,5)||"08:00"} onChange={e=>setNotificationSettings(p=>({...p,quiet_end:e.target.value}))}/></label></div><div className="engagement-notifications"><label className="toggle"><input type="checkbox" checked={Boolean(notificationSettings.reflection_prompts_enabled)} onChange={e=>setNotificationSettings(p=>({...p,reflection_prompts_enabled:e.target.checked}))}/> Incluir la pregunta especial semanal</label><p className="subtle">Se activa al autorizar avisos en el celular. Podés apagar solo las preguntas, desactivar todos los avisos o cambiar los horarios de silencio cuando quieras.</p></div><Button secondary small disabled={busy} onClick={()=>saveNotificationSettings()}>Guardar preferencias de avisos</Button><p className="subtle">Horario de Argentina. Cómplices elige los días y tres horarios posibles: 10:30, 16:30 o 19:30, según tus gustos y disponibilidad. Máximo dos avisos proactivos por semana. Si los dos horarios de silencio son iguales, no se aplica un período de silencio.</p>{!partner&&<div className="stack"><p className="subtle">Invitación privada: {space?.invite_code}</p><Button secondary onClick={shareInvite}>Compartir invitación con mi pareja</Button></div>}<p className="subtle">Piloto sin cobros. Sin mensajes WhatsApp automáticos ni recordatorios diarios con la web cerrada todavía. No compartas información especialmente sensible.</p></div>
   <div className="glass box stack" style={{marginTop:15}}><h3>Mi cuenta</h3><p className="subtle">Tu cuenta es personal. Si cerrás sesión, este celular dejará de recibir tus notificaciones.</p><Button secondary onClick={logout}>Cerrar sesión</Button></div>
  </div>}
  <footer className="page-bottom">Cómplices · Desarrollado sobre recursos de TeHiceEsto · Un espacio privado para dos ♡</footer><nav className="bottom-nav" aria-label="Navegación principal">{NAV.map(([key,emoji,title])=><button type="button" key={key} aria-current={(tab===key||(tab==="preguntas"&&key==="juegos"))?"page":undefined} className={(tab===key||(tab==="preguntas"&&key==="juegos"))?"active":""} onClick={()=>{setTab(key);setNotice("");window.scrollTo({top:0,behavior:"smooth"})}}><b><NavIcon name={key}/></b>{title}</button>)}</nav></main>
