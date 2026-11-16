@@ -1,0 +1,11 @@
+{
+ "name":"CERCA — Acompañar cada día",
+ "short_name":"CERCA",
+ "description":"Misiones para conectar con tus hijos",
+ "start_url":"/",
+ "scope":"/",
+ "display":"standalone",
+ "background_color":"#fffaf4",
+ "theme_color":"#175b53",
+ "icons":[{"src":"/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}]
+}
