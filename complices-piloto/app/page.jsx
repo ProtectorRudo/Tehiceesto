@@ -5,6 +5,7 @@ import {createClient} from "@supabase/supabase-js";
 import {PROFILE_QUESTIONS,profileProgress} from "../lib/ai-profile.mjs";
 import {taskDayFromKey} from "../lib/mission-schedule.mjs";
 import {DEEP_QUESTIONS,DATE_TYPES,weeklyPersonalQuestion,profileKnowledge,upcomingOccasions} from "../lib/relationship-intelligence.mjs";
+import {learningOptions,learningStatus} from "../lib/continuous-learning.mjs";
 
 const db=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const QUESTION_BANK={
@@ -78,6 +79,8 @@ export default function Home(){
  const [memoryText,setMemoryText]=useState(""),[memoryCategory,setMemoryCategory]=useState("gustos"),[memoryShare,setMemoryShare]=useState(false),[memoryShareTheme,setMemoryShareTheme]=useState(""),[editingMemory,setEditingMemory]=useState(null);
  const [centralActivities,setCentralActivities]=useState([]),[centralMode,setCentralMode]=useState("guiado"),[centralLoading,setCentralLoading]=useState(false),[centralError,setCentralError]=useState(""),[partnerInsightCount,setPartnerInsightCount]=useState(0),[centralSchedule,setCentralSchedule]=useState(null);
  const [deepAnswer,setDeepAnswer]=useState(""),[deepUseAI,setDeepUseAI]=useState(true);
+ const [ongoingQuestion,setOngoingQuestion]=useState(null),[ongoingLoading,setOngoingLoading]=useState(false),[ongoingError,setOngoingError]=useState(""),[learningChoice,setLearningChoice]=useState("");
+ const [profileSaveState,setProfileSaveState]=useState("");
  const [weeklyAnswer,setWeeklyAnswer]=useState(""),[weeklyAllowAI,setWeeklyAllowAI]=useState(false),[dismissedPulse,setDismissedPulse]=useState("");
  const [importantDates,setImportantDates]=useState([]),[importantDateLabel,setImportantDateLabel]=useState(""),[importantDateKind,setImportantDateKind]=useState("aniversario"),[importantDateOn,setImportantDateOn]=useState(""),[importantDateRepeats,setImportantDateRepeats]=useState(true),[importantDateShare,setImportantDateShare]=useState(false);
  const [profileCards,setProfileCards]=useState([]),[profileQuestion,setProfileQuestion]=useState("afecto"),[profileAnswer,setProfileAnswer]=useState(""),[profileShare,setProfileShare]=useState(false);
@@ -109,7 +112,7 @@ export default function Home(){
    db.from("cp_important_dates").select("id,space_id,user_id,kind,label,event_on,repeat_yearly,share_with_partner").eq("space_id",m.space_id).order("event_on",{ascending:true})
   ]);
   if(s.error)setNotice(getError(s.error));
-  setSpace(s.data||null);setMembers(mm.data||[]);setPref(p.data||null);setActivities(c.data||[]);setMessages(ms.data||[]);setNotes(n.data||[]);setReflections(rfl.data||[]);setMemories(mem.data||[]);setAiRatings(feedback.data||[]);setProfileCards(structured.data||[]);setImportantDates(dateRows.data||[]);if(dateRows.error)setNotice("No pude cargar las fechas guardadas: "+getError(dateRows.error));setNotificationSettings(ns.data||{enabled:false,reflection_prompts_enabled:false,quiet_start:"22:00",quiet_end:"08:00"});if(t.data)setSurprise(t.data);const {data:gameRows}=await db.from("cp_game_entries").select("game_key,answer").eq("space_id",m.space_id).eq("user_id",u.id);if(gameRows)setGameAnswers(Object.fromEntries(gameRows.map(g=>[g.game_key,g.answer])));
+  setSpace(s.data||null);setMembers(mm.data||[]);setPref(p.data||null);setActivities(c.data||[]);setMessages(ms.data||[]);setNotes(n.data||[]);setReflections(rfl.data||[]);setMemories(mem.data||[]);setAiRatings(feedback.data||[]);if(structured.error)setNotice("No pude leer tus gustos guardados: "+getError(structured.error));else setProfileCards(structured.data||[]);setImportantDates(dateRows.data||[]);if(dateRows.error)setNotice("No pude cargar las fechas guardadas: "+getError(dateRows.error));setNotificationSettings(ns.data||{enabled:false,reflection_prompts_enabled:false,quiet_start:"22:00",quiet_end:"08:00"});if(t.data)setSurprise(t.data);const {data:gameRows}=await db.from("cp_game_entries").select("game_key,answer").eq("space_id",m.space_id).eq("user_id",u.id);if(gameRows)setGameAnswers(Object.fromEntries(gameRows.map(g=>[g.game_key,g.answer])));
  },[]);
  useEffect(()=>{if(user){load(user)}else{setMember(null);setSpace(null)}},[user,load]);
  const refreshCentral=useCallback(async()=>{
@@ -198,23 +201,32 @@ export default function Home(){
  async function playGame(key,answer){if(!partner)return;setBusy(true);setNotice("");const {error}=await db.from("cp_game_entries").upsert({space_id:member.space_id,game_key:key,user_id:user.id,answer},{onConflict:"space_id,game_key,user_id"});if(error){setNotice(getError(error))}else{if(!mineDone(key))await db.from("cp_completions").insert({space_id:member.space_id,user_id:user.id,task_key:key});await load(user);await revealGame(key)}setBusy(false)}
  async function mark(key){if(!member)return;setBusy(true);setNotice("");const was=mineDone(key);const r=was?await db.from("cp_completions").delete().eq("user_id",user.id).eq("space_id",member.space_id).eq("task_key",key):await db.from("cp_completions").insert({space_id:member.space_id,user_id:user.id,task_key:key});if(r.error)setNotice(getError(r.error));else await load(user);setBusy(false)}
  function selectProfileQuestion(key){
+  setProfileSaveState("");
   const card=profileCards.find(p=>p.question_key===key);
   setProfileQuestion(key);setProfileAnswer(card?.answer_code||"");setProfileShare(Boolean(card?.share_with_partner_ai));
  }
  async function saveStructuredProfile(){
   if(!user||busy)return;
   const question=PROFILE_QUESTIONS.find(q=>q.key===profileQuestion);
-  if(!question||!question.options.some(x=>x[0]===profileAnswer))return;
-  setBusy(true);setNotice("");
-  const {error}=await db.from("cp_ai_profile_cards").upsert({
-   user_id:user.id,question_key:profileQuestion,answer_code:profileAnswer,
-   share_with_partner_ai:Boolean(pref?.allow_surprises),updated_at:new Date().toISOString()
-  },{onConflict:"user_id,question_key"});
-  if(error){setNotice("No pude guardar tu preferencia: "+getError(error));setBusy(false);return}
-  const next=PROFILE_QUESTIONS.find(q=>q.key!==profileQuestion&&!profileCards.some(c=>c.question_key===q.key));
-  setNotice(pref?.allow_surprises?"Gusto guardado. Tu IA y la de tu pareja podrán considerarlo para recomendar, sin mostrar las respuestas.":"Gusto guardado. Tu IA personal podrá utilizarlo.");
-  if(next){setProfileQuestion(next.key);setProfileAnswer("");setProfileShare(false)}
-  await load(user);await refreshCentral();setBusy(false);
+  if(!question||!question.options.some(x=>x[0]===profileAnswer)){setProfileSaveState("Elegí una opción para guardar.");return}
+  setBusy(true);setNotice("");setProfileSaveState("");
+  try{
+   const {data:saved,error}=await db.from("cp_ai_profile_cards").upsert({
+    user_id:user.id,question_key:profileQuestion,answer_code:profileAnswer,
+    share_with_partner_ai:Boolean(pref?.allow_surprises),updated_at:new Date().toISOString()
+   },{onConflict:"user_id,question_key"}).select("question_key,answer_code").single();
+   if(error||!saved||saved.question_key!==profileQuestion||saved.answer_code!==profileAnswer)
+    throw error||new Error("No se pudo confirmar que el gusto quedó guardado");
+   // La pregunta actual cuenta como respondida incluso si aún no figura en el estado cargado.
+   const answered=new Set([...profileCards.map(x=>x.question_key),saved.question_key]);
+   const next=PROFILE_QUESTIONS.find(q=>!answered.has(q.key));
+   await load(user);
+   setProfileSaveState(next?"✓ Guardado. Ya podés responder la siguiente pregunta.":"✓ Guardado. ¡Tu perfil inicial está completo! La IA seguirá conociéndote con nuevas preguntas.");
+   if(next){setProfileQuestion(next.key);setProfileAnswer("");setProfileShare(false)}
+   await refreshCentral();
+  }catch(error){
+   setProfileSaveState("No pude guardar la respuesta: "+getError(error));
+  }finally{setBusy(false)}
  }
  async function removeStructuredProfile(key){
   if(!user||busy)return;
@@ -618,6 +630,7 @@ async function saveMemory(){
    <div className="complice-current-question"><span aria-hidden="true">{currentProfileQuestion.emoji}</span><h3>{currentProfileQuestion.question}</h3></div>
    <div className="profile-answer-grid" role="group" aria-label={currentProfileQuestion.question}>{currentProfileQuestion.options.map(([value,label])=><button type="button" key={value} aria-pressed={profileAnswer===value} className={"choice"+(profileAnswer===value?" selected":"")} disabled={busy} onClick={()=>setProfileAnswer(value)}>{label}</button>)}</div>
    <Button full disabled={busy||!profileAnswer} onClick={saveStructuredProfile}>Guardar y continuar ♡</Button>
+   {profileSaveState&&<p className={"profile-save-status"+(profileSaveState.startsWith("✓")?" success":" error")} role="status" aria-live="polite">{profileSaveState}</p>}
    <p className="complice-data-note">🔒 Tus respuestas no se muestran literalmente a tu pareja. Podés gestionar su uso para recomendaciones en Perfil y privacidad, una sola vez.</p>
    {profileCards.length>0&&<details className="complice-saved"><summary>Ver mis {profileCards.length} respuestas guardadas</summary><div className="profile-saved-answers">{PROFILE_QUESTIONS.filter(q=>profileCards.some(a=>a.question_key===q.key)).map(q=>{const entry=profileCards.find(a=>a.question_key===q.key);return <div className="profile-saved-item" key={q.key}><span className="profile-question-emoji" aria-hidden="true">{q.emoji}</span><div className="grow"><strong>{q.options.find(o=>o[0]===entry.answer_code)?.[1]||"Respuesta"}</strong></div><button type="button" className="link-button" onClick={()=>selectProfileQuestion(q.key)}>Editar</button><button type="button" className="link-button" disabled={busy} onClick={()=>removeStructuredProfile(q.key)}>Borrar</button></div>})}</div></details>}
   </section>}
