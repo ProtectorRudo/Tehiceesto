@@ -129,3 +129,12 @@ Cómplices debe hacerse útil con el tiempo sin invadir la vida de la pareja. No
 - No se comprobó con una fecha verdadera si OpenAI propone la misión emocionalmente adecuada: requiere revisión humana del contenido generado.
 - La PWA no realiza tareas cada minuto en segundo plano; únicamente el cron semanal programado puede solicitar un Push con la web cerrada.
 
+
+## Corrección del guardado de gustos y aprendizaje continuo — 16/11/2026
+- Causa verificada del fallo en «Mis gustos»: la tabla `cp_ai_profile_cards` otorgaba `SELECT, INSERT, DELETE` a `authenticated`, pero faltaba `UPDATE`. El componente usaba `upsert(onConflict: user_id,question_key)`, que necesita el permiso de actualización también. Se añadió `GRANT UPDATE` únicamente a esa tabla `cp_*`, manteniendo las políticas RLS propias de cada usuario. En transacción reversible, 5/5 casos SQL pasaron: insertar, volver a guardar/editar, leer y aislamiento entre personas.
+- UI: el guardado ahora requiere confirmación de la fila persistida (`.select(...).single()`), muestra éxito/error visible debajo del botón y avanza a la siguiente pregunta **sin repetir la misma**. La ficha cargada informa errores de lectura en vez de silenciarlos.
+- El indicador del 100 % representa la **cobertura inicial de información**, nunca el final del aprendizaje. Tras las 12 preguntas profundas, Cómplices propone una pregunta nueva una vez por semana, adaptando un tema entre 10 dimensiones del perfil. OpenAI puede redactar una pregunta personalizada si hay clave, cuota y respuesta segura; si no, usa una pregunta cuidada. La pregunta se conserva en `cp_learning_questions` bajo RLS por usuario, sin costos repetidos en cada visita.
+- La persona responde con sus propias palabras (almacenadas privadas en `cp_reflections`) y puede actualizar una **preferencia estructurada** que mejora las futuras misiones; si habilitó previamente la personalización para los dos, solo el código de gusto puede alimentar la IA de su pareja, nunca su texto.
+- El 100 % permanece en el indicador del perfil inicial, acompañado de un contador de nuevos aprendizajes, sin inflar artificialmente el número. No se premia contestar por obligación.
+- Se ampliaron exportación y borrado de la memoria personal para incluir preguntas generadas. 9/9 pruebas transaccionales SQL confirmaron lectura privada, aislamiento, exportación y borrado.
+- Pendiente crítico: prueba real de botón en un teléfono y preguntas después de completar 12 respuestas; las pruebas SQL sintéticas se revierten y no sustituyen la experiencia de dos personas.
