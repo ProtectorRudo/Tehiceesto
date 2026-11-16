@@ -172,6 +172,7 @@ export default function Home(){
  const todayTasks=dailyTasks.filter(x=>x.due===date);
  const pendingTasks=dailyTasks.filter(x=>x.due<date);
  const weeklyTasks=tasks.filter(x=>x.slot==="weekly_1");
+ const focusMission=todayTasks[0]||pendingTasks.find(x=>!activities.some(a=>a.task_key===x.key&&a.user_id===user?.id))||weeklyTasks[0]||null;
  const dayLabels=centralSchedule?.days?.map(x=>x.label)||[];
  const missionCount=tasks.filter(x=>x.slot.startsWith("mission_")).length;
  const mineDone=(key)=>activities.some(a=>a.task_key===key&&a.user_id===user?.id);
@@ -501,7 +502,7 @@ async function saveMemory(){
    <div className="glass box stack"><span className="tiny">TU PERFIL PERSONAL</span><h3>Ya tengo {profileCompletion.answered} de {profileCompletion.total} respuestas</h3><div className="progress-track" role="progressbar" aria-valuenow={profileCompletion.answered} aria-valuemin={0} aria-valuemax={profileCompletion.total} aria-label="Progreso de gustos"><div className="progress-bar" style={{width:Math.round(100*profileCompletion.answered/profileCompletion.total)+"%"}}/></div><p className="subtle">Es tu perfil privado. Podés corregir o borrar tus gustos cuando quieras.</p></div>
    <div className="glass box stack"><span className="tiny">SUGERENCIAS PREPARADAS SOLAS</span><h3>{centralLoading?"Preparando tus propuestas…":centralMode==="generativa"?"OpenAI está creando propuestas":"Actividades seleccionadas para vos"}</h3><p className="subtle">{partner?partnerInsightCount>0?"El sistema puede considerar las pistas que tu pareja autorizó, sin mostrar sus respuestas.":"Todavía no hay pistas autorizadas de tu pareja; las ideas no presumen conocer sus gustos.":"Aún falta que se una tu pareja. Mientras tanto, tu IA puede conocer tus gustos personales."}</p><Button small secondary disabled={centralLoading} onClick={refreshCentral}>Actualizar recomendaciones</Button></div>
   </div>
-  <div className="accent-card central-recommendation"><span className="tiny">UNA IDEA SELECCIONADA PARA HOY</span><h2 style={{margin:"12px 0"}}>{tasks[0].title}</h2><p className="subtle">{tasks[0].body}</p><Button onClick={()=>{setTab("misiones");window.scrollTo({top:0,behavior:"smooth"})}}>Ver mis desafíos ♡</Button></div>
+  <div className="accent-card central-recommendation"><span className="tiny">UNA IDEA SELECCIONADA PARA HOY</span><h2 style={{margin:"12px 0"}}>{focusMission?.title||"Las mejores ideas no se apuran"}</h2><p className="subtle">{focusMission?.body||"Hoy no te toca una misión nueva. Las que preparó tu cómplice aparecerán en sus días asignados."}</p><Button onClick={()=>{setTab("misiones");window.scrollTo({top:0,behavior:"smooth"})}}>Ver mis desafíos ♡</Button></div>
   <div className="section-title"><div><span className="tiny">VOS CONTROLÁS LO QUE LA IA APRENDE</span><h2>Tu mapa de cariño</h2></div><Pill>{profileCompletion.answered}/{profileCompletion.total}</Pill></div>
   <div className="glass box stack central-consent">
    <h3>Un perfil tuyo, no de tu pareja</h3>
