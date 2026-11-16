@@ -679,3 +679,34 @@ label{color:#6f5169;font-size:12.5px;font-weight:700;margin-bottom:8px}
  .push-onboarding-copy{flex:1 1 75%}
  .push-onboarding-actions{width:100%;justify-content:flex-start;padding-left:51px}
 }
+
+
+/* Los tres juegos completos de TeHiceEsto, reutilizados en el piloto privado */
+.teh-games-intro{margin:25px 0 15px}
+.teh-games-intro .tiny{color:#a24b7b;letter-spacing:.08em;font-size:10px}
+.teh-games-intro h3{font-family:'Instrument Serif',Georgia,serif;font-size:clamp(28px,4vw,36px);font-weight:400;line-height:1.15;color:#633457;margin:7px 0 9px}
+.teh-games-intro p{font-size:13px;color:#8e6d7f;line-height:1.5;margin:0}
+.teh-games-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin:12px 0 25px}
+.teh-game-card{border:1px solid #e8d5e2;border-radius:23px;background:linear-gradient(154deg,#fffdfd,#fbf1f7);padding:20px 18px;display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-width:0;box-shadow:0 8px 24px rgba(95,45,81,.045)}
+.teh-game-icon{width:49px;height:49px;border-radius:15px;background:#f9deeb;display:grid;place-items:center;font-size:26px;margin-bottom:3px}
+.teh-game-copy{display:flex;flex-direction:column;gap:7px;flex:1}
+.teh-game-copy .tiny{font-size:10px;letter-spacing:.06em;color:#ae6b91}
+.teh-game-copy h3{font-size:22px;line-height:1.2;font-weight:750;color:#633452;margin:0}
+.teh-game-copy p{font-size:12.5px;line-height:1.55;color:#86677c;margin:0}
+.teh-game-mode{margin-top:auto;color:#9d7190;font-size:11px;font-weight:700}
+.teh-game-card .btn{margin-top:10px;width:100%;justify-content:center}
+.teh-game-error{border:1px solid #ecc8d5;background:#fff0f4;color:#ab3c63;padding:12px 15px;border-radius:13px;font-size:13px;margin:10px 0}
+.teh-other-games{margin:26px 0 38px;border:1px solid #ecd9e4;border-radius:20px;background:#fff9fc;overflow:hidden}
+.teh-other-games>summary{cursor:pointer;padding:19px 20px;color:#96597e;font-size:13px;font-weight:750;list-style:none}
+.teh-other-games>summary::-webkit-details-marker{display:none}
+.teh-other-games>summary span{float:right;font-size:17px}
+.teh-other-games[open]>summary{border-bottom:1px solid #f0dfeb}
+.teh-other-games-inside{padding:17px}
+.teh-game-overlay{position:fixed;z-index:5000;inset:0;display:flex;flex-direction:column;background:#170d1d;color:#fff}
+.teh-game-header{flex:0 0 auto;min-height:58px;display:flex;align-items:center;gap:12px;justify-content:space-between;padding:7px 16px;padding-top:max(7px,env(safe-area-inset-top));background:linear-gradient(95deg,#432037,#2b182d);border-bottom:1px solid #ffffff20}
+.teh-game-header strong{font-size:14px;color:#ffedf7}
+.teh-game-back{appearance:none;border:1px solid #ffffff60;background:#ffffff15;color:#fff;border-radius:11px;padding:10px 13px;font-size:12px;font-weight:800;cursor:pointer}
+.teh-game-header-caption{color:#ecd0e1;font-size:10px}
+.teh-game-frame{display:block;flex:1 1 0;min-height:0;width:100%;border:0;background:#211522}
+@media(max-width:860px){.teh-games-grid{grid-template-columns:1fr;gap:10px}.teh-game-card{flex-direction:row;align-items:center;gap:13px;padding:17px}.teh-game-icon{flex:0 0 49px;margin-bottom:0}.teh-game-copy{flex:1}.teh-game-card .btn{width:auto;flex-shrink:0;margin:0}.teh-game-copy h3{font-size:19px}}
+@media(max-width:530px){.teh-game-card{flex-wrap:wrap;align-items:flex-start}.teh-game-copy{flex:1 1 calc(100% - 67px)}.teh-game-card .btn{margin-left:62px;width:calc(100% - 62px)}.teh-game-header{padding:9px 11px;min-height:59px}.teh-game-header strong{font-size:13px}.teh-game-header-caption{display:none}.teh-other-games-inside{padding:13px}}
