@@ -77,6 +77,7 @@ export default function Home(){
  const [aboutQuestion,setAboutQuestion]=useState("q09"),[aboutAnswer,setAboutAnswer]=useState(""),[aboutAllowAI,setAboutAllowAI]=useState(false),[aboutShare,setAboutShare]=useState(false),[aboutShareTheme,setAboutShareTheme]=useState("");
  const [memoryText,setMemoryText]=useState(""),[memoryCategory,setMemoryCategory]=useState("gustos"),[memoryShare,setMemoryShare]=useState(false),[memoryShareTheme,setMemoryShareTheme]=useState(""),[editingMemory,setEditingMemory]=useState(null);
  const [centralActivities,setCentralActivities]=useState([]),[centralMode,setCentralMode]=useState("guiado"),[centralLoading,setCentralLoading]=useState(false),[centralError,setCentralError]=useState(""),[partnerInsightCount,setPartnerInsightCount]=useState(0),[centralSchedule,setCentralSchedule]=useState(null);
+ const [weeklyAnswer,setWeeklyAnswer]=useState(""),[weeklyAllowAI,setWeeklyAllowAI]=useState(false),[dismissedPulse,setDismissedPulse]=useState("");
  const [importantDates,setImportantDates]=useState([]),[importantDateLabel,setImportantDateLabel]=useState(""),[importantDateKind,setImportantDateKind]=useState("aniversario"),[importantDateOn,setImportantDateOn]=useState(""),[importantDateRepeats,setImportantDateRepeats]=useState(true),[importantDateShare,setImportantDateShare]=useState(false);
  const [profileCards,setProfileCards]=useState([]),[profileQuestion,setProfileQuestion]=useState("afecto"),[profileAnswer,setProfileAnswer]=useState(""),[profileShare,setProfileShare]=useState(false);
  useEffect(()=>{let active=true;db.auth.getUser().then(({data})=>{if(active){setUser(data.user||null);setLoading(false)}}).catch(()=>setLoading(false));const {data:{subscription}}=db.auth.onAuthStateChange((_event,session)=>{if(active)setUser(session?.user||null)});if(typeof window!=="undefined"){
@@ -188,7 +189,7 @@ export default function Home(){
  const knowledge=profileKnowledge({cards:profileCards,reflections,importantDates,feedback:aiRatings,completions:activities.filter(x=>x.user_id===user?.id)});
  const upcomingDates=upcomingOccasions(importantDates,date,30);
  const weeklyPrompt=weeklyPersonalQuestion({userId:user?.id||"",week,partnerName:partner?.display_name||"tu pareja",missionDays:centralSchedule?.dayNumbers||[]});
- const weeklyPromptReady=date>=weeklyPrompt.due&&!reflections.some(x=>x.question_id===weeklyPrompt.id);
+ const weeklyPromptReady=date>=weeklyPrompt.due&&!reflections.some(x=>x.question_id===weeklyPrompt.id)&&dismissedPulse!==weeklyPrompt.id;
  const currentProfileQuestion=PROFILE_QUESTIONS.find(q=>q.key===profileQuestion)||PROFILE_QUESTIONS[0];
  const games=[{slug:"escapada",title:"Si pudiéramos escaparnos…",intro:"¿A dónde irías con tu pareja sin pensarlo demasiado?",options:[["playa","🏖️ A la playa"],["montana","⛰️ A la montaña"],["ciudad","🏙️ A una ciudad"],["campo","🌿 Al campo"]]},{slug:"cita",title:"Nuestra cita perfecta",intro:"¿Cuál de estos planes elegirías para esta noche?",options:[["cena","🍝 Una cena"],["peli","🎬 Una película"],["paseo","🌙 Un paseo"],["cocinar","👩‍🍳 Cocinar juntos"]]}];
  async function revealGame(key){const {data,error}=await db.rpc("cp_game_reveal",{p_space:member.space_id,p_key:key});if(error)setNotice(getError(error));else setGameResults(old=>({...old,[key]:data}))}
@@ -281,6 +282,43 @@ export default function Home(){
    setAiCheck(data);
   }catch(e){setNotice("No se pudo comprobar OpenAI: "+getError(e))}
   finally{setCheckingAI(false)}
+ }
+ async function saveImportantDate(){
+  if(!user||!member||busy)return;
+  const label=importantDateLabel.trim();
+  if(label.length<3||label.length>90||!DATE_TYPES.some(x=>x[0]===importantDateKind)||!/^\d{4}-\d{2}-\d{2}$/.test(importantDateOn)){setNotice("Completá una fecha válida y un nombre de 3 a 90 caracteres.");return}
+  setBusy(true);setNotice("");
+  const {error}=await db.from("cp_important_dates").insert({user_id:user.id,space_id:member.space_id,kind:importantDateKind,label,event_on:importantDateOn,repeat_yearly:importantDateRepeats,share_with_partner:importantDateShare});
+  if(error)setNotice("No pude guardar la fecha: "+getError(error));
+  else{setImportantDateLabel("");setImportantDateOn("");setImportantDateShare(false);setImportantDateKind("aniversario");setNotice("Fecha guardada. Tu IA podrá usarla para darte ideas apropiadas.");await load(user);await refreshCentral()}
+  setBusy(false);
+ }
+ async function changeDateShare(row){
+  if(!user||row.user_id!==user.id||busy)return;
+  setBusy(true);
+  const {error}=await db.from("cp_important_dates").update({share_with_partner:!row.share_with_partner,updated_at:new Date().toISOString()}).eq("id",row.id).eq("user_id",user.id);
+  if(error)setNotice(getError(error));else{setNotice(row.share_with_partner?"La fecha ahora es privada.":"La fecha quedó visible para los dos.");await load(user);await refreshCentral()}
+  setBusy(false);
+ }
+ async function deleteImportantDate(row){
+  if(!user||row.user_id!==user.id||busy)return;
+  setBusy(true);
+  const {error}=await db.from("cp_important_dates").delete().eq("id",row.id).eq("user_id",user.id);
+  if(error)setNotice(getError(error));else{setNotice("Fecha eliminada de tu perfil.");await load(user);await refreshCentral()}
+  setBusy(false);
+ }
+ async function answerWeeklyPrompt(){
+  if(!user||!weeklyAnswer.trim()||busy||!weeklyPromptReady)return;
+  setBusy(true);setNotice("");
+  const {error}=await db.from("cp_reflections").upsert({
+   user_id:user.id,question_id:weeklyPrompt.id,question:weeklyPrompt.question,
+   answer:weeklyAnswer.trim().slice(0,1200),ai_use_allowed:weeklyAllowAI,
+   share_for_surprises:false,share_theme:null,updated_at:new Date().toISOString()
+  },{onConflict:"user_id,question_id"});
+  if(error)setNotice(getError(error));else{
+   setWeeklyAnswer("");setWeeklyAllowAI(false);setNotice("Respuesta privada guardada. Gracias por compartir un recuerdo de la semana.");await load(user);if(weeklyAllowAI)await refreshCentral();
+  }
+  setBusy(false);
  }
  async function saveAbout(){
   if(!aboutAnswer.trim()||!user)return;
