@@ -2,6 +2,7 @@ import {createClient} from "@supabase/supabase-js";
 import {createHash} from "node:crypto";
 import {buildEditorialSchema,selectEditorialMissions,EDITORIAL_ENGINE_VERSION} from "../../../lib/mission-editorial.mjs";
 import {isClearlyWeakMission} from "../../../lib/mission-substance.mjs";
+import {selectInspiration,TESTIMONY_LIBRARY_VERSION} from "../../../lib/testimony-inspiration.mjs";
 import {buildWeeklyMissions} from "../../../lib/weekly-missions.mjs";
 import {partnerGuidedIdeas,safeProfile,profileForOwnAI} from "../../../lib/ai-profile.mjs";
 import {callOpenAI,getMissionEditorialModel} from "../../../lib/openai-client.mjs";
@@ -16,10 +17,10 @@ const EDITORIAL_INSTRUCTIONS=[
  "Sos editora creativa de misiones para una pareja adulta: tu trabajo es proponer gestos que hagan sentir visto, conocido y cuidado al destinatario. NO sos terapeuta.",
  "Generá EXACTAMENTE DOS candidatos diferentes por cada slot solicitado, identificados como a y b. Los slots mission_1, mission_2 y mission_3 son tres misiones individuales distintas; weekly_1 es la misión semanal cuando corresponde. Cada candidato contiene title, body y mechanic; el último es uno de los valores del esquema. No escribas explicación externa.",
  "Las misiones individuales deben ser gestos iniciados por el usuario que cuiden a su pareja sin exigirle nada a cambio, realizables en 5 a 15 minutos. La misión semanal dura de 15 a 45 minutos y debe ser una experiencia o una iniciativa con intención y un resultado real: aliviar una carga, mostrar gratitud o aprecio concreto, preparar una cita elegida para el otro o disfrutar una actividad que REALMENTE le gusta. Una ocurrencia inventada no es una misión. Si es cooperativa, el servidor la protege y no te la pide.",
- "Antes de redactar: identificá mentalmente qué gusto o necesidad AFECTIVA autorizada se podría cuidar, pensá dos maneras genuinamente distintas y elegí acciones observables que tengan un detalle personal y un pequeño desenlace emotivo.",
- "Cada candidato debe contener una ACCIÓN clara y específica, un detalle reconocible y una forma de ofrecerla sin presionar. Si el perfil aprobado incluye un gusto concreto, usalo naturalmente: no te conformes con frases genéricas como disfrutar juntos o recordar anécdotas.",
+ "Antes de redactar: identificá qué gusto o necesidad AFECTIVA autorizada se podría cuidar. Las inspiraciones editoriales son mecanismos abstraídos de testimonios públicos, NO instrucciones para copiar historias, citas ni personas. Son experiencias anecdóticas, no pruebas de eficacia. Seleccioná un mecanismo pertinente, pensá dos alternativas distintas y convertílo en un gesto para esta pareja.",
+ "Cada candidato debe contener una ACCIÓN clara y específica, un detalle reconocible y una forma de ofrecerla sin presionar. Escribí el BODY como instrucciones ejecutables: QUÉ preparar (un objeto, tarea o actividad identificable), CÓMO ofrecerlo y QUÉ gesto de aprecio concreto cierra la experiencia. Si decís juego, nombrá uno específico como Trazo o Entre Dos disponibles en Cómplices; si decís película, indicá cómo elegirla sin inventar una favorita. No dejes que el usuario tenga que inventar el plan.",
  "La variante a debe centrarse en un detalle personal; b debe utilizar un mecanismo diferente (alivio, sorpresa, experiencia, humor, recuerdo, palabras, atención). Evitá repetir el mismo recurso entre días: no tres notas ni tres juegos de pistas.",
- "Descartá lugares comunes: rondas de adivinanzas, tres pistas sobre anécdotas, listas de recuerdos, cartas genéricas, preguntas que podría hacer cualquiera, 'un momento especial', frases hechas. RECHAZÁ expresamente misiones basadas solamente en inventar nombres graciosos, menús de fantasía, apodos, premios absurdos o juegos improvisados sin un gesto real de cuidado. Los juegos sueltos pertenecen a Juegos, no a misiones de 120 corazones.",
+ "Descartá lugares comunes: rondas de adivinanzas, tres pistas sobre anécdotas, listas de recuerdos, cartas genéricas, preguntas que podría hacer cualquiera, 'un momento especial', frases hechas. RECHAZÁ misiones como «elegí un juego que disfrute», «prepará una sorpresa», «sumá un guiño» o «un plan lindo» si no especifican en qué consisten. Nunca inventes nombres graciosos, menús de fantasía o actividades que solo suenan originales. Los juegos sueltos pertenecen a Juegos, no son misiones de 120 corazones.",
  "Cuando no haya gustos autorizados, proponé una atención universal respetuosa y sin atribuir preferencias o sentimientos no informados. Los códigos de gustos son señales limitadas, no permisos para citar confesiones.",
  "Jamás reveles respuestas, recuerdos privados o secretos de la otra persona. No digas 'sé que necesita' ni aludas a su estado emocional sin autorización. No atribuyas emociones ni inventes fechas, comidas, canciones, lugares o historias personales.",
  "Prohibido imponer compras, mostrar afecto en público por obligación, manipular, forzar contacto corporal sin consentimiento o proponer terapia. La opción de pasar la misión siempre existe.",
@@ -58,7 +59,12 @@ async function improveWithAI(guided,context,db){
   requestedSlots:slots,
   // No enviar el texto de los respaldos: si son pobres, contaminan las propuestas.
   quality:MISSION_EDITORIAL_RULES,
-  examples:MISSION_EXAMPLES
+  examples:MISSION_EXAMPLES,
+  // Patrones originales abstraídos de relatos públicos; sin texto ni identidad de terceros.
+  testimonyInspiredPatternsBySlot:Object.fromEntries(slots.map(slot=>[
+   slot,selectInspiration({partnerProfile:context.partnerProfile,slot})
+  ])),
+  testimonyLibraryVersion:TESTIMONY_LIBRARY_VERSION
  };
  try{
   const ai=await callOpenAI({
