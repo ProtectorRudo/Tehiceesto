@@ -667,7 +667,7 @@ async function saveMemory(){
     </form>
     {notice&&<div className="alert" role="status">{notice}</div>}
     {authMode==="crear"&&<button type="button" className="link-button" style={{marginTop:13}} onClick={()=>{setAuthMode("entrar");setNotice("")}}>Ya confirmé mi correo · Iniciar sesión</button>}
-    <p className="auth-helper">🔒 Un espacio para dos personas adultas. Cada uno tiene su propia cuenta y sus datos personales.</p>
+    <p className="auth-helper">🔒 Un espacio para dos personas adultas. Cada uno tiene su propia cuenta y sus datos personales.</p>{authMode==="crear"&&<p className="auth-helper">♡ Al crear tu espacio, la personalización de gustos y los recordatorios quedan preparados por defecto. Podés desactivarlos desde Perfil y privacidad. Solo compartimos pistas estructuradas con la IA de tu pareja; no se muestran tus respuestas escritas, secretos ni recuerdos privados. Las notificaciones requieren el permiso del celular.</p>}
    </div>
   </section>
   <footer className="page-bottom">Cómplices · Con cariño y respeto por su privacidad · Una experiencia de TeHiceEsto</footer>
@@ -688,7 +688,7 @@ async function saveMemory(){
      <Button full disabled={busy} type="submit">{busy?"Guardando…":inviteInput?"Unirme a nuestra pareja ♡":"Crear nuestro espacio ♡"}</Button>
     </form>
     {notice&&<div role="status" className="alert">{notice}</div>}
-    <p className="auth-helper">🔒 Solo dos integrantes por espacio. La invitación no permite consultar recuerdos privados.</p>
+    <p className="auth-helper">🔒 Solo dos integrantes por espacio. Tus gustos pueden inspirar ideas para tu pareja sin revelar tus respuestas. Personalización y recordatorios vienen habilitados por defecto, pero podés desactivarlos en Perfil y privacidad. El celular debe permitir las notificaciones para recibirlas.</p>
    </div>
   </section>
  </main>;
@@ -696,7 +696,7 @@ async function saveMemory(){
  return <main className="app main-app">
   <header className="top">
    <div className="brand"><span className="mark">♡</span> Cómplices</div>
-   <div className="top-actions"><span className="heart-pill">♥ {totalHearts} corazones</span>
+   <div className="top-actions"><button type="button" className="heart-pill our-hearts-trigger" aria-label="Ver nuestros corazones" onClick={()=>{setTab("nosotros");window.scrollTo({top:0,behavior:"smooth"})}}>♥ {totalHearts} corazones</button>
     <button type="button" className={"profile-trigger"+(tab==="perfil"?" active":"")} aria-label="Perfil y privacidad" title="Perfil y privacidad" onClick={()=>{setTab("perfil");setNotice("");window.scrollTo({top:0,behavior:"smooth"})}}><NavIcon name="perfil"/></button>
    </div>
   </header>
