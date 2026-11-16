@@ -79,7 +79,7 @@ export default function Home(){
  const [memoryText,setMemoryText]=useState(""),[memoryCategory,setMemoryCategory]=useState("gustos"),[memoryShare,setMemoryShare]=useState(false),[memoryShareTheme,setMemoryShareTheme]=useState(""),[editingMemory,setEditingMemory]=useState(null);
  const [centralActivities,setCentralActivities]=useState([]),[centralMode,setCentralMode]=useState("guiado"),[centralLoading,setCentralLoading]=useState(false),[centralError,setCentralError]=useState(""),[partnerInsightCount,setPartnerInsightCount]=useState(0),[centralSchedule,setCentralSchedule]=useState(null);
  const [deepAnswer,setDeepAnswer]=useState(""),[deepUseAI,setDeepUseAI]=useState(true);
- const [ongoingQuestion,setOngoingQuestion]=useState(null),[ongoingLoading,setOngoingLoading]=useState(false),[ongoingError,setOngoingError]=useState(""),[learningChoice,setLearningChoice]=useState("");
+ const [ongoingQuestion,setOngoingQuestion]=useState(null),[ongoingLoading,setOngoingLoading]=useState(false),[ongoingError,setOngoingError]=useState(""),[learningChoice,setLearningChoice]=useState(""),[retryLearning,setRetryLearning]=useState(0);
  const [profileSaveState,setProfileSaveState]=useState("");
  const [weeklyAnswer,setWeeklyAnswer]=useState(""),[weeklyAllowAI,setWeeklyAllowAI]=useState(false),[dismissedPulse,setDismissedPulse]=useState("");
  const [importantDates,setImportantDates]=useState([]),[importantDateLabel,setImportantDateLabel]=useState(""),[importantDateKind,setImportantDateKind]=useState("aniversario"),[importantDateOn,setImportantDateOn]=useState(""),[importantDateRepeats,setImportantDateRepeats]=useState(true),[importantDateShare,setImportantDateShare]=useState(false);
@@ -150,7 +150,7 @@ export default function Home(){
    finally{if(active)setOngoingLoading(false)}
   })();
   return()=>{active=false};
- },[user?.id,member?.space_id,reflections.length]);
+ },[user?.id,member?.space_id,reflections.length,retryLearning]);
  useEffect(()=>{
   if(!user?.id||!member?.space_id)return;
   let lastCheck=Date.now();
@@ -345,17 +345,35 @@ export default function Home(){
   finally{setCheckingAI(false)}
  }
  async function saveDeepAnswer(){
-  if(!user||!nextDeepQuestion||!deepAnswer.trim()||busy)return;
-  setBusy(true);setNotice("");
-  const {error}=await db.from("cp_reflections").upsert({
-   user_id:user.id,question_id:nextDeepQuestion[0],question:nextDeepQuestion[1],
-   answer:deepAnswer.trim().slice(0,1200),ai_use_allowed:deepUseAI,
-   share_for_surprises:false,share_theme:null,updated_at:new Date().toISOString()
-  },{onConflict:"user_id,question_id"});
-  if(error)setNotice(getError(error));else{
-   setDeepAnswer("");setDeepUseAI(true);setNotice("Tu respuesta quedó guardada para tu IA personal. No se muestra a tu pareja.");await load(user);if(deepUseAI)await refreshCentral();
+  if(!user||!deepAnswer.trim()||busy)return;
+  const question=nextDeepQuestion?{id:nextDeepQuestion[0],question:nextDeepQuestion[1]}:continuingQuestion;
+  if(!question)return;
+  if(continuingQuestion&&!learningOptions(continuingQuestion.topic_key).some(x=>x[0]===learningChoice)){
+   setNotice("Elegí qué opción representa mejor tus gustos actuales.");return;
   }
-  setBusy(false);
+  setBusy(true);setNotice("");
+  try{
+   // El texto de esta reflexión permanece en la cuenta del autor. Solo
+   // se comparte el código de preferencia elegido, si existe consentimiento general.
+   if(continuingQuestion){
+    const {data:stored,error:cardError}=await db.from("cp_ai_profile_cards").upsert({
+     user_id:user.id,question_key:continuingQuestion.topic_key,
+     answer_code:learningChoice,share_with_partner_ai:Boolean(pref?.allow_surprises),updated_at:new Date().toISOString()
+    },{onConflict:"user_id,question_key"}).select("question_key,answer_code").single();
+    if(cardError||!stored||stored.answer_code!==learningChoice)throw cardError||new Error("No se pudo guardar el cambio de gustos");
+   }
+   const {data:ref,error}=await db.from("cp_reflections").upsert({
+    user_id:user.id,question_id:question.id,question:question.question,
+    answer:deepAnswer.trim().slice(0,1200),ai_use_allowed:deepUseAI,
+    share_for_surprises:false,share_theme:null,updated_at:new Date().toISOString()
+   },{onConflict:"user_id,question_id"}).select("question_id").single();
+   if(error||!ref||ref.question_id!==question.id)throw error||new Error("No se pudo confirmar tu respuesta");
+   setDeepAnswer("");setDeepUseAI(true);setLearningChoice("");
+   setNotice(continuingQuestion?"Aprendí algo nuevo sobre vos. Tus palabras siguen siendo privadas.":"Respuesta guardada para tu IA personal, sin compartir tus palabras.");
+   await load(user);
+   await refreshCentral();
+  }catch(error){setNotice("No pude guardar tu respuesta: "+getError(error))}
+  finally{setBusy(false)}
  }
  async function saveImportantDate(){
   if(!user||!member||busy)return;
@@ -645,7 +663,7 @@ async function saveMemory(){
     {continuingQuestion&&<div className="ongoing-learning-choice"><p className="tiny">¿QUÉ TE REPRESENTA MEJOR HOY?</p><div className="profile-answer-grid" role="group" aria-label="Actualizar mi preferencia">{learningOptions(continuingQuestion.topic_key).map(([value,label])=><button type="button" key={value} className={"choice"+(learningChoice===value?" selected":"")} aria-pressed={learningChoice===value} disabled={busy} onClick={()=>setLearningChoice(value)}>{label}</button>)}</div><p className="subtle">Esta elección actualiza lo que tu IA sabe de tus gustos. Si habilitaste la personalización para los dos, también podrá inspirar las misiones de tu pareja, sin mostrar tus palabras.</p></div>}<textarea className="textarea" maxLength={1200} value={deepAnswer} onChange={e=>setDeepAnswer(e.target.value)} placeholder="Tu respuesta, con tus palabras…" aria-label="Mi respuesta privada"/>
     <p className="complice-data-note">🔒 El texto es privado y no se muestra a tu pareja. Tu IA puede usarlo para aprender. Las pistas para las misiones del otro son solamente elecciones estructuradas, si las habilitaste en Privacidad.</p>
     <Button full disabled={busy||!deepAnswer.trim()||Boolean(continuingQuestion&&!learningChoice)} onClick={saveDeepAnswer}>{continuingQuestion?"Guardar lo que aprendiste de mí ♡":"Guardar y seguir ♡"}</Button>
-   </>:<><h3>{ongoingLoading?"Preparando una nueva pregunta…":learningSummary.answeredThisWeek?"Esta semana ya aprendí algo nuevo de vos ♡":"Tu perfil sigue creciendo"}</h3><p className="subtle">{learningSummary.answeredThisWeek?"La próxima semana tendremos otra pregunta diferente. Tu IA no deja de aprender al llegar al 100 %.":ongoingError||"Completaste las preguntas iniciales. Cada semana aparece una nueva, según lo que vayamos conociendo."}</p>{ongoingError&&<Button secondary small onClick={()=>{setOngoingQuestion(null);setReflections(x=>[...x])}}>Reintentar</Button>}</>}
+   </>:<><h3>{ongoingLoading?"Preparando una nueva pregunta…":learningSummary.answeredThisWeek?"Esta semana ya aprendí algo nuevo de vos ♡":"Tu perfil sigue creciendo"}</h3><p className="subtle">{learningSummary.answeredThisWeek?"La próxima semana tendremos otra pregunta diferente. Tu IA no deja de aprender al llegar al 100 %.":ongoingError||"Completaste las preguntas iniciales. Cada semana aparece una nueva, según lo que vayamos conociendo."}</p>{ongoingError&&<Button secondary small onClick={()=>{setOngoingQuestion(null);setRetryLearning(n=>n+1)}}>Reintentar</Button>}</>}
   </section>}
   {compliceView==="gustos"&&<section className="complice-main-panel complice-gustos">
    <div className="row between wrap"><span className="tiny">MI PERFIL DE GUSTOS</span><span className="complice-count">{profileCompletion.answered}/{profileCompletion.total}</span></div>
