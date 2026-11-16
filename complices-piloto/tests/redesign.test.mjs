@@ -14,23 +14,26 @@ test("el sistema visual claro se carga después de los estilos históricos",()=>
  assert.ok(css.includes("--berry:#6a2e5b"));
  assert.ok(css.includes("--pink:#e75f86"));
 });
-test("la identidad gráfica original de la pareja está disponible",()=>{
- const svg=read("public/couple-sunset.svg");
- assert.match(svg,/<svg/);
- assert.match(svg,/<title/);
- assert.match(svg,/Dos personas/);
+test("el primer impacto usa recursos abstractos originales, no figuras humanas deformadas",()=>{
  assert.ok(read("public/icon.svg").includes("<svg"));
+ assert.ok(page.includes('className="hero-art hero-abstract"'));
+ assert.ok(page.includes('className="onboarding-art onboarding-abstract"'));
+ assert.ok(!page.includes("Dos personas abrazadas mirando un atardecer"));
+ assert.ok(!css.includes("couple-sunset.svg"));
 });
 test("portada, bienvenida, navegación, misiones y juegos tienen pantalla",()=>{
- for(const item of ["app marketing","onboarding-route","main-app","mission-filter",'tab==="misiones"','tab==="juegos"','tab==="preguntas"',"question-spotlight"])
+ for(const item of ["app marketing","onboarding-route","main-app","mission-filter","mission-archive",'tab==="juegos"','tab==="preguntas"',"question-spotlight"])
   assert.ok(page.includes(item),item);
 });
 test("perfil es pantalla propia y mantiene controles de privacidad",()=>{
  for(const item of ['tab==="perfil"',"cp_export_my_personal_data","cp_reset_my_ai_profile","requestNotifications","disableNotifications","notificationSettings"])
   assert.ok(page.includes(item),item);
 });
-test("la navegación móvil conserva los cinco destinos principales",()=>{
- for(const item of ['["hoy"','["misiones"','["juegos"','["mensajes"','["complice"'])assert.ok(page.includes(item));
+test("navegación de cinco destinos, con misiones en Hoy y preguntas en Juegos",()=>{
+ for(const item of ['["hoy"','["juegos"','["nosotros"','["mensajes"','["complice"'])assert.ok(page.includes(item));
+ assert.ok(!page.includes('["misiones"'));
+ assert.ok(!page.includes('tab==="misiones"'));
+ assert.ok(page.includes('className="play-hub-nav"'));
  assert.ok(page.includes("NavIcon name={key}"));
 });
 test("permanecen accesibles el registro y las invitaciones",()=>{
@@ -46,14 +49,14 @@ test("se atiende al tamaño de pantalla y al movimiento reducido",()=>{
  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
 });
 
-test("la portada Hoy usa diseño abstracto sin ilustración humana",()=>{
- assert.ok(page.includes('className="accent-card today-hero"'));
- assert.ok(page.includes('className="today-hero-mark"'));
- assert.match(page,/Lo más lindo de hoy todavía puede pasar/);
- assert.match(page,/Ver misiones →/);
- assert.match(page,/Enviar pregunta/);
- assert.match(css,/\.dashboard>\.today-hero:after\{display:none;content:none;background:none\}/);
- assert.ok(!css.includes("background:url('/couple-sunset.svg') center/contain no-repeat"));
- assert.match(css,/\.dashboard>\.today-hero \.today-actions \.btn/);
- assert.match(css,/@media\(max-width:375px\)/);
+test("Hoy no duplica la portada de marketing y ofrece una misión útil",()=>{
+ assert.ok(page.includes('className="primary-mission"'));
+ assert.ok(page.includes("pickFocusMission({todayTasks,pendingTasks,weeklyTasks"));
+ assert.ok(page.includes("OPTIONAL_GESTURE.title"));
+ assert.ok(page.includes("focusMissionHeading(focusMission,date)"));
+ assert.ok(page.includes("mission-archive"));
+ assert.ok(!page.includes('className="accent-card today-hero"'));
+ assert.ok(css.includes(".optional-gesture"));
+ assert.ok(css.includes(".today-welcome"));
+ assert.ok(css.includes("@media(max-width:375px)"));
 });
