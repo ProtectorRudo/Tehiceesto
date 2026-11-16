@@ -3,6 +3,8 @@
 import {useState,useEffect,useCallback} from "react";
 import EntreDosOnline from "../components/EntreDosOnline.jsx";
 import AvatarPicker,{AvatarCircle} from "../components/AvatarPicker.jsx";
+import DailyMoodCard from "../components/DailyMoodCard.jsx";
+import {validMood,validCareNeed,careSuggestion} from "../lib/today-care.mjs";
 import {createClient} from "@supabase/supabase-js";
 import {PROFILE_QUESTIONS,profileProgress} from "../lib/ai-profile.mjs";
 import {taskDayFromKey} from "../lib/mission-schedule.mjs";
@@ -77,6 +79,7 @@ export default function Home(){
  const [avatarUrls,setAvatarUrls]=useState({}),[avatarRefresh,setAvatarRefresh]=useState(0),[pushReady,setPushReady]=useState(false);
  const [activities,setActivities]=useState([]),[messages,setMessages]=useState([]),[notes,setNotes]=useState([]),[reflections,setReflections]=useState([]),[memories,setMemories]=useState([]),[aiRatings,setAiRatings]=useState([]),[notificationSettings,setNotificationSettings]=useState({enabled:true,reflection_prompts_enabled:true,quiet_start:"22:00",quiet_end:"08:00"}),[pushPromptDismissed,setPushPromptDismissed]=useState(false);
  const [name,setName]=useState(""),[inviteInput,setInviteInput]=useState("");
+ const [todayMood,setTodayMood]=useState(null),[careHints,setCareHints]=useState([]),[moodBusy,setMoodBusy]=useState(false),[moodNotice,setMoodNotice]=useState("");
  const [fullGame,setFullGame]=useState(null),[fullGameBusy,setFullGameBusy]=useState(false),[fullGameError,setFullGameError]=useState(""),[onlineEntre,setOnlineEntre]=useState(null);
  const [tab,setTab]=useState("hoy"),[compliceView,setCompliceView]=useState("conocerme"),[missionFilter,setMissionFilter]=useState("diarias"),[messageText,setMessageText]=useState(""),[replyText,setReplyText]=useState(""),[replyTo,setReplyTo]=useState(null),[questionTopic,setQuestionTopic]=useState("romance");
  const [noteText,setNoteText]=useState("");
@@ -107,7 +110,7 @@ export default function Home(){
   if(!u)return;
   const {data:m,error:e}=await db.from("cp_members").select("*").eq("user_id",u.id).maybeSingle();
   if(e){setNotice(getError(e));return}
-  if(!m){setMember(null);setMembers([]);setSpace(null);setPref(null);return}
+  if(!m){setMember(null);setMembers([]);setSpace(null);setPref(null);setTodayMood(null);setCareHints([]);return}
   setMember(m);
   const [s,mm,p,c,ms,n,t,rfl,ns,mem,feedback,structured,dateRows]=await Promise.all([
    db.from("cp_spaces").select("*").eq("id",m.space_id).single(),
@@ -124,10 +127,18 @@ export default function Home(){
    db.from("cp_ai_profile_cards").select("question_key,answer_code,share_with_partner_ai,updated_at").eq("user_id",u.id),
    db.from("cp_important_dates").select("id,space_id,user_id,kind,label,event_on,repeat_yearly,share_with_partner").eq("space_id",m.space_id).order("event_on",{ascending:true})
   ]);
+  const [ownMoment,allowedCareHints]=await Promise.all([
+   db.from("cp_today_moods").select("user_id,space_id,day,mood,care_need,share_care_hint,updated_at").eq("user_id",u.id).maybeSingle(),
+   db.from("cp_partner_care_hints").select("user_id,space_id,day,care_need").eq("space_id",m.space_id).eq("day",todayKey())
+  ]);
+  if(ownMoment.error)setMoodNotice("No pude leer tu momento de hoy: "+getError(ownMoment.error));
+  else setTodayMood(ownMoment.data?.day===todayKey()?ownMoment.data:null);
+  if(allowedCareHints.error)setMoodNotice("No pude leer las pistas autorizadas: "+getError(allowedCareHints.error));
+  else setCareHints(allowedCareHints.data||[]);
   if(s.error)setNotice(getError(s.error));
   setSpace(s.data||null);setMembers(mm.data||[]);setPref(p.data||null);setActivities(c.data||[]);setMessages(ms.data||[]);setNotes(n.data||[]);setReflections(rfl.data||[]);setMemories(mem.data||[]);setAiRatings(feedback.data||[]);if(structured.error)setNotice("No pude leer tus gustos guardados: "+getError(structured.error));else setProfileCards(structured.data||[]);setImportantDates(dateRows.data||[]);if(dateRows.error)setNotice("No pude cargar las fechas guardadas: "+getError(dateRows.error));setNotificationSettings(ns.data||{enabled:true,reflection_prompts_enabled:true,quiet_start:"22:00",quiet_end:"08:00"});if(t.data)setSurprise(t.data);const {data:gameRows}=await db.from("cp_game_entries").select("game_key,answer").eq("space_id",m.space_id).eq("user_id",u.id);if(gameRows)setGameAnswers(Object.fromEntries(gameRows.map(g=>[g.game_key,g.answer])));
  },[]);
- useEffect(()=>{if(user){load(user)}else{setMember(null);setSpace(null)}},[user,load]);
+ useEffect(()=>{if(user){load(user)}else{setMember(null);setSpace(null);setTodayMood(null);setCareHints([]);setMoodNotice("")}},[user,load]);
 
  // Solo imágenes del propio espacio; la descarga privada exige RLS de Supabase.
  const avatarKey=members.map(m=>m.user_id+":"+(m.avatar_path||"")).join("|");
@@ -215,15 +226,47 @@ export default function Home(){
   let stopped=false;
   const poll=async()=>{
    if(document.visibilityState==="hidden")return;
-   const [{data:ms},{data:ac}]=await Promise.all([
+   const [{data:ms},{data:ac},{data:hints}]=await Promise.all([
     db.from("cp_messages").select("*").eq("space_id",member.space_id).order("created_at",{ascending:true}).limit(100),
-    db.from("cp_completions").select("*").eq("space_id",member.space_id)]);
+    db.from("cp_completions").select("*").eq("space_id",member.space_id),
+    db.from("cp_partner_care_hints").select("user_id,space_id,day,care_need").eq("space_id",member.space_id).eq("day",todayKey())
+   ]);
    if(stopped)return;
    if(ms)setMessages(ms);
    if(ac)setActivities(ac);
+   if(hints)setCareHints(hints);
   };
   poll();const timer=setInterval(poll,25000);window.addEventListener("focus",poll);return()=>{stopped=true;clearInterval(timer);window.removeEventListener("focus",poll)}
  },[user,member]);
+ async function saveDailyMood({mood,care_need,share_care_hint}){
+  if(!user?.id||!member?.space_id||moodBusy||!validMood(mood))return;
+  if(care_need!==null&&!validCareNeed(care_need)){setMoodNotice("Elegí una necesidad válida.");return}
+  setMoodBusy(true);setMoodNotice("");
+  try{
+   const {data:saved,error}=await db.from("cp_today_moods").upsert({
+    user_id:user.id,space_id:member.space_id,day:todayKey(),mood,
+    care_need,share_care_hint:Boolean(share_care_hint&&care_need),
+    updated_at:new Date().toISOString()
+   },{onConflict:"user_id"}).select("user_id,space_id,day,mood,care_need,share_care_hint,updated_at").single();
+   if(error||!saved||saved.user_id!==user.id)throw error||new Error("No se pudo comprobar el guardado.");
+   setTodayMood(saved);
+   setMoodNotice(saved.share_care_hint
+    ?"Guardado. Tu pareja recibirá solo una sugerencia de cuidado; tu emoción sigue privada."
+    :"Guardado de forma privada. Tu pareja no recibe ninguna pista.");
+  }catch(e){setMoodNotice("No pude guardar tu momento: "+getError(e))}
+  finally{setMoodBusy(false)}
+ }
+ async function clearDailyMood(){
+  if(!user?.id||moodBusy)return;
+  setMoodBusy(true);setMoodNotice("");
+  try{
+   const {data,error}=await db.from("cp_today_moods").delete().eq("user_id",user.id).select("user_id").maybeSingle();
+   if(error)throw error;
+   setTodayMood(null);
+   setMoodNotice(data?"Tu momento fue eliminado y la pista para tu pareja quedó revocada.":"No había un momento guardado.");
+  }catch(e){setMoodNotice("No pude borrar tu momento: "+getError(e))}
+  finally{setMoodBusy(false)}
+ }
  async function requestPasswordRecovery(e){
   e.preventDefault();if(busy||!email.trim())return;
   setBusy(true);setNotice("");
@@ -266,6 +309,7 @@ export default function Home(){
  async function joinSpace(e){e.preventDefault();if(!name.trim()||!inviteInput.trim())return;setBusy(true);setNotice("");const {error}=await db.rpc("cp_join_by_invite",{p_code:inviteInput.trim().replace(/^.*invite=/,"").split("&")[0].toLowerCase(),p_name:name.trim()});if(error)setNotice(getError(error));else {sessionStorage.removeItem("cp_pending_invite");await load(user)}setBusy(false)}
  function shareInvite(){const link=window.location.origin+"/?invite="+space.invite_code;if(navigator.share){navigator.share({title:"Nuestro espacio en Cómplices",text:"Te invito a nuestro rincón ❤️",url:link}).catch(()=>{})}else{navigator.clipboard?.writeText(link).then(()=>setNotice("Enlace copiado. Mandáselo a tu pareja por WhatsApp.")).catch(()=>setNotice("Copiá este enlace: "+link))}}
  const partner=members.find(m=>m.user_id!==user?.id), date=todayKey(), week=weeklyKey();
+ const partnerCareHint=careHints.find(row=>partner&&row.user_id===partner.user_id&&row.day===date&&validCareNeed(row.care_need));
  const byCentralSlot=Object.fromEntries(centralActivities.map(item=>[item.slot,item]));
  const tasks=centralActivities.filter(a=>/^mission_[123]$/.test(a.slot)||a.slot==="weekly_1").map(a=>({
   id:a.id,slot:a.slot,key:a.task_key,title:a.title,body:a.body,icon:a.icon,points:a.points,
@@ -631,7 +675,10 @@ async function saveMemory(){
    const {data,error}=await db.rpc("cp_export_my_personal_data");
    if(error)throw error;
    if(!data||data.user_id!==user.id)throw new Error("No se pudo verificar la exportación privada.");
-   const contents=JSON.stringify(data,null,2);
+   const {data:privateMoment,error:momentError}=await db.from("cp_today_moods")
+    .select("day,mood,care_need,share_care_hint,updated_at").eq("user_id",user.id).maybeSingle();
+   if(momentError)throw momentError;
+   const contents=JSON.stringify({...data,mi_momento_actual:privateMoment||null},null,2);
    const blob=new Blob([contents],{type:"application/json;charset=utf-8"});
    const url=URL.createObjectURL(blob);
    const link=document.createElement("a");
@@ -781,6 +828,13 @@ async function saveMemory(){
    {!partner?<><div className="note">Invitá a tu pareja para jugar y conversar juntos.</div><Button small onClick={shareInvite}>Compartir invitación</Button><p className="subtle">Código: {space?.invite_code}</p></>:<p className="subtle">Conectados: {member.display_name} + {partner.display_name} ♡</p>}
   </div>
  </div>
+ <DailyMoodCard current={todayMood} today={date} busy={moodBusy} notice={moodNotice} onSave={saveDailyMood} onClear={clearDailyMood}/>
+ {partnerCareHint&&<section className="partner-care-idea" aria-label="Una idea de cuidado para tu pareja">
+  <span className="tiny">UNA IDEA PARA CUIDAR SU DÍA ✦</span>
+  <h3>Un pequeño gesto para {partner.display_name}</h3>
+  <p>{careSuggestion(partnerCareHint.care_need)}</p>
+  <span className="partner-care-privacy">Esta sugerencia nace de una pista que tu pareja eligió compartir. No revela cómo se siente.</span>
+ </section>}
  {upcomingDates.length>0&&<div className="upcoming-date-card"><div className="row between"><span className="tiny">SU HISTORIA TIENE FECHAS IMPORTANTES</span><span aria-hidden="true">🗓️</span></div>{upcomingDates.slice(0,2).map(d=><p key={d.id}><strong>{d.days_until===0?"Hoy":d.days_until===1?"Mañana":"En "+d.days_until+" días"}</strong> · {d.label}</p>)}<Button secondary small onClick={()=>{setTab("complice");window.scrollTo({top:0,behavior:"smooth"})}}>Ver nuestras fechas</Button></div>}
  {weeklyPromptReady&&<div className="weekly-pulse-card"><div className="row between"><span className="tiny">UNA PREGUNTA ESPECIAL DE ESTA SEMANA</span><span aria-hidden="true">💌</span></div><h3>{weeklyPrompt.question}</h3><p className="subtle">No es una misión. Solo un momento para reflexionar, si te nace. La respuesta es privada.</p><textarea className="textarea" value={weeklyAnswer} onChange={e=>setWeeklyAnswer(e.target.value)} maxLength={1200} placeholder="Una respuesta que solo vos vas a poder leer…"/><label className="toggle"><input type="checkbox" checked={weeklyAllowAI} onChange={e=>setWeeklyAllowAI(e.target.checked)}/> Mi IA puede recordar lo que escriba para recomendarme mejor</label><div className="row wrap"><Button small disabled={busy||!weeklyAnswer.trim()} onClick={answerWeeklyPrompt}>Guardar respuesta</Button><Button small secondary onClick={()=>setDismissedPulse(weeklyPrompt.id)}>Ahora no</Button></div></div>}
  {profileCompletion.remaining.length>0&&knowledge.percent<25&&!weeklyPromptReady&&<div className="central-daily-checkin"><div className="central-checkin-symbol" aria-hidden="true">✦</div><div className="grow"><span className="tiny">TU IA APRENDE DE VOS</span><h3>Una pregunta para conocerte mejor</h3><p className="subtle">{profileCompletion.remaining[0].question} Respondé cuando quieras: tus gustos ayudan a elegir mejores ideas.</p></div><Button small secondary onClick={()=>{selectProfileQuestion(profileCompletion.remaining[0].key);setTab("complice");window.scrollTo({top:0,behavior:"smooth"})}}>Responder ♡</Button></div>}<div className="section-title"><h2>Tu misión de hoy</h2><Pill>{centralLoading?"Preparando…":centralMode==="generativa"?"IA personalizada":"Misiones con intención"}</Pill></div>{centralError&&<div className="note">No pude actualizar la agenda. {centralError}</div>}
