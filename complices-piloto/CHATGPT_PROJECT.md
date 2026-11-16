@@ -141,3 +141,14 @@ Cómplices debe hacerse útil con el tiempo sin invadir la vida de la pareja. No
 - No se comprobó con una fecha verdadera si OpenAI propone la misión emocionalmente adecuada: requiere revisión humana del contenido generado.
 - La PWA no realiza tareas cada minuto en segundo plano; únicamente el cron semanal programado puede solicitar un Push con la web cerrada.
 
+
+
+## Juegos TeHiceEsto — integración separada al piloto (16/11/2026)
+- Tres juegos completos de la fuente original del repositorio TeHiceEsto se copian únicamente bajo complices-piloto/, sin cambiar la rama main, los pagos ni las páginas comerciales.
+- /api/games: entrega autenticada por Supabase Auth y comprobación de cp_members, con Cache-Control private no-store; el contenido completo no se publica en archivos estáticos.
+- Entre Dos: 90 preguntas originales; modo un celular compartido y nuevo modo dos celulares para integrantes del mismo espacio. cp_entre_dos_rooms sincroniza la ronda; cp_entre_dos_answers mantiene respuestas individuales con RLS. Las RPC cp_entre_dos_state, cp_entre_dos_reveal y cp_entre_dos_next verifican membresía, no muestran elecciones hasta recibir dos, y avanzan únicamente al completar ambos. SQL transaccional: 7/7 pruebas, sin crear cuentas persistentes.
+- Meme Match: juego original completo con 48 parejas e imágenes, modo un celular para dos personas. Todavía no sincroniza dos dispositivos.
+- Trazo Cómplice: motor original de dibujo, CSS y 1.274 palabras, modo un celular compartido. Todavía no sincroniza dos dispositivos.
+- Los juegos aparecen dentro de Juegos con botón para volver a la aplicación. La pregunta y los juegos rápidos antiguos siguen disponibles en sección secundaria.
+- El juego completo se presenta en iframe aislado. No se mezclan datos privados de fichas con los juegos ni se alteran los corazones o la frecuencia de misiones.
+- Pendiente: validación de los juegos en Android y dos cuentas reales en teléfonos diferentes. Último dato: un solo miembro real.
