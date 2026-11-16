@@ -223,6 +223,29 @@ export default function Home(){
   setBusy(false);
   if(error)setNotice(getError(error));else{setNotice("Esa respuesta se eliminó. Las nuevas recomendaciones ya no usarán esa pista.");await load(user);await refreshCentral();if(key===profileQuestion){setProfileAnswer("");setProfileShare(false)}}
  }
+ async function setPartnerPersonalization(allowed){
+  if(!user||!pref||busy)return;
+  // Una elección explícita en Privacidad, no una casilla en cada pregunta.
+  // Al desactivar: cortar primero el consentimiento general para que nada se filtre.
+  // Al activar: registrar primero los códigos compartibles y luego habilitar el consentimiento general.
+  setBusy(true);setNotice("");
+  try{
+   const now=new Date().toISOString();
+   if(!allowed){
+    const {data,error}=await db.from("cp_preferences").update({allow_surprises:false,updated_at:now}).eq("user_id",user.id).select("user_id");
+    if(error||!data?.length)throw error||new Error("No se pudo desactivar el uso compartido.");
+   }
+   const {error:cardsError}=await db.from("cp_ai_profile_cards").update({share_with_partner_ai:allowed,updated_at:now}).eq("user_id",user.id);
+   if(cardsError)throw cardsError;
+   if(allowed){
+    const {data,error}=await db.from("cp_preferences").update({allow_surprises:true,updated_at:now}).eq("user_id",user.id).select("user_id");
+    if(error||!data?.length)throw error||new Error("No se pudo habilitar el uso compartido.");
+   }
+   setNotice(allowed?"Listo: tus gustos estructurados pueden inspirar misiones de tu pareja. Ninguna respuesta privada se muestra.":"Desactivado: tus gustos dejan de utilizarse en nuevas sorpresas para la otra persona.");
+   await load(user);await refreshCentral();
+  }catch(e){setNotice("No pude actualizar esta preferencia: "+getError(e));await load(user)}
+  finally{setBusy(false)}
+ }
  async function savePref(){if(!user||!pref)return;setBusy(true);const {error}=await db.from("cp_preferences").update({favorite_treat:pref.favorite_treat,favorite_plan:pref.favorite_plan,love_language:pref.love_language,allow_surprises:pref.allow_surprises,adult_mode:pref.adult_mode,updated_at:new Date().toISOString()}).eq("user_id",user.id);setNotice(error?getError(error):"Preferencias guardadas. Actualizando propuestas para vos.");await load(user);if(!error)await refreshCentral();setBusy(false)}
  async function requestNotifications(){
   if(!("Notification" in window)||!("serviceWorker" in navigator)||!("PushManager" in window)){setNotice("Este navegador no admite todas las notificaciones. Podés seguir usando la página normalmente.");return}
@@ -617,6 +640,7 @@ async function saveMemory(){
   {tab==="perfil"&&<div className="profile-page">
   <div className="section-title"><div><span className="tiny">UN ESPACIO ÚNICO, DOS PERSONAS</span><h2>Perfil y privacidad</h2></div><button type="button" className="profile-back" onClick={()=>setTab("hoy")}>← Volver</button></div>
   <div className="profile-hero"><div className="profile-icon">♡</div><div><h3>{member.display_name}{partner?" & "+partner.display_name:" · Espacio privado"}</h3><p className="subtle">{partner?"Dos cómplices compartiendo una historia":"Invitá a tu pareja para comenzar juntos"}</p></div></div>
+<section className="privacy-sharing"><div className="row between wrap"><div><span className="tiny">UNA SOLA CONFIGURACIÓN</span><h3>Personalización para los dos</h3></div><span className={"sharing-indicator"+(pref?.allow_surprises?" on":"")}>{pref?.allow_surprises?"Activada":"Desactivada"}</span></div><p className="subtle">Al activarla, Cómplices puede utilizar tus respuestas de gustos, planes y deseos para pensar sorpresas para tu pareja. <strong>Tu pareja nunca ve tus respuestas: solo recibe ideas.</strong> Tus reflexiones escritas, recuerdos privados y chats no se comparten.</p><Button secondary={Boolean(pref?.allow_surprises)} small disabled={busy||!pref} onClick={()=>setPartnerPersonalization(!pref?.allow_surprises)}>{pref?.allow_surprises?"Desactivar personalización compartible":"Habilitar personalización para los dos"}</Button><p className="subtle" style={{fontSize:12}}>Se activa solo si vos lo elegís. Después no hace falta marcar permisos en cada pregunta; podés cambiarlo cuando quieras.</p></section>
 <div className="section-title"><h2>Mis datos y privacidad 🔐</h2></div><div className="glass box stack"><p className="subtle">Tus respuestas, recuerdos y notas personales solo pertenecen a tu cuenta. Podés conservar una copia de tus datos o empezar de nuevo con tu cómplice.</p><div className="row wrap"><Button secondary small disabled={busy} onClick={exportMyData}>↓ Exportar mis datos</Button><button type="button" className="btn ghost small" disabled={busy} onClick={clearMyAiMemory}>Borrar mi memoria de IA</button></div><p className="subtle">El borrado de memoria es irreversible y requiere dos confirmaciones. Conserva tus mensajes entre ambos y los corazones ya ganados. Las fechas importantes se conservan hasta que las elimines desde «Fechas que importan». No elimina tu cuenta de Supabase Auth ni afecta TeHiceEsto.</p></div><div className="complice-profile-options"><h3>Mis recuerdos y ajustes adicionales</h3><p className="subtle">Acá quedan las respuestas antiguas, notas privadas y comprobaciones técnicas, separadas de la experiencia principal.</p>  <details className="central-advanced"><summary>Quiero agregar más gustos o recuerdos (opcional)</summary><div className="central-advanced-body"><div className="section-title"><h2>Conoceme mejor ✨</h2><Pill>{reflections.filter(x=>ABOUT_QUESTIONS.some(q=>q[0]===x.question_id)).length}/{ABOUT_QUESTIONS.length}</Pill></div><div className="glass box stack"><p className="subtle">Si querés, podés dejar información adicional para afinar futuras propuestas. Tus respuestas son privadas: <strong>nunca se muestran directamente a tu pareja</strong>. Vos decidís si la IA puede usarlas para tus recomendaciones personales.</p><SelectField label="Elegí una pregunta personal" value={aboutQuestion} onChange={pickAbout} options={weeklyPromptReady?[[weeklyPrompt.id,"✨ Pregunta especial de esta semana"],...ABOUT_QUESTIONS]:ABOUT_QUESTIONS}/><div className="subtle">{aboutQuestion===weeklyPrompt.id?weeklyPrompt.question:"Una buena respuesta puede contar cómo, cuándo y por qué, no solo qué te gusta."}</div><textarea className="textarea" maxLength={1200} value={aboutAnswer} onChange={e=>setAboutAnswer(e.target.value)} placeholder="Respondé con tus palabras…"/><label className="toggle"><input type="checkbox" checked={aboutAllowAI} onChange={e=>{setAboutAllowAI(e.target.checked);if(!e.target.checked)setAboutShare(false)}}/> Mi IA puede usar esta respuesta para darme ideas personales</label>
 <label className="toggle"><input type="checkbox" disabled={!aboutAllowAI||aboutQuestion==="q07"||aboutQuestion.startsWith("pulse:")} checked={aboutShare} onChange={e=>setAboutShare(e.target.checked)}/> También quiero que mi pareja reciba sugerencias basadas SOLO en un tema que yo elija</label>
 {aboutShare&&<SelectField label="¿Qué tema le puede inspirar a tu pareja?" value={aboutShareTheme} onChange={setAboutShareTheme} options={SHARE_THEMES}/>}
