@@ -52,9 +52,9 @@ test("Hoy tiene una misión primero y Mi momento de hoy queda estrictamente al f
  const primary=hoy.indexOf('className="primary-mission mission-spotlight"');
  const archive=hoy.indexOf('className="mission-archive"');
  const question=hoy.indexOf('<h2>Una pregunta que acerca</h2>');
- const hint=hoy.indexOf('partnerCareHint&&<section');
+ const hint=hoy.indexOf('className="mission-care-cue"');
  const mood=hoy.indexOf('<DailyMoodCard');
- assert.ok(primary>=0&&primary<archive&&archive<question&&question<hint&&hint<mood);
+ assert.ok(primary>=0&&primary<hint&&hint<archive&&archive<question&&question<mood);
  assert.equal(hoy.split('<DailyMoodCard').length-1,1);
  assert.ok(!hoy.includes('className="dashboard"'));
 });
