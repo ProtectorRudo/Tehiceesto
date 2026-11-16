@@ -710,3 +710,37 @@ label{color:#6f5169;font-size:12.5px;font-weight:700;margin-bottom:8px}
 .teh-game-frame{display:block;flex:1 1 0;min-height:0;width:100%;border:0;background:#211522}
 @media(max-width:860px){.teh-games-grid{grid-template-columns:1fr;gap:10px}.teh-game-card{flex-direction:row;align-items:center;gap:13px;padding:17px}.teh-game-icon{flex:0 0 49px;margin-bottom:0}.teh-game-copy{flex:1}.teh-game-card .btn{width:auto;flex-shrink:0;margin:0}.teh-game-copy h3{font-size:19px}}
 @media(max-width:530px){.teh-game-card{flex-wrap:wrap;align-items:flex-start}.teh-game-copy{flex:1 1 calc(100% - 67px)}.teh-game-card .btn{margin-left:62px;width:calc(100% - 62px)}.teh-game-header{padding:9px 11px;min-height:59px}.teh-game-header strong{font-size:13px}.teh-game-header-caption{display:none}.teh-other-games-inside{padding:13px}}
+
+
+/* Entre Dos en dos dispositivos, sincronizado mediante Supabase con aislamiento RLS */
+.teh-game-actions{display:flex;gap:7px;width:100%;flex-wrap:wrap;align-items:stretch;margin-top:auto}
+.teh-game-actions .btn{margin:0;flex:1 1 120px;min-height:44px;padding:9px 10px;font-size:11px}
+.two-phone-stage{position:fixed;z-index:5100;inset:0;background:radial-gradient(ellipse at 50% -15%,#5b2949,#211525 65%);color:#fff5f4;overflow-y:auto;display:flex;flex-direction:column}
+.two-phone-top{position:sticky;top:0;z-index:10;background:#241728ed;backdrop-filter:blur(9px);border-bottom:1px solid #ffffff24;min-height:61px;padding:8px max(16px,env(safe-area-inset-left));display:flex;align-items:center;justify-content:space-between;gap:11px}
+.two-phone-top strong{font-family:Georgia,serif;font-weight:400;font-size:21px}
+.two-phone-top strong span{color:#f6afcb}
+.two-phone-top>span{font-size:11px;color:#dfc6dc}
+.two-phone-back{background:#ffffff13;border:1px solid #ffffff53;border-radius:12px;color:#fff;padding:11px 13px;font-weight:700;font-size:12px;cursor:pointer}
+.two-phone-content{width:min(100%,600px);padding:31px 20px max(28px,env(safe-area-inset-bottom));margin:0 auto}
+.two-phone-heading>span,.two-phone-count{font-size:10px;font-weight:850;letter-spacing:.11em;color:#ecb9ce}
+.two-phone-heading h2{font:400 clamp(36px,8vw,52px)/1.07 Georgia,serif;letter-spacing:-.035em;color:#fff;margin:14px 0}
+.two-phone-heading p{font-size:14px;line-height:1.6;color:#e0c6db;margin-bottom:25px}
+.two-phone-card{background:#fffbf5;color:#4a2840;border:1px solid #fff5f7;border-radius:25px;padding:28px 23px;box-shadow:0 14px 40px #0b061e70;min-height:240px}
+.two-phone-card h3{font:400 clamp(27px,6vw,38px)/1.14 Georgia,serif;letter-spacing:-.025em;margin:14px 0 23px}
+.two-phone-card>p{font-size:14px;line-height:1.6;color:#735a69}
+.two-phone-choices{display:grid;gap:11px;margin:18px 0 11px}
+.two-phone-choice{min-height:76px;border:1px solid #e9cfdb;border-radius:16px;background:#fff4fa;color:#693556;padding:16px;display:flex;gap:13px;align-items:center;text-align:left;cursor:pointer;font-size:14px;line-height:1.4}
+.two-phone-choice>span{display:grid;place-items:center;background:#efd4e1;border-radius:12px;width:36px;height:36px;flex-shrink:0;font-weight:900;font-size:15px;color:#893f70}
+.two-phone-choice.selected{border-color:#a74d86;background:#f7e1ef;box-shadow:0 0 0 2px #dfc2d5}
+.two-phone-choice:disabled:not(.selected){opacity:.58;cursor:default}
+.two-phone-wait{padding:15px 16px;border:1px solid #e6d2df;background:#f5e9f1;color:#855472;border-radius:14px;font-size:13px;margin-top:12px}
+.two-phone-reveal{margin-top:20px;border-top:1px solid #e9d4e2;padding-top:20px}
+.two-phone-answer{display:flex;gap:12px;align-items:baseline;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f0e5eb;font-size:13px}
+.two-phone-answer span{font-weight:700;text-align:right;color:#91466d}
+.two-phone-reveal>p{font-size:15px;color:#673653;line-height:1.6;margin:22px 0 18px;font-style:italic}
+.two-phone-cta{width:100%;border:0;border-radius:15px;background:#b7497f;color:#fff;font-size:14px;font-weight:850;padding:15px 13px;cursor:pointer;margin-top:10px}
+.two-phone-cta:disabled{opacity:.55}
+.two-phone-foot{text-align:center;color:#d7bbce;font-size:12px;line-height:1.6;margin:21px 0}
+.two-phone-error{border:1px solid #ff99af;background:#5f2840;color:#ffe4ec;border-radius:12px;padding:13px 15px;font-size:12px;line-height:1.5;margin-top:13px}
+@media(max-width:860px){.teh-game-actions{margin-left:0;flex:1 0 100%;}.teh-game-actions .btn{min-height:42px}}
+@media(max-width:540px){.teh-game-actions{margin-left:0;width:100%}.teh-game-actions .btn{flex:1 1 calc(50% - 5px)}.two-phone-card{padding:22px 16px}.two-phone-content{padding:23px 14px}.two-phone-top>span{display:none}}
