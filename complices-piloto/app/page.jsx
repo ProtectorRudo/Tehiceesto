@@ -9,6 +9,7 @@ import {createClient} from "@supabase/supabase-js";
 import {PROFILE_QUESTIONS,profileProgress} from "../lib/ai-profile.mjs";
 import {taskDayFromKey} from "../lib/mission-schedule.mjs";
 import {pickFocusMission,focusMissionHeading,OPTIONAL_GESTURE} from "../lib/today-focus.mjs";
+import {buildMissionHistory,missionDateLabel} from "../lib/mission-history.mjs";
 import {DEEP_QUESTIONS,DATE_TYPES,weeklyPersonalQuestion,profileKnowledge,upcomingOccasions} from "../lib/relationship-intelligence.mjs";
 import {learningOptions,learningStatus} from "../lib/continuous-learning.mjs";
 import {pointsForTask,heartsFor,sharedHearts} from "../lib/couple-hearts.mjs";
@@ -78,6 +79,7 @@ export default function Home(){
  const [recoveryMode,setRecoveryMode]=useState(""),[recoveryPass,setRecoveryPass]=useState(""),[recoveryConfirm,setRecoveryConfirm]=useState("");
  const [member,setMember]=useState(null),[members,setMembers]=useState([]),[space,setSpace]=useState(null),[pref,setPref]=useState(null),[surprise,setSurprise]=useState(DEFAULT_SURPRISE);
  const [avatarUrls,setAvatarUrls]=useState({}),[avatarRefresh,setAvatarRefresh]=useState(0),[pushReady,setPushReady]=useState(false);
+ const [missionHistoryDetails,setMissionHistoryDetails]=useState(null),[missionHistoryError,setMissionHistoryError]=useState(""),[showAllMissionHistory,setShowAllMissionHistory]=useState(false);
  const [activities,setActivities]=useState([]),[messages,setMessages]=useState([]),[notes,setNotes]=useState([]),[reflections,setReflections]=useState([]),[memories,setMemories]=useState([]),[aiRatings,setAiRatings]=useState([]),[notificationSettings,setNotificationSettings]=useState({enabled:true,reflection_prompts_enabled:true,quiet_start:"22:00",quiet_end:"08:00"}),[pushPromptDismissed,setPushPromptDismissed]=useState(false);
  const [name,setName]=useState(""),[inviteInput,setInviteInput]=useState("");
  const [todayMood,setTodayMood]=useState(null),[careHints,setCareHints]=useState([]),[moodBusy,setMoodBusy]=useState(false),[moodNotice,setMoodNotice]=useState("");
@@ -111,13 +113,14 @@ export default function Home(){
   if(!u)return;
   const {data:m,error:e}=await db.from("cp_members").select("*").eq("user_id",u.id).maybeSingle();
   if(e){setNotice(getError(e));return}
-  if(!m){setMember(null);setMembers([]);setSpace(null);setPref(null);setTodayMood(null);setCareHints([]);return}
+  if(!m){setMember(null);setMembers([]);setSpace(null);setPref(null);setTodayMood(null);setCareHints([]);setMissionHistoryDetails(null);setMissionHistoryError("");return}
   setMember(m);
-  const [s,mm,p,c,ms,n,t,rfl,ns,mem,feedback,structured,dateRows]=await Promise.all([
+  const [s,mm,p,c,historyRows,ms,n,t,rfl,ns,mem,feedback,structured,dateRows]=await Promise.all([
    db.from("cp_spaces").select("*").eq("id",m.space_id).single(),
    db.from("cp_members").select("user_id,display_name,joined_at,avatar_path").eq("space_id",m.space_id),
    db.from("cp_preferences").select("*").eq("user_id",u.id).maybeSingle(),
    db.from("cp_completions").select("*").eq("space_id",m.space_id),
+   db.from("cp_ai_activities").select("user_id,task_key,title,icon").eq("user_id",u.id).eq("kind","mission").order("created_at",{ascending:false}).limit(250),
    db.from("cp_messages").select("*").eq("space_id",m.space_id).order("created_at",{ascending:true}).limit(100),
    db.from("cp_ai_notes").select("*").eq("user_id",u.id).order("created_at",{ascending:false}).limit(12),
    db.rpc("cp_partner_surprise",{p_space:m.space_id}),
@@ -136,10 +139,17 @@ export default function Home(){
   else setTodayMood(ownMoment.data?.day===todayKey()?ownMoment.data:null);
   if(allowedCareHints.error)setMoodNotice("No pude leer las pistas autorizadas: "+getError(allowedCareHints.error));
   else setCareHints(allowedCareHints.data||[]);
+  if(historyRows.error){
+   setMissionHistoryDetails([]);
+   setMissionHistoryError("No se pudo cargar el historial de misiones.");
+  }else{
+   setMissionHistoryDetails(historyRows.data||[]);
+   setMissionHistoryError("");
+  }
   if(s.error)setNotice(getError(s.error));
   setSpace(s.data||null);setMembers(mm.data||[]);setPref(p.data||null);setActivities(c.data||[]);setMessages(ms.data||[]);setNotes(n.data||[]);setReflections(rfl.data||[]);setMemories(mem.data||[]);setAiRatings(feedback.data||[]);if(structured.error)setNotice("No pude leer tus gustos guardados: "+getError(structured.error));else setProfileCards(structured.data||[]);setImportantDates(dateRows.data||[]);if(dateRows.error)setNotice("No pude cargar las fechas guardadas: "+getError(dateRows.error));setNotificationSettings(ns.data||{enabled:true,reflection_prompts_enabled:true,quiet_start:"22:00",quiet_end:"08:00"});if(t.data)setSurprise(t.data);const {data:gameRows}=await db.from("cp_game_entries").select("game_key,answer").eq("space_id",m.space_id).eq("user_id",u.id);if(gameRows)setGameAnswers(Object.fromEntries(gameRows.map(g=>[g.game_key,g.answer])));
  },[]);
- useEffect(()=>{if(user){load(user)}else{setMember(null);setSpace(null);setTodayMood(null);setCareHints([]);setMoodNotice("")}},[user,load]);
+ useEffect(()=>{if(user){load(user)}else{setMember(null);setSpace(null);setTodayMood(null);setCareHints([]);setMoodNotice("");setMissionHistoryDetails(null);setMissionHistoryError("");setShowAllMissionHistory(false)}},[user,load]);
 
  // Solo imágenes del propio espacio; la descarga privada exige RLS de Supabase.
  const avatarKey=members.map(m=>m.user_id+":"+(m.avatar_path||"")).join("|");
@@ -328,6 +338,8 @@ export default function Home(){
  const partnerDone=(key)=>activities.some(a=>a.task_key===key&&a.user_id===partner?.user_id);
  const calcPoints=pointsForTask;
  const totalHearts=sharedHearts(activities);
+ const missionHistory=buildMissionHistory(activities,missionHistoryDetails||[],user?.id);
+ const visibleMissionHistory=showAllMissionHistory?missionHistory:missionHistory.slice(0,3);
  const ownHearts=heartsFor(activities,user?.id);
  const partnerHearts=heartsFor(activities,partner?.user_id);
  const ratingFor=(task)=>aiRatings.find(f=>f.activity_id===task.id)?.rating||0;
@@ -834,11 +846,13 @@ async function saveMemory(){
   </nav>
   {notice&&<div className="alert" role="status">{notice}</div>}
  {tab==="hoy"&&<>
- <section className="primary-mission" aria-label="Tu próximo gesto de cariño">
+ <section className="primary-mission mission-spotlight" aria-label="Tu misión destacada">
+  <span className="mission-spotlight-watermark" aria-hidden="true">♡</span>
   <div className="section-title primary-mission-heading">
-   <div><span className="tiny">UN GESTO PARA HOY, SIN PRESIÓN</span><h2>{focusMissionHeading(focusMission,date)}</h2></div>
+   <div><span className="tiny">EL CORAZÓN DE CÓMPLICES</span><h2>{focusMissionHeading(focusMission,date)}</h2></div>
    <Pill>{centralLoading?"Preparando…":centralMode==="generativa"?"IA personalizada":"Pensado para ustedes"}</Pill>
   </div>
+  <p className="mission-spotlight-lede">Las mejores historias se construyen con pequeños gestos. Esta es tu oportunidad de hoy, sin presiones.</p>
   {centralError&&<div className="note">No pude actualizar la agenda. {centralError}</div>}
   {focusMission?
    <div className="cards primary-mission-cards">
@@ -854,6 +868,29 @@ async function saveMemory(){
     <p>{OPTIONAL_GESTURE.body}</p>
     <Button secondary small onClick={()=>{setQuestionTopic("romance");setTab("preguntas");window.scrollTo({top:0,behavior:"smooth"})}}>Empezar una conversación</Button>
    </div>}
+  <p className="mission-spotlight-footnote">♡ Las misiones son invitaciones, nunca pruebas de amor. Ustedes deciden cuándo compartirlas.</p>
+ </section>
+ <section className="mission-history" aria-label="Historial personal de misiones realizadas">
+  <div className="mission-history-heading">
+   <div><span className="tiny">LOS GESTOS QUE QUEDAN</span><h3>Tu historia de misiones ♡</h3>
+    <p>Recordá los gestos que elegiste hacer, sin rachas ni comparaciones.</p></div>
+   <span className="mission-history-count">{missionHistory.length} {missionHistory.length===1?"misión realizada":"misiones realizadas"}</span>
+  </div>
+  {missionHistoryError&&<p className="mission-history-error" role="status">{missionHistoryError}</p>}
+  {missionHistoryDetails===null?<p className="mission-history-empty">Recuperando tus recuerdos…</p>:
+   missionHistory.length===0?<p className="mission-history-empty">Cuando marques tu primera misión como realizada, va a quedar acá para que puedan recordarla.</p>:
+   <ol className="mission-history-list">
+    {visibleMissionHistory.map(item=><li key={item.key} className="mission-history-entry">
+     <span className="mission-history-symbol" aria-hidden="true">{item.icon}</span>
+     <div className="mission-history-entry-content"><strong>{item.title}</strong>
+      <span>{item.type} · {missionDateLabel(item.completedAt)}</span></div>
+     <span className="mission-history-check" aria-label="Realizada">✓</span>
+    </li>)}
+   </ol>}
+  {missionHistory.length>3&&<button className="mission-history-toggle" type="button"
+   aria-expanded={showAllMissionHistory} onClick={()=>setShowAllMissionHistory(v=>!v)}>
+   {showAllMissionHistory?"Ver menos":"Ver todo el historial ("+missionHistory.length+")"} <span aria-hidden="true">{showAllMissionHistory?"↑":"↓"}</span>
+  </button>}
  </section>
  <details className="mission-archive" id="todas-las-misiones">
   <summary>Calendario y todas mis misiones <span aria-hidden="true">⌄</span></summary>
@@ -881,7 +918,7 @@ async function saveMemory(){
  </section>}
  {upcomingDates.length>0&&<div className="upcoming-date-card"><div className="row between"><span className="tiny">SU HISTORIA TIENE FECHAS IMPORTANTES</span><span aria-hidden="true">🗓️</span></div>{upcomingDates.slice(0,2).map(d=><p key={d.id}><strong>{d.days_until===0?"Hoy":d.days_until===1?"Mañana":"En "+d.days_until+" días"}</strong> · {d.label}</p>)}<Button secondary small onClick={()=>{setTab("complice");window.scrollTo({top:0,behavior:"smooth"})}}>Ver nuestras fechas</Button></div>}
  {weeklyPromptReady&&<div className="weekly-pulse-card"><div className="row between"><span className="tiny">UNA PREGUNTA ESPECIAL DE ESTA SEMANA</span><span aria-hidden="true">💌</span></div><h3>{weeklyPrompt.question}</h3><p className="subtle">No es una misión. Solo un momento para reflexionar, si te nace. La respuesta es privada.</p><textarea className="textarea" value={weeklyAnswer} onChange={e=>setWeeklyAnswer(e.target.value)} maxLength={1200} placeholder="Una respuesta que solo vos vas a poder leer…"/><label className="toggle"><input type="checkbox" checked={weeklyAllowAI} onChange={e=>setWeeklyAllowAI(e.target.checked)}/> Mi IA puede recordar lo que escriba para recomendarme mejor</label><div className="row wrap"><Button small disabled={busy||!weeklyAnswer.trim()} onClick={answerWeeklyPrompt}>Guardar respuesta</Button><Button small secondary onClick={()=>setDismissedPulse(weeklyPrompt.id)}>Ahora no</Button></div></div>}
- {profileCompletion.remaining.length>0&&knowledge.percent<25&&!weeklyPromptReady&&<div className="central-daily-checkin"><div className="central-checkin-symbol" aria-hidden="true">✦</div><div className="grow"><span className="tiny">TU IA APRENDE DE VOS</span><h3>Una pregunta para conocerte mejor</h3><p className="subtle">{profileCompletion.remaining[0].question} Respondé cuando quieras: tus gustos ayudan a elegir mejores ideas.</p></div><Button small secondary onClick={()=>{selectProfileQuestion(profileCompletion.remaining[0].key);setTab("complice");window.scrollTo({top:0,behavior:"smooth"})}}>Responder ♡</Button></div>}<div className="section-title"><h2>Una pregunta que acerca</h2></div><div className="glass box"><p style={{fontSize:18,marginBottom:17}}>{QUESTION_BANK.romance[new Date().getDate()%QUESTION_BANK.romance.length]}</p><Button secondary onClick={()=>{setQuestionTopic("romance");setTab("preguntas")}}>Preguntársela a mi pareja</Button></div>
+ {profileCompletion.remaining.length>0&&knowledge.percent<25&&!weeklyPromptReady&&<div className="central-daily-checkin"><div className="central-checkin-symbol" aria-hidden="true">✦</div><div className="grow"><span className="tiny">TU IA APRENDE DE VOS</span><h3>Una pregunta para conocerte mejor</h3><p className="subtle">{profileCompletion.remaining[0].question} Respondé cuando quieras: tus gustos ayudan a elegir mejores ideas.</p></div><Button small secondary onClick={()=>{selectProfileQuestion(profileCompletion.remaining[0].key);setTab("complice");window.scrollTo({top:0,behavior:"smooth"})}}>Responder ♡</Button></div>}<div className="section-title today-question-title"><h2>Una pregunta que acerca</h2></div><div className="glass box today-question-card"><p style={{fontSize:18,marginBottom:17}}>{QUESTION_BANK.romance[new Date().getDate()%QUESTION_BANK.romance.length]}</p><Button secondary onClick={()=>{setQuestionTopic("romance");setTab("preguntas")}}>Preguntársela a mi pareja</Button></div>
  {partnerCareHint&&<section className="partner-care-idea" aria-label="Una idea de cuidado para tu pareja">
   <span className="tiny">UNA IDEA PARA CUIDAR SU DÍA ✦</span>
   <h3>Un pequeño gesto para {partner.display_name}</h3>
