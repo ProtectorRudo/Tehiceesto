@@ -20,10 +20,10 @@ export function auditMissionSubstance({slot,title,body}={}){
  const text=norm(title+" "+body),issues=[];
  if(!/^mission_[123]$/.test(String(slot))&&slot!=="weekly_1")return {pass:true,issues};
  if(shallowPatterns.some(pattern=>pattern.test(text)))issues.push("shallow_activity_not_care");
+ if(!connection.test(text))issues.push("without_relationship_value");
  // La misión semanal debe proponer algo que construya conexión, cuidado o
  // iniciativa; un pasatiempo arbitrario no alcanza para 120 corazones.
  if(slot==="weekly_1"){
-  if(!connection.test(text))issues.push("weekly_without_relationship_value");
   if(!partner.test(text))issues.push("weekly_without_other_person");
  }
  return {pass:issues.length===0,issues};
