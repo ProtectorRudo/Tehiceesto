@@ -651,3 +651,13 @@ label{color:#6f5169;font-size:12.5px;font-weight:700;margin-bottom:8px}
 .complice-gustos .profile-answer-grid .choice{font-size:12px;min-height:57px}
 .privacy-sharing{padding:16px}
 }
+
+
+/* Confirmaciones visibles de guardado y aprendizaje sin techo de preguntas. */
+.profile-save-status{margin:2px 0 10px;padding:11px 13px;border-radius:12px;font-size:13px;line-height:1.45;font-weight:650}
+.profile-save-status.success{background:#eef8f0;color:#2a6a43;border:1px solid #cbe5d1}
+.profile-save-status.error{background:#fff0f3;color:#ab3b5b;border:1px solid #e9c5d0}
+.ongoing-learning-choice{display:flex;flex-direction:column;gap:10px;background:#fff7fb;border:1px solid #efd9e5;border-radius:18px;padding:14px;margin:6px 0}
+.ongoing-learning-choice .profile-answer-grid{gap:8px}
+.ongoing-learning-choice .profile-answer-grid .choice{font-size:12px;min-height:50px;border-radius:13px}
+.ongoing-learning-choice .subtle{font-size:12px;line-height:1.5}
