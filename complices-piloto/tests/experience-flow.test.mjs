@@ -65,6 +65,8 @@ test("el aprendizaje solo se pregunta después de completar, es opcional y priva
  assert.match(page,/onRate\?\.\(1\)/);
  assert.match(page,/onRate\?\.\(-1\)/);
  assert.match(page,/cp_ai_feedback/);
+ assert.match(page,/Si se desmarca una misión no tiene sentido seguir aprendiendo/);
+ assert.match(page,/\.delete\(\)\.eq\("activity_id",task\.id\)\.eq\("user_id",user\.id\)/);
 });
 test("el motor guiado evita temporalmente los temas que no funcionaron",()=>{
  const x=buildWeeklyMissions({userId:A,spaceId:S,week:due,members,avoidThemes:["recuerdos","humor"]});
