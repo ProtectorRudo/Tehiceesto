@@ -11,7 +11,7 @@ const SHAREABLE_WEEKLY=[
  {title:"Tres recuerdos que nos eligieron",body:"Revisen juntos tres recuerdos que ya tengan en fotos o mensajes. Cada uno elige uno y cuenta qué detalle le hizo sentir especial. Guarden una frase de ese momento.",theme:"recuerdos",icon:"📸"},
  {title:"Un plan elegido entre los dos",body:"Cada uno propone una actividad sencilla para esta semana. Elijan la que a ambos les haga ilusión y reserven veinte minutos para disfrutarla sin presión.",theme:"planes",icon:"✨"},
  {title:"La caja de lo que admiramos",body:"Cada uno escribe dos cosas concretas que admiró del otro esta semana. Intercambien las notas cuando ambos quieran y conserven una para releer otro día.",theme:"detalles",icon:"💝"},
- {title:"El juego de nuestras pequeñas historias",body:"Anoten tres recuerdos felices de la relación, mezclen las pistas y traten de adivinar qué historia eligió cada uno. Cuenten un detalle que todavía les haga sonreír.",theme:"humor",icon:"🎲"},
+ {title:"Un plan elegido para disfrutarnos",body:"Cada uno proponga una actividad sencilla que realmente disfrute. Elijan una, organícenla entre los dos esta semana y compartan qué detalle les hizo bien del momento.",theme:"humor",icon:"🎲"},
  {title:"Una merienda y un recuerdo",body:"Con lo que haya en casa, preparen una merienda sencilla juntos. Mientras la comparten, recuerden un momento del año que los haya hecho reír y guarden una frase.",theme:"cocina",icon:"🍓"},
  {title:"Volver a elegir una costumbre",body:"Cada uno propone un gesto cotidiano que disfruta de la relación. Elijan uno, reserven un rato para repetirlo esta semana y cuenten por qué les hace bien.",theme:"charla",icon:"💬"}
 ];
