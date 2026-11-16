@@ -75,7 +75,7 @@ test("las categorías de fechas son explícitas y no inventan datos",()=>{
 });
 test("el panel muestra índice, pregunta profunda, calendario y permiso separado de push",()=>{
  const p=source("app/page.jsx");
- for(const x of ["knowledge.percent","weeklyPromptReady","DEEP_QUESTIONS","cp_important_dates","Guardar fecha importante","reflexiones profundas","reflection_prompts_enabled"])assert.ok(p.includes(x),x);
+ for(const x of ["knowledge.percent","weeklyPromptReady","DEEP_QUESTIONS","cp_important_dates","Guardar fecha ♡","knowledge.deep","reflection_prompts_enabled"])assert.ok(p.includes(x),x);
  assert.ok(p.includes("Guardar respuesta"));
 });
 test("IA de misiones recibe solamente fechas permitidas por RLS",()=>{
