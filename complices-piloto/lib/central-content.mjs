@@ -166,3 +166,21 @@ export function generateGuidedPlan({userId,date,week,preferences,reflections,mem
  ];
 }
 export function answerIsSafe(v){return typeof v==="string"&&v.length>=8&&v.length<=420&&!/https?:\/\//i.test(v)}
+
+
+// Mantiene el catálogo original como respaldo. Se aplica solamente a propuestas
+// válidas para la persona de esta sesión; nunca altera datos de la otra cuenta.
+export const CENTRAL_SLOTS=["daily_1","daily_2","weekly_1","game_1"];
+export function mergeGeneratedIdeas(guided,proposals,isCompatible=()=>true){
+ if(!Array.isArray(guided)||!proposals||typeof proposals!=="object"||Array.isArray(proposals))return guided;
+ return guided.map(item=>{
+  if(!CENTRAL_SLOTS.includes(item.slot))return item;
+  const suggestion=proposals[item.slot];
+  if(!suggestion||typeof suggestion.title!=="string"||typeof suggestion.body!=="string")return item;
+  const title=suggestion.title.trim(),body=suggestion.body.trim();
+  if(title.length<3||title.length>85||body.length<8||body.length>260)return item;
+  if(!answerIsSafe(body)||!isCompatible(title+" "+body))return item;
+  if(item.slot==="game_1"&&!body.includes("?"))return item;
+  return {...item,title,body,mode:"generativa"};
+ });
+}
