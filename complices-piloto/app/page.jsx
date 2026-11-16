@@ -191,7 +191,7 @@ export default function Home(){
  const knowledge=profileKnowledge({cards:profileCards,reflections,importantDates,feedback:aiRatings,completions:activities.filter(x=>x.user_id===user?.id)});
  const upcomingDates=upcomingOccasions(importantDates,date,30);
  const weeklyPrompt=weeklyPersonalQuestion({userId:user?.id||"",week,partnerName:partner?.display_name||"tu pareja",missionDays:centralSchedule?.dayNumbers||[]});
- const weeklyPromptReady=date>=weeklyPrompt.due&&!reflections.some(x=>x.question_id===weeklyPrompt.id)&&dismissedPulse!==weeklyPrompt.id;
+ const weeklyPromptReady=Boolean(partner&&centralSchedule)&&date>=weeklyPrompt.due&&!reflections.some(x=>x.question_id===weeklyPrompt.id)&&dismissedPulse!==weeklyPrompt.id;
  const currentProfileQuestion=PROFILE_QUESTIONS.find(q=>q.key===profileQuestion)||PROFILE_QUESTIONS[0];
  const games=[{slug:"escapada",title:"Si pudiéramos escaparnos…",intro:"¿A dónde irías con tu pareja sin pensarlo demasiado?",options:[["playa","🏖️ A la playa"],["montana","⛰️ A la montaña"],["ciudad","🏙️ A una ciudad"],["campo","🌿 Al campo"]]},{slug:"cita",title:"Nuestra cita perfecta",intro:"¿Cuál de estos planes elegirías para esta noche?",options:[["cena","🍝 Una cena"],["peli","🎬 Una película"],["paseo","🌙 Un paseo"],["cocinar","👩‍🍳 Cocinar juntos"]]}];
  async function revealGame(key){const {data,error}=await db.rpc("cp_game_reveal",{p_space:member.space_id,p_key:key});if(error)setNotice(getError(error));else setGameResults(old=>({...old,[key]:data}))}
