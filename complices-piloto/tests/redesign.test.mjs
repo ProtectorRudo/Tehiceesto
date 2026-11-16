@@ -45,3 +45,15 @@ test("se atiende al tamaño de pantalla y al movimiento reducido",()=>{
  assert.match(css,/@media\(max-width:760px\)/);
  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
 });
+
+test("la portada Hoy usa diseño abstracto sin ilustración humana",()=>{
+ assert.ok(page.includes('className="accent-card today-hero"'));
+ assert.ok(page.includes('className="today-hero-mark"'));
+ assert.match(page,/Lo más lindo de hoy todavía puede pasar/);
+ assert.match(page,/Ver misiones →/);
+ assert.match(page,/Enviar pregunta/);
+ assert.match(css,/\.dashboard>\.today-hero:after\{display:none;content:none;background:none\}/);
+ assert.ok(!css.includes("background:url('/couple-sunset.svg') center/contain no-repeat"));
+ assert.match(css,/\.dashboard>\.today-hero \.today-actions \.btn/);
+ assert.match(css,/@media\(max-width:375px\)/);
+});
