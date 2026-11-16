@@ -72,6 +72,7 @@ function SelectField({label,value,onChange,options}){return <div className="form
 export default function Home(){
  const [user,setUser]=useState(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[notice,setNotice]=useState(""),[authMode,setAuthMode]=useState("entrar");
  const [email,setEmail]=useState(""),[pass,setPass]=useState("");
+ const [recoveryMode,setRecoveryMode]=useState(""),[recoveryPass,setRecoveryPass]=useState(""),[recoveryConfirm,setRecoveryConfirm]=useState("");
  const [member,setMember]=useState(null),[members,setMembers]=useState([]),[space,setSpace]=useState(null),[pref,setPref]=useState(null),[surprise,setSurprise]=useState(DEFAULT_SURPRISE);
  const [avatarUrls,setAvatarUrls]=useState({}),[avatarRefresh,setAvatarRefresh]=useState(0),[pushReady,setPushReady]=useState(false);
  const [activities,setActivities]=useState([]),[messages,setMessages]=useState([]),[notes,setNotes]=useState([]),[reflections,setReflections]=useState([]),[memories,setMemories]=useState([]),[aiRatings,setAiRatings]=useState([]),[notificationSettings,setNotificationSettings]=useState({enabled:true,reflection_prompts_enabled:true,quiet_start:"22:00",quiet_end:"08:00"}),[pushPromptDismissed,setPushPromptDismissed]=useState(false);
@@ -90,7 +91,8 @@ export default function Home(){
  const [weeklyAnswer,setWeeklyAnswer]=useState(""),[weeklyAllowAI,setWeeklyAllowAI]=useState(false),[dismissedPulse,setDismissedPulse]=useState("");
  const [importantDates,setImportantDates]=useState([]),[importantDateLabel,setImportantDateLabel]=useState(""),[importantDateKind,setImportantDateKind]=useState("aniversario"),[importantDateOn,setImportantDateOn]=useState(""),[importantDateRepeats,setImportantDateRepeats]=useState(true),[importantDateShare,setImportantDateShare]=useState(false);
  const [profileCards,setProfileCards]=useState([]),[profileQuestion,setProfileQuestion]=useState("afecto"),[profileAnswer,setProfileAnswer]=useState(""),[profileShare,setProfileShare]=useState(false);
- useEffect(()=>{let active=true;db.auth.getUser().then(({data})=>{if(active){setUser(data.user||null);setLoading(false)}}).catch(()=>setLoading(false));const {data:{subscription}}=db.auth.onAuthStateChange((_event,session)=>{if(active)setUser(session?.user||null)});if(typeof window!=="undefined"){
+ useEffect(()=>{let active=true;db.auth.getUser().then(({data})=>{if(active){setUser(data.user||null);setLoading(false)}}).catch(()=>setLoading(false));const {data:{subscription}}=db.auth.onAuthStateChange((_event,session)=>{if(active){setUser(session?.user||null);if(_event==="PASSWORD_RECOVERY"){setRecoveryMode("update");setNotice("")}}});if(typeof window!=="undefined"){
+ if(new URLSearchParams(window.location.hash.slice(1)).get("type")==="recovery")setRecoveryMode("update");
  const input=new URLSearchParams(window.location.search).get("invite");
  const fromUrl=(input||"").match(/^[a-f0-9]{24}$/i)?.[0];
  if(fromUrl){setInviteInput(fromUrl);sessionStorage.setItem("cp_pending_invite",fromUrl)}
@@ -222,7 +224,33 @@ export default function Home(){
   };
   poll();const timer=setInterval(poll,25000);window.addEventListener("focus",poll);return()=>{stopped=true;clearInterval(timer);window.removeEventListener("focus",poll)}
  },[user,member]);
- async function login(e){e.preventDefault();setBusy(true);setNotice("");const result=authMode==="entrar"?await db.auth.signInWithPassword({email:email.trim(),password:pass}):await db.auth.signUp({email:email.trim(),password:pass,options:{emailRedirectTo:window.location.origin+(inviteInput&&/^[a-f0-9]{24}$/i.test(inviteInput)?"/?invite="+inviteInput:"")}});setBusy(false);if(result.error){setNotice(getError(result.error));return}if(authMode!=="entrar"&&!result.data.session){setNotice("Si se creó tu cuenta, recibirás un correo de confirmación. Luego volvé a Cómplices e iniciá sesión. Si el enlace te lleva a otra página, hay que configurar el dominio permitido de Supabase.")}else{setNotice("");setUser(result.data.user||null)}}
+ async function requestPasswordRecovery(e){
+  e.preventDefault();if(busy||!email.trim())return;
+  setBusy(true);setNotice("");
+  try{
+   const invite=inviteInput&&/^[a-f0-9]{24}$/i.test(inviteInput)?"?invite="+inviteInput:"";
+   const {error}=await db.auth.resetPasswordForEmail(email.trim(),{redirectTo:window.location.origin+"/"+invite});
+   if(error)throw error;
+   setNotice("Si ese correo tiene una cuenta, recibirás un enlace para elegir una contraseña nueva. Abrí el correo más reciente.");
+  }catch(e){setNotice("No se pudo solicitar la recuperación: "+getError(e))}
+  finally{setBusy(false)}
+ }
+ async function saveRecoveredPassword(e){
+  e.preventDefault();if(busy)return;
+  if(recoveryPass.length<8){setNotice("La nueva contraseña debe tener al menos 8 caracteres.");return}
+  if(recoveryPass!==recoveryConfirm){setNotice("Las contraseñas no coinciden.");return}
+  setBusy(true);setNotice("");
+  try{
+   const {error}=await db.auth.updateUser({password:recoveryPass});
+   if(error)throw error;
+   await db.auth.signOut();
+   setRecoveryPass("");setRecoveryConfirm("");setPass("");setRecoveryMode("");setAuthMode("entrar");
+   setNotice("Contraseña actualizada. Ahora entrá con tu correo y la contraseña nueva.");
+  }catch(e){setNotice("No se pudo actualizar la contraseña: "+getError(e)+". Si el enlace venció, solicitá uno nuevo.")}
+  finally{setBusy(false)}
+ }
+ async function retryPasswordRecovery(){await db.auth.signOut();setUser(null);setRecoveryMode("request");setNotice("")}
+ async function login(e){e.preventDefault();setBusy(true);setNotice("");const result=authMode==="entrar"?await db.auth.signInWithPassword({email:email.trim(),password:pass}):await db.auth.signUp({email:email.trim(),password:pass,options:{emailRedirectTo:window.location.origin+(inviteInput&&/^[a-f0-9]{24}$/i.test(inviteInput)?"/?invite="+inviteInput:"")}});setBusy(false);if(result.error){setNotice(result.error.code==="invalid_credentials"?"Correo o contraseña incorrectos. Si ya tenés cuenta, tocá «Olvidé mi contraseña» para recuperar el acceso.":getError(result.error));return}if(authMode!=="entrar"&&!result.data.session){setNotice("Si se creó tu cuenta, recibirás un correo de confirmación. Luego volvé a Cómplices e iniciá sesión. Si el enlace te lleva a otra página, hay que configurar el dominio permitido de Supabase.")}else{setNotice("");setUser(result.data.user||null)}}
  async function logout(){
   try{
    const registration=await navigator.serviceWorker?.ready;
@@ -635,6 +663,23 @@ async function saveMemory(){
  async function saveNote(){if(!noteText.trim())return;setBusy(true);const {error}=await db.from("cp_ai_notes").insert({user_id:user.id,body:noteText.trim()});setNotice(error?getError(error):"La nota quedó guardada solo para vos.");setNoteText("");await load(user);setBusy(false)}
  if(loading)return <main className="app"><div className="brand"><span className="mark">♡</span> Cómplices</div><p className="muted" style={{marginTop:55}}>Preparando nuestro rincón…</p></main>;
 
+ if(recoveryMode==="update")return <main className="app onboarding-route">
+  <header className="top"><div className="brand"><span className="mark">♡</span> Cómplices</div></header>
+  <section className="auth-card" style={{marginTop:36}}>
+   <div className="glass box">
+    <span className="tiny">RECUPERAR ACCESO</span>
+    <h1>Elegí una nueva contraseña ♡</h1>
+    <p className="subtle">Usá al menos 8 caracteres. Esta contraseña corresponde a tu cuenta personal y también se aplicará si utilizás ese correo en TeHiceEsto.</p>
+    <form onSubmit={saveRecoveredPassword}>
+     <div className="form-field"><label htmlFor="cp-recovery-pass">Nueva contraseña</label><input id="cp-recovery-pass" className="input" type="password" minLength={8} autoComplete="new-password" required value={recoveryPass} onChange={e=>setRecoveryPass(e.target.value)}/></div>
+     <div className="form-field"><label htmlFor="cp-recovery-confirm">Repetir contraseña</label><input id="cp-recovery-confirm" className="input" type="password" minLength={8} autoComplete="new-password" required value={recoveryConfirm} onChange={e=>setRecoveryConfirm(e.target.value)}/></div>
+     <Button full type="submit" disabled={busy}>{busy?"Guardando…":"Guardar nueva contraseña"}</Button>
+    </form>
+    {notice&&<div className="alert" role="status">{notice}</div>}
+    <button type="button" className="link-button" style={{marginTop:13}} onClick={retryPasswordRecovery}>El enlace venció · Solicitar otro</button>
+   </div>
+  </section>
+ </main>;
  if(!user)return <main className="app marketing">
   <header className="top"><div className="brand"><span className="mark">♡</span> Cómplices</div><span className="status-chip">♡ Una historia para dos</span></header>
   <section className="hero-grid">
@@ -655,19 +700,19 @@ async function saveMemory(){
   <section className="auth-card" id="acceso">
    <div className="glass box">
     <span className="tiny">BIENVENIDOS AL RINCÓN DE USTEDES</span>
-    <h2 style={{margin:"10px 0 9px"}}>{authMode==="entrar"?"Qué lindo volver a verte.":"Toda historia empieza por algo."}</h2>
-    <p className="subtle" style={{marginBottom:18}}>{authMode==="entrar"?"Entrá a su espacio y descubrí qué los espera hoy.":"Creá tu cuenta personal y después invitá a tu pareja."}</p>
-    <div className="tabs" style={{marginBottom:20}}>
+    <h2 style={{margin:"10px 0 9px"}}>{recoveryMode==="request"?"Recuperá tu contraseña":authMode==="entrar"?"Qué lindo volver a verte.":"Toda historia empieza por algo."}</h2>
+    <p className="subtle" style={{marginBottom:18}}>{recoveryMode==="request"?"Te enviaremos un correo con un enlace para crear otra contraseña. No necesitás registrarte nuevamente.":authMode==="entrar"?"Entrá a su espacio y descubrí qué los espera hoy.":"Creá tu cuenta personal y después invitá a tu pareja."}</p>
+    {recoveryMode!=="request"&&<div className="tabs" style={{marginBottom:20}}>
      <button type="button" className={authMode==="entrar"?"active":""} onClick={()=>{setAuthMode("entrar");setNotice("")}}>Ya tengo cuenta</button>
      <button type="button" className={authMode==="crear"?"active":""} onClick={()=>{setAuthMode("crear");setNotice("")}}>Crear cuenta</button>
-    </div>
-    <form onSubmit={login}>
+    </div>}
+    <form onSubmit={recoveryMode==="request"?requestPasswordRecovery:login}>
      <div className="form-field"><label htmlFor="cp-email">Correo electrónico</label><input id="cp-email" className="input" type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu@email.com"/></div>
-     <div className="form-field"><label htmlFor="cp-pass">Contraseña (mínimo 6 caracteres)</label><input id="cp-pass" className="input" type="password" minLength={6} required autoComplete={authMode==="entrar"?"current-password":"new-password"} value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••"/></div>
-     <Button full type="submit" disabled={busy}>{busy?"Un momento…":authMode==="entrar"?"Entrar a nuestro espacio →":"Crear mi cuenta →"}</Button>
+     {recoveryMode!=="request"&&<div className="form-field"><label htmlFor="cp-pass">Contraseña (mínimo 6 caracteres)</label><input id="cp-pass" className="input" type="password" minLength={6} required autoComplete={authMode==="entrar"?"current-password":"new-password"} value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••"/></div>}
+     <Button full type="submit" disabled={busy}>{busy?"Un momento…":recoveryMode==="request"?"Enviar enlace de recuperación":authMode==="entrar"?"Entrar a nuestro espacio →":"Crear mi cuenta →"}</Button>
     </form>
     {notice&&<div className="alert" role="status">{notice}</div>}
-    {authMode==="crear"&&<button type="button" className="link-button" style={{marginTop:13}} onClick={()=>{setAuthMode("entrar");setNotice("")}}>Ya confirmé mi correo · Iniciar sesión</button>}
+    {recoveryMode==="request"?<button type="button" className="link-button" style={{marginTop:13}} onClick={()=>{setRecoveryMode("");setNotice("")}}>Volver a iniciar sesión</button>:authMode==="entrar"?<button type="button" className="link-button" style={{marginTop:13}} onClick={()=>{setRecoveryMode("request");setNotice("")}}>Olvidé mi contraseña</button>:<button type="button" className="link-button" style={{marginTop:13}} onClick={()=>{setAuthMode("entrar");setNotice("")}}>Ya confirmé mi correo · Iniciar sesión</button>}
     <p className="auth-helper">🔒 Un espacio para dos personas adultas. Cada uno tiene su propia cuenta y sus datos personales.</p>{authMode==="crear"&&<p className="auth-helper">♡ Al crear tu espacio, la personalización de gustos y los recordatorios quedan preparados por defecto. Podés desactivarlos desde Perfil y privacidad. Solo compartimos pistas estructuradas con la IA de tu pareja; no se muestran tus respuestas escritas, secretos ni recuerdos privados. Las notificaciones requieren el permiso del celular.</p>}
    </div>
   </section>
