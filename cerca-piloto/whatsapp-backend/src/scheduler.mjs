@@ -44,10 +44,12 @@ export function isSessionMessagingReady(env=process.env){
  if(!['test','production'].includes(mode))return false;
  if(mode==='production'&&env.CERCA_PRODUCTION_AUTHORIZED!=='true')return false;
  if(mode==='test'&&!String(env.CERCA_TEST_WA_IDS||'').trim())return false;
+ if((env.CERCA_PROVIDER||'meta')==='twilio')return /^AC[0-9a-f]{32}$/i.test(env.TWILIO_ACCOUNT_SID||'') && !!env.TWILIO_AUTH_TOKEN && /^whatsapp:\+[1-9]\d{7,14}$/.test(env.TWILIO_WHATSAPP_FROM||'') && /^https:\/\//.test(env.TWILIO_WEBHOOK_URL||'');
  return !!(env.META_ACCESS_TOKEN&&env.META_PHONE_NUMBER_ID&&env.META_APP_SECRET&&env.META_VERIFY_TOKEN);
 }
 export function isMessagingReady(env=process.env){
  if(!isSessionMessagingReady(env))return false;
  // Explicit go-live gate: Meta must approve both templates before any real outbound.
  if(env.CERCA_TEMPLATES_APPROVED!=='true')return false;
+ if((env.CERCA_PROVIDER||'meta')==='twilio')return /^HX[0-9a-f]{32}$/i.test(env.TWILIO_CONTENT_SID_DAILY||'')&&/^HX[0-9a-f]{32}$/i.test(env.TWILIO_CONTENT_SID_WEEKLY||'');
  return !!(env.META_ACCESS_TOKEN&&env.META_PHONE_NUMBER_ID&&env.META_TEMPLATE_DAILY&&env.META_TEMPLATE_WEEKLY&&env.META_APP_SECRET&&env.META_VERIFY_TOKEN);}

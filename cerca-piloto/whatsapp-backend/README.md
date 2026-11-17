@@ -51,3 +51,20 @@ La separación es **lógica**, no física: se comparten cuotas, respaldos y disp
 ## Protección adicional (v0.4.2)
 
 Los webhooks verifican `metadata.phone_number_id` para procesar únicamente el número comercial de CERCA cuando Meta envía eventos de varias líneas a una misma aplicación. Timestamps inválidos se descartan sin bloquear el webhook. Los trabajos proactivos expiran al terminar el día local de Argentina para evitar misiones atrasadas. El modelo editorial predeterminado cambia a `gpt-6.1-terra` (su acceso y rendimiento reales siguen pendientes de probar con una clave propia).
+
+
+## Meta unavailable? Official Twilio WhatsApp Sandbox (v0.5.0)
+
+CERCA now has a second **official** WhatsApp transport. It does not use WhatsApp Web scraping or reuse OFI/Cotironda sessions.
+The Twilio Sandbox is strictly for pilot testing, not for selling a production service. You may configure and join its test sender **without directly creating a Meta Developers app**. A real business sender will eventually need WhatsApp Business registration, usually through Twilio's embedded flow. Twilio says Sandbox messages use normal pricing, although trial credits may cover initial testing.
+
+1. Visit https://console.twilio.com/ and create/open a Twilio trial account. Choose **Messaging > Try out WhatsApp**; on older interfaces use **WhatsApp Sandbox**. Accept any required Sandbox terms.
+2. The account displays a shared WhatsApp number plus a unique `join ...` command or QR code. Send the exact command from your test phone to join the Sandbox. Do not invent the join code or number; read what the Console shows.
+3. In Sandbox settings, or the new **Try out WhatsApp > Auto-Reply > Custom** panel, select a **POST** webhook at `https://cerca-piloto.onrender.com/webhooks/twilio`. For delivery-status callbacks use `https://cerca-piloto.onrender.com/webhooks/twilio/status` where supported. The backend verifies `X-Twilio-Signature` against the **exact configured HTTPS webhook URL**.
+4. In Render service `cerca-piloto`, set `CERCA_PROVIDER=twilio`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM` (exact sender, including `whatsapp:+`), and both `TWILIO_*WEBHOOK_URL`. Add **only** consented pilot numbers in `CERCA_TEST_WA_IDS`, as digits without `+`.
+5. Before enabling test sends, also finish the independent restricted PostgreSQL connection (`CERCA_DB_*`); `/healthz` must report `database:ready` and `messaging:session_ready`. Set `CERCA_SEND_MODE=test` **only with the authorized test recipient and after reviewing potential Twilio usage charges**. Do not use `production` during Sandbox.
+6. After joining, send `Hola` from your authorized personal WhatsApp. CERCA's first reply must request informed consent; follow with `ACEPTO`, onboarding, `BAJA`, `BORRAR` and `ELIMINAR` to validate privacy and cancellation. In Sandbox, options are shown as **text**; approved WhatsApp interactive templates can be added to the commercial channel.
+
+**Proactive missions** are deliberately disabled until approved Twilio Content API templates exist (`TWILIO_CONTENT_SID_DAILY`, `TWILIO_CONTENT_SID_WEEKLY`, `CERCA_TEMPLATES_APPROVED=true`). Service replies are only allowed within the 24-hour window started by a caregiver. `TWILIO_AUTH_TOKEN` is secret and must never be posted in chat or Git.
+
+Docs: https://www.twilio.com/docs/whatsapp/sandbox, https://www.twilio.com/docs/usage/webhooks/webhooks-security, https://www.twilio.com/docs/whatsapp/quickstart

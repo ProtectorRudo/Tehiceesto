@@ -37,3 +37,10 @@ Corregida la prioridad SQL de pendientes para servicio frente a marketing **ante
 Render y su build anterior estaban `live`, pero **una nueva versión solo debe declararse publicada tras comprobar su despliegue concreto**. No asumir que el servicio es funcional hasta que `/healthz` diga `database=ready` y exista una prueba real desde Meta.
 
 2026-11-17: v0.4.2 limita los webhooks al número Meta configurado y expira misiones a medianoche. Corrige el modelo editorial predeterminado al identificador `gpt-6.1-terra` verificado en la documentación, sujeto a disponibilidad en la cuenta.
+
+
+### Ruta alternativa de conexión: Twilio Sandbox oficial (17/11/2026)
+
+En el piloto, Meta Developers no es obligatorio para obtener un remitente de prueba si se utiliza Twilio WhatsApp Sandbox. El backend ahora expone `/webhooks/twilio` y `/webhooks/twilio/status`, valida el encabezado `X-Twilio-Signature`, verifica AccountSid y número destinatario, y envía mediante Twilio Programmable Messaging API. Solo la respuesta solicitada por el adulto dentro de una ventana de 24 horas puede ser texto libre; las misiones diarias requieren ContentSid aprobados. La interfaz del adulto sigue siendo WhatsApp.
+
+**Estado:** código integrado con pruebas automáticas simuladas; no se han configurado credenciales Twilio, no se habilitó SEND_MODE=test, la cuenta de base sigue NOLOGIN. El Sandbox puede tener cargos de uso (normalmente sobre créditos de prueba, según la cuenta). No prometer cero costo ni utilizarlo en producción.
