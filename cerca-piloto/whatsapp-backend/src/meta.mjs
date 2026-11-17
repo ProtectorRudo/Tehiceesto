@@ -4,14 +4,22 @@ export function validSignature(raw,signature,appSecret){
  const expected=Buffer.from(createHmac('sha256',appSecret).update(raw).digest('hex'),'utf8');const actual=Buffer.from(signature.slice(7),'utf8');
  return actual.length===expected.length&&timingSafeEqual(actual,expected);
 }
-export function extractMessages(data){
+export function extractMessages(data,{phoneNumberId}={}){
  const items=[];
- for(const entry of data?.entry||[])for(const change of entry?.changes||[])for(const m of change?.value?.messages||[]){
+ for(const entry of data?.entry||[])for(const change of entry?.changes||[]){
+  // A Meta app can subscribe to multiple business numbers. Never mix their customers.
+  if(phoneNumberId && String(change?.value?.metadata?.phone_number_id||'')!==String(phoneNumberId))continue;
+  for(const m of change?.value?.messages||[]){
   const phone=m.from;
   if(!/^\d{7,16}$/.test(phone||''))continue;
   const content=m.type==='text'?m.text?.body:m.type==='interactive'?(m.interactive?.button_reply?.id||m.interactive?.list_reply?.id):m.type==='button'?m.button?.payload:'';
   if(typeof content!=='string'||!content.trim())continue;
-  items.push({id:m.id,phone,text:content.trim().slice(0,600),receivedAt:new Date(Number(m.timestamp||0)*1000).toISOString()});
+  const timestamp=Number(m.timestamp);
+  if(!Number.isFinite(timestamp)||timestamp<=0||timestamp>9999999999)continue;
+  const receivedAt=new Date(timestamp*1000);
+  if(!Number.isFinite(receivedAt.getTime()))continue;
+  items.push({id:m.id,phone,text:content.trim().slice(0,600),receivedAt:receivedAt.toISOString()});
+  }
  }
  return items.filter(m=>typeof m.id==='string'&&m.id.length<=180);
 }
@@ -39,12 +47,15 @@ export async function sendMeta(msg,phone,{fetcher=fetch,env=process.env}={}){
  return messageId;
 }
 /** Meta sends delivery receipts independently of user messages. Never interpret them as chat. */
-export function extractStatuses(data){
+export function extractStatuses(data,{phoneNumberId}={}){
  const found=[];
- for(const entry of data?.entry||[])for(const change of entry?.changes||[])for(const status of change?.value?.statuses||[]){
+ for(const entry of data?.entry||[])for(const change of entry?.changes||[]){
+  if(phoneNumberId && String(change?.value?.metadata?.phone_number_id||'')!==String(phoneNumberId))continue;
+  for(const status of change?.value?.statuses||[]){
   if(typeof status.id!=='string'||!status.id.startsWith('wamid.')||status.id.length>256)continue;
   if(!['sent','delivered','read','failed'].includes(status.status))continue;
   found.push({messageId:status.id,status:status.status});
+  }
  }
  return found;
 }

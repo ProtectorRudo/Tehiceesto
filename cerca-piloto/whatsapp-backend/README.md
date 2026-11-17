@@ -47,3 +47,7 @@ La separación es **lógica**, no física: se comparten cuotas, respaldos y disp
 - La base de datos ordena mensajes de sesión antes de marketing **antes del límite SQL de 100 filas**. Antes solo se ordenaban los primeros 100 registros en memoria y una cola saturada podía ocultar mensajes de alta/baja.
 - Los tests incluyen 150 campañas pendientes y una respuesta nueva, y verifican tanto el adaptador PostgreSQL como el adaptador simulado REST.
 - Esta corrección no implica conexión real con la base ni aprobación de Meta. Para eso siguen pendientes la cuenta `cerca_worker` con LOGIN y contraseña restringida, hostname oficial del Session Pooler y las credenciales del número de Meta de prueba.
+
+## Protección adicional (v0.4.2)
+
+Los webhooks verifican `metadata.phone_number_id` para procesar únicamente el número comercial de CERCA cuando Meta envía eventos de varias líneas a una misma aplicación. Timestamps inválidos se descartan sin bloquear el webhook. Los trabajos proactivos expiran al terminar el día local de Argentina para evitar misiones atrasadas. El modelo editorial predeterminado cambia a `gpt-6.1-terra` (su acceso y rendimiento reales siguen pendientes de probar con una clave propia).

@@ -140,3 +140,30 @@ test('session replies can be tested without marketing templates, but scheduled m
  assert.equal(isSessionMessagingReady({...env,CERCA_SEND_MODE:'production'}),false);
  assert.equal(isSessionMessagingReady({...env,CERCA_SEND_MODE:'production',CERCA_PRODUCTION_AUTHORIZED:'true'}),true);
 });
+
+
+test('webhook messages and receipts are scoped to the correct CERCA business phone',async()=>{
+ const {extractStatuses}=await import('../src/meta.mjs');
+ const message={id:'wamid.a',from:'5492211234567',timestamp:'1794873600',type:'text',text:{body:'ACEPTO'}};
+ const entry=id=>({changes:[{value:{metadata:{phone_number_id:id},messages:[message],statuses:[{id:'wamid.receipt',status:'delivered'}]}}]});
+ const all={entry:[entry('CERCA-ID'),entry('OTHER-BUSINESS-ID'),{changes:[{value:{messages:[message]}}]}]};
+ assert.equal(extractMessages(all,{phoneNumberId:'CERCA-ID'}).length,1);
+ assert.equal(extractStatuses(all,{phoneNumberId:'CERCA-ID'}).length,1);
+ assert.equal(extractMessages(all,{phoneNumberId:'NO-SUCH-NUMBER'}).length,0);
+ assert.equal(extractMessages(all,{phoneNumberId:'OTHER-BUSINESS-ID'}).length,1);
+});
+
+test('malformed WhatsApp timestamps cannot crash extraction or bypass the reply window',()=>{
+ const mk=(timestamp)=>({id:'wamid.invalid',from:'5492211234567',timestamp,type:'text',text:{body:'Hola'}});
+ const payload={entry:[{changes:[{value:{metadata:{phone_number_id:'CERCA-ID'},messages:[mk('Not a number'),mk('999999999999999999999999'),mk('-1'),mk('1794873600')]}}]}]};
+ const items=extractMessages(payload,{phoneNumberId:'CERCA-ID'});
+ assert.equal(items.length,1);assert.equal(items[0].id,'wamid.invalid');
+});
+
+test('daily and weekly proactive jobs expire at local midnight, not days later',()=>{
+ const s=registered(),batch=editorialBatch(s,'2026-11-16');
+ const jobs=scheduledOutbox('5492211234567',batch,{templateDaily:'approved',templateWeekly:'approved-week',weekly:true});
+ assert.equal(jobs.length,3);
+ assert.ok(jobs.every(j=>j.expires_at==='2026-11-17T02:59:59.000Z'));
+ assert.ok(jobs.every(j=>j.channel==='marketing'));
+});

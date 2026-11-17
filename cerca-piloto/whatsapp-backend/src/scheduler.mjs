@@ -8,8 +8,13 @@ export function localClock(when=new Date(),timezone='America/Argentina/Buenos_Ai
 export function scheduledOutbox(phone,batch,{weekly=false,templateDaily='',templateWeekly=''}={}){
  if(!templateDaily)return [];
  const parts=splitDailyForTemplate(batch);
- const jobs=parts.map((part,i)=>({key:tokenKey(`daily:${phone}:${batch.day}:${i}`),channel:'marketing',payload:{kind:'template',name:templateDaily,params:[part.name,part.body]},expires_at:null}));
- if(weekly&&templateWeekly)jobs.push({key:tokenKey(`weekly:${phone}:${batch.day}`),channel:'marketing',payload:{kind:'template',name:templateWeekly,params:[batch.weekly.title,`${batch.weekly.how} ${batch.weekly.why}`]},expires_at:null});
+ // A mission is relevant only on its local calendar day; never replay yesterday's plan.
+ // CERCA's current pilot fixes the family timezone at America/Argentina/Buenos_Aires (UTC-3).
+ const expiresAt=new Date(`${batch.day}T23:59:59-03:00`);
+ if(!Number.isFinite(expiresAt.getTime()))throw new Error('invalid_mission_day');
+ const expires_at=expiresAt.toISOString();
+ const jobs=parts.map((part,i)=>({key:tokenKey(`daily:${phone}:${batch.day}:${i}`),channel:'marketing',payload:{kind:'template',name:templateDaily,params:[part.name,part.body]},expires_at}));
+ if(weekly&&templateWeekly)jobs.push({key:tokenKey(`weekly:${phone}:${batch.day}`),channel:'marketing',payload:{kind:'template',name:templateWeekly,params:[batch.weekly.title,`${batch.weekly.how} ${batch.weekly.why}`]},expires_at});
  return jobs;
 }
 export async function prepareDay(state,now,{generate=generateBatch,templateDaily='',templateWeekly=''}={}){

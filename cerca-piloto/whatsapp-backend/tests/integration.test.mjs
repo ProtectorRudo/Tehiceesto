@@ -43,7 +43,7 @@ test('real HTTP routes + simulated Supabase + simulated Meta complete WhatsApp o
   const verify=await native(base+'/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=local-verify&hub.challenge=ABC');assert.equal(await verify.text(),'ABC');
   const bad=await native(base+'/webhooks/whatsapp',{method:'POST',body:'{}'});assert.equal(bad.status,403);
   const send=async(text,i)=>{
-   const payload=JSON.stringify({entry:[{changes:[{value:{messages:[{id:'wamid.'+i,from:'5492211234567',timestamp:String(Math.floor(Date.now()/1000)),type:'text',text:{body:text}}]}}]}]});
+   const payload=JSON.stringify({entry:[{changes:[{value:{metadata:{phone_number_id:'123456'},messages:[{id:'wamid.'+i,from:'5492211234567',timestamp:String(Math.floor(Date.now()/1000)),type:'text',text:{body:text}}]}}]}]});
    const signature='sha256='+createHmac('sha256',env.META_APP_SECRET).update(payload).digest('hex');
    const r=await native(base+'/webhooks/whatsapp',{method:'POST',headers:{'x-hub-signature-256':signature,'content-type':'application/json'},body:payload});assert.equal(r.status,200);return r.json();
   };
@@ -57,7 +57,7 @@ test('real HTTP routes + simulated Supabase + simulated Meta complete WhatsApp o
   const outcome=await r.json();assert.equal(outcome.scheduled,1);assert.equal(row.state.history.length,1);
   const templates=sent.filter(x=>x.type==='template');assert.equal(templates.length,2); // daily + weekly
   assert.equal(row.state.history[0].children[0].missions.length,3);
-  const delivery=JSON.stringify({entry:[{changes:[{value:{statuses:[{id:'wamid.sent'+sent.length,status:'delivered'}]}}]}]});
+  const delivery=JSON.stringify({entry:[{changes:[{value:{metadata:{phone_number_id:'123456'},statuses:[{id:'wamid.sent'+sent.length,status:'delivered'}]}}]}]});
   const statusSig='sha256='+createHmac('sha256',env.META_APP_SECRET).update(delivery).digest('hex');
   const delivered=await native(base+'/webhooks/whatsapp',{method:'POST',headers:{'x-hub-signature-256':statusSig},body:delivery});
   assert.equal(delivered.status,200);

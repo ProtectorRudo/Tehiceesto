@@ -35,3 +35,5 @@ Comprobado en la base activa: `cerca.families`, `cerca.events` y `cerca.outbox` 
 Corregida la prioridad SQL de pendientes para servicio frente a marketing **antes del LIMIT 100**, validada con saturación sintética de 150 entradas y 28 pruebas locales.
 
 Render y su build anterior estaban `live`, pero **una nueva versión solo debe declararse publicada tras comprobar su despliegue concreto**. No asumir que el servicio es funcional hasta que `/healthz` diga `database=ready` y exista una prueba real desde Meta.
+
+2026-11-17: v0.4.2 limita los webhooks al número Meta configurado y expira misiones a medianoche. Corrige el modelo editorial predeterminado al identificador `gpt-6.1-terra` verificado en la documentación, sujeto a disponibilidad en la cuenta.

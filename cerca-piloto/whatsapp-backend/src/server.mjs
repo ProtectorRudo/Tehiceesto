@@ -85,7 +85,7 @@ async function handle(req,res){
   if(db.available()&&typeof db.ping==='function'){
     try{await db.ping();database='ready';}catch{database='unreachable';}
   }
-  return json(res,200,{service:'CERCA-WhatsApp',version:'0.4.1',database,meta:isSessionMessagingReady(env)?'session_ready':'pending',scheduledTemplates:isMessagingReady(env)?'approved':'disabled',clientInterface:'whatsapp-only'});
+  return json(res,200,{service:'CERCA-WhatsApp',version:'0.4.2',database,meta:isSessionMessagingReady(env)?'session_ready':'pending',scheduledTemplates:isMessagingReady(env)?'approved':'disabled',clientInterface:'whatsapp-only'});
  }
  if(url.pathname==='/webhooks/whatsapp'&&req.method==='GET'){
   if(url.searchParams.get('hub.mode')==='subscribe'&&env.META_VERIFY_TOKEN&&url.searchParams.get('hub.verify_token')===env.META_VERIFY_TOKEN)return fixed(res,200,url.searchParams.get('hub.challenge')||'');
@@ -96,8 +96,8 @@ async function handle(req,res){
   if(!validSignature(raw,req.headers['x-hub-signature-256'],env.META_APP_SECRET))return fixed(res,403,'Forbidden');
   if(!db.available())return json(res,503,{error:'database_unavailable'});
   const payload=JSON.parse(raw.toString('utf8'));
-  for(const receipt of extractStatuses(payload)){try{await db.setDelivery(receipt.messageId,receipt.status);}catch{/* Retry is driven by Meta; do not leak message data. */}}
-  const messages=extractMessages(payload).filter(msg=>isAllowedRecipient(msg.phone,env));
+  for(const receipt of extractStatuses(payload,{phoneNumberId:env.META_PHONE_NUMBER_ID})){try{await db.setDelivery(receipt.messageId,receipt.status);}catch{/* Retry is driven by Meta; do not leak message data. */}}
+  const messages=extractMessages(payload,{phoneNumberId:env.META_PHONE_NUMBER_ID}).filter(msg=>isAllowedRecipient(msg.phone,env));
   for(const msg of messages)await inbound(msg);
   // An outbox write is atomic with state; WhatsApp retries when DB fails.
   try{await flush(Math.min(20,messages.length*3));}catch{}

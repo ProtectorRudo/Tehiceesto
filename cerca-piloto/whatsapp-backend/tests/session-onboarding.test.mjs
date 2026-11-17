@@ -42,14 +42,18 @@ test('verified Meta onboarding works in test mode before marketing templates are
   const {start}=await import('../src/server.mjs');server=start();
   await new Promise(resolve=>server.once('listening',resolve));
   const base=`http://127.0.0.1:${server.address().port}`;
-  const send=async(text,id,timestamp=Math.floor(Date.now()/1000))=>{
-   const body=JSON.stringify({entry:[{changes:[{value:{messages:[{id:'wamid.'+id,from:'5492211234567',timestamp:String(timestamp),type:'text',text:{body:text}}]}}]}]});
+  const send=async(text,id,timestamp=Math.floor(Date.now()/1000),businessPhoneId='123456')=>{
+   const body=JSON.stringify({entry:[{changes:[{value:{metadata:{phone_number_id:businessPhoneId},messages:[{id:'wamid.'+id,from:'5492211234567',timestamp:String(timestamp),type:'text',text:{body:text}}]}}]}]});
    const signature='sha256='+createHmac('sha256',env.META_APP_SECRET).update(body).digest('hex');
    return native(base+'/webhooks/whatsapp',{method:'POST',headers:{'content-type':'application/json','x-hub-signature-256':signature},body});
   };
   assert.equal((await send('Hola',1)).status,200);
   assert.equal(sent.length,1);
   assert.match(sent[0].interactive.body.text,/¿Aceptás recibir/);
+  // A signed webhook for another Meta business number must never affect CERCA.
+  assert.equal((await send('ACEPTO',77,Math.floor(Date.now()/1000),'ANOTHER-WABA-PHONE')).status,200);
+  assert.equal(row.state.status,'pending');
+  assert.equal(sent.length,1);
   assert.equal((await send('ACEPTO',2)).status,200);
   assert.equal(row.state.flow,'adult_name');
   assert.equal(row.state.status,'onboarding');
