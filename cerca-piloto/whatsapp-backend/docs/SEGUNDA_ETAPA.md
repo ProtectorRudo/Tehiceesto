@@ -27,3 +27,11 @@ NO tocar proyectos OFI, Cómplices ni Cotironda. No usar el `service_role` compa
 5. Probar alta, tres misiones por hijo, misión familiar, feedback, baja, cancelación de cola y separación real de permisos.
 
 Pruebas de regresión: `npm test`, incluidas respuestas de servicio antes de aprobar plantillas y rechazo de webhooks antiguos.
+
+## Auditoría del 17/11/2026 — v0.4.1
+
+Comprobado en la base activa: `cerca.families`, `cerca.events` y `cerca.outbox` tienen cada una una política RLS para `cerca_worker`, y los grants de ese rol solo abarcan las tablas del nuevo esquema; `anon` no usa el esquema. El rol sigue `NOLOGIN` y las tablas siguen sin familias reales.
+
+Corregida la prioridad SQL de pendientes para servicio frente a marketing **antes del LIMIT 100**, validada con saturación sintética de 150 entradas y 28 pruebas locales.
+
+Render y su build anterior estaban `live`, pero **una nueva versión solo debe declararse publicada tras comprobar su despliegue concreto**. No asumir que el servicio es funcional hasta que `/healthz` diga `database=ready` y exista una prueba real desde Meta.

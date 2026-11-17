@@ -34,10 +34,16 @@ Ver detalle completo en `docs/SEGUNDA_ETAPA.md`.
 
 La separación es **lógica**, no física: se comparten cuotas, respaldos y disponibilidad del mismo proyecto. CERCA no usa Auth ni Storage de los otros negocios. Cada familia se identifica internamente mediante el WhatsApp del adulto que consintió; solo el backend con firma verificada de Meta consulta esas filas. Datos sensibles de menores deben mantenerse mínimos.
 
-## Prueba progresiva sin plantillas de marketing (v0.4.0)
+## Prueba progresiva sin plantillas de marketing (v0.4.1)
 
 - El registro y sus respuestas operan **solo dentro de la ventana de atención iniciada por el adulto**. Se permite probarlas con `CERCA_SEND_MODE=test`, `CERCA_TEST_WA_IDS` y las credenciales verificadas de Meta; **no requieren aprobar las plantillas diarias**. Solo teléfonos explícitamente habilitados.
 - Las misiones programadas continúan **bloqueadas** hasta `CERCA_TEMPLATES_APPROVED=true` y los nombres de ambas plantillas aprobadas (`META_TEMPLATE_DAILY`, `META_TEMPLATE_WEEKLY`).
 - La cola prioriza respuestas de registro/baja por delante de plantillas. Un reintento de webhook con antigüedad superior a 23 horas se ignora y las respuestas de servicio caducan antes de las 24 horas.
 - Los envíos reales siguen desactivados en el despliegue actual: `CERCA_SEND_MODE=disabled`. Que un test pase no autoriza gastos ni significa que Meta o el cron estén conectados.
 - Para completar la conexión de base faltan: hostname real del Session Pooler, contraseña exclusiva del rol `cerca_worker` provisionada por un canal seguro, conexión desde Render y prueba de acceso limitado desde la cuenta de ejecución. `cerca_worker` sigue `NOLOGIN` hasta esa configuración.
+
+## Prioridad real de la cola (v0.4.1)
+
+- La base de datos ordena mensajes de sesión antes de marketing **antes del límite SQL de 100 filas**. Antes solo se ordenaban los primeros 100 registros en memoria y una cola saturada podía ocultar mensajes de alta/baja.
+- Los tests incluyen 150 campañas pendientes y una respuesta nueva, y verifican tanto el adaptador PostgreSQL como el adaptador simulado REST.
+- Esta corrección no implica conexión real con la base ni aprobación de Meta. Para eso siguen pendientes la cuenta `cerca_worker` con LOGIN y contraseña restringida, hostname oficial del Session Pooler y las credenciales del número de Meta de prueba.

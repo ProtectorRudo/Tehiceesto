@@ -85,7 +85,7 @@ async function handle(req,res){
   if(db.available()&&typeof db.ping==='function'){
     try{await db.ping();database='ready';}catch{database='unreachable';}
   }
-  return json(res,200,{service:'CERCA-WhatsApp',version:'0.4.0',database,meta:isSessionMessagingReady(env)?'session_ready':'pending',scheduledTemplates:isMessagingReady(env)?'approved':'disabled',clientInterface:'whatsapp-only'});
+  return json(res,200,{service:'CERCA-WhatsApp',version:'0.4.1',database,meta:isSessionMessagingReady(env)?'session_ready':'pending',scheduledTemplates:isMessagingReady(env)?'approved':'disabled',clientInterface:'whatsapp-only'});
  }
  if(url.pathname==='/webhooks/whatsapp'&&req.method==='GET'){
   if(url.searchParams.get('hub.mode')==='subscribe'&&env.META_VERIFY_TOKEN&&url.searchParams.get('hub.verify_token')===env.META_VERIFY_TOKEN)return fixed(res,200,url.searchParams.get('hub.challenge')||'');

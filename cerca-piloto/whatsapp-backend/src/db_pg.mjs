@@ -40,7 +40,7 @@ export function makePgDb(env=process.env, {poolFactory}={}) {
        [phone,revision,eventId,JSON.stringify(state),JSON.stringify(outbox)]))[0]?.value;}
      catch(err){return errorRecast(err);}
    },
-   async pending(){return await sql("select job_key,wa_id,payload,channel,expires_at,attempts from cerca.outbox where status='pending' and attempts<3 order by created_at asc limit 100");},
+   async pending(){return await sql("select job_key,wa_id,payload,channel,expires_at,attempts from cerca.outbox where status='pending' and attempts<3 order by (channel='service') desc, created_at asc limit 100");},
    async setSent(key,providerId){await sql("update cerca.outbox set status='sent',provider_message_id=$2,sent_at=now() where job_key=$1",[key,String(providerId||'').slice(0,256)]);},
    async setDelivery(messageId,status){await sql('update cerca.outbox set delivery_status=$2 where provider_message_id=$1',[messageId,status]);},
    async setCancelled(key){await sql("update cerca.outbox set status='cancelled' where job_key=$1",[key]);},

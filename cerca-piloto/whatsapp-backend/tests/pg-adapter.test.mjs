@@ -55,3 +55,31 @@ test('pooler host plus separate secret constructs a private PostgreSQL URL safel
  assert.equal(makeDb(vars).available(),true);
  assert.throws(()=>makePgDb({...vars,CERCA_DB_HOST:'attacker.example.org'}),/invalid_cerca_pooler_host/);
 });
+
+
+test('database prioritizes opt-out and onboarding replies ahead of 150 queued campaigns',async()=>{
+ const marketing=Array.from({length:150},(_,i)=>({job_key:'m'+i,channel:'marketing',created_at:'2026-11-15'}));
+ const service={job_key:'reply',channel:'service',created_at:'2026-11-17'};
+ let examinedQuery='';
+ class CongestedPool {
+  async query(query){
+   examinedQuery=query;
+   const jobs=[...marketing,service];
+   if(query.includes("(channel='service') desc"))jobs.sort((a,b)=>(a.channel==='service'?-1:1)-(b.channel==='service'?-1:1));
+   return {rows:jobs.slice(0,100)};
+  }
+ }
+ const db=makePgDb({CERCA_DATABASE_URL:'postgres://test@localhost/postgres'},{poolFactory:CongestedPool});
+ const pending=await db.pending();
+ assert.equal(pending.length,100);
+ assert.equal(pending[0].job_key,'reply');
+ assert.match(examinedQuery,/order by \(channel='service'\) desc, created_at asc limit 100/);
+});
+
+test('legacy REST test adapter requests service jobs before marketing jobs',async()=>{
+ const urls=[];
+ const fetcher=async url=>{urls.push(url);return new Response('[]',{status:200})};
+ const db=makeDb({CERCA_TEST_REST_ADAPTER:'true',SUPABASE_URL:'https://fake-cerca.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'fake-test'},fetcher);
+ await db.pending();
+ assert.match(urls[0],/order=channel\.desc,created_at\.asc/);
+});
