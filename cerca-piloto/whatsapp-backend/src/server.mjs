@@ -92,7 +92,7 @@ async function handle(req,res){
   if(db.available()&&typeof db.ping==='function'){
     try{await db.ping();database='ready';}catch{database='unreachable';}
   }
-  return json(res,200,{service:'CERCA-WhatsApp',version:'0.6.0',database,provider:(env.CERCA_PROVIDER||'meta'),messaging:isSessionMessagingReady(env)?'session_ready':'pending',scheduledTemplates:isMessagingReady(env)?'approved':'disabled',clientInterface:'whatsapp-only'});
+  return json(res,200,{service:'CERCA-WhatsApp',version:'0.6.1',database,provider:(env.CERCA_PROVIDER||'meta'),messaging:isSessionMessagingReady(env)?'session_ready':'pending',scheduledTemplates:isMessagingReady(env)?'approved':'disabled',clientInterface:'whatsapp-only'});
  }
  if(url.pathname==='/webhooks/evolution'&&req.method==='POST'){
   if(env.CERCA_PROVIDER!=='evolution')return fixed(res,404,'Not Found');

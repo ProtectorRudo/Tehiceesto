@@ -53,6 +53,10 @@ services:
       CACHE_REDIS_PREFIX_KEY: cerca_bridge_cache
       CACHE_REDIS_SAVE_INSTANCES: "true"
       WEBHOOK_GLOBAL_ENABLED: "false"
+      OPENAI_ENABLED: "false"
+      DIFY_ENABLED: "false"
+      TYPEBOT_ENABLED: "false"
+      CHATWOOT_ENABLED: "false"
       WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS: "false"
       QRCODE_LIMIT: "10"
       CONFIG_SESSION_PHONE_CLIENT: CERCA Bridge
@@ -64,6 +68,23 @@ services:
     networks: [cerca_bridge_private]
     # No public port: only exposed by Caddy HTTPS below.
     expose: ["8080"]
+  monitor:
+    image: node:22-alpine
+    restart: unless-stopped
+    working_dir: /app
+    depends_on:
+      evolution: {condition: service_started}
+    environment:
+      EVOLUTION_INTERNAL_URL: http://evolution:8080
+      EVOLUTION_HOST: ${EVOLUTION_HOST:?Public HTTPS hostname required}
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:?Set Evolution API key}
+      CERCA_BRIDGE_WEBHOOK_SECRET: ${CERCA_BRIDGE_WEBHOOK_SECRET:?Set the independent webhook secret}
+    volumes:
+      - ./watchdog.mjs:/app/watchdog.mjs:ro
+      - ./bridge-control.mjs:/app/bridge-control.mjs:ro
+      - ./configure.mjs:/app/configure.mjs:ro
+    command: ["node", "watchdog.mjs"]
+    networks: [cerca_bridge_private]
   caddy:
     image: caddy:2.10-alpine
     restart: unless-stopped

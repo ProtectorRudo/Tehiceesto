@@ -1,13 +1,17 @@
 {
-  "name": "cerca-piloto-whatsapp",
-  "version": "0.6.0",
+  "name": "cerca-whatsapp-piloto",
+  "version": "0.6.1",
   "private": true,
   "type": "module",
-  "engines": {"node": ">=22.0.0"},
-  "scripts": {
-    "build": "node --test whatsapp-backend/tests/*.test.mjs",
-    "test": "node --test whatsapp-backend/tests/*.test.mjs",
-    "start": "node whatsapp-backend/src/server.mjs"
+  "engines": {
+    "node": ">=22.0.0"
   },
-  "dependencies": {"pg": "8.23.1"}
+  "scripts": {
+    "start": "node whatsapp-backend/src/server.mjs",
+    "test": "node --test whatsapp-backend/tests/*.test.mjs ../cerca-bridge/*.test.mjs",
+    "build": "npm test"
+  },
+  "dependencies": {
+    "pg": "8.23.1"
+  }
 }
