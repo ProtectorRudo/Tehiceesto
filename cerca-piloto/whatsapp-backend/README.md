@@ -68,3 +68,9 @@ The Twilio Sandbox is strictly for pilot testing, not for selling a production s
 **Proactive missions** are deliberately disabled until approved Twilio Content API templates exist (`TWILIO_CONTENT_SID_DAILY`, `TWILIO_CONTENT_SID_WEEKLY`, `CERCA_TEMPLATES_APPROVED=true`). Service replies are only allowed within the 24-hour window started by a caregiver. `TWILIO_AUTH_TOKEN` is secret and must never be posted in chat or Git.
 
 Docs: https://www.twilio.com/docs/whatsapp/sandbox, https://www.twilio.com/docs/usage/webhooks/webhooks-security, https://www.twilio.com/docs/whatsapp/quickstart
+
+## v0.6 — CERCA Bridge (Evolution API)
+
+Se agregó adaptador Evolution API en `src/evolution.mjs` y entrada `POST /webhooks/evolution`. Solo mensajes individuales en la instancia `cerca-piloto`, validación con `X-Cerca-Bridge-Secret` y deduplicación en la base. La salida utiliza `POST /message/sendText/{instance}`. El panel privado para operador `GET /internal/bridge` muestra el QR solo con una contraseña exclusiva de 32 caracteres bajo HTTPS (HTTP Basic). 
+
+La instalación independiente de Evolution + Postgres + Redis + Caddy está en `../cerca-bridge/` en el repositorio, NO desplegada; requiere un servidor persistente. La validación y las pruebas son simuladas. Los envíos siguen en `CERCA_SEND_MODE=disabled`. La conexión del backend a PostgreSQL privado `cerca_worker` también sigue pendiente hasta establecer credenciales de acceso; nunca usar la clave administrativa compartida.

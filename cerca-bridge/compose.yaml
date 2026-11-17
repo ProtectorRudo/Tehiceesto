@@ -1,0 +1,89 @@
+# CERCA Bridge: isolated Evolution API + stateful Postgres and Redis. Never deploy
+# on ephemeral free hosting: session databases MUST survive restarts and redeploys.
+name: cerca-bridge
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cerca_bridge
+      POSTGRES_DB: evolution_cerca
+      POSTGRES_PASSWORD: ${BRIDGE_POSTGRES_PASSWORD:?Set an independent random password}
+    volumes:
+      - cerca_evolution_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cerca_bridge -d evolution_cerca"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [cerca_bridge_private]
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1", "--requirepass", "${BRIDGE_REDIS_PASSWORD:?Set an independent random password}"]
+    volumes:
+      - cerca_evolution_redis:/data
+    networks: [cerca_bridge_private]
+  evolution:
+    image: evoapicloud/evolution-api:v2.3.7
+    restart: unless-stopped
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_started}
+    environment:
+      SERVER_TYPE: http
+      SERVER_PORT: "8080"
+      SERVER_URL: https://${EVOLUTION_HOST:?Public HTTPS hostname required}
+      SERVER_DISABLE_DOCS: "true"
+      SERVER_DISABLE_MANAGER: "true"
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:?Set an independent Evolution API key}
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "false"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://cerca_bridge:${BRIDGE_POSTGRES_PASSWORD}@postgres:5432/evolution_cerca
+      DATABASE_CONNECTION_CLIENT_NAME: cerca_bridge
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "false"
+      DATABASE_SAVE_MESSAGE_UPDATE: "false"
+      DATABASE_SAVE_DATA_CONTACTS: "false"
+      DATABASE_SAVE_DATA_CHATS: "false"
+      DATABASE_SAVE_DATA_HISTORIC: "false"
+      DATABASE_SAVE_DATA_LABELS: "false"
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://:${BRIDGE_REDIS_PASSWORD}@redis:6379/6
+      CACHE_REDIS_PREFIX_KEY: cerca_bridge_cache
+      CACHE_REDIS_SAVE_INSTANCES: "true"
+      WEBHOOK_GLOBAL_ENABLED: "false"
+      WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS: "false"
+      QRCODE_LIMIT: "10"
+      CONFIG_SESSION_PHONE_CLIENT: CERCA Bridge
+      CONFIG_SESSION_PHONE_NAME: Chrome
+      LOG_LEVEL: ERROR,WARN
+      LOG_BAILEYS: error
+    volumes:
+      - cerca_evolution_sessions:/evolution/instances
+    networks: [cerca_bridge_private]
+    # No public port: only exposed by Caddy HTTPS below.
+    expose: ["8080"]
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on: [evolution]
+    environment:
+      EVOLUTION_HOST: ${EVOLUTION_HOST}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - cerca_bridge_caddy:/data
+      - cerca_bridge_caddy_config:/config
+    networks: [cerca_bridge_private]
+networks:
+  cerca_bridge_private:
+    internal: false
+volumes:
+  cerca_evolution_pg:
+  cerca_evolution_redis:
+  cerca_evolution_sessions:
+  cerca_bridge_caddy:
+  cerca_bridge_caddy_config:

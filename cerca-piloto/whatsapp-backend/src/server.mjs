@@ -1,7 +1,9 @@
 import http from 'node:http';
+import {createHash,timingSafeEqual,randomBytes} from 'node:crypto';
 import {validSignature,extractMessages,extractStatuses,sendMeta} from './meta.mjs';
 import {parseTwilioForm,validateTwilioSignature,extractTwilioMessage,extractTwilioStatus,sendTwilio} from './twilio.mjs';
 import {makeDb} from './db.mjs';
+import {validateEvolutionWebhook,extractEvolutionMessage,sendEvolution,fetchEvolutionQr,fetchEvolutionPairingCode} from './evolution.mjs';
 import {initialState,processInbound} from './flow.mjs';
 import {localClock,prepareDay,scheduledOutbox,tokenKey,isMessagingReady,isSessionMessagingReady,isAllowedRecipient} from './scheduler.mjs';
 const db=makeDb();const env=process.env;
@@ -10,6 +12,7 @@ const json=(res,code,obj)=>{res.writeHead(code,{'content-type':'application/json
 const fixed=(res,code,s)=>{res.writeHead(code,{'content-type':'text/plain; charset=utf-8','cache-control':'no-store'});res.end(s);};
 const read=async(req)=>{let size=0,chunks=[];for await(const chunk of req){size+=chunk.length;if(size>524288)throw Error('payload_too_large');chunks.push(chunk);}return Buffer.concat(chunks);};
 const same=(a,b)=>a&&b&&a.length===b.length&&a===b;
+const sameSecret=(a,b)=>timingSafeEqual(createHash('sha256').update(a).digest(),createHash('sha256').update(b).digest());
 const authCron=req=>same((req.headers.authorization||'').replace(/^Bearer /,''),env.CRON_SECRET);
 const outboundFor=(message,eventId,index,receivedAt)=>({
  key:tokenKey(`${eventId}:${index}`),channel:'service',payload:message,
@@ -56,7 +59,7 @@ async function flush(max=20){
   }
   const forecast=(env.CERCA_PROVIDER||'meta')==='twilio'?Number(job.channel==='marketing'?env.CERCA_TWILIO_ESTIMATED_TEMPLATE_USD||.20:env.CERCA_TWILIO_ESTIMATED_REPLY_USD||.10):(job.channel==='marketing'?Number(env.CERCA_PRICING_MARKETING_USD||.0618):.026);
   if(estimated+forecast>cap)break;
-  try{const providerId=(env.CERCA_PROVIDER||'meta')==='twilio'?await sendTwilio(job.payload,job.wa_id):await sendMeta(job.payload,job.wa_id);await db.setSent(job.job_key,providerId);sent++;estimated+=forecast;}
+  try{const providerId=(env.CERCA_PROVIDER||'meta')==='twilio'?await sendTwilio(job.payload,job.wa_id):(env.CERCA_PROVIDER==='evolution'?await sendEvolution(job.payload,job.wa_id):await sendMeta(job.payload,job.wa_id));await db.setSent(job.job_key,providerId);sent++;estimated+=forecast;}
   catch{await db.retry(job.job_key,job.attempts);failed++;}
  }
  return {sent,failed,cancelled,heldMarketing,estimatedUSD:Number(estimated.toFixed(3)),budgetUSD:cap};
@@ -71,8 +74,8 @@ async function dispatch(){
   const rows=await db.activeFamilies();
   for(const family of rows.slice(0,max)){
    const twilio=(env.CERCA_PROVIDER||'meta')==='twilio';
-   const daily=twilio?env.TWILIO_CONTENT_SID_DAILY:env.META_TEMPLATE_DAILY;
-   const weekly=twilio?env.TWILIO_CONTENT_SID_WEEKLY:env.META_TEMPLATE_WEEKLY;
+   const daily=twilio?env.TWILIO_CONTENT_SID_DAILY:(env.CERCA_PROVIDER==='evolution'?env.EVOLUTION_TEMPLATE_DAILY:env.META_TEMPLATE_DAILY);
+   const weekly=twilio?env.TWILIO_CONTENT_SID_WEEKLY:(env.CERCA_PROVIDER==='evolution'?env.EVOLUTION_TEMPLATE_WEEKLY:env.META_TEMPLATE_WEEKLY);
    const now=new Date(),p=await prepareDay(family.state,now,{templateDaily:daily,templateWeekly:weekly});
    if(!p)continue;
    const jobs=scheduledOutbox(family.wa_id,p.batch,{weekly:p.weekly,templateDaily:daily,templateWeekly:weekly});
@@ -89,7 +92,43 @@ async function handle(req,res){
   if(db.available()&&typeof db.ping==='function'){
     try{await db.ping();database='ready';}catch{database='unreachable';}
   }
-  return json(res,200,{service:'CERCA-WhatsApp',version:'0.5.0',database,provider:(env.CERCA_PROVIDER||'meta'),messaging:isSessionMessagingReady(env)?'session_ready':'pending',scheduledTemplates:isMessagingReady(env)?'approved':'disabled',clientInterface:'whatsapp-only'});
+  return json(res,200,{service:'CERCA-WhatsApp',version:'0.6.0',database,provider:(env.CERCA_PROVIDER||'meta'),messaging:isSessionMessagingReady(env)?'session_ready':'pending',scheduledTemplates:isMessagingReady(env)?'approved':'disabled',clientInterface:'whatsapp-only'});
+ }
+ if(url.pathname==='/webhooks/evolution'&&req.method==='POST'){
+  if(env.CERCA_PROVIDER!=='evolution')return fixed(res,404,'Not Found');
+  if(!validateEvolutionWebhook(req.headers['x-cerca-bridge-secret'],env.CERCA_BRIDGE_WEBHOOK_SECRET))return fixed(res,403,'Forbidden');
+  if(!String(req.headers['content-type']||'').toLowerCase().startsWith('application/json'))return fixed(res,415,'Unsupported Media Type');
+  if(!db.available())return json(res,503,{error:'database_unavailable'});
+  const raw=await read(req);
+  let event;try{event=JSON.parse(raw.toString('utf8'));}catch{return json(res,400,{error:'invalid_json'});}
+  const message=extractEvolutionMessage(event,{instance:env.EVOLUTION_INSTANCE});
+  if(message&&isAllowedRecipient(message.phone,env)){await inbound(message);try{await flush(5);}catch{}}
+  return json(res,200,{received:message?1:0});
+ }
+ // Private, mobile-friendly QR view. The adult customer never accesses this route.
+ if(url.pathname==='/internal/bridge'&&req.method==='GET'){
+  if(env.CERCA_PROVIDER!=='evolution'||String(env.CERCA_OPERATOR_PASSWORD||'').length<32)return fixed(res,404,'Not Found');
+  const expected='Basic '+Buffer.from('cerca-admin:'+env.CERCA_OPERATOR_PASSWORD).toString('base64');
+  const incoming=String(req.headers.authorization||'');
+  if(!sameSecret(incoming,expected)){
+   res.writeHead(401,{'www-authenticate':'Basic realm="CERCA Bridge"','cache-control':'no-store'});return res.end('Unauthorized');
+  }
+  let qr=null;try{qr=await fetchEvolutionQr();}catch{/* Bridge unavailable: never echo credentials or raw errors. */}
+  const nonce=randomBytes(16).toString('base64');
+  const html='<!doctype html><html lang="es"><meta name="viewport" content="width=device-width,initial-scale=1"><meta charset="utf-8"><title>CERCA Bridge</title><style>body{font:18px system-ui;background:#f7faf8;color:#1b352b;margin:0;padding:26px}main{max-width:430px;margin:auto;text-align:center}img{width:min(100%,300px);height:auto;border:1px solid #ddd}p{line-height:1.45}input,button{font:inherit;padding:10px;margin:5px}code{font-size:30px}</style><main><h1>CERCA Bridge</h1>'+(qr?'<p>Escaneá este QR desde WhatsApp → Dispositivos vinculados</p><img alt="QR de vinculación" src="'+qr+'">':'<p>QR no disponible. Comprobá que Evolution API esté funcionando y la instancia CERCA esté creada.</p>')+'<p>¿Solo tenés un celular? Solicitá un código de vinculación.</p><form id="pair"><input aria-label="Teléfono en formato internacional" type="tel" id="phone" required placeholder="5492210000000" pattern="[0-9]{8,15}"><button type="submit">Generar código</button></form><p id="result" role="status"></p><p>Panel privado del operador. Los clientes usan solo WhatsApp.</p></main><script nonce="'+nonce+'">document.getElementById("pair").addEventListener("submit",async e=>{e.preventDefault();const el=document.getElementById("result");el.textContent="Consultando…";try{const r=await fetch("/internal/bridge/pair",{method:"POST",headers:{"content-type":"application/json","x-cerca-admin":"1"},body:JSON.stringify({number:document.getElementById("phone").value})});const d=await r.json();el.textContent=r.ok&&d.code?"Código: "+d.code:"No hay código disponible; revisá la conexión";}catch{el.textContent="Servidor no disponible";}})</script></html>';
+  res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','content-security-policy':`default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`,'referrer-policy':'no-referrer'});return res.end(html);
+
+ }
+ if(url.pathname==='/internal/bridge/pair'&&req.method==='POST'){
+  if(env.CERCA_PROVIDER!=='evolution'||String(env.CERCA_OPERATOR_PASSWORD||'').length<32)return fixed(res,404,'Not Found');
+  const expected='Basic '+Buffer.from('cerca-admin:'+env.CERCA_OPERATOR_PASSWORD).toString('base64');
+  if(!sameSecret(String(req.headers.authorization||''),expected))return fixed(res,401,'Unauthorized');
+  if(req.headers['x-cerca-admin']!=='1'||!String(req.headers['content-type']||'').startsWith('application/json'))return fixed(res,403,'Forbidden');
+  if(req.headers.origin && req.headers.origin!=='https://cerca-piloto.onrender.com')return fixed(res,403,'Forbidden');
+  let data;try{data=JSON.parse((await read(req)).toString('utf8'));}catch{return json(res,400,{error:'invalid_json'});}
+  if(typeof data?.number!=='string'||!/^\d{8,15}$/.test(data.number))return json(res,400,{error:'invalid_phone'});
+  let code=null;try{code=await fetchEvolutionPairingCode(data.number);}catch{return json(res,503,{error:'bridge_unavailable'});}
+  return json(res,code?200:503,code?{code}:{error:'pairing_unavailable'});
  }
  // Twilio Sandbox uses signed form-urlencoded POSTs and an empty TwiML acknowledgement.
  // A fixed public HTTPS URL is used for signature verification, never the Host header.

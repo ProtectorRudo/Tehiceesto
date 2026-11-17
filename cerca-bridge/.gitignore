@@ -1,0 +1,8 @@
+.env
+*.pem
+*.key
+*.sqlite
+*.db
+creds.json
+sessions/
+auth/
