@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createHmac} from 'node:crypto';
 
 test('verified Meta onboarding works in test mode before marketing templates are approved',async()=>{
- const env={CERCA_TEST_REST_ADAPTER:'true',SUPABASE_URL:'https://fake-session-cerca.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'fake-test-only',
+ const env={CERCA_PROVIDER:'meta',CERCA_TEST_REST_ADAPTER:'true',SUPABASE_URL:'https://fake-session-cerca.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'fake-test-only',
   META_APP_SECRET:'private-test-app-secret',META_VERIFY_TOKEN:'private-test-verify',META_ACCESS_TOKEN:'private-test-token',
   META_PHONE_NUMBER_ID:'123456',CRON_SECRET:'private-test-cron',PORT:'0',OPENAI_API_KEY:'',
   CERCA_MONTHLY_CAP_USD:'10',CERCA_SEND_MODE:'test',CERCA_TEST_WA_IDS:'5492211234567',
