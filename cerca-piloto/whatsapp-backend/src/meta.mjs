@@ -34,7 +34,9 @@ export async function sendMeta(msg,phone,{fetcher=fetch,env=process.env}={}){
  const url=`https://graph.facebook.com/${graph}/${id}/messages`;
  const result=await fetcher(url,{method:'POST',headers:{'authorization':`Bearer ${token}`,'content-type':'application/json'},body:JSON.stringify(buildPayload(msg,phone,env))});
  if(!result.ok)throw new Error(`meta_${result.status}`);
- return (await result.json()).messages?.[0]?.id||'accepted';
+ const messageId=(await result.json()).messages?.[0]?.id;
+ if(typeof messageId!=='string'||!messageId.startsWith('wamid.'))throw new Error('meta_missing_message_id');
+ return messageId;
 }
 /** Meta sends delivery receipts independently of user messages. Never interpret them as chat. */
 export function extractStatuses(data){

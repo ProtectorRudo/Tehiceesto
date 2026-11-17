@@ -64,3 +64,6 @@ El health check responde `pending` para dependencias sin credenciales y no expon
 - Costo cotizado de proyecto Supabase adicional en la organización conectada: USD 0 mensuales de costo inicial; aún sin creación ni migración.
 - Un costo orientativo de 2 mensajes de marketing por día y 4 semanales a USD 0,0618 = USD 3,9552 por familia/mes, antes de IA, hosting, impuestos y otras conversaciones.
 - La rama CERCA tiene un frontend anterior incompatible. Se debe publicar este backend en un despliegue propio y sin interfaz web para familias.
+
+## Bloqueo adicional previo a cualquier envío
+Además de `CERCA_SEND_MODE=test` y una lista de números de prueba, el motor exige `CERCA_TEMPLATES_APPROVED=true` tras verificar la aprobación en Meta de las dos plantillas. Un estado HTTP 200 sin un identificador `wamid.*` válido no se registra como envío exitoso.

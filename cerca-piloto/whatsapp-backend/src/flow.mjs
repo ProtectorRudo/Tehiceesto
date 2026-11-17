@@ -12,18 +12,8 @@ const q=(body,options=[])=>({body,options});
 const askConsent=()=>q('Hola, soy CERCA 🌱. Enviamos misiones breves para conectar con tus hijos. No somos un chat de consultas. ¿Aceptás recibir mensajes de CERCA y guardar un perfil familiar mínimo? Podés escribir BAJA cuando quieras.',['ACEPTO','NO']);
 function question(state){
  switch(state.flow){
-  case 'feedback_child':{
-   const index=Number(n)-1;
-   if(!Number.isInteger(index)||index<0||index>=state.children.length){reply('Elegí uno de los números mostrados, o escribí MENÚ para salir.');break;}
-   state.feedbackPending.childIndex=index;state.flow='feedback_mission';reply(`¿Qué misión de ${state.children[index].name} querés registrar?`,['Conectar','Comprender','Sembrar']);break;
-  }
-  case 'feedback_mission':{
-   if(!['conectar','comprender','sembrar'].includes(n)){reply('Elegí Conectar, Comprender o Sembrar; o escribí MENÚ para salir.',['Conectar','Comprender','Sembrar']);break;}
-   const f=state.feedbackPending;const entry={day:f.day,childIndex:f.childIndex,kind:n,answer:f.answer,recordedAt:now};
-   state.feedbackLog=(state.feedbackLog||[]).filter(x=>!(x.day===entry.day&&x.childIndex===entry.childIndex&&x.kind===entry.kind));
-   state.feedbackLog.push(entry);state.feedbackLog=state.feedbackLog.slice(-90);
-   state.feedbackPending=null;state.flow='idle';reply('Registramos tu experiencia. Gracias por compartirla, sin exigencias ni premios.');break;
-  }
+  case 'feedback_child':return q('Elegí el número del hijo o hija cuya misión querés registrar.');
+  case 'feedback_mission':return q('¿Cuál misión querés registrar?',['Conectar','Comprender','Sembrar']);
   case 'adult_name':return q('¿Cómo te gustaría que te llamemos?');
   case 'children_count':return q(`¡Un gusto, ${state.adultName}! ¿Cuántos hijos querés registrar? (1 a 6)`,['1','2','3']);
   case 'child_name':return q(`¿Cómo se llama o qué apodo querés usar para tu hijo/a ${state.currentChild+1}?`);

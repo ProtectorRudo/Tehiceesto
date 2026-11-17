@@ -35,6 +35,8 @@ export function isAllowedRecipient(phone,env=process.env){
 export function isMessagingReady(env=process.env){
  const mode=env.CERCA_SEND_MODE||'disabled';
  if(!['test','production'].includes(mode))return false;
+ // Explicit go-live gate: Meta must approve both templates before any real outbound.
+ if(env.CERCA_TEMPLATES_APPROVED!=='true')return false;
  if(mode==='production'&&env.CERCA_PRODUCTION_AUTHORIZED!=='true')return false;
  if(mode==='test'&&!String(env.CERCA_TEST_WA_IDS||'').trim())return false;
  return !!(env.META_ACCESS_TOKEN&&env.META_PHONE_NUMBER_ID&&env.META_TEMPLATE_DAILY&&env.META_TEMPLATE_WEEKLY&&env.META_APP_SECRET&&env.META_VERIFY_TOKEN);}
