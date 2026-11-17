@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {initialState,processInbound,REDIRECT,formatMissions} from '../src/flow.mjs';
 import {editorialBatch,validateBatch} from '../src/missions.mjs';
-import {localClock,prepareDay,scheduledOutbox,isMessagingReady} from '../src/scheduler.mjs';
+import {localClock,prepareDay,scheduledOutbox,isMessagingReady,isSessionMessagingReady} from '../src/scheduler.mjs';
 import {validSignature,extractMessages,buildPayload,sendMeta} from '../src/meta.mjs';
 import {createHmac} from 'node:crypto';
 const today='2026-11-16',now='2026-11-16T20:00:00Z';
@@ -128,4 +128,15 @@ test('Meta must return a traceable message ID before a send is marked accepted',
  const env={META_PHONE_NUMBER_ID:'test-id',META_ACCESS_TOKEN:'secret-test',META_GRAPH_VERSION:'v27.0'};
  const fetcher=async()=>new Response(JSON.stringify({messages:[{}]}),{status:200});
  await assert.rejects(sendMeta({body:'Hola'},'5492211234567',{fetcher,env}),/meta_missing_message_id/);
+});
+
+
+test('session replies can be tested without marketing templates, but scheduled missions remain blocked',()=>{
+ const env={CERCA_SEND_MODE:'test',CERCA_TEST_WA_IDS:'5492211234567',META_ACCESS_TOKEN:'sample',META_PHONE_NUMBER_ID:'sample',META_APP_SECRET:'sample',META_VERIFY_TOKEN:'sample'};
+ assert.equal(isSessionMessagingReady(env),true);
+ assert.equal(isMessagingReady(env),false);
+ assert.equal(isSessionMessagingReady({...env,CERCA_SEND_MODE:'disabled'}),false);
+ assert.equal(isSessionMessagingReady({...env,CERCA_TEST_WA_IDS:''}),false);
+ assert.equal(isSessionMessagingReady({...env,CERCA_SEND_MODE:'production'}),false);
+ assert.equal(isSessionMessagingReady({...env,CERCA_SEND_MODE:'production',CERCA_PRODUCTION_AUTHORIZED:'true'}),true);
 });

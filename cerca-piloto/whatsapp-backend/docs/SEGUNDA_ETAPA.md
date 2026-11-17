@@ -17,3 +17,13 @@
 5. Configurar número Meta Cloud API, webhook, plantillas aprobadas y whitelist de pruebas; revisar políticas actuales y consumo.
 
 NO tocar proyectos OFI, Cómplices ni Cotironda. No usar el `service_role` compartido de Te Hice Esto. No declarar WhatsApp funcional hasta prueba real de teléfono a teléfono.
+
+## Orden de habilitación: evitar la dependencia innecesaria de plantillas
+
+1. Verificar acceso al rol privado `cerca_worker` con TLS y el Session Pooler, sin usar `service_role` de TeHiceEsto.
+2. Configurar únicamente el número de prueba oficial de Meta y la lista blanca; habilitar `CERCA_SEND_MODE=test` solo para el teléfono consentido. Las respuestas entrantes de registro son de servicio y funcionan dentro de la ventana de 24 horas, aun sin plantillas de misiones.
+3. Aprobar y registrar las dos plantillas de misiones; habilitar `CERCA_TEMPLATES_APPROVED=true` una vez verificadas, sin activar producción abierta.
+4. Configurar un disparador externo autorizado para `/internal/dispatch`, con `CRON_SECRET`, intervalos y límites por familia.
+5. Probar alta, tres misiones por hijo, misión familiar, feedback, baja, cancelación de cola y separación real de permisos.
+
+Pruebas de regresión: `npm test`, incluidas respuestas de servicio antes de aprobar plantillas y rechazo de webhooks antiguos.
