@@ -70,7 +70,13 @@ async function dispatch(){
 }
 async function handle(req,res){
  const url=new URL(req.url||'/',`http://${req.headers.host||'localhost'}`);
- if(req.method==='GET'&&url.pathname==='/healthz')return json(res,200,{service:'CERCA-WhatsApp',version:'0.2.1',database:db.available()?'configured':'pending',meta:isMessagingReady(env)?'configured':'pending',clientInterface:'whatsapp-only'});
+ if(req.method==='GET'&&url.pathname==='/healthz'){
+  let database=db.available()?'configured_unverified':'pending';
+  if(db.available()&&typeof db.ping==='function'){
+    try{await db.ping();database='ready';}catch{database='unreachable';}
+  }
+  return json(res,200,{service:'CERCA-WhatsApp',version:'0.3.0',database,meta:isMessagingReady(env)?'configured':'pending',clientInterface:'whatsapp-only'});
+ }
  if(url.pathname==='/webhooks/whatsapp'&&req.method==='GET'){
   if(url.searchParams.get('hub.mode')==='subscribe'&&env.META_VERIFY_TOKEN&&url.searchParams.get('hub.verify_token')===env.META_VERIFY_TOKEN)return fixed(res,200,url.searchParams.get('hub.challenge')||'');
   return fixed(res,403,'Forbidden');

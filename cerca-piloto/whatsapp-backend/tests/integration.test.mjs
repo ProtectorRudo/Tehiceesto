@@ -2,7 +2,7 @@ import test from 'node:test';import assert from 'node:assert/strict';import {cre
 import {localClock} from '../src/scheduler.mjs';
 
 test('real HTTP routes + simulated Supabase + simulated Meta complete WhatsApp onboarding and daily delivery',async()=>{
- const oldEnv={};const env={SUPABASE_URL:'https://fake-cerca.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'fake-test-only',META_APP_SECRET:'local-secret',META_VERIFY_TOKEN:'local-verify',META_ACCESS_TOKEN:'local-token',META_PHONE_NUMBER_ID:'123456',META_TEMPLATE_DAILY:'approved_daily',META_TEMPLATE_WEEKLY:'approved_weekly',CRON_SECRET:'local-cron-secret',PORT:'0',OPENAI_API_KEY:'',CERCA_MONTHLY_CAP_USD:'10',CERCA_SEND_MODE:'test',CERCA_TEMPLATES_APPROVED:'true',CERCA_TEST_WA_IDS:'5492211234567'};
+ const oldEnv={};const env={CERCA_TEST_REST_ADAPTER:'true',SUPABASE_URL:'https://fake-cerca.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'fake-test-only',META_APP_SECRET:'local-secret',META_VERIFY_TOKEN:'local-verify',META_ACCESS_TOKEN:'local-token',META_PHONE_NUMBER_ID:'123456',META_TEMPLATE_DAILY:'approved_daily',META_TEMPLATE_WEEKLY:'approved_weekly',CRON_SECRET:'local-cron-secret',PORT:'0',OPENAI_API_KEY:'',CERCA_MONTHLY_CAP_USD:'10',CERCA_SEND_MODE:'test',CERCA_TEMPLATES_APPROVED:'true',CERCA_TEST_WA_IDS:'5492211234567'};
  for(const [key,value] of Object.entries(env)){oldEnv[key]=process.env[key];process.env[key]=value;}
  const native=globalThis.fetch;let row=null;const receipts=new Set();const outbox=new Map();const sent=[];
  globalThis.fetch=async(url,opts={})=>{

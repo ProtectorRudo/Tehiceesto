@@ -1,27 +1,19 @@
-# CERCA — Segunda etapa: control estricto y publicación segura
+# CERCA — Fase de integración sobre Supabase compartido — 17/11/2026
 
-Fecha: 2026-11-16. Estado: **19/19 pruebas locales**, sin credenciales Meta ni base real ni mensajes enviados.
+## Hecho
+- Auditadas las tablas: `public` contiene Te Hice Esto y Cómplices, con `comp_private` para datos internos de Cómplices.
+- Se aplicó exclusivamente una migración a un NUEVO esquema `cerca` en el proyecto `Te Hice Esto`.
+- Hay tablas nuevas `cerca.families`, `cerca.events`, `cerca.outbox` y función `cerca.apply_event` (`SECURITY INVOKER`).
+- RLS habilitada en todas las tablas nuevas; `anon` y `authenticated` sin USAGE de esquema ni SELECT de tablas; `cerca_worker` sin SELECT sobre `public.gifts`, `public.cp_spaces` y `public.cp_preferences`.
+- `cerca_worker` creado `NOLOGIN` hasta conectar Render, sin contraseña en código.
+- Backend integrado con adaptador SQL de permisos mínimos; llamadas siempre calificadas con `cerca.`.
+- Entrega WhatsApp por defecto desactivada.
 
-## Qué fue agregado
-1. Opt-in informativo obligatorio: no acepta ACEPTO antes de mostrar el texto de consentimiento.
-2. MENÚ no interrumpe el registro y mantiene la pregunta pendiente.
-3. BAJA cancela la cola; se revalida el estado de la familia antes de transmitir.
-4. Después de una baja todavía se puede pedir BORRAR.
-5. Feedback por fecha, hijo y misión; evita atribuir una acción a toda la familia.
-6. Envíos bloqueados por defecto; modo test solo destinatarios autorizados, producción requiere doble activación.
-7. Webhook registra acuses `sent/delivered/read/failed` para distinguir aceptación de entrega.
-8. Banco editorial ampliado a 8 ideas por categoría y edad; simulaciones de 30 días completas sin títulos repetidos durante una semana.
-9. Esquema SQL añade `provider_message_id` y `delivery_status` en la outbox.
+## Pendiente para activar DB de Render
+1. En Supabase proyecto Te Hice Esto > Connect, seleccionar Session pooler. Copiar el hostname exacto (índice de pooler no deducible por región). No compartir la contraseña de postgres.
+2. Habilitar `LOGIN` y establecer contraseña **exclusiva** para `cerca_worker` (operación administrada fuera del repositorio, preferentemente con secret manager).
+3. Configurar `CERCA_DATABASE_URL` SOLO en el servicio `cerca-piloto` de Render: `postgresql://cerca_worker.efvvadfxuyieswdqnsjg:<clave>@<host-de-connect>:5432/postgres?sslmode=verify-full`, o URI equivalente respaldada por Connect; confirmar conectividad TLS.
+4. Probar `/healthz` y un registro ficticio por webhook firmado (o prueba end-to-end de base), manteniendo envíos desactivados.
+5. Configurar número Meta Cloud API, webhook, plantillas aprobadas y whitelist de pruebas; revisar políticas actuales y consumo.
 
-## No confundir código probado con producto conectado
-- No se ha completado una prueba WhatsApp real. Las entregas de Meta fueron simuladas.
-- Las plantillas pueden no ser aprobadas, en especial si Meta interpreta las variables como contenido genérico excesivo.
-- No activar ni producción ni envíos de prueba sin configurar allowlist y consentimiento.
-- Las credenciales no están incluidas en los archivos ni deben subirse a GitHub.
-- La política de retención, exportación íntegra y eliminación total requiere auditoría antes de lanzamiento público.
-
-## Presupuesto de transporte
-Con lista Meta Argentina octubre 2026: marketing = USD 0,0618/mensaje entregado. Si cada hijo recibe un mensaje diario y la familia una misión semanal: 1 hijo, 30+4=34 mensajes, USD 2,10; 2 hijos, 60+4=64 mensajes, USD 3,96; 4 hijos, 120+4=124 mensajes, USD 7,66. Cifras de transporte estimativas, no cotización de facturación. Vigilar fragmentación por límites de plantilla, mensajes de servicio, API OpenAI y variaciones de moneda.
-
-## Próximo hito
-Crear base exclusivamente de CERCA, migrar y verificar RLS; configurar el número de prueba Meta, plantillas y cron; completar opt-in, perfiles, 3 misiones por hijo, feedback y BAJA a través de WhatsApp real.
+NO tocar proyectos OFI, Cómplices ni Cotironda. No usar el `service_role` compartido de Te Hice Esto. No declarar WhatsApp funcional hasta prueba real de teléfono a teléfono.
