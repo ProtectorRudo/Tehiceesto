@@ -3,7 +3,13 @@
  * No Supabase service_role key is read or used by this adapter.
  */
 export function makePgDb(env=process.env, {poolFactory}={}) {
- const url=env.CERCA_DATABASE_URL||'';
+ const host=String(env.CERCA_DB_HOST||'').trim();
+ const ref=String(env.CERCA_DB_PROJECT_REF||'').trim();
+ const password=String(env.CERCA_DB_PASSWORD||'');
+ if(host && !/^[a-z0-9.-]+\.pooler\.supabase\.com$/i.test(host))throw new Error('invalid_cerca_pooler_host');
+ if(ref && !/^[a-z0-9]{12,32}$/.test(ref))throw new Error('invalid_cerca_project_ref');
+ const url=env.CERCA_DATABASE_URL || (host && ref && password ?
+  `postgresql://${encodeURIComponent('cerca_worker.'+ref)}:${encodeURIComponent(password)}@${host}:5432/postgres`: '');
  let poolPromise;
  async function pool(){
    if(!url) throw new Error('cerca_database_not_configured');

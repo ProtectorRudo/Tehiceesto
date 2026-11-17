@@ -11,8 +11,8 @@
 
 ## Pendiente para activar DB de Render
 1. En Supabase proyecto Te Hice Esto > Connect, seleccionar Session pooler. Copiar el hostname exacto (índice de pooler no deducible por región). No compartir la contraseña de postgres.
-2. Habilitar `LOGIN` y establecer contraseña **exclusiva** para `cerca_worker` (operación administrada fuera del repositorio, preferentemente con secret manager).
-3. Configurar `CERCA_DATABASE_URL` SOLO en el servicio `cerca-piloto` de Render: `postgresql://cerca_worker.efvvadfxuyieswdqnsjg:<clave>@<host-de-connect>:5432/postgres?sslmode=verify-full`, o URI equivalente respaldada por Connect; confirmar conectividad TLS.
+2. Habilitar `LOGIN` y establecer contraseña **exclusiva** para `cerca_worker` por SQL administrativo sin conservar el secreto en el código; guardarla directamente como `CERCA_DB_PASSWORD` en Render.
+3. Configurar `CERCA_DB_HOST` SOLO en el servicio `cerca-piloto` de Render con el hostname copiado de Supabase Connect (sin usuario ni contraseña). `CERCA_DB_PROJECT_REF=efvvadfxuyieswdqnsjg`. El backend construye la URI por puerto 5432 y exige TLS con verificación de certificado. Confirmar conectividad con `/healthz` mostrando `database=ready`.
 4. Probar `/healthz` y un registro ficticio por webhook firmado (o prueba end-to-end de base), manteniendo envíos desactivados.
 5. Configurar número Meta Cloud API, webhook, plantillas aprobadas y whitelist de pruebas; revisar políticas actuales y consumo.
 

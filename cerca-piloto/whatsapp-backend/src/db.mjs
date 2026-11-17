@@ -2,7 +2,7 @@ import {makePgDb} from './db_pg.mjs';
 /** Exclusive Supabase REST adapter using backend-only service-role credentials. */
 const asQuery=v=>encodeURIComponent(v);
 export function makeDb(env=process.env,fetcher=fetch){
- if(env.CERCA_DATABASE_URL)return makePgDb(env);
+ if(env.CERCA_DATABASE_URL||(env.CERCA_DB_HOST&&env.CERCA_DB_PASSWORD&&env.CERCA_DB_PROJECT_REF))return makePgDb(env);
  if(env.CERCA_TEST_REST_ADAPTER!=='true')return {available:()=>false};
  const root=(env.SUPABASE_URL||'').replace(/\/$/,'');const key=env.SUPABASE_SERVICE_ROLE_KEY;
  const available=()=>!!(root&&key);

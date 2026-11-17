@@ -40,3 +40,18 @@ test('private adapter converts optimistic concurrency errors for webhook retry',
  const db=makePgDb({CERCA_DATABASE_URL:'postgres://fake'},{poolFactory:ConflictPool});
  await assert.rejects(db.commit('5492211111111',0,'event-123456',{},[]),/database_409/);
 });
+
+
+test('pooler host plus separate secret constructs a private PostgreSQL URL safely', async()=>{
+ let config;
+ class MockPool{constructor(c){config=c}async query(){return {rows:[]}}}
+ const vars={CERCA_DB_HOST:'aws-0-sa-east-1.pooler.supabase.com',CERCA_DB_PASSWORD:'randomSecretWith@!',CERCA_DB_PROJECT_REF:'efvvadfxuyieswdqnsjg'};
+ const db=makePgDb(vars,{poolFactory:MockPool});
+ assert.equal(db.available(),true);await db.ping();
+ assert.match(config.connectionString,/^postgresql:\/\/cerca_worker\.efvvadfxuyieswdqnsjg:/);
+ assert.match(config.connectionString,/randomSecretWith%40!/);
+ assert.match(config.connectionString,/@aws-0-sa-east-1\.pooler\.supabase\.com:5432\/postgres$/);
+ assert.equal(config.ssl.rejectUnauthorized,true);
+ assert.equal(makeDb(vars).available(),true);
+ assert.throws(()=>makePgDb({...vars,CERCA_DB_HOST:'attacker.example.org'}),/invalid_cerca_pooler_host/);
+});

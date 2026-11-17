@@ -14,7 +14,7 @@ La interfaz de madres, padres y cuidadores es **solo WhatsApp**. El backend usa 
 
 ## Variables de Render (solo servidor)
 
-`CERCA_DATABASE_URL` = URI de Session Pooler con usuario `cerca_worker.efvvadfxuyieswdqnsjg`, contraseña exclusiva y puerto `5432`; hostname **copiado de Supabase Connect**, no inferido.
+`CERCA_DB_HOST` = hostname exacto del **Session Pooler** copiado de Supabase Connect (sin usuario ni contraseña). `CERCA_DB_PROJECT_REF=efvvadfxuyieswdqnsjg` y `CERCA_DB_PASSWORD` son secretos y metadatos guardados solo en Render; el backend construye internamente una conexión TLS al rol `cerca_worker` por puerto 5432. `CERCA_DATABASE_URL` queda como alternativa para instalaciones autónomas.
 
 `CERCA_DB_CA_PEM` = certificado de confianza opcional cuando corresponda.
 
