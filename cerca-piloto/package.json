@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node whatsapp-backend/src/server.mjs",
-    "test": "node --test whatsapp-backend/tests/*.test.mjs ../cerca-bridge/*.test.mjs",
+    "test": "node scripts/run-tests.mjs",
     "build": "npm test"
   },
   "dependencies": {
