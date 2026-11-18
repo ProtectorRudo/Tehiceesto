@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validateEvolutionWebhook,extractEvolutionMessage,sendEvolution,evolutionReady,fetchEvolutionQr,fetchEvolutionPairingCode} from '../src/evolution.mjs';
+import {validateEvolutionWebhook,extractEvolutionMessage,sendEvolution,evolutionReady,fetchEvolutionQr,fetchEvolutionPairingCode,classifyEvolutionQrError} from '../src/evolution.mjs';
 import {isSessionMessagingReady,isMessagingReady} from '../src/scheduler.mjs';
 
 const SECRET='test-webhook-secret-should-be-32-plus-characters',PHONE='5492211234567';
@@ -199,4 +199,18 @@ test('HTTP Bridge pipeline: authenticated webhook -> consent -> deduplication ->
   globalThis.fetch=originalFetch;
   for(const k of Object.keys(config)){if(previous[k]===undefined)delete process.env[k];else process.env[k]=previous[k];}
  }
+});
+test('QR operator diagnostics return fixed categories without leaking secrets or raw URLs',()=>{
+ const cases=[
+  [new Error('evolution_not_configured'),'configuracion_incompleta'],
+  [new Error('evolution_qr_http_401'),'clave_evolution_rechazada'],
+  [new Error('evolution_qr_http_403'),'clave_evolution_rechazada'],
+  [new Error('evolution_qr_http_404'),'ruta_o_instancia_no_encontrada'],
+  [new Error('evolution_qr_http_502'),'error_del_servidor_evolution'],
+  [Object.assign(new Error('The URL contains a secret'),{name:'AbortError'}),'tiempo_de_espera'],
+  [Object.assign(new Error('unsafe secret!'),{cause:{code:'ENOTFOUND'}}),'dns'],
+  [Object.assign(new Error('unsafe secret!'),{cause:{code:'UNABLE_TO_VERIFY_LEAF_SIGNATURE'}}),'certificado_tls'],
+  [new Error('private:password'),'conexion_fallida']
+ ];
+ for(const [error,expected] of cases){const actual=classifyEvolutionQrError(error);assert.equal(actual,expected);assert.ok(!actual.includes('secret')&&!actual.includes('password'));}
 });

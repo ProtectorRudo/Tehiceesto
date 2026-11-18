@@ -148,3 +148,18 @@ export async function fetchEvolutionPairingCode(phone,{env=process.env,fetcher=f
   return /^[A-Z0-9]{6,12}$/.test(code)?code:null;
  } finally {clearTimeout(timeout);}
 }
+/** Only fixed error categories reach the authenticated operator panel. Never raw messages. */
+export function classifyEvolutionQrError(error) {
+ const message=String(error?.message||'');
+ if(message==='evolution_not_configured')return 'configuracion_incompleta';
+ if(message==='evolution_qr_http_401'||message==='evolution_qr_http_403')return 'clave_evolution_rechazada';
+ if(message==='evolution_qr_http_404')return 'ruta_o_instancia_no_encontrada';
+ if(message==='evolution_qr_http_429')return 'limite_de_solicitudes';
+ if(/^evolution_qr_http_5\\d\\d$/.test(message))return 'error_del_servidor_evolution';
+ if(/^evolution_qr_http_\\d{3}$/.test(message))return 'respuesta_http_no_esperada';
+ if(error?.name==='AbortError')return 'tiempo_de_espera';
+ const code=String(error?.cause?.code||error?.code||'').toUpperCase();
+ if(code==='ENOTFOUND'||code==='EAI_AGAIN')return 'dns';
+ if(['UNABLE_TO_VERIFY_LEAF_SIGNATURE','CERT_HAS_EXPIRED','SELF_SIGNED_CERT_IN_CHAIN','ERR_TLS_CERT_ALTNAME_INVALID'].includes(code))return 'certificado_tls';
+ return 'conexion_fallida';
+}
