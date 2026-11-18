@@ -155,8 +155,8 @@ export function classifyEvolutionQrError(error) {
  if(message==='evolution_qr_http_401'||message==='evolution_qr_http_403')return 'clave_evolution_rechazada';
  if(message==='evolution_qr_http_404')return 'ruta_o_instancia_no_encontrada';
  if(message==='evolution_qr_http_429')return 'limite_de_solicitudes';
- if(/^evolution_qr_http_5\\d\\d$/.test(message))return 'error_del_servidor_evolution';
- if(/^evolution_qr_http_\\d{3}$/.test(message))return 'respuesta_http_no_esperada';
+ if(/^evolution_qr_http_5\d\d$/.test(message))return 'error_del_servidor_evolution';
+ if(/^evolution_qr_http_\d{3}$/.test(message))return 'respuesta_http_no_esperada';
  if(error?.name==='AbortError')return 'tiempo_de_espera';
  const code=String(error?.cause?.code||error?.code||'').toUpperCase();
  if(code==='ENOTFOUND'||code==='EAI_AGAIN')return 'dns';
