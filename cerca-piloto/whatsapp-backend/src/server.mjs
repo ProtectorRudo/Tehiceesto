@@ -3,6 +3,7 @@ import {createHash,timingSafeEqual,randomBytes} from 'node:crypto';
 import {validSignature,extractMessages,extractStatuses,sendMeta} from './meta.mjs';
 import {parseTwilioForm,validateTwilioSignature,extractTwilioMessage,extractTwilioStatus,sendTwilio} from './twilio.mjs';
 import {makeDb} from './db.mjs';
+import {classifyDbFailure} from './db_pg.mjs';
 import {validateEvolutionWebhook,extractEvolutionMessage,sendEvolution,fetchEvolutionQr,fetchEvolutionPairingCode} from './evolution.mjs';
 import {initialState,processInbound} from './flow.mjs';
 import {localClock,prepareDay,scheduledOutbox,tokenKey,isMessagingReady,isSessionMessagingReady,isAllowedRecipient} from './scheduler.mjs';
@@ -88,11 +89,11 @@ async function dispatch(){
 async function handle(req,res){
  const url=new URL(req.url||'/',`http://${req.headers.host||'localhost'}`);
  if(req.method==='GET'&&url.pathname==='/healthz'){
-  let database=db.available()?'configured_unverified':'pending';
+  let database=db.available()?'configured_unverified':'pending', databaseIssue=null;
   if(db.available()&&typeof db.ping==='function'){
-    try{await db.ping();database='ready';}catch{database='unreachable';}
+    try{await db.ping();database='ready';}catch(error){database='unreachable';databaseIssue=classifyDbFailure(error);}
   }
-  return json(res,200,{service:'CERCA-WhatsApp',version:'0.6.1',database,provider:(env.CERCA_PROVIDER||'meta'),messaging:isSessionMessagingReady(env)?'session_ready':'pending',scheduledTemplates:isMessagingReady(env)?'approved':'disabled',clientInterface:'whatsapp-only'});
+  return json(res,200,{service:'CERCA-WhatsApp',version:'0.6.1',database,...(databaseIssue?{databaseIssue}:{}),provider:(env.CERCA_PROVIDER||'meta'),messaging:isSessionMessagingReady(env)?'session_ready':'pending',scheduledTemplates:isMessagingReady(env)?'approved':'disabled',clientInterface:'whatsapp-only'});
  }
  if(url.pathname==='/webhooks/evolution'&&req.method==='POST'){
   if(env.CERCA_PROVIDER!=='evolution')return fixed(res,404,'Not Found');

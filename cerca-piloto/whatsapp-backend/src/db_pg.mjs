@@ -48,3 +48,20 @@ export function makePgDb(env=process.env, {poolFactory}={}) {
    async sentThisMonth(start){return await sql("select channel from cerca.outbox where status='sent' and sent_at >= $1::timestamptz limit 20000",[start]);}
  };
 }
+/**
+ * Stable, non-sensitive error category for an operator health check.
+ * Never return raw PostgreSQL/OS errors, hostnames or credential data.
+ */
+export function classifyDbFailure(error) {
+ const code=String(error?.code||'').toUpperCase();
+ const msg=String(error?.message||'').toLowerCase();
+ if(code==='28P01'||/password authentication failed|failed sasl authentication|invalid password|authentication failed/.test(msg))return 'authentication';
+ if(code==='28000'||/role .* does not exist|tenant or user not found|unknown tenant|no such user/.test(msg))return 'role_or_pooler';
+ if(['UNABLE_TO_VERIFY_LEAF_SIGNATURE','SELF_SIGNED_CERT_IN_CHAIN','DEPTH_ZERO_SELF_SIGNED_CERT','CERT_HAS_EXPIRED','ERR_TLS_CERT_ALTNAME_INVALID'].includes(code)||/certificate verify failed|self.signed certificate|unable to verify.*certificate|certificate has expired/.test(msg))return 'tls_certificate';
+ if(code.startsWith('ERR_SSL')||/ssl error|tls handshake|sslmode/.test(msg))return 'tls_handshake';
+ if(['ENOTFOUND','EAI_AGAIN'].includes(code))return 'dns';
+ if(code==='ETIMEDOUT'||/connection terminated due to connection timeout|connection timeout|timeout exceeded/.test(msg))return 'timeout';
+ if(['ECONNREFUSED','EHOSTUNREACH','ENETUNREACH','ECONNRESET'].includes(code))return 'network';
+ if(/client password must be a string|invalid connection string|invalid_cerca_pooler_host/.test(msg))return 'configuration';
+ return 'unclassified';
+}
