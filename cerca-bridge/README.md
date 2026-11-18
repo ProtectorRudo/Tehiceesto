@@ -45,3 +45,8 @@ VPS con persistencia, dominio y TLS, claves, conexión de la base CERCA al backe
 **Un solo celular:** el panel privado puede solicitar un *código de vinculación* que se introduce en WhatsApp sin escanear una segunda pantalla. Que Evolution lo emita correctamente deberá verificarse en la instancia real.
 
 **Cuidado con los comandos del README de versiones anteriores:** las rutas administrativas (`/webhook/*`, `/instance/fetchInstances`) ahora están bloqueadas desde Internet por Caddy; se consultan únicamente desde la red Docker. Para inicializar, usá `./install.sh`.
+
+
+## Prototipo sin VPS (Windows)
+
+Para ejecutar este mismo puente en una PC con Docker Desktop, sin contratar servidor, seguir [README-WINDOWS.md](README-WINDOWS.md) y usar `compose.local.yaml` con `start-local.ps1`. El túnel de Cloudflare es temporal y la conexión a Supabase debe completarse aparte. El instalador VPS no cambia.

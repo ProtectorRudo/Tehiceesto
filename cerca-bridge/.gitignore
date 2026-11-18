@@ -6,3 +6,6 @@
 creds.json
 sessions/
 auth/
+
+.env.local
+local-link.txt

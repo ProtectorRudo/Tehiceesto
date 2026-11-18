@@ -1,0 +1,24 @@
+:8080 {
+  encode gzip
+  header {
+    X-Content-Type-Options nosniff
+    Referrer-Policy no-referrer
+    Cache-Control no-store
+    -Server
+  }
+  # Only the two operations CERCA's cloud backend needs are public. The API
+  # still requires Evolution's independent apikey. All admin and configuration
+  # routes are accessible ONLY inside the VPS Docker network.
+  @cerca_api {
+    path /message/sendText/cerca-piloto /instance/connect/cerca-piloto
+  }
+  handle @cerca_api {
+    request_body {
+      max_size 16KB
+    }
+    reverse_proxy evolution:8080
+  }
+  handle {
+    respond "Not Found" 404
+  }
+}
