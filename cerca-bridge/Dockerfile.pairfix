@@ -1,0 +1,15 @@
+# CERCA: temporary, reproducible pairing fix for Evolution API 2.3.7.
+# Based on evolution-api PR #2759 (commit d0198733da3cb133bd0c64d24fc4d1e7720696b1).
+FROM evoapicloud/evolution-api:v2.3.7
+WORKDIR /evolution
+COPY patches/baileys+7.0.0-rc14.patch /tmp/baileys-pairfix.patch
+RUN apk add --no-cache git patch \
+    && npm install --no-audit --no-fund --no-save --package-lock=false baileys@7.0.0-rc14 \
+    && node -e "if (require('./node_modules/baileys/package.json').version !== '7.0.0-rc14') process.exit(1)" \
+    && patch --batch --forward --fuzz=0 -p1 < /tmp/baileys-pairfix.patch \
+    && grep -q 'handleCompanionRegRefresh' /evolution/node_modules/baileys/lib/Socket/socket.js \
+    && grep -q 'primary_identity_pub' /evolution/node_modules/baileys/lib/Socket/messages-recv.js \
+    && node --check /evolution/node_modules/baileys/lib/Socket/socket.js \
+    && node --check /evolution/node_modules/baileys/lib/Socket/messages-recv.js \
+    && rm /tmp/baileys-pairfix.patch \
+    && apk del git patch

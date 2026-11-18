@@ -1,0 +1,5 @@
+# Only pairing patch is included. Never copy .env.local, secrets, or sessions.
+*
+!patches/
+!patches/baileys+7.0.0-rc14.patch
+!Dockerfile.pairfix
