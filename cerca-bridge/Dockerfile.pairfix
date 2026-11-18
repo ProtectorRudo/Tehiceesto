@@ -4,7 +4,7 @@ FROM evoapicloud/evolution-api:v2.3.7
 WORKDIR /evolution
 COPY patches/baileys+7.0.0-rc14.patch /tmp/baileys-pairfix.patch
 RUN apk add --no-cache git patch \
-    && npm install --no-audit --no-fund --no-save --package-lock=false baileys@7.0.0-rc14 \
+    && NODE_OPTIONS=--dns-result-order=ipv4first npm install --no-audit --no-fund --no-save --package-lock=false --fetch-retries=1 --fetch-timeout=60000 baileys@7.0.0-rc14 \
     && node -e "if (require('./node_modules/baileys/package.json').version !== '7.0.0-rc14') process.exit(1)" \
     && patch --batch --forward --fuzz=0 -p1 < /tmp/baileys-pairfix.patch \
     && grep -q 'handleCompanionRegRefresh' /evolution/node_modules/baileys/lib/Socket/socket.js \
