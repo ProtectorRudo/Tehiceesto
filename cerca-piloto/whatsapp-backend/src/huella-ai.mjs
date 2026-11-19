@@ -71,7 +71,7 @@ export async function generatePremiumWeek(state,weekStart,{fetcher=fetch,env=pro
  if(!env.OPENAI_API_KEY)throw Error('huella_ai_not_configured');
  if(!Array.isArray(state.children)||!state.children.length||state.children.length>6)throw Error('huella_profile_invalid');
  const model=contentModel(env);
- const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),40000);timeout.unref?.();
+ const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),150000);timeout.unref?.();
  try{
   const r=await fetcher('https://api.openai.com/v1/responses',{method:'POST',signal:controller.signal,
    headers:{authorization:'Bearer '+env.OPENAI_API_KEY,'content-type':'application/json'},
