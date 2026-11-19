@@ -70,7 +70,7 @@ export function questionText(state,weekKey){
  const q=child.age<=2
   ?'Esta semana, ¿qué señal nueva o preferencia observaste en '+child.name+'? Si no hubo novedades, también sirve contarlo.'
   :'Esta semana, ¿en qué momento sentiste que escuchaste mejor a '+child.name+' y qué descubriste sobre sus gustos o su forma de pensar?';
- return '🌱 HUELLA · Una pregunta importante\n\n'+q+'\n\nPodés contestar en una frase o escribir OMITIR. Tu respuesta ayudará a personalizar la próxima semana.';
+ return '🌱 HUELLA · Una pregunta importante\n\n'+q+'\n\nPodés contestar en una frase o escribir OMITIR. Después vas a poder elegir qué objetivo te gustaría trabajar la próxima semana con cada hijo.';
 }
 export function progressSummary(state,weekKey){
  const monday=weekKey;
@@ -159,7 +159,10 @@ export async function prepareWeeklyDispatch(state,phone,now,{env=process.env,gen
  if(slot==='reflection'){
   const report=progressSummary(stateCopy,key),question=questionText(stateCopy,key);
   jobs.push(tagged('Balance semanal',compact(report+'\n\n'+question),daily,phone,clock.day,slot,0));
-  if(stateCopy.flow==='idle')stateCopy.flow='weekly_reflection';
+  if(['idle','weekly_goal_choice','weekly_goal_custom'].includes(stateCopy.flow)){
+   stateCopy.flow='weekly_reflection';
+   stateCopy.weeklyGoalSelection=null;
+  }
  }
  if(!jobs.length){
   // Avoid repeated attempts on future cron ticks for a fully quarantined slot.
