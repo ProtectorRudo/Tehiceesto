@@ -24,9 +24,10 @@ const service=(text,eventId,index,receivedAt)=>({
 const safe=(body)=>{if(typeof body!=='string'||!body.trim()||body.length>3600)throw Error('preview_message_length');return {body};};
 function description(m,day){
  return ['*'+day+' · '+String(m.title||'')+'*',
- ...(m.steps||[]).map((step,i)=>(i+1)+'. '+step),
- '*Por qué:* '+m.why,
- '*Qué observar:* '+m.observe,...(m.kind==='sembrar'&&m.skill?['*Habilidad que se practica:* '+m.skill]:[])].join('\n');
+ '*De qué se trata:* '+(m.intro||'Esta experiencia se explica en los pasos siguientes.'),
+ '*Cómo hacerlo:*',...(m.steps||[]).map((step,i)=>(i+1)+'. '+step),
+ '*Por qué puede valer la pena:* '+m.why,
+ '*Qué observar, sin exigir resultados:* '+m.observe,...(m.kind==='sembrar'&&m.skill?['*Habilidad que se practica:* '+m.skill]:[])].join('\n');
 }
 export function previewMessages(batch,state,weekStart){
  if(!batch||batch.children?.length!==state.children?.length||!batch.weekly)throw Error('preview_incomplete');

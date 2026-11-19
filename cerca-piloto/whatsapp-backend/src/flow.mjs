@@ -73,7 +73,17 @@ export function processInbound(input,{state:original=initialState(),today='2026-
   return {state,messages};
  }
  if(state.status==='active' && state.flow==='idle'){
-  if(n==='misiones'){const todaySet=(state.history||[]).find(h=>h.day===today);reply(todaySet?formatMissions(todaySet):'Todavía no están generadas las misiones de hoy. Llegarán en tu horario elegido.');return {state,messages};}
+  if(n==='misiones'){
+   const todaySet=(state.history||[]).find(h=>h.day===today);
+   if(!todaySet){reply('Todavía no están generadas las misiones de hoy. Llegarán en tu horario elegido.');}
+   else {
+    // One complete message per child, never a combined oversized text that
+    // Evolution would silently truncate at its transport boundary.
+    for(const child of todaySet.children||[])reply(formatMissions({day:today,children:[child],weekly:null}));
+    if(todaySet.weekly)reply(formatMissions({day:today,children:[],weekly:todaySet.weekly}));
+   }
+   return {state,messages};
+  }
   if(n==='objetivo'){state.flow='change_goal';const m=question(state);reply(m.body,m.options);return {state,messages};}
   if(n==='horario'){state.flow='change_time';const m=question(state);reply(m.body,m.options);return {state,messages};}
   if(is(n,['animo','ánimo'])){state.flow='mood';const m=question(state);reply(m.body,m.options);return {state,messages};}
@@ -158,7 +168,20 @@ export function processInbound(input,{state:original=initialState(),today='2026-
 }
 export function formatMissions(batch){
  const lines=[`🌱 HUELLA — ${batch.day}`];
- for(const kid of batch.children){lines.push(`\n*${kid.name}*`);for(const m of kid.missions)lines.push(`• ${m.kind.toUpperCase()}: ${m.title}. ${m.how}`);}
- if(batch.weekly)lines.push(`\n🏡 *Familia*: ${batch.weekly.title}. ${batch.weekly.how}`);
- lines.push('\nRespondé HECHA, NO PUDE o MENÚ para continuar.');return lines.join('\n');
+ const missionDetails=m=>typeof m.how==='string'?m.how:[
+   m.intro?'*De qué se trata:* '+m.intro:null,
+   Array.isArray(m.steps)?'*Cómo hacerlo:*\n'+m.steps.map((step,i)=>(i+1)+'. '+step).join('\n'):null,
+   m.why?'*Por qué puede valer la pena:* '+m.why:null,
+   m.observe?'*Qué observar:* '+m.observe:null,
+   m.kind==='sembrar'&&m.skill?'*Habilidad:* '+m.skill:null
+ ].filter(Boolean).join('\n');
+ for(const kid of batch.children||[]){
+  lines.push(`\n*${kid.name}*`);
+  for(const m of kid.missions||[])lines.push(`*• ${String(m.kind).toUpperCase()}: ${m.title}*\n${missionDetails(m)}`);
+ }
+ if(batch.weekly)lines.push(`\n🏡 *Familia: ${batch.weekly.title}*\n${missionDetails(batch.weekly)}`);
+ lines.push('\nRespondé HECHA, NO PUDE o MENÚ para continuar.');
+ const text=lines.join('\n');
+ if(text.length>3600)throw Error('huella_mission_reply_too_long');
+ return text;
 }

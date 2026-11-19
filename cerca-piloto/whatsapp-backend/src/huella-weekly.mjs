@@ -15,19 +15,21 @@ const expiry=day=>new Date(day+'T23:59:59-03:00').toISOString();
 const shorten=(s,n)=>String(s||'').trim().slice(0,n);
 function compact(body){
  const trimmed=body.trim();
- // Evolution and Meta templates have limits; never silently truncate meaningful text.
- if(trimmed.length>880)throw Error('huella_content_too_long');
+ // Only the isolated Evolution test pilot uses this extended text envelope.
+ // Official WhatsApp templates will need their own approved formatting; never truncate.
+ if(trimmed.length>2100)throw Error('huella_content_too_long');
  return trimmed;
 }
 const steps=m=>m.steps.map((s,i)=>String(i+1)+'. '+s).join('\n');
 export function missionText(name,m){
  return compact(['🌱 HUELLA · '+name+' · '+KIND_NAMES[m.kind],
-  '*'+m.title+'*',steps(m),'*Por qué:* '+m.why,'*Qué observar:* '+m.observe,
+  '*'+m.title+'*','*De qué se trata:* '+(m.intro||'La misión se explica en los siguientes pasos.'),
+  '*Cómo hacerlo:*\n'+steps(m),'*Por qué puede valer la pena:* '+m.why,'*Qué observar, sin exigir resultados:* '+m.observe,
   'Duración sugerida: 5–15 minutos. Si no quiere participar, respetá su decisión.'].join('\n\n'));
 }
 export function familyText(m){
- return compact(['🏡 HUELLA · Momento familiar','*'+m.title+'*',steps(m),
-  '*Por qué:* '+m.why,'*Qué observar:* '+m.observe,...(m.kind==='sembrar'&&m.skill?['*Habilidad:* '+m.skill]:[]),
+ return compact(['🏡 HUELLA · Momento familiar','*'+m.title+'*','*De qué se trata:* '+(m.intro||'Una propuesta para compartir en familia.'),
+  '*Cómo hacerlo:*\n'+steps(m),'*Por qué puede valer la pena:* '+m.why,'*Qué observar, sin exigir resultados:* '+m.observe,...(m.kind==='sembrar'&&m.skill?['*Habilidad:* '+m.skill]:[]),
   'Pueden adaptarla a las edades de todos. Nadie tiene obligación de participar.'].join('\n\n'));
 }
 export function questionText(state,weekKey){

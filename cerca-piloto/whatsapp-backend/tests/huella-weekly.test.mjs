@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {generatePremiumWeek,validatePremiumWeek,contentModel} from '../src/huella-ai.mjs';
 import {mondayOf,weeklyEnabled,prepareWeeklyDispatch,progressSummary,questionText,WEEKLY_SLOTS} from '../src/huella-weekly.mjs';
 import {VERIFIED_STORIES,verifiedStoryFor,formatVerifiedStory} from '../src/huella-sources.mjs';
-import {initialState,processInbound} from '../src/flow.mjs';
+import {initialState,processInbound,formatMissions} from '../src/flow.mjs';
 
 const PHONE='5492211234567';
 const ENV={CERCA_PROVIDER:'evolution',CERCA_SEND_MODE:'test',CERCA_TEST_WA_IDS:PHONE,
@@ -22,6 +22,7 @@ const profile=()=>{
 };
 const mission=(kind,target,subj,i)=>({
  kind,title:'El encuentro especial de '+subj+' '+kind+' '+i,
+ intro:'Hoy van a compartir una actividad sencilla que aprovecha sus intereses para estar presentes, escuchar y seguir su iniciativa sin apurarse.',
  steps:[
   'Durante diez minutos, elegí con '+subj+' una experiencia para '+kind+' que respete su atención y su edad.',
   'En la misión '+kind+' para '+subj+', esperá su iniciativa, acompañá su decisión y anotá un detalle concreto.'
@@ -35,6 +36,7 @@ const fixture=()=>{
  return {children:c.map((x,i)=>({index:i,missions:
   ['conectar','comprender','sembrar'].map((kind,j)=>mission(kind,j===0?x.interests[0]:x.goal,x.name,i))})),
   family:{title:'La historia de nuestra semana juntos',
+   intro:'Van a elegir entre todos un recuerdo pequeño para compartir, sin competir por cuál fue más importante ni exigir que nadie participe.',
    steps:['Invitá a cada integrante a elegir un recuerdo pequeño y contarlo o mostrarlo a su manera.',
     'Escuchá sin interrumpir, respetá a quien no quiera hablar y decidí cómo guardar el recuerdo.'],
    why:'Conocer lo que fue significativo para cada integrante abre oportunidades para compartir sin exigencias.',
@@ -73,7 +75,7 @@ test('invalid or missing AI output is rejected, never replaced by generic missio
 });
 test('verified stories have identified publications and only stored source URLs are allowed',()=>{
  assert.ok(VERIFIED_STORIES.length>=3);
- assert.ok(VERIFIED_STORIES.every(x=>x.url.startsWith('https://www.unicef.org/')&&x.text.length>100));
+ assert.ok(VERIFIED_STORIES.every(x=>x.url.startsWith('https://www.unicef.org/')&&x.paragraphs?.length===3&&x.paragraphs.every(p=>p.length>100)));
  const story=verifiedStoryFor(profile(),'2026-11-23'),text=formatVerifiedStory(story);
  assert.match(text,/Historia real/);assert.match(text,/UNICEF/);assert.match(text,/https:\/\//);
  assert.throws(()=>formatVerifiedStory({id:'false',url:'https://invented.example'}),/unverified_story/);
@@ -101,7 +103,7 @@ test('premium week sends only the named slot on Mon Tue Wed Thu Sat Sun, with no
   const r=await prepareWeeklyDispatch(s,PHONE,NOW(day),{env:ENV,generate});
   assert.ok(r,'expected '+day);assert.equal(r.slot,slot);assert.equal(r.jobs.length,count);
   assert.ok(r.jobs.every(job=>job.channel==='marketing'&&job.expires_at===new Date(day+'T23:59:59-03:00').toISOString()));
-  assert.ok(r.jobs.every(job=>job.payload.params[1].length<=880));
+  assert.ok(r.jobs.every(job=>job.payload.params[1].length<=2100));
   assert.equal(await prepareWeeklyDispatch(r.updated,PHONE,NOW(day),{env:ENV,generate}),null);
   sent.push(...r.jobs.map(job=>job.key));s=r.updated;
  }
@@ -156,4 +158,53 @@ test('without a declared child gender, infant mission cannot assume masculine or
   const b=structuredClone(valid);b.children[0].missions[0].steps[0]=phrase;
   assert.equal(validatePremiumWeek(s,b),false,phrase);
  }
+});
+
+test('an explanatory introduction is required for every real weekly mission',()=>{
+ const s=profile(),batch=fixture();
+ assert.equal(validatePremiumWeek(s,batch),true);
+ const missing=structuredClone(batch);
+ delete missing.children[0].missions[0].intro;
+ assert.equal(validatePremiumWeek(s,missing),false);
+ const unhelpful=structuredClone(batch);
+ unhelpful.children[1].missions[2].intro='Jugá.';
+ assert.equal(validatePremiumWeek(s,unhelpful),false);
+ const noFamilyContext=structuredClone(batch);
+ delete noFamilyContext.family.intro;
+ assert.equal(validatePremiumWeek(s,noFamilyContext),false);
+});
+test('storytelling preserves a documented challenge, a decision and an outcome',()=>{
+ const hazem=VERIFIED_STORIES.find(x=>x.id==='hazem');
+ const text=formatVerifiedStory(hazem);
+ assert.match(text,/Mona y Elsayed/);
+ assert.match(text,/Eman/);
+ assert.match(text,/talleres de crianza positiva/);
+ assert.match(text,/Hassan/);
+ assert.match(text,/Fuente original:/);
+ assert.ok(text.indexOf('Eman')<text.indexOf('Hassan'),'challenge and action precede outcome');
+ for(const story of VERIFIED_STORIES){
+  const result=formatVerifiedStory(story);
+  assert.ok(result.length<=2100,story.id+' must fit in one pilot WhatsApp message');
+  assert.ok(!result.includes('[pendiente]'));
+  assert.ok(story.paragraphs.length===3);
+ }
+});
+test('mixed-age families receive stories for both stages over consecutive weeks',()=>{
+ const s=profile();
+ const a=verifiedStoryFor(s,'2026-11-23'),b=verifiedStoryFor(s,'2026-11-30');
+ const babyRelevant=x=>x.minAge===0;
+ assert.notEqual(babyRelevant(a),babyRelevant(b));
+});
+
+test('MISIONES command explains each real premium mission without undefined or oversized combined text',()=>{
+ const s=profile(),batch=fixture();
+ s.history=[{day:'2026-11-24',children:batch.children.map((c,index)=>({
+  name:s.children[index].name,missions:c.missions.filter(m=>m.kind==='conectar')
+ })),weekly:null}];
+ const response=processInbound('MISIONES',{state:s,today:'2026-11-24',now:'2026-11-24T18:00:00Z'});
+ assert.equal(response.messages.length,2,'one readable reply per child instead of a merged oversized message');
+ assert.ok(response.messages.every(m=>m.body.includes('De qué se trata:')&&m.body.includes('Cómo hacerlo:')));
+ assert.ok(response.messages.every(m=>m.body.includes('Por qué puede valer la pena:')));
+ assert.ok(response.messages.every(m=>!m.body.includes('undefined')&&m.body.length<3600));
+ assert.match(formatMissions({day:'2026-11-24',children:[s.history[0].children[0]],weekly:null}),/De qué se trata/);
 });
