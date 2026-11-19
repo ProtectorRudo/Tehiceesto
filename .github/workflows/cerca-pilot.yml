@@ -1,0 +1,34 @@
+name: CERCA pilot safety and flow tests
+
+on:
+  pull_request:
+    branches: [cerca-piloto-20261116]
+    paths:
+      - 'cerca-piloto/**'
+      - 'cerca-bridge/**'
+      - '.github/workflows/cerca-pilot.yml'
+  push:
+    branches: [cerca-piloto-20261116]
+    paths:
+      - 'cerca-piloto/**'
+      - 'cerca-bridge/**'
+      - '.github/workflows/cerca-pilot.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  pilot-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated CERCA dependencies
+        working-directory: cerca-piloto
+        run: npm install --no-audit --no-fund
+      - name: Run isolated tests without real WhatsApp or Supabase credentials
+        working-directory: cerca-piloto
+        run: npm test
