@@ -38,11 +38,18 @@ export function processInbound(input,{state:original=initialState(),today='2026-
  const reply=(body,options)=>messages.push(q(body,options));
  if(emergency(txt)){reply(RISK);return {state,messages};}
  if(is(n,['baja','stop','cancelar suscripcion','cancelar suscripción'])){
+  // Already unsubscribed: never send repeated opt-out confirmations.
+  if(state.status==='stopped'){state.flow='idle';return {state,messages};}
   state.status='stopped';state.flow='idle';state.consentAt=null;
   reply('Desactivamos los envíos de CERCA. No vas a recibir más misiones. Si querés volver, escribí ALTA.');return {state,messages};
  }
  if(state.status==='stopped' && state.flow!=='delete_confirm'){
-  if(n==='alta'){Object.assign(state,initialState());state.consentPrompted=true;reply(askConsent().body,askConsent().options);}
+  if(n==='alta'){
+   // Replace the complete old profile, including auxiliary onboarding keys.
+   const fresh=initialState();fresh.consentPrompted=true;
+   const prompt=askConsent();
+   return {state:fresh,messages:[prompt]};
+  }
   if(n==='borrar'){state.flow='delete_confirm';reply(question(state).body);}
   // Ignore all other messages rather than re-engaging unsubscribed adults.
   return {state,messages};
