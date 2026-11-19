@@ -22,6 +22,7 @@ const state=()=>{
 };
 const mission=(kind,i,day)=>({
  kind,title:'Un encuentro especial con '+(i===0?'bebé':'la mayor')+' para '+kind,
+ intro:'Hoy vas a compartir una actividad corta, guiada por sus intereses, con momentos para observar y darle la posibilidad de decidir cómo participar.',
  steps:['Elegí un momento tranquilo para compartir diez minutos siguiendo la atención del niño.',
   'Ofrecé una elección adecuada a su edad, escuchá su reacción y respetá cuando quiera terminar.'],
  why:'Esta propuesta ofrece tiempo de escucha y respeto de sus decisiones sin forzar resultados.',
@@ -33,6 +34,7 @@ const week=()=>{
  return {day:'2026-11-23',
  children:p.children.map((c,i)=>({name:c.name,missions:['conectar','comprender','sembrar'].map(kind=>mission(kind,i))})),
  weekly:{title:'Nuestros momentos favoritos de noviembre',
+  intro:'Toda la familia va a elegir un recuerdo simple para compartirlo con calma, adaptando el encuentro a quienes quieran participar.',
   steps:['Cada persona puede elegir un pequeño momento para recordar durante la comida familiar.',
    'Escuchen las elecciones sin interrumpir y escriban un recuerdo compartido en una hoja.'],
   why:'Una rutina compartida puede crear una oportunidad de encuentro sin pedir perfección.',
@@ -76,6 +78,7 @@ test('formatter sends complete missions, why/how/observe and sourced story witho
  const bodies=messages.map(x=>x.body).join('\n');
  assert.match(bodies,/CON[fN]?ECTAR|conectar/i);
  assert.match(bodies,/JUEVES/);assert.match(bodies,/SÁBADO/);
+ assert.match(bodies,/De qué se trata/);assert.match(bodies,/Cómo hacerlo/);
  assert.match(bodies,/Por qué/);assert.match(bodies,/Qué observar/);
  assert.match(bodies,/UNICEF/);assert.match(bodies,/Domingo/i);
  assert.ok(messages.every(x=>x.body.length<=3600));
@@ -174,4 +177,13 @@ test('abandoned preview can be retried only after stale wait and within weekly b
  assert.equal(retry,'applied');assert.equal(generations,1);
  assert.equal(db.record.state.huellaPreview.attempts,2);
  assert.equal(db.record.state.huellaPreview.status,'ready');
+});
+
+test('an old cached preview without introductions can still be opened safely without another AI call',()=>{
+ const old=week();
+ delete old.weekly.intro;
+ for(const child of old.children)for(const mission of child.missions)delete mission.intro;
+ const messages=previewMessages(old,state(),'2026-11-23');
+ assert.ok(messages.some(m=>m.body.includes('Esta experiencia se explica en los pasos siguientes.')));
+ assert.ok(messages.some(m=>m.body.includes('Una propuesta para compartir en familia.'))===false || messages.length>=5);
 });
