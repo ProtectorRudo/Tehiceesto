@@ -35,7 +35,9 @@ function description(m,day){
 }
 export function previewMessages(batch,state,weekStart){
  if(!batch||batch.children?.length!==state.children?.length)throw Error('preview_incomplete');
- const notice=Array.isArray(batch.withheld)&&batch.withheld.length?
+ const notice=Array.isArray(batch.replaced)&&batch.replaced.length?
+  '\n\nHUELLA completó '+batch.replaced.length+' actividad(es) con propuestas de su biblioteca editorial revisada. Conservó todas las misiones del calendario sin una llamada paga adicional.':
+  Array.isArray(batch.withheld)&&batch.withheld.length?
   '\n\nUna o más actividades quedaron apartadas por precaución de seguridad o por falta de instrucciones esenciales. Las propuestas seguras se conservan y no se realizan nuevos intentos pagos automáticamente.':'';
  const msg=[safe('🌱 *HUELLA — Vista previa privada*\nSemana que comienza el '+weekStart+'.\n\nEstas propuestas son para evaluar su calidad. No activan el calendario ni cuentan como misiones realizadas.'+notice)];
  if(batch.weekly)

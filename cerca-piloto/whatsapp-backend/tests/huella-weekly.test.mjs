@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {generatePremiumWeek,validatePremiumWeek,premiumWeekQuality,deliveryReadiness,partitionDeliverableWeek,contentModel,neutralizeInfantWording,containsInfantHazardInstruction} from '../src/huella-ai.mjs';
+import {generatePremiumWeek,validatePremiumWeek,premiumWeekQuality,deliveryReadiness,partitionDeliverableWeek,completeMissionSlots,contentModel,neutralizeInfantWording,containsInfantHazardInstruction} from '../src/huella-ai.mjs';
 import {mondayOf,weeklyEnabled,prepareWeeklyDispatch,progressSummary,questionText,splitLongMission,WEEKLY_SLOTS} from '../src/huella-weekly.mjs';
 import {VERIFIED_STORIES,verifiedStoryFor,formatVerifiedStory} from '../src/huella-sources.mjs';
 import {initialState,processInbound,formatMissions} from '../src/flow.mjs';
@@ -415,8 +415,10 @@ test('a single unsafe infant skill is quarantined but the other six missions and
   fetcher:async()=>new Response(JSON.stringify({status:'completed',output:[
    {content:[{type:'output_text',text:JSON.stringify(output)}]}]}),{status:200})
  });
- assert.ok(generated.withheld.includes('child0:sembrar:infant_hazard'));
- assert.equal(generated.children[0].missions.length,2);
+ assert.deepEqual(generated.withheld,[]);
+ assert.ok(generated.replaced.includes('child0:sembrar'));
+ assert.equal(generated.children[0].missions.length,3);
+ assert.equal(generated.children[0].missions[2].source,'curated_safe_alternative');
  assert.equal(generated.children[1].missions.length,3);
  assert.equal(generated.weekly.title,output.family.title);
  assert.ok(!JSON.stringify(generated).includes('Ofrecé un globo'));
@@ -478,4 +480,61 @@ test('quarantine still rejects an entire batch if every single activity is unsaf
  assert.deepEqual(result.fatal,['no_safe_content']);
  assert.equal(result.family,null);
  assert.ok(result.children.every(x=>x.missions.length===0));
+});
+
+test('all approved child age bands have fully reviewed, zero-extra-cost alternatives',()=>{
+ const ages=[{age:0,ageMonths:2},{age:0,ageMonths:6},{age:1,ageMonths:13},
+  {age:1,ageMonths:20},{age:3},{age:7},{age:12},{age:15}];
+ const targets=ages.map((c,i)=>({
+  ...c,name:'Child '+i,goal:'compartir tiempo',interests:['dibujar']
+ }));
+ for(const kid of targets){
+  const profileState={...profile(),children:[kid]};
+  const original=fixture();
+  const ai={
+   children:[{index:0,missions:original.children[0].missions.map(m=>({
+    ...m,steps:['Obligá al niño a participar aunque diga que no tiene ganas de hacer esta actividad.']
+   }))}],
+   family:{...original.family,steps:['Obligá a toda la familia a participar aunque quieran descansar.']}
+  };
+  const repaired=completeMissionSlots(profileState,ai);
+  assert.equal(repaired.children[0].missions.length,3,'age '+kid.age+'/'+kid.ageMonths);
+  assert.ok(repaired.children[0].missions.every(m=>m.source==='curated_safe_alternative'));
+  assert.equal(repaired.family.source,'curated_safe_alternative');
+  assert.deepEqual(repaired.replaced,['child0:conectar','child0:comprender','child0:sembrar','family']);
+  const checked=deliveryReadiness(profileState,{
+   children:repaired.children,family:repaired.family
+  });
+  assert.equal(checked.ok,true,JSON.stringify({age:kid.age,months:kid.ageMonths,hard:checked.hard}));
+ }
+});
+test('family replacement is also guaranteed and no AI-generated dangerous content is preserved',()=>{
+ const profileState=profile(),source=fixture();
+ source.family.steps[0]='Ofrecé unas cuentas pequeñas al bebé para que las toque mientras comparten una canción.';
+ const complete=completeMissionSlots(profileState,source);
+ assert.equal(complete.children[0].missions.length,3);
+ assert.equal(complete.children[1].missions.length,3);
+ assert.equal(complete.family.source,'curated_safe_alternative');
+ assert.deepEqual(complete.replaced,['family']);
+ assert.equal(deliveryReadiness(profileState,{children:complete.children,family:complete.family}).ok,true);
+ assert.ok(!JSON.stringify(complete).includes('Ofrecé unas cuentas'));
+});
+test('a valid Sol week is never changed by recovery or extra inference',async()=>{
+ const p=profile(),output=fixture();
+ const complete=completeMissionSlots(p,output);
+ assert.deepEqual(complete.replaced,[]);
+ assert.deepEqual(complete.children[0].missions,output.children[0].missions);
+ assert.deepEqual(complete.family,output.family);
+ let calls=0;
+ const generated=await generatePremiumWeek(p,'2026-11-23',{env:ENV,
+  fetcher:async()=>{
+   calls++;
+   return new Response(JSON.stringify({status:'completed',output:[
+    {content:[{type:'output_text',text:JSON.stringify(output)}]}]}),{status:200});
+  }
+ });
+ assert.equal(calls,1);
+ assert.equal(generated.children[0].missions.length,3);
+ assert.equal(generated.children[1].missions.length,3);
+ assert.equal(generated.weekly.source,'ai_reviewed');
 });
