@@ -27,7 +27,7 @@ const format=(batch)=>{
  const family=batch.family||null;
  const withheld=Array.isArray(batch.withheld)?batch.withheld:[];
  const notice=withheld.length?
-  '\n\nUna propuesta no se incluyó por precaución de seguridad o porque faltaban instrucciones. Conservo las otras actividades; no se generará ningún reemplazo pago automáticamente.':'';
+  '\n\nUna propuesta quedó apartada por precaución de seguridad o porque faltaban instrucciones. Conservo las otras actividades; no se generará ningún reemplazo pago automáticamente.':'';
  const messages=[{
   body:'🌱 *HUELLA · Prueba enfocada de calidad*\n\n'+
    missions.length+' misión(es) para '+batch.childName+
