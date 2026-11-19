@@ -48,7 +48,7 @@ test('real HTTP routes + simulated Supabase + simulated Meta complete WhatsApp o
    const r=await native(base+'/webhooks/whatsapp',{method:'POST',headers:{'x-hub-signature-256':signature,'content-type':'application/json'},body:payload});assert.equal(r.status,200);return r.json();
   };
   const clock=localClock(new Date());const time=clock.time.slice(0,2)+':00';
-  const inputs=['hola','ACEPTO','Ana María','1','Leticia','9','dibujar, teatro','compartir más ratos de escucha','quiero hablar con calma y compartir más tiempo',time];
+  const inputs=['hola','ACEPTO','Ana María','Mamá','1','Leticia','9','dibujar, teatro','compartir más ratos de escucha',time];
   for(const [i,input] of inputs.entries())await send(input,i);
   assert.equal(row.state.status,'active');assert.equal(row.state.children.length,1);assert.equal(sent.length,inputs.length);
   const duplicate=await send('hola',0);assert.equal(duplicate.received,1);assert.equal(sent.length,inputs.length);
