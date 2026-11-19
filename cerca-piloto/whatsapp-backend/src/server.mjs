@@ -6,7 +6,7 @@ import {makeDb} from './db.mjs';
 import {classifyDbFailure} from './db_pg.mjs';
 import {validateEvolutionWebhook,extractEvolutionMessage,sendEvolution,fetchEvolutionQr,fetchEvolutionPairingCode,classifyEvolutionQrError} from './evolution.mjs';
 import {initialState,processInbound} from './flow.mjs';
-import {localClock,prepareDay,scheduledOutbox,tokenKey,isMessagingReady,isSessionMessagingReady,isAllowedRecipient} from './scheduler.mjs';
+import {localClock,prepareDay,scheduledOutbox,tokenKey,isMessagingReady,isSessionMessagingReady,isAllowedRecipient,isAllowedInboundRecipient,inboundPolicy} from './scheduler.mjs';
 const db=makeDb();const env=process.env;
 const dateOf=(time)=>localClock(time).day;
 const json=(res,code,obj)=>{res.writeHead(code,{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});res.end(JSON.stringify(obj));};
@@ -29,7 +29,8 @@ async function inbound(m){
   const row=await db.family(m.phone),state=row?.state||initialState();const day=dateOf(now);
   const output=processInbound(m.text,{state,today:day,now:now.toISOString()});
   const eventId=tokenKey('whatsapp:'+m.id);
-  const jobs=output.messages.map((message,i)=>outboundFor(message,eventId,i,receivedAt));
+  // Receive-only mode must not leave deferred replies that could be sent on a future switch.
+  const jobs=isSessionMessagingReady(env)?output.messages.map((message,i)=>outboundFor(message,eventId,i,receivedAt)):[];
   try{const result=await db.commit(m.phone,row?.revision||0,eventId,output.state,jobs);return result.status;}catch(err){if(err.message!=='database_400'&&err.message!=='database_409'||attempt===2)throw err;}
  }
  return 'conflict';
@@ -93,7 +94,7 @@ async function handle(req,res){
   if(db.available()&&typeof db.ping==='function'){
     try{await db.ping();database='ready';}catch(error){database='unreachable';databaseIssue=classifyDbFailure(error);}
   }
-  return json(res,200,{service:'CERCA-WhatsApp',version:'0.6.1',database,...(databaseIssue?{databaseIssue}:{}),provider:(env.CERCA_PROVIDER||'meta'),messaging:isSessionMessagingReady(env)?'session_ready':'pending',scheduledTemplates:isMessagingReady(env)?'approved':'disabled',clientInterface:'whatsapp-only'});
+  return json(res,200,{service:'CERCA-WhatsApp',version:'0.6.1',database,...(databaseIssue?{databaseIssue}:{}),provider:(env.CERCA_PROVIDER||'meta'),messaging:isSessionMessagingReady(env)?'session_ready':'pending',scheduledTemplates:isMessagingReady(env)?'approved':'disabled',inbound:inboundPolicy(env),clientInterface:'whatsapp-only'});
  }
  if(url.pathname==='/webhooks/evolution'&&req.method==='POST'){
   if(env.CERCA_PROVIDER!=='evolution')return fixed(res,404,'Not Found');
@@ -103,8 +104,9 @@ async function handle(req,res){
   const raw=await read(req);
   let event;try{event=JSON.parse(raw.toString('utf8'));}catch{return json(res,400,{error:'invalid_json'});}
   const message=extractEvolutionMessage(event,{instance:env.EVOLUTION_INSTANCE});
-  if(message&&isAllowedRecipient(message.phone,env)){await inbound(message);try{await flush(5);}catch{}}
-  return json(res,200,{received:message?1:0});
+  const accepted=Boolean(message&&isAllowedInboundRecipient(message.phone,env));
+  if(accepted){await inbound(message);try{await flush(5);}catch{}}
+  return json(res,200,{received:accepted?1:0});
  }
  // Private, mobile-friendly QR view. The adult customer never accesses this route.
  if(url.pathname==='/internal/bridge'&&req.method==='GET'){
@@ -141,7 +143,7 @@ async function handle(req,res){
   if(!validateTwilioSignature(env.TWILIO_WEBHOOK_URL,fields,req.headers['x-twilio-signature'],env.TWILIO_AUTH_TOKEN))return fixed(res,403,'Forbidden');
   if(!db.available())return fixed(res,503,'Database unavailable');
   const message=extractTwilioMessage(fields,{accountSid:env.TWILIO_ACCOUNT_SID,fromNumber:env.TWILIO_WHATSAPP_FROM});
-  if(message&&isAllowedRecipient(message.phone,env)){
+  if(message&&isAllowedInboundRecipient(message.phone,env)){
    await inbound(message);
    try{await flush(5);}catch{} // Stored outbox remains retryable if sending fails.
   }
@@ -172,7 +174,7 @@ async function handle(req,res){
   if(!db.available())return json(res,503,{error:'database_unavailable'});
   const payload=JSON.parse(raw.toString('utf8'));
   for(const receipt of extractStatuses(payload,{phoneNumberId:env.META_PHONE_NUMBER_ID})){try{await db.setDelivery(receipt.messageId,receipt.status);}catch{/* Retry is driven by Meta; do not leak message data. */}}
-  const messages=extractMessages(payload,{phoneNumberId:env.META_PHONE_NUMBER_ID}).filter(msg=>isAllowedRecipient(msg.phone,env));
+  const messages=extractMessages(payload,{phoneNumberId:env.META_PHONE_NUMBER_ID}).filter(msg=>isAllowedInboundRecipient(msg.phone,env));
   for(const msg of messages)await inbound(msg);
   // An outbox write is atomic with state; WhatsApp retries when DB fails.
   try{await flush(Math.min(20,messages.length*3));}catch{}
