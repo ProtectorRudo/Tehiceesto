@@ -26,7 +26,7 @@ const mission=(kind,i,day)=>({
   'Ofrecé una elección adecuada a su edad, escuchá su reacción y respetá cuando quiera terminar.'],
  why:'Esta propuesta ofrece tiempo de escucha y respeto de sus decisiones sin forzar resultados.',
  observe:'Observá una preferencia o señal real que descubras durante el momento compartido.',
- target:i===0?'sonidos':'dibujar'
+ target:i===0?'sonidos':'dibujar',skill:kind==='sembrar'?'iniciativa y elección propia':'no aplica'
 });
 const week=()=>{
  const p=state();

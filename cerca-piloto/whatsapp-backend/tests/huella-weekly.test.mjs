@@ -28,7 +28,7 @@ const mission=(kind,target,subj,i)=>({
  ],
  why:'Esta propuesta ofrece la oportunidad de escuchar y respetar su participación sin convertirla en una evaluación.',
  observe:'Observá si mostró interés o si prefirió dejar la actividad para otro momento.',
- target
+ target,skill:kind==='sembrar'?'exploración e iniciativa':'no aplica'
 });
 const fixture=()=>{
  const c=profile().children;
@@ -138,4 +138,22 @@ test('30-day pilot refuses to schedule past its boundary',async()=>{
  const result=await prepareWeeklyDispatch(s,PHONE,NOW('2026-11-23'),{env:ENV,generate:async()=>{throw Error('must not run')}});
  assert.equal(result,null);
  assert.equal(mondayOf('2026-11-29'),'2026-11-23');
+});
+test('quality gate distinguishes practiceable skills from affectionate-only rituals',()=>{
+ const s=profile(),valid=fixture();
+ assert.equal(validatePremiumWeek(s,valid),true);
+ const a=structuredClone(valid);
+ a.children[1].missions[2].skill='cariño';
+ assert.equal(validatePremiumWeek(s,a),false,'a generic affection label is not a skill');
+ const b=structuredClone(valid);
+ b.children[1].missions[0].skill='autonomía';
+ assert.equal(validatePremiumWeek(s,b),false,'connecting must not pretend to be sowing a skill');
+});
+test('without a declared child gender, infant mission cannot assume masculine or feminine agreement',()=>{
+ const s=profile(),valid=fixture();
+ for(const phrase of ['Cuando esté despierto, elegí un momento tranquilo para iniciar la actividad compartida.',
+                       'Al cambiarlo de posición, esperá un momento para acompañar lo que le interese.']){
+  const b=structuredClone(valid);b.children[0].missions[0].steps[0]=phrase;
+  assert.equal(validatePremiumWeek(s,b),false,phrase);
+ }
 });
