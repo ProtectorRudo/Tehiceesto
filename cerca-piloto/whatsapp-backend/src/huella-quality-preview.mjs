@@ -10,11 +10,13 @@ import {formatInfantReview} from './huella-infant-preview.mjs';
 
 export const QUALITY_PREVIEW_REVISION='executable-missions-20261119-v1';
 export const RECOVERY_PREVIEW_REVISION='kaia-infant-only-recovery-20261119-v2';
+export const KAIA_RETEST_PREVIEW_REVISION='kaia-originals-single-retest-20261119-v1';
 const normalized=text=>String(text||'').trim().toLocaleLowerCase('es-AR').normalize('NFD')
  .replace(/[\u0300-\u036f]/g,'');
 export const isQualityPreviewIntent=text=>normalized(text)==='previa calidad';
 /** One independent, owner-authorized validation after previous preview budgets were used. */
 export const isRecoveryPreviewIntent=text=>['previa completa','previa kaia'].includes(normalized(text));
+export const isKaiaRetestPreviewIntent=text=>normalized(text)==='previa kaia 2';
 
 const nextMonday=day=>{
  const monday=mondayOf(day),d=new Date(monday+'T12:00:00Z');
@@ -36,10 +38,11 @@ const reason=e=>{
 export async function handleQualityPreviewInbound(m,{
  db,env=process.env,now=new Date(),generate=generatePremiumWeek,generateInfant=generateInfantFocus,flush=async()=>{},defer=work=>work()
 }={}){
- const recovery=isRecoveryPreviewIntent(m.text);
+ const retest=isKaiaRetestPreviewIntent(m.text);
+ const recovery=retest||isRecoveryPreviewIntent(m.text);
  if((!recovery&&!isQualityPreviewIntent(m.text))||!previewPermitted(m.phone,env))return null;
- const storageField=recovery?'huellaRecoveryPreview':'huellaQualityPreview';
- const revision=recovery?RECOVERY_PREVIEW_REVISION:QUALITY_PREVIEW_REVISION;
+ const storageField=retest?'huellaKaiaRetestPreview':recovery?'huellaRecoveryPreview':'huellaQualityPreview';
+ const revision=retest?KAIA_RETEST_PREVIEW_REVISION:recovery?RECOVERY_PREVIEW_REVISION:QUALITY_PREVIEW_REVISION;
  const row=await db.family(m.phone);
  if(!row?.state||row.state.status!=='active'||!row.state.consentAt||row.state.deleted)return 'not_active';
  const eventId=tokenKey('whatsapp:'+m.id);
@@ -48,6 +51,16 @@ export async function handleQualityPreviewInbound(m,{
   const infants=(row.state.children||[]).filter(c=>Number(c.age)<2);
   if(infants.length!==1||normalized(infants[0]?.name)!=='kaia'||!validInfantMonths(infants[0])){
    const note=service('Para esta prueba necesito el perfil de Kaia con su edad en meses. No se realizó ninguna generación paga.',eventId+':profile',0,m.receivedAt);
+   return (await db.commit(m.phone,row.revision,eventId,row.state,[note])).status;
+  }
+ }
+ // This extra one-time test is authorized only after the actual prior Kaia
+ // preview was delivered with all three slots from the reserve library.
+ if(retest){
+  const prior=row.state.huellaRecoveryPreview;
+  if(prior?.revision!==RECOVERY_PREVIEW_REVISION||prior.status!=='ready'||
+     !Array.isArray(prior.batch?.replaced)||prior.batch.replaced.length!==3){
+   const note=service('La prueba adicional requiere la vista previa anterior de Kaia. No se llamó a OpenAI.',eventId+':prior',0,m.receivedAt);
    return (await db.commit(m.phone,row.revision,eventId,row.state,[note])).status;
   }
  }
@@ -64,11 +77,11 @@ export async function handleQualityPreviewInbound(m,{
  }
  const weekKey=nextMonday(localClock(now).day);
  const updated=structuredClone(row.state);
- const runId=tokenKey((recovery?'recovery-preview:':'quality-preview:')+m.id);
+ const runId=tokenKey((retest?'kaia-retest-preview:':recovery?'recovery-preview:':'quality-preview:')+m.id);
  updated[storageField]={revision,weekKey,
   status:'processing',attempts:1,runId,startedAt:now.toISOString()};
  const reserved=await db.commit(m.phone,row.revision,eventId,updated,[
-  service(recovery?'🌱 Vista previa de Kaia: Sol preparará sus tres misiones (conectar, comprender y sembrar). Esta prueba no activa los 30 días.':'🌱 Segunda prueba de calidad iniciada. HUELLA preparará nuevas misiones más detalladas con Sol. Es una única generación, no activa el calendario ni tus 30 días.',eventId+':ack',0,m.receivedAt)
+  service(retest?'🌱 Nueva prueba única para Kaia: Sol creará tres misiones originales. HUELLA conservará las seguras y completará solo alguna que lo necesite. No comienzan los 30 días.':recovery?'🌱 Vista previa de Kaia: Sol preparará sus tres misiones (conectar, comprender y sembrar). Esta prueba no activa los 30 días.':'🌱 Segunda prueba de calidad iniciada. HUELLA preparará nuevas misiones más detalladas con Sol. Es una única generación, no activa el calendario ni tus 30 días.',eventId+':ack',0,m.receivedAt)
  ]);
  if(reserved.status!=='applied')return reserved.status;
  try{await flush(2);}catch{/* Durable outbox can be retried. */}
@@ -101,7 +114,7 @@ export async function handleQualityPreviewInbound(m,{
    if(!live||live.deleted||live.status!=='active'||!live.consentAt||
       live[storageField]?.runId!==runId)return 'cancelled';
    const next=structuredClone(live);
-   const delivery=tokenKey((recovery?'recovery-result:':'quality-result:')+m.id);
+   const delivery=tokenKey((retest?'kaia-retest-result:':recovery?'recovery-result:':'quality-result:')+m.id);
    if(error){
     next[storageField]={...next[storageField],
      status:'failed',error,finishedAt:new Date().toISOString()};

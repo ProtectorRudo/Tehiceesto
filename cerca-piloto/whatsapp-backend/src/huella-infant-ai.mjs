@@ -62,10 +62,11 @@ export async function generateInfantFocus(state,weekStart,{fetcher=fetch,env=pro
  if(infantIndices.length!==1)throw Error('huella_infant_focus_single_only');
  const index=infantIndices[0],child=children[index];
  if(!validInfantMonths(child))throw Error('huella_infant_months_missing');
- const originalMissionTitles=[...[
-  state.huellaPreview?.batch,
-  state.huellaQualityPreview?.batch
- ].filter(Boolean).flatMap(b=>b.children?.[index]?.missions?.map(m=>m.title)||[])];
+ const originalMissionTitles=[
+  ...[state.huellaPreview?.batch,state.huellaQualityPreview?.batch]
+   .filter(Boolean).flatMap(b=>b.children?.[index]?.missions?.map(m=>m.title)||[]),
+  ...(state.huellaRecoveryPreview?.batch?.missions||[]).map(m=>m.title)
+ ];
  const context={
   weekStart,focus:{ageYears:child.age,ageMonths:child.ageMonths,
    goal:String(child.goal||'').slice(0,220),interests:(child.interests||[]).slice(0,5).map(x=>String(x).slice(0,50))},
