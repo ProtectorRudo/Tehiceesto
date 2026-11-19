@@ -4,15 +4,17 @@
 import {tokenKey,localClock} from './scheduler.mjs';
 import {mondayOf} from './huella-weekly.mjs';
 import {previewPermitted,previewMessages} from './huella-preview.mjs';
-import {generatePremiumWeek} from './huella-ai.mjs';
+import {generatePremiumWeek,validInfantMonths} from './huella-ai.mjs';
+import {generateInfantFocus} from './huella-infant-ai.mjs';
+import {formatInfantReview} from './huella-infant-preview.mjs';
 
 export const QUALITY_PREVIEW_REVISION='executable-missions-20261119-v1';
-export const RECOVERY_PREVIEW_REVISION='complete-mission-slots-20261119-v1';
+export const RECOVERY_PREVIEW_REVISION='kaia-infant-only-recovery-20261119-v2';
 const normalized=text=>String(text||'').trim().toLocaleLowerCase('es-AR').normalize('NFD')
  .replace(/[\u0300-\u036f]/g,'');
 export const isQualityPreviewIntent=text=>normalized(text)==='previa calidad';
 /** One independent, owner-authorized validation after previous preview budgets were used. */
-export const isRecoveryPreviewIntent=text=>normalized(text)==='previa completa';
+export const isRecoveryPreviewIntent=text=>['previa completa','previa kaia'].includes(normalized(text));
 
 const nextMonday=day=>{
  const monday=mondayOf(day),d=new Date(monday+'T12:00:00Z');
@@ -32,7 +34,7 @@ const reason=e=>{
  e?.name==='AbortError'?'huella_ai_timeout':'huella_quality_preview_failed';
 };
 export async function handleQualityPreviewInbound(m,{
- db,env=process.env,now=new Date(),generate=generatePremiumWeek,flush=async()=>{},defer=work=>work()
+ db,env=process.env,now=new Date(),generate=generatePremiumWeek,generateInfant=generateInfantFocus,flush=async()=>{},defer=work=>work()
 }={}){
  const recovery=isRecoveryPreviewIntent(m.text);
  if((!recovery&&!isQualityPreviewIntent(m.text))||!previewPermitted(m.phone,env))return null;
@@ -41,14 +43,22 @@ export async function handleQualityPreviewInbound(m,{
  const row=await db.family(m.phone);
  if(!row?.state||row.state.status!=='active'||!row.state.consentAt||row.state.deleted)return 'not_active';
  const eventId=tokenKey('whatsapp:'+m.id);
+ // No paid reservation if the requested child or age is not yet known.
+ if(recovery){
+  const infants=(row.state.children||[]).filter(c=>Number(c.age)<2);
+  if(infants.length!==1||normalized(infants[0]?.name)!=='kaia'||!validInfantMonths(infants[0])){
+   const note=service('Para esta prueba necesito el perfil de Kaia con su edad en meses. No se realizó ninguna generación paga.',eventId+':profile',0,m.receivedAt);
+   return (await db.commit(m.phone,row.revision,eventId,row.state,[note])).status;
+  }
+ }
  const existing=row.state[storageField];
  if(existing?.revision===revision){
   // This revision authorizes at most ONE billed inference, even after a timeout.
   const msg=existing.status==='ready'
-   ?'Ya tenés la nueva vista previa. Para evaluarla, compartí las misiones en el chat de pruebas. No volveré a generar otra semana ni a cobrar otra llamada.'
+   ?(recovery?'Las tres misiones de Kaia ya fueron generadas. No haré otra llamada paga.':'Ya tenés la nueva vista previa. Para evaluarla, compartí las misiones en el chat de pruebas. No volveré a generar otra semana ni a cobrar otra llamada.')
    :existing.status==='processing'
    ?'La nueva vista previa ya está en preparación. No necesitás volver a enviar el comando.'
-   :'La segunda evaluación no pudo completarse. No haré más llamadas pagas automáticamente; primero revisaremos el error.';
+   :(recovery?'La prueba de Kaia no pudo completarse. No haré otra llamada paga automáticamente.':'La segunda evaluación no pudo completarse. No haré más llamadas pagas automáticamente; primero revisaremos el error.');
   const job=service(msg,eventId+':status',0,m.receivedAt);
   return (await db.commit(m.phone,row.revision,eventId,row.state,[job])).status;
  }
@@ -58,7 +68,7 @@ export async function handleQualityPreviewInbound(m,{
  updated[storageField]={revision,weekKey,
   status:'processing',attempts:1,runId,startedAt:now.toISOString()};
  const reserved=await db.commit(m.phone,row.revision,eventId,updated,[
-  service(recovery?'🌱 Validación final autorizada: Sol preparará tres misiones por hijo y una familiar. Es una única generación, sin activar el calendario ni los 30 días.':'🌱 Segunda prueba de calidad iniciada. HUELLA preparará nuevas misiones más detalladas con Sol. Es una única generación, no activa el calendario ni tus 30 días.',eventId+':ack',0,m.receivedAt)
+  service(recovery?'🌱 Vista previa de Kaia: Sol preparará solamente sus tres misiones (conectar, comprender y sembrar). Sin misiones de Allegra ni familiares; no se activan los 30 días.':'🌱 Segunda prueba de calidad iniciada. HUELLA preparará nuevas misiones más detalladas con Sol. Es una única generación, no activa el calendario ni tus 30 días.',eventId+':ack',0,m.receivedAt)
  ]);
  if(reserved.status!=='applied')return reserved.status;
  try{await flush(2);}catch{/* Durable outbox can be retried. */}
@@ -78,8 +88,13 @@ export async function handleQualityPreviewInbound(m,{
       })),weekly:null
     }].slice(-24);
    }
-   batch=await generate(editorial,weekKey,{env});
-   messages=previewMessages(batch,editorial,weekKey);
+   batch=recovery?await generateInfant(editorial,weekKey,{env,includeFamily:false}):await generate(editorial,weekKey,{env});
+   if(recovery){
+    if(batch?.childName!==editorial.children.find(c=>normalized(c.name)==='kaia')?.name||
+       !Array.isArray(batch.missions)||batch.missions.length!==3||batch.family)
+      throw Error('huella_infant_preview_invalid');
+    messages=formatInfantReview(batch);
+   }else messages=previewMessages(batch,editorial,weekKey);
   }catch(e){error=reason(e);}
   for(let i=0;i<3;i++){
    const latest=await db.family(m.phone),live=latest?.state;
@@ -90,7 +105,7 @@ export async function handleQualityPreviewInbound(m,{
    if(error){
     next[storageField]={...next[storageField],
      status:'failed',error,finishedAt:new Date().toISOString()};
-    messages=[{body:recovery?'La validación de HUELLA no pudo completarse. No inicié los 30 días ni haré otra generación paga automáticamente.':'La nueva generación no terminó o no pasó los controles editoriales. No envié contenido de relleno ni inicié el piloto. Por seguridad no habrá otro intento pago automático.'}];
+    messages=[{body:recovery?'No pude completar las tres misiones de Kaia. No activé el piloto y no haré otra llamada paga automáticamente.':'La nueva generación no terminó o no pasó los controles editoriales. No envié contenido de relleno ni inicié el piloto. Por seguridad no habrá otro intento pago automático.'}];
    }else{
     next[storageField]={...next[storageField],
      status:'ready',batch,finishedAt:new Date().toISOString()};
