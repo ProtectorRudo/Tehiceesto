@@ -8,6 +8,7 @@ import {validateEvolutionWebhook,extractEvolutionMessage,sendEvolution,fetchEvol
 import {initialState,processInbound} from './flow.mjs';
 import {prepareWeeklyDispatch,weeklyEnabled} from './huella-weekly.mjs';
 import {contentModel} from './huella-ai.mjs';
+import {previewIntent,previewPermitted,handlePreviewInbound} from './huella-preview.mjs';
 import {localClock,prepareDay,scheduledOutbox,tokenKey,isMessagingReady,isSessionMessagingReady,isAllowedRecipient,isAllowedInboundRecipient,inboundPolicy} from './scheduler.mjs';
 const db=makeDb();const env=process.env;
 const dateOf=(time)=>localClock(time).day;
@@ -27,7 +28,9 @@ async function inbound(m){
  const now=new Date();
  // Never interpret stale retries as new consent or a fresh service window.
  const receivedAt=new Date(m.receivedAt);
- if(!Number.isFinite(receivedAt.getTime()) || receivedAt.getTime()<now.getTime()-23*3600000 || receivedAt.getTime()>now.getTime()+5*60000)return 'stale';for(let attempt=0;attempt<3;attempt++){
+ if(!Number.isFinite(receivedAt.getTime()) || receivedAt.getTime()<now.getTime()-23*3600000 || receivedAt.getTime()>now.getTime()+5*60000)return 'stale';
+ if(previewIntent(m.text)&&previewPermitted(m.phone,env))return handlePreviewInbound(m,{db,env,now,flush});
+ for(let attempt=0;attempt<3;attempt++){
   const row=await db.family(m.phone),state=row?.state||initialState();const day=dateOf(now);
   const output=processInbound(m.text,{state,today:day,now:now.toISOString()});
   const eventId=tokenKey('whatsapp:'+m.id);
@@ -109,7 +112,7 @@ async function handle(req,res){
   if(db.available()&&typeof db.ping==='function'){
     try{await db.ping();database='ready';}catch(error){database='unreachable';databaseIssue=classifyDbFailure(error);}
   }
-  return json(res,200,{service:'HUELLA-WhatsApp',version:'0.6.1',database,...(databaseIssue?{databaseIssue}:{}),provider:(env.CERCA_PROVIDER||'meta'),messaging:isSessionMessagingReady(env)?'session_ready':'pending',scheduledTemplates:isMessagingReady(env)?'approved':'disabled',weeklyPilot:weeklyEnabled(env)?'ready':'disabled',ai:{configured:Boolean(env.OPENAI_API_KEY),model:contentModel(env),reasoning:'high'},inbound:inboundPolicy(env),clientInterface:'whatsapp-only'});
+  return json(res,200,{service:'HUELLA-WhatsApp',version:'0.6.1',database,...(databaseIssue?{databaseIssue}:{}),provider:(env.CERCA_PROVIDER||'meta'),messaging:isSessionMessagingReady(env)?'session_ready':'pending',scheduledTemplates:isMessagingReady(env)?'approved':'disabled',weeklyPilot:weeklyEnabled(env)?'ready':'disabled',privatePreview:env.HUELLA_PREVIEW_ENABLED==='true'?'enabled':'disabled',ai:{configured:Boolean(env.OPENAI_API_KEY),model:contentModel(env),reasoning:'high'},inbound:inboundPolicy(env),clientInterface:'whatsapp-only'});
  }
  if(url.pathname==='/webhooks/evolution'&&req.method==='POST'){
   if(env.CERCA_PROVIDER!=='evolution')return fixed(res,404,'Not Found');
