@@ -117,7 +117,7 @@ export async function prepareWeeklyDispatch(state,phone,now,{env=process.env,gen
   let batch;
   try{
    batch=await generate(stateCopy,key,{env});
-   if(!batch||!Array.isArray(batch.children)||!batch.weekly)throw Error('huella_invalid_batch');
+   if(!batch||!Array.isArray(batch.children)||(!batch.weekly&&!batch.children.some(c=>c.missions?.length)))throw Error('huella_invalid_batch');
   }catch{
    // Persist a one-day circuit breaker, never spend repeatedly on every cron tick.
    stateCopy.huellaLastGenerationFailureDay=clock.day;
@@ -130,7 +130,7 @@ export async function prepareWeeklyDispatch(state,phone,now,{env=process.env,gen
  const batch=stateCopy.huellaWeekV2.batch;
  const jobs=[];
  const daily=env.EVOLUTION_TEMPLATE_DAILY,weekly=env.EVOLUTION_TEMPLATE_WEEKLY;
- if(slot==='family'){
+ if(slot==='family'&&batch.weekly){
   const messages=splitLongMission(familyText(batch.weekly));
   messages.forEach((body,part)=>jobs.push(tagged('Familia',body,weekly,phone,clock.day,slot,part)));
  }
@@ -139,13 +139,17 @@ export async function prepareWeeklyDispatch(state,phone,now,{env=process.env,gen
    const child=batch.children[index];
    if(child.name!==stateCopy.children[index]?.name)throw Error('huella_family_mismatch');
    const mission=child.missions.find(m=>m.kind===slot);
-   if(!mission)throw Error('huella_mission_missing');
+   // A safety-quarantined mission is absent by design. Preserve the sibling's
+   // safe mission, never recreate or silently deliver the quarantined text.
+   if(!mission)continue;
    const messages=splitLongMission(missionText(child.name,mission));
    messages.forEach((body,part)=>jobs.push(tagged(child.name,body,daily,phone,clock.day,slot,
      messages.length===1?index:index+'-'+part)));
   }
-  const historyEntry={day:clock.day,children:batch.children.map(c=>({name:c.name,missions:c.missions.filter(m=>m.kind===slot)})),weekly:null};
-  stateCopy.history=[...(stateCopy.history||[]),historyEntry].slice(-30);
+  if(jobs.length){
+   const historyEntry={day:clock.day,children:batch.children.map(c=>({name:c.name,missions:c.missions.filter(m=>m.kind===slot)})),weekly:null};
+   stateCopy.history=[...(stateCopy.history||[]),historyEntry].slice(-30);
+  }
  }
  if(slot==='story'){
   const story=storyFor(stateCopy,key);
@@ -157,7 +161,14 @@ export async function prepareWeeklyDispatch(state,phone,now,{env=process.env,gen
   jobs.push(tagged('Balance semanal',compact(report+'\n\n'+question),daily,phone,clock.day,slot,0));
   if(stateCopy.flow==='idle')stateCopy.flow='weekly_reflection';
  }
- if(!jobs.length)throw Error('huella_empty_slot');
+ if(!jobs.length){
+  // Avoid repeated attempts on future cron ticks for a fully quarantined slot.
+  // Preserve the batch and let other days' valid missions proceed.
+  stateCopy.huellaWeekV2.sentSlots.push(slot);
+  return {updated:stateCopy,jobs:[],slot,day:clock.day,weekKey:key,
+   eventId:tokenKey('huella:quarantined-slot:'+phone+':'+clock.day+':'+slot),
+   generationBlocked:true};
+ }
  stateCopy.huellaWeekV2.sentSlots.push(slot);
  if(!stateCopy.huellaPilotStartDay)stateCopy.huellaPilotStartDay=clock.day;
  return {updated:stateCopy,jobs,slot,day:clock.day,weekKey:key,

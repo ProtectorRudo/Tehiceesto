@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {generatePremiumWeek,validatePremiumWeek,premiumWeekQuality,deliveryReadiness,contentModel,neutralizeInfantWording,containsInfantHazardInstruction} from '../src/huella-ai.mjs';
+import {generatePremiumWeek,validatePremiumWeek,premiumWeekQuality,deliveryReadiness,partitionDeliverableWeek,contentModel,neutralizeInfantWording,containsInfantHazardInstruction} from '../src/huella-ai.mjs';
 import {mondayOf,weeklyEnabled,prepareWeeklyDispatch,progressSummary,questionText,splitLongMission,WEEKLY_SLOTS} from '../src/huella-weekly.mjs';
 import {VERIFIED_STORIES,verifiedStoryFor,formatVerifiedStory} from '../src/huella-sources.mjs';
 import {initialState,processInbound,formatMissions} from '../src/flow.mjs';
@@ -399,4 +399,83 @@ test('long safe mission text is split at paragraphs instead of rejected',()=>{
  assert.ok(parts.length>1);
  assert.ok(parts.every(part=>part.length<=2000));
  assert.equal(parts.join('\n\n'),source);
+});
+
+test('a single unsafe infant skill is quarantined but the other six missions and family survive',async()=>{
+ const profileState=profile(),output=fixture();
+ const child=output.children[0];
+ child.missions[2].steps[0]='Ofrecé un globo de colores al bebé para sostenerlo y jugar con sus manos durante la canción.';
+ const reviewed=partitionDeliverableWeek(profileState,output);
+ assert.equal(reviewed.ok,true);
+ assert.ok(reviewed.withheld.includes('child0:sembrar:infant_hazard'));
+ assert.deepEqual(reviewed.children[0].missions.map(x=>x.kind),['conectar','comprender']);
+ assert.equal(reviewed.children[1].missions.length,3);
+ assert.ok(reviewed.family);
+ const generated=await generatePremiumWeek(profileState,'2026-11-23',{env:ENV,
+  fetcher:async()=>new Response(JSON.stringify({status:'completed',output:[
+   {content:[{type:'output_text',text:JSON.stringify(output)}]}]}),{status:200})
+ });
+ assert.ok(generated.withheld.includes('child0:sembrar:infant_hazard'));
+ assert.equal(generated.children[0].missions.length,2);
+ assert.equal(generated.children[1].missions.length,3);
+ assert.equal(generated.weekly.title,output.family.title);
+ assert.ok(!JSON.stringify(generated).includes('Ofrecé un globo'));
+});
+test('quarantined baby skill does not prevent sibling skill being delivered on Saturday',async()=>{
+ let state=profile(),generation=0;
+ const initial=fixture();
+ initial.children[0].missions.splice(2,1);
+ const produce=async()=>{
+  generation++;
+  return {day:'2026-11-23',children:[
+   {name:state.children[0].name,missions:initial.children[0].missions},
+   {name:state.children[1].name,missions:initial.children[1].missions}
+  ],weekly:initial.family,withheld:['child0:sembrar:infant_hazard']};
+ };
+ const monday=await prepareWeeklyDispatch(state,PHONE,NOW('2026-11-23'),{env:ENV,generate:produce});
+ assert.equal(monday.jobs.length,1);
+ state=monday.updated;
+ const saturday=await prepareWeeklyDispatch(state,PHONE,NOW('2026-11-28'),{env:ENV,generate:produce});
+ assert.equal(saturday.jobs.length,1,'safe sibling skill is still delivered');
+ assert.match(saturday.jobs[0].payload.params[1],/SEMBRAR/);
+ assert.ok(!saturday.jobs[0].payload.params[1].includes('Bebé'));
+ assert.equal(generation,1);
+ assert.equal(saturday.updated.history.at(-1).children[0].missions.length,0);
+ assert.equal(saturday.updated.history.at(-1).children[1].missions.length,1);
+ assert.equal(await prepareWeeklyDispatch(saturday.updated,PHONE,NOW('2026-11-28'),{env:ENV,generate:produce}),null);
+});
+test('a quarantined family activity does not force a second paid model generation next day',async()=>{
+ const p=profile(),obj=fixture();
+ obj.family.steps[0]='Ofrecé unos globos y cuentas pequeñas al bebé para que juegue con ellos.';
+ const part=partitionDeliverableWeek(p,obj);
+ assert.equal(part.ok,true);
+ assert.equal(part.family,null);
+ assert.ok(part.withheld.includes('family:infant_hazard'));
+ let count=0;
+ const generate=async()=>{
+  count++;
+  return {day:'2026-11-23',children:part.children.map((c,i)=>({name:p.children[i].name,missions:c.missions})),
+   weekly:null,withheld:part.withheld};
+ };
+ const monday=await prepareWeeklyDispatch(p,PHONE,NOW('2026-11-23'),{env:ENV,generate});
+ assert.equal(monday.generationBlocked,true);
+ assert.equal(monday.jobs.length,0);
+ assert.equal(monday.updated.huellaPilotStartDay,null);
+ assert.ok(monday.updated.huellaWeekV2.sentSlots.includes('family'));
+ const tuesday=await prepareWeeklyDispatch(monday.updated,PHONE,NOW('2026-11-24'),{env:ENV,generate});
+ assert.equal(tuesday.jobs.length,2);
+ assert.equal(count,1,'no second API bill or re-generation');
+ assert.equal(tuesday.updated.huellaPilotStartDay,'2026-11-24');
+});
+test('quarantine still rejects an entire batch if every single activity is unsafe',()=>{
+ const p=profile(),o=fixture();
+ for(const c of o.children)for(const m of c.missions){
+  m.steps[0]='Obligá al niño a realizar la actividad aunque se resista y no quiera participar en ningún momento.';
+ }
+ o.family.steps[0]='Obligá a todos a participar aunque pidan terminar el juego y no deseen continuar.';
+ const result=partitionDeliverableWeek(p,o);
+ assert.equal(result.ok,false);
+ assert.deepEqual(result.fatal,['no_safe_content']);
+ assert.equal(result.family,null);
+ assert.ok(result.children.every(x=>x.missions.length===0));
 });

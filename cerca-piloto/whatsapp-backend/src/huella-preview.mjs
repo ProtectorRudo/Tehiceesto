@@ -34,17 +34,19 @@ function description(m,day){
  ...(m.ifNo?['*Si hoy no tiene ganas:* '+m.ifNo]:[]),...(m.kind==='sembrar'&&m.skill?['*Habilidad que se practica:* '+m.skill]:[])].join('\n');
 }
 export function previewMessages(batch,state,weekStart){
- if(!batch||batch.children?.length!==state.children?.length||!batch.weekly)throw Error('preview_incomplete');
- const msg=[safe('🌱 *HUELLA — Vista previa privada*\nSemana que comienza el '+weekStart+'.\n\nEstas propuestas son para evaluar su calidad. No activan el calendario ni cuentan como misiones realizadas.')];
- const f=batch.weekly;
- msg.push(safe(['🏡 *LUNES · Experiencia familiar*',description(f,'FAMILIA'),'Participación voluntaria; adaptala a las edades de todos.'].join('\n\n')));
+ if(!batch||batch.children?.length!==state.children?.length)throw Error('preview_incomplete');
+ const notice=Array.isArray(batch.withheld)&&batch.withheld.length?
+  '\n\nUna o más actividades quedaron apartadas por precaución de seguridad o por falta de instrucciones esenciales. Las propuestas seguras se conservan y no se realizan nuevos intentos pagos automáticamente.':'';
+ const msg=[safe('🌱 *HUELLA — Vista previa privada*\nSemana que comienza el '+weekStart+'.\n\nEstas propuestas son para evaluar su calidad. No activan el calendario ni cuentan como misiones realizadas.'+notice)];
+ if(batch.weekly)
+  msg.push(safe(['🏡 *LUNES · Experiencia familiar*',description(batch.weekly,'FAMILIA'),'Participación voluntaria; adaptala a las edades de todos.'].join('\n\n')));
  const days=[['conectar','MARTES · CONECTAR'],['comprender','JUEVES · COMPRENDER'],['sembrar','SÁBADO · SEMBRAR']];
  for(let i=0;i<batch.children.length;i++){
-  const child=batch.children[i],blocks=days.map(([kind,day])=>{
+  const child=batch.children[i],blocks=days.flatMap(([kind,day])=>{
    const m=child.missions.find(x=>x.kind===kind);
-   if(!m)throw Error('preview_incomplete_missions');
-   return description(m,day);
+   return m?[description(m,day)]:[];
   });
+  if(!blocks.length)continue;
   const title='🌱 *'+state.children[i].name+'* · Misiones de la semana';
   const composed=[title,...blocks].join('\n\n');
   if(composed.length<=3600){msg.push(safe(composed));continue;}

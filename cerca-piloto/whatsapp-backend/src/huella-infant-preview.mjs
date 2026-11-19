@@ -23,13 +23,22 @@ const service=(body,key,index,receivedAt)=>({
  expires_at:new Date(new Date(receivedAt).getTime()+23*3600000).toISOString()
 });
 const format=(batch)=>{
+ const missions=Array.isArray(batch.missions)?batch.missions:[];
+ const family=batch.family||null;
+ const withheld=Array.isArray(batch.withheld)?batch.withheld:[];
+ const notice=withheld.length?
+  '\n\nUna propuesta no se incluyó por precaución de seguridad o porque faltaban instrucciones. Conservo las otras actividades; no se generará ningún reemplazo pago automáticamente.':'';
  const messages=[{
-  body:'🌱 *HUELLA · Prueba enfocada de calidad*\n\nTres misiones nuevas para '+batch.childName+
-   ' ('+batch.ageMonths+' meses aprox.) y una propuesta para toda la familia. Son ejemplos para evaluar, no activan el mes de prueba.'
+  body:'🌱 *HUELLA · Prueba enfocada de calidad*\n\n'+
+   missions.length+' misión(es) para '+batch.childName+
+   ' ('+batch.ageMonths+' meses aprox.)'+
+   (family?' y una propuesta familiar':'')+
+   '. Son experiencias para evaluar, sin activar el mes de prueba.'+notice
  }];
- for(const mission of batch.missions||[])
+ for(const mission of missions)
   for(const body of splitLongMission(missionText(batch.childName,mission)))messages.push({body});
- for(const body of splitLongMission(familyText(batch.family)))messages.push({body});
+ if(family)
+  for(const body of splitLongMission(familyText(family)))messages.push({body});
  if(messages.length<2||messages.length>15||messages.some(x=>!x.body||x.body.length>3400))
   throw Error('huella_infant_preview_invalid');
  return messages;
