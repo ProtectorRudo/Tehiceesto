@@ -94,8 +94,8 @@ export async function sendEvolution(message,phone,{env=process.env,fetcher=fetch
   if(env.CERCA_EVOLUTION_SCHEDULED_ALLOWED!=='true')throw new Error('evolution_scheduled_disabled');
   const params=message.params||[];
   content=message.name===env.EVOLUTION_TEMPLATE_WEEKLY?
-    `🏡 CERCA — Misión familiar\n${String(params[0]||'')}\n${String(params[1]||'')}`:
-    `🌱 CERCA — ${String(params[0]||'')}\n${String(params[1]||'')}`;
+    `🏡 HUELLA — Misión familiar\n${String(params[0]||'')}\n${String(params[1]||'')}`:
+    `🌱 HUELLA — ${String(params[0]||'')}\n${String(params[1]||'')}`;
  } else if(typeof message?.body==='string') {
   const options=Array.isArray(message.options)?message.options.slice(0,10):[];
   content=message.body+(options.length?'\n\nRespondé: '+options.map(String).join(' | '):'');
