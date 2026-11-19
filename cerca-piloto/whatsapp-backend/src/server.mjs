@@ -9,7 +9,7 @@ import {initialState,processInbound} from './flow.mjs';
 import {prepareWeeklyDispatch,weeklyEnabled} from './huella-weekly.mjs';
 import {contentModel} from './huella-ai.mjs';
 import {previewIntent,previewPermitted,handlePreviewInbound} from './huella-preview.mjs';
-import {isQualityPreviewIntent,handleQualityPreviewInbound} from './huella-quality-preview.mjs';
+import {isQualityPreviewIntent,isRecoveryPreviewIntent,handleQualityPreviewInbound} from './huella-quality-preview.mjs';
 import {infantReviewIntent,handleInfantReview} from './huella-infant-preview.mjs';
 import {localClock,prepareDay,scheduledOutbox,tokenKey,isMessagingReady,isSessionMessagingReady,isAllowedRecipient,isAllowedInboundRecipient,inboundPolicy} from './scheduler.mjs';
 const db=makeDb();const env=process.env;
@@ -37,7 +37,7 @@ async function inbound(m){
    return 'applied';
   }});
  }
- if(isQualityPreviewIntent(m.text)&&previewPermitted(m.phone,env)){
+ if((isQualityPreviewIntent(m.text)||isRecoveryPreviewIntent(m.text))&&previewPermitted(m.phone,env)){
   return handleQualityPreviewInbound(m,{db,env,now,flush,defer:work=>{
    setImmediate(()=>{void Promise.resolve().then(work).catch(()=>{ /* single-attempt reservation remains safe */ });});
    return 'applied';

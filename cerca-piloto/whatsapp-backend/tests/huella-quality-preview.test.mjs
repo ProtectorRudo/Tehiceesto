@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {initialState} from '../src/flow.mjs';
-import {handleQualityPreviewInbound,isQualityPreviewIntent,QUALITY_PREVIEW_REVISION} from '../src/huella-quality-preview.mjs';
+import {handleQualityPreviewInbound,isQualityPreviewIntent,isRecoveryPreviewIntent,QUALITY_PREVIEW_REVISION,RECOVERY_PREVIEW_REVISION} from '../src/huella-quality-preview.mjs';
 
 const PHONE='5492211234567';
 const env={HUELLA_PREVIEW_ENABLED:'true',CERCA_PROVIDER:'evolution',CERCA_SEND_MODE:'test',
@@ -144,4 +144,56 @@ test('allowlists and consent are checked before even reserving a paid call',asyn
  assert.equal(db.jobs.length,0);
  const stopped=fakeDb({...profile(),status:'stopped',consentAt:null});
  assert.equal(await handleQualityPreviewInbound(message('quality:10'),{db:stopped,env,now:time}),'not_active');
+});
+
+test('PREVIA COMPLETA is exclusive to a single authorized family and one new paid call',async()=>{
+ assert.equal(isRecoveryPreviewIntent('PRÉVIA COMPLETA'),true);
+ assert.equal(isRecoveryPreviewIntent('PREVIA'),false);
+ const prior=profile();
+ prior.huellaQualityPreview={revision:QUALITY_PREVIEW_REVISION,status:'ready',attempts:1,batch:weekly()};
+ prior.huellaInfantReviewV3={status:'failed',attempts:1};
+ const original=structuredClone(prior);
+ const db=fakeDb(prior);let calls=0;
+ const run=async id=>handleQualityPreviewInbound(message(id,'PREVIA COMPLETA'),{
+  db,env,now:time,generate:async(state,week)=>{
+   calls++;assert.equal(week,'2026-11-23');
+   assert.ok(state.history.some(x=>x.day==='editorial-reference'));
+   assert.equal(state.huellaPreview.attempts,2);
+   assert.equal(state.huellaInfantReviewV3.status,'failed');
+   return weekly();
+  }
+ });
+ assert.equal(await run('recovery:1'),'applied');
+ assert.equal(calls,1);
+ assert.equal(db.record.state.huellaRecoveryPreview.revision,RECOVERY_PREVIEW_REVISION);
+ assert.equal(db.record.state.huellaRecoveryPreview.status,'ready');
+ assert.equal(db.record.state.huellaRecoveryPreview.attempts,1);
+ assert.equal(db.record.state.huellaRecoveryPreview.batch.children.length,2);
+ assert.ok(db.record.state.huellaRecoveryPreview.batch.children.every(x=>x.missions.length===3));
+ assert.ok(db.record.state.huellaRecoveryPreview.batch.weekly);
+ assert.deepEqual(db.record.state.huellaPreview,original.huellaPreview);
+ assert.deepEqual(db.record.state.huellaQualityPreview,original.huellaQualityPreview);
+ assert.deepEqual(db.record.state.huellaInfantReviewV3,original.huellaInfantReviewV3);
+ assert.equal(db.record.state.huellaPilotStartDay,null);
+ assert.ok(db.jobs.some(x=>x.payload.body.includes('LUNES · Experiencia familiar')));
+ assert.equal(await run('recovery:2'),'applied');
+ assert.equal(calls,1,'retry cannot invoke OpenAI again');
+});
+test('PREVIA COMPLETA failure stays consumed; opt-out and wrong allowlist never call AI',async()=>{
+ const db=fakeDb();let calls=0;
+ const run=(id,settings=env)=>handleQualityPreviewInbound(message(id,'PREVIA COMPLETA'),{
+  db,env:settings,now:time,generate:async()=>{calls++;throw Error('huella_ai_http_503');}
+ });
+ assert.equal(await run('recovery:failure'),'applied');
+ assert.equal(db.record.state.huellaRecoveryPreview.status,'failed');
+ assert.equal(await run('recovery:repeat'),'applied');
+ assert.equal(calls,1);
+ assert.equal(db.record.state.huellaPreview.attempts,2);
+ assert.equal(db.record.state.huellaPilotStartDay,null);
+ assert.ok(db.jobs.some(x=>x.payload.body.includes('otra generación paga')));
+ const denied=fakeDb();
+ assert.equal(await handleQualityPreviewInbound(message('recovery:deny','PREVIA COMPLETA'),{
+  db:denied,env:{...env,CERCA_TEST_WA_IDS:PHONE+',5492219000000'},now:time
+ }),null);
+ assert.equal(denied.jobs.length,0);
 });

@@ -7,8 +7,12 @@ import {previewPermitted,previewMessages} from './huella-preview.mjs';
 import {generatePremiumWeek} from './huella-ai.mjs';
 
 export const QUALITY_PREVIEW_REVISION='executable-missions-20261119-v1';
-export const isQualityPreviewIntent=text=>String(text||'').trim().toLocaleLowerCase('es-AR').normalize('NFD')
- .replace(/[\u0300-\u036f]/g,'')==='previa calidad';
+export const RECOVERY_PREVIEW_REVISION='complete-mission-slots-20261119-v1';
+const normalized=text=>String(text||'').trim().toLocaleLowerCase('es-AR').normalize('NFD')
+ .replace(/[\u0300-\u036f]/g,'');
+export const isQualityPreviewIntent=text=>normalized(text)==='previa calidad';
+/** One independent, owner-authorized validation after previous preview budgets were used. */
+export const isRecoveryPreviewIntent=text=>normalized(text)==='previa completa';
 
 const nextMonday=day=>{
  const monday=mondayOf(day),d=new Date(monday+'T12:00:00Z');
@@ -30,12 +34,15 @@ const reason=e=>{
 export async function handleQualityPreviewInbound(m,{
  db,env=process.env,now=new Date(),generate=generatePremiumWeek,flush=async()=>{},defer=work=>work()
 }={}){
- if(!isQualityPreviewIntent(m.text)||!previewPermitted(m.phone,env))return null;
+ const recovery=isRecoveryPreviewIntent(m.text);
+ if((!recovery&&!isQualityPreviewIntent(m.text))||!previewPermitted(m.phone,env))return null;
+ const storageField=recovery?'huellaRecoveryPreview':'huellaQualityPreview';
+ const revision=recovery?RECOVERY_PREVIEW_REVISION:QUALITY_PREVIEW_REVISION;
  const row=await db.family(m.phone);
  if(!row?.state||row.state.status!=='active'||!row.state.consentAt||row.state.deleted)return 'not_active';
  const eventId=tokenKey('whatsapp:'+m.id);
- const existing=row.state.huellaQualityPreview;
- if(existing?.revision===QUALITY_PREVIEW_REVISION){
+ const existing=row.state[storageField];
+ if(existing?.revision===revision){
   // This revision authorizes at most ONE billed inference, even after a timeout.
   const msg=existing.status==='ready'
    ?'Ya tenés la nueva vista previa. Para evaluarla, compartí las misiones en el chat de pruebas. No volveré a generar otra semana ni a cobrar otra llamada.'
@@ -47,11 +54,11 @@ export async function handleQualityPreviewInbound(m,{
  }
  const weekKey=nextMonday(localClock(now).day);
  const updated=structuredClone(row.state);
- const runId=tokenKey('quality-preview:'+m.id);
- updated.huellaQualityPreview={revision:QUALITY_PREVIEW_REVISION,weekKey,
+ const runId=tokenKey((recovery?'recovery-preview:':'quality-preview:')+m.id);
+ updated[storageField]={revision,weekKey,
   status:'processing',attempts:1,runId,startedAt:now.toISOString()};
  const reserved=await db.commit(m.phone,row.revision,eventId,updated,[
-  service('🌱 Segunda prueba de calidad iniciada. HUELLA preparará nuevas misiones más detalladas con Sol. Es una única generación, no activa el calendario ni tus 30 días.',eventId+':ack',0,m.receivedAt)
+  service(recovery?'🌱 Validación final autorizada: Sol preparará tres misiones por hijo y una familiar. Es una única generación, sin activar el calendario ni los 30 días.':'🌱 Segunda prueba de calidad iniciada. HUELLA preparará nuevas misiones más detalladas con Sol. Es una única generación, no activa el calendario ni tus 30 días.',eventId+':ack',0,m.receivedAt)
  ]);
  if(reserved.status!=='applied')return reserved.status;
  try{await flush(2);}catch{/* Durable outbox can be retried. */}
@@ -60,7 +67,8 @@ export async function handleQualityPreviewInbound(m,{
   let batch=null,messages=null,error=null;
   try{
    const editorial=structuredClone(updated);
-   const first=updated.huellaPreview?.status==='ready'?updated.huellaPreview.batch:null;
+   const first=recovery&&updated.huellaQualityPreview?.status==='ready'?updated.huellaQualityPreview.batch:
+    updated.huellaPreview?.status==='ready'?updated.huellaPreview.batch:null;
    // Use previous titles only as anti-repetition context; never record them
    // as completed experiences, and never overwrite the first preview.
    if(first?.children?.length){
@@ -76,15 +84,15 @@ export async function handleQualityPreviewInbound(m,{
   for(let i=0;i<3;i++){
    const latest=await db.family(m.phone),live=latest?.state;
    if(!live||live.deleted||live.status!=='active'||!live.consentAt||
-      live.huellaQualityPreview?.runId!==runId)return 'cancelled';
+      live[storageField]?.runId!==runId)return 'cancelled';
    const next=structuredClone(live);
-   const delivery=tokenKey('quality-result:'+m.id);
+   const delivery=tokenKey((recovery?'recovery-result:':'quality-result:')+m.id);
    if(error){
-    next.huellaQualityPreview={...next.huellaQualityPreview,
+    next[storageField]={...next[storageField],
      status:'failed',error,finishedAt:new Date().toISOString()};
-    messages=[{body:'La nueva generación no terminó o no pasó los controles editoriales. No envié contenido de relleno ni inicié el piloto. Por seguridad no habrá otro intento pago automático.'}];
+    messages=[{body:recovery?'La validación de HUELLA no pudo completarse. No inicié los 30 días ni haré otra generación paga automáticamente.':'La nueva generación no terminó o no pasó los controles editoriales. No envié contenido de relleno ni inicié el piloto. Por seguridad no habrá otro intento pago automático.'}];
    }else{
-    next.huellaQualityPreview={...next.huellaQualityPreview,
+    next[storageField]={...next[storageField],
      status:'ready',batch,finishedAt:new Date().toISOString()};
    }
    const jobs=messages.map((x,index)=>service(x.body,delivery,index,m.receivedAt));
