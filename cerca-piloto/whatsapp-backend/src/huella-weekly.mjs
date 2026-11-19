@@ -27,7 +27,7 @@ export function missionText(name,m){
 }
 export function familyText(m){
  return compact(['🏡 HUELLA · Momento familiar','*'+m.title+'*',steps(m),
-  '*Por qué:* '+m.why,'*Qué observar:* '+m.observe,
+  '*Por qué:* '+m.why,'*Qué observar:* '+m.observe,...(m.kind==='sembrar'&&m.skill?['*Habilidad:* '+m.skill]:[]),
   'Pueden adaptarla a las edades de todos. Nadie tiene obligación de participar.'].join('\n\n'));
 }
 export function questionText(state,weekKey){

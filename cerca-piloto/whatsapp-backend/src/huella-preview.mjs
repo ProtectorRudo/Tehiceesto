@@ -26,7 +26,7 @@ function description(m,day){
  return ['*'+day+' · '+String(m.title||'')+'*',
  ...(m.steps||[]).map((step,i)=>(i+1)+'. '+step),
  '*Por qué:* '+m.why,
- '*Qué observar:* '+m.observe].join('\n');
+ '*Qué observar:* '+m.observe,...(m.kind==='sembrar'&&m.skill?['*Habilidad que se practica:* '+m.skill]:[])].join('\n');
 }
 export function previewMessages(batch,state,weekStart){
  if(!batch||batch.children?.length!==state.children?.length||!batch.weekly)throw Error('preview_incomplete');
