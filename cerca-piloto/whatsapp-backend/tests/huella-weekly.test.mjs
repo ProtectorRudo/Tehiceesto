@@ -137,10 +137,15 @@ test('weekly balance only uses recorded experience, never fabricates improvement
 test('one requested weekly reflection is safely recorded without starting an open chat',()=>{
  let s=profile();s.flow='weekly_reflection';s.huellaWeekV2={key:'2026-11-23',batch:null,sentSlots:['reflection']};
  let r=processInbound('Hoy escuché más y descubrí que le gusta dibujar',{state:s,today:'2026-11-29',now:'2026-11-29T22:00:00Z'});
- assert.equal(r.state.flow,'idle');
+ assert.equal(r.state.flow,'weekly_goal_choice');
  assert.equal(r.state.weeklyReflections.length,1);
  assert.equal(r.state.weeklyReflections[0].weekKey,'2026-11-23');
- r=processInbound('No sabés lo que pasó con mi hija',{state:r.state,today:'2026-11-29',now:'2026-11-29T22:01:00Z'});
+ assert.match(r.messages.at(-1).body,/objetivo/i);
+ r=processInbound('0',{state:r.state,today:'2026-11-29',now:'2026-11-29T22:01:00Z'});
+ assert.equal(r.state.flow,'weekly_goal_choice');
+ r=processInbound('0',{state:r.state,today:'2026-11-29',now:'2026-11-29T22:02:00Z'});
+ assert.equal(r.state.flow,'idle');
+ r=processInbound('No sabés lo que pasó con mi hija',{state:r.state,today:'2026-11-29',now:'2026-11-29T22:03:00Z'});
  assert.match(r.messages[0].body,/HUELLA funciona/);
 });
 test('30-day pilot refuses to schedule past its boundary',async()=>{

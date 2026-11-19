@@ -1,5 +1,6 @@
 import {foundationFor} from './huella-sources.mjs';
 import {curatedMission,curatedFamily} from './huella-safe-reserve.mjs';
+import {weeklyGoalFor} from './huella-weekly-goals.mjs';
 
 /** Only editorial generation; no general chat, no open-ended conversation. */
 export const HUELLA_DEFAULT_MODEL='gpt-6.2-sol';
@@ -146,7 +147,7 @@ export function premiumWeekQuality(profile,week){
     if(containsInfantHazardInstruction([m.setup||'',m.example||'',...(m.steps||[])]))
      add(tag+':infant_hazard');
    }
-   const targets=[c.goal,...(c.interests||[]),profile.monthlyGoal].map(normalize).filter(Boolean);
+   const targets=[weeklyGoalFor(profile,i,profile.huellaGeneratingWeekKey||week?.day),c.goal,...(c.interests||[]),profile.monthlyGoal].map(normalize).filter(Boolean);
    if(!targets.includes(normalize(m.target)))add(tag+':target_not_from_profile');
    const title=normalize(m.title);
    if(seen.has(title))add(tag+':title_repeated');
@@ -314,7 +315,8 @@ const prompt=[
  'La misión familiar también requiere intro: la escena y el objetivo tienen que quedar claros para adultos y niños de distintas edades. Incluí un rol seguro para bebés y una elección auténtica para los mayores, sin forzar a nadie.',
  'CAMBIO EDITORIAL NO NEGOCIABLE: CONECTAR = un momento compartido y afectivo; COMPRENDER = descubrir una preferencia, perspectiva, señal o emoción sin examinar; SEMBRAR = ofrecer al hijo la ocasión real de practicar una habilidad concreta adecuada a su edad (autonomía, creatividad, iniciativa, comunicación temprana, colaboración, empatía, resolución de problemas, etc.). Un saludo afectuoso por sí solo o repetir una frase no es SEMBRAR. Cada categoría debe producir una experiencia DIFERENTE.',
  'En skill escribí exactamente no aplica para conectar y comprender. Para sembrar escribí el nombre de una capacidad concreta (7 a 90 caracteres) que la actividad permite practicar; los pasos deben mostrar qué puede hacer el niño, no solo qué hace el adulto. El nombre de la habilidad no es un diagnóstico ni una promesa de progreso.',
- 'target debe copiar SIN MODIFICAR uno de estos campos legítimos del contexto de ESE hijo: goal, uno de interests, o monthlyGoal; nunca inventes recuerdos, gustos, diagnósticos ni progresos.',
+ 'Si hay weeklyGoal para el hijo correspondiente, es la PRIORIDAD de la semana: las tres misiones deben acercarse a ese objetivo con experiencias diferentes (conectar, comprender y sembrar), sin convertirse en ejercicios, evaluaciones ni repetirse. Si no hay weeklyGoal, seguí los objetivos habituales, sin bloquear la generación.',
+ 'target debe copiar SIN MODIFICAR uno de estos campos legítimos del contexto de ESE hijo: weeklyGoal cuando exista, goal, uno de interests, o monthlyGoal; nunca inventes recuerdos, gustos, diagnósticos ni progresos.',
  'Usá preferencias y metas reales dentro de los pasos. Variedad entre hermanos y semanas. Por qué y qué observar deben hablar del vínculo real, sin afirmar efectos garantizados.',
  'Cinco a quince minutos por misión individual; familia veinte minutos. Sin compras, premios o castigos; si el niño no quiere participar, su decisión se respeta.',
  'BEBÉS: la edad aproximada EN MESES es fundamental. Adaptá las actividades a la etapa concreta (0–3, 4–7, 8–11, 12–17, 18–23 meses), sin atribuir logros de desarrollo ni asumir que ya puede sentarse, agarrar, imitar, caminar o hablar. Para 0–7 meses favorecé encuentros reales y seguros como canciones en brazos, intercambio natural de voz y mirada y lectura compartida de imágenes; solo si está despierto y a gusto.',
@@ -333,7 +335,7 @@ const prompt=[
 ].join('\n');
 function minimalContext(state,weekStart){
  return {weekStart,monthlyGoal:String(state.monthlyGoal||'').slice(0,220),
-  children:state.children.map((c,index)=>({index,age:c.age,ageMonths:Number.isInteger(c.ageMonths)?c.ageMonths:null,goal:String(c.goal||'').slice(0,220),interests:(c.interests||[]).slice(0,5).map(x=>String(x).slice(0,50)),
+  children:state.children.map((c,index)=>({index,age:c.age,ageMonths:Number.isInteger(c.ageMonths)?c.ageMonths:null,goal:String(c.goal||'').slice(0,220),weeklyGoal:weeklyGoalFor(state,index,weekStart),interests:(c.interests||[]).slice(0,5).map(x=>String(x).slice(0,50)),
    foundation:foundationFor(c.age)})),
   recentTitles:(state.history||[]).slice(-18).flatMap(x=>(x.children||[]).flatMap(y=>(y.missions||[]).map(m=>m.title))).slice(-45),
   experienceFeedback:(state.feedbackLog||[]).slice(-12).map(f=>({childIndex:f.childIndex,kind:f.kind,answer:f.answer})),
@@ -361,7 +363,7 @@ export async function generatePremiumWeek(state,weekStart,{fetcher=fetch,env=pro
     input:JSON.stringify(minimalContext(state,weekStart)),max_output_tokens:12000,
     text:{format:{type:'json_schema',name:'huella_week_v1',strict:true,schema:WEEK_SCHEMA}}})});
   if(!r.ok)throw Error('huella_ai_http_'+r.status);
-  const result=completeMissionSlots(state,extract(await r.json()));
+  const result=completeMissionSlots({...state,huellaGeneratingWeekKey:weekStart},extract(await r.json()));
   const children=result.children.map((item,index)=>({
    name:state.children[index].name,missions:item.missions.map(m=>({
     ...m,source:m.source||'ai_reviewed',
