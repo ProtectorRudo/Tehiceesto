@@ -30,6 +30,17 @@ const validPlayable=m=>validText(m.intro,55,230)&&validText(m.setup,55,310)&&
 // grammatically assign one; request neutral alternatives instead of guessing.
 const assumedBabyGender=/(?:\best[eé]\s+despiert[oa]\b|\best[aá]\s+(?:inquiet[oa]|cansad[oa]|content[oa])\b|\b(?:cambiarlo|cambiarla)\s+de\s+posici[oó]n\b|\batend[eé](?:lo|la)\s+primero\b)/i;
 const vagueSkill=/^(?:cari[nñ]o|amor|v[ií]nculo|conexi[oó]n|saludo|estar juntos|complicidad|presencia|rutina afectiva)$/i;
+/** Approximate age in months is requested, never inferred from names or DOB. */
+export const validInfantMonths=c=>{
+ const years=Number(c?.age);
+ if(!Number.isInteger(years)||years<0||years>15)return false;
+ if(years>=2)return true;
+ return Number.isInteger(c.ageMonths)&&c.ageMonths>=years*12&&
+  c.ageMonths<years*12+12;
+};
+// Avoid pseudo-assessments: spontaneous limb motion is not evidence of a
+// conversational turn. This is intentionally narrow; it is not a diagnostic tool.
+const infantPseudoTest=/(?:si (?:mueve|levanta|agita) (?:una|la|su) (?:pierna|pie|mano|brazo)[^.!?]{0,110}(?:respond[eé]|repet[ií]|hac[eé])|acerc[aá] tu mano[^.!?]{0,90}para (?:ver|notar|medir) si|para (?:comprobar|confirmar|medir) (?:si|la respuesta))/i;
 export function validatePremiumWeek(profile,week){
  if(!week||!Array.isArray(week.children)||week.children.length!==profile.children.length)return false;
  const seen=new Set(),stepFingerprints=new Set(),prior=new Set((profile.history||[]).slice(-24).flatMap(h=>(h.children||[]).flatMap(c=>(c.missions||[]).map(m=>normalize(m.title)))));
@@ -46,12 +57,15 @@ export function validatePremiumWeek(profile,week){
     // Sembrar isn't another affection ritual: its steps must give the child
     // an opportunity to practice the specified skill at their own pace.
    }else if(m.skill.trim().toLocaleLowerCase('es-AR')!=='no aplica')return false;
-   if(c.age<=2&&assumedBabyGender.test([m.intro,m.setup,m.opening,m.example,m.ifNo,...m.steps,m.why,m.observe].join(' ')))return false;
+   if(c.age<2){
+    const text=[m.intro,m.setup,m.opening,m.example,m.ifNo,...m.steps,m.why,m.observe].join(' ');
+    if(assumedBabyGender.test(text)||infantPseudoTest.test(text))return false;
+   }
    const targets=[c.goal,...(c.interests||[]),profile.monthlyGoal].map(normalize).filter(Boolean);
    if(!targets.includes(normalize(m.target)))return false;
    const title=normalize(m.title);if(seen.has(title)||prior.has(title))return false;seen.add(title);
    const fingerprint=normalize(m.steps.join(' '));if(stepFingerprints.has(fingerprint))return false;stepFingerprints.add(fingerprint);
-   if(c.age<=2&&/pieza peque[nñ]a|cuenta|tapita|globo|cord[oó]n|bolsa de pl[aá]stico|manta sobre la cara|dejarlo solo/i.test([m.setup,m.example,...m.steps].join(' ')))return false;
+   if(c.age<2&&/pieza peque[nñ]a|cuenta|tapita|globo|cord[oó]n|bolsa de pl[aá]stico|manta sobre la cara|dejarlo solo/i.test([m.setup,m.example,...m.steps].join(' ')))return false;
   }
  }
  const f=week.family;
@@ -81,7 +95,13 @@ const prompt=[
  'target debe copiar SIN MODIFICAR uno de estos campos legítimos del contexto de ESE hijo: goal, uno de interests, o monthlyGoal; nunca inventes recuerdos, gustos, diagnósticos ni progresos.',
  'Usá preferencias y metas reales dentro de los pasos. Variedad entre hermanos y semanas. Por qué y qué observar deben hablar del vínculo real, sin afirmar efectos garantizados.',
  'Cinco a quince minutos por misión individual; familia veinte minutos. Sin compras, premios o castigos; si el niño no quiere participar, su decisión se respeta.',
- 'Bebés: seguimiento de miradas, sonidos, interacción segura y adecuada, sin objetos pequeños, sin posiciones forzadas, sin actividades físicas inadecuadas. SEMBRAR puede ofrecer pequeñas oportunidades de exploración, iniciativa o intercambio, no solo otro ritual afectivo.',
+ 'BEBÉS: la edad aproximada EN MESES es fundamental. Adaptá las actividades a la etapa concreta (0–3, 4–7, 8–11, 12–17, 18–23 meses), sin atribuir logros de desarrollo ni asumir que ya puede sentarse, agarrar, imitar, caminar o hablar. Para 0–7 meses favorecé encuentros reales y seguros como canciones en brazos, intercambio natural de voz y mirada y lectura compartida de imágenes; solo si está despierto y a gusto.',
+ 'IMPORTANTE: con bebés, las misiones NO son experimentos ni controles de hitos. No pongas tu mano cerca de la suya para analizar qué movimiento hace. No trates un movimiento casual de una pierna o un brazo como si fuera un turno de comunicación. No repitas un gesto para provocar o verificar una reacción. El adulto no tiene que examinar al bebé: tiene que DISFRUTAR estar cerca, responder a sus señales reales, y seguir con los cuidados cotidianos.',
+ 'Las misiones para bebés deben sentirse naturales, cálidas y fáciles de integrar a la vida familiar. Evitá fórmulas rígidas o excesiva vigilancia como «observá sus manos», «si mueve una pierna, respondé», «devolvé un sonido y esperá exactamente 3 segundos». Evitá conclusiones causales o pruebas diagnósticas.',
+ 'SEMBRAR con bebés: ofrecé una oportunidad de práctica espontánea adecuada al momento (interacción vocal, atención compartida, exploración segura, pequeña elección si la etapa lo permite). No inventes una prueba para cumplir la etiqueta. Si no existe una habilidad auténtica practicable en esa edad, proponé una variante cotidiana de iniciativa o exploración compatible con la edad, sin atribuir intención a movimientos reflejos.',
+ 'Las misiones de toda la familia deben ser una experiencia auténtica que disfrute también el niño mayor: no inventes roles forzados para incluir al bebé. El bebé puede participar simplemente estando cómodo y acompañado mientras el adulto presta atención a sus necesidades.',
+ 'Tono HUMANO: la misión no debe sonar a protocolo de laboratorio ni a manual para vigilar conductas. Mantené la claridad de preparación, frase de inicio y ejemplo concreto, pero escribí natural y con gracia cuando corresponda. No repitas fórmulas como «sin exigir resultados», «no hace falta» o «observá si» tres veces por misión. Una indicación de respeto y una alternativa sencilla alcanzan.',
+ 'Antes de responder, hacé una revisión editorial interna: ¿a un adulto le darían ganas de hacer esto? ¿tiene sentido para esta edad y estos intereses? ¿la interacción es auténtica? ¿parece más un experimento o una experiencia? Si hay algo artificial, cambialo antes de entregar el JSON.',
  'No conocés el género gramatical de los hijos ni del adulto. No lo deduzcas del nombre, los intereses ni el vínculo. Usá fórmulas neutras naturales: cuando se despierte, si necesita una pausa, sin cambiar su postura, atendé primero sus necesidades, tu hija o hijo solo si el perfil lo indica expresamente. No escribas esté despierto, cambiarlo de posición o atendelo cuando no se haya indicado género. Evitá asumir que el adulto es papá o mamá: escribí vos, tu voz, tu compañía.',
  'Adolescentes: respeto a intimidad, autonomía y consentimiento, sin vigilancia, interrogatorios ni contactos forzados.',
  'No solicites información de salud ni problemas íntimos. No escribas testimonios ni inventes investigaciones. Las referencias de crianza son contexto, no prueba de efectos clínicos.',
@@ -91,7 +111,7 @@ const prompt=[
 ].join('\n');
 function minimalContext(state,weekStart){
  return {weekStart,monthlyGoal:String(state.monthlyGoal||'').slice(0,220),
-  children:state.children.map((c,index)=>({index,age:c.age,goal:String(c.goal||'').slice(0,220),interests:(c.interests||[]).slice(0,5).map(x=>String(x).slice(0,50)),
+  children:state.children.map((c,index)=>({index,age:c.age,ageMonths:Number.isInteger(c.ageMonths)?c.ageMonths:null,goal:String(c.goal||'').slice(0,220),interests:(c.interests||[]).slice(0,5).map(x=>String(x).slice(0,50)),
    foundation:foundationFor(c.age)})),
   recentTitles:(state.history||[]).slice(-18).flatMap(x=>(x.children||[]).flatMap(y=>(y.missions||[]).map(m=>m.title))).slice(-45),
   experienceFeedback:(state.feedbackLog||[]).slice(-12).map(f=>({childIndex:f.childIndex,kind:f.kind,answer:f.answer})),
@@ -109,6 +129,7 @@ function extract(response){
 export async function generatePremiumWeek(state,weekStart,{fetcher=fetch,env=process.env}={}){
  if(!env.OPENAI_API_KEY)throw Error('huella_ai_not_configured');
  if(!Array.isArray(state.children)||!state.children.length||state.children.length>6)throw Error('huella_profile_invalid');
+ if(state.children.some(c=>!validInfantMonths(c)))throw Error('huella_infant_months_missing');
  const model=contentModel(env);
  const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),150000);timeout.unref?.();
  try{

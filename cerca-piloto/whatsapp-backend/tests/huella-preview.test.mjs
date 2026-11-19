@@ -16,7 +16,7 @@ const state=()=>{
  s.status='active';s.flow='idle';s.consentAt='2026-11-18T15:00:00Z';
  s.adultName='Adulto';
  s.children=[
-  {name:'Bebé',age:0,interests:['sonidos'],goal:'observar mejor sus señales de comunicación'},
+  {name:'Bebé',age:0,ageMonths:5,interests:['sonidos'],goal:'observar mejor sus señales de comunicación'},
   {name:'Mayor',age:9,interests:['dibujar'],goal:'escuchar mejor sus intereses'}];
  s.monthlyGoal='estar más presente con mis hijos';return s;
 };
