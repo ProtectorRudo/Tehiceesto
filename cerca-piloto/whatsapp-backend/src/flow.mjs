@@ -7,7 +7,7 @@ const is = (v, choices) => choices.includes(norm(v));
 const affirmative = v => is(v,['si','sí','acepto','aceptar','1','consiento']);
 const short = (v,n=90) => clean(v).slice(0,n);
 const validName = v => /^[\p{L}][\p{L} .'-]{0,49}$/u.test(clean(v));
-export function initialState(){return {status:'pending',consentAt:null,adultName:'',children:[],currentChild:0,flow:'consent',deliveryTime:'18:00',timezone:'America/Argentina/Buenos_Aires',mood:null,lastDailyDay:null,lastWeeklyWeek:null,history:[],monthlyGoal:'',lastRedirectDate:null,deleted:false,subscription:'pilot',consentPrompted:false,feedbackLog:[],feedbackPending:null,huellaWeekV2:null,huellaPilotStartDay:null,weeklyReflections:[]};}
+export function initialState(){return {status:'pending',consentAt:null,adultName:'',children:[],currentChild:0,flow:'consent',deliveryTime:'18:00',timezone:'America/Argentina/Buenos_Aires',mood:null,lastDailyDay:null,lastWeeklyWeek:null,history:[],monthlyGoal:'',lastRedirectDate:null,deleted:false,subscription:'pilot',consentPrompted:false,feedbackLog:[],feedbackPending:null,huellaWeekV2:null,huellaPilotStartDay:null,weeklyReflections:[],babyAgePendingIndex:null};}
 const q=(body,options=[])=>({body,options});
 const askConsent=()=>q('Hola, soy HUELLA 🌱. Enviamos misiones breves para conectar con tus hijos. No somos un chat de consultas. ¿Aceptás recibir mensajes de HUELLA y guardar un perfil familiar mínimo? Podés escribir BAJA cuando quieras.',['ACEPTO','NO']);
 function question(state){
@@ -18,6 +18,9 @@ function question(state){
   case 'children_count':return q(`¡Un gusto, ${state.adultName}! ¿Cuántos hijos querés registrar? (1 a 6)`,['1','2','3']);
   case 'child_name':return q(`¿Cómo se llama o qué apodo querés usar para tu hijo/a ${state.currentChild+1}?`);
   case 'child_age':return q(`¿Qué edad tiene ${state.children[state.currentChild]?.name}? Podés escribir 0 si es bebé de menos de un año. HUELLA acompaña edades de 0 a 15 años.`);
+  case 'child_age_months':return q(`Para personalizar las experiencias de ${state.children[state.currentChild]?.name}, ¿cuántos meses tiene aproximadamente? Un número entre ${state.children[state.currentChild]?.age===0?0:12} y ${state.children[state.currentChild]?.age===0?11:23}. No necesitamos la fecha de nacimiento. Podés escribir OMITIR.`);
+  case 'baby_age_choose':return q('¿De qué bebé querés actualizar la edad? Elegí el número indicado.');
+  case 'change_baby_months':return q(`¿Cuántos meses tiene aproximadamente ${state.children[state.babyAgePendingIndex]?.name}? Escribí un número de 0 a 23. No necesitamos la fecha de nacimiento, o podés escribir CANCELAR.`);
   case 'child_interests':return q(`¿Qué le gusta hacer a ${state.children[state.currentChild]?.name}? Por ejemplo: inventar historias, dibujar, música, fútbol. Podés poner VARIOS.`);
   case 'child_goal':return q(`¿Qué te gustaría fortalecer con ${state.children[state.currentChild]?.name}? Por ejemplo: confianza para hablar, escuchar sin apuros, autonomía.`);
   case 'monthly_goal':return q('¿Cuál es tu objetivo familiar de crianza para este mes? Por ejemplo: disfrutar ratos sin pantallas.');
@@ -30,7 +33,11 @@ function question(state){
   default:return q(REDIRECT);
  }
 }
-function menu(){return q('Menú HUELLA 🌱. Elegí qué querés hacer:',['MISIONES','OBJETIVO','HORARIO','ÁNIMO','DATOS','BAJA']);}
+function menu(state){const options=['MISIONES','OBJETIVO','HORARIO','ÁNIMO','DATOS'];
+ if(state?.children?.some(c=>Number(c.age)<2))options.push('EDAD BEBÉ');
+ options.push('BAJA');
+ return q('Menú HUELLA 🌱. Elegí qué querés hacer:',options);
+}
 const emergency = v => /\b(no respira|se esta muriendo|se está muriendo|quiero matar a mi hijo|voy a matar a mi hijo|me quiero matar ahora|se quiere matar ahora|abuso sexual en este momento|en peligro inmediato)\b/i.test(norm(v));
 const normalizeTime=t=>{const m=clean(t).match(/^([01]?\d|2[0-3]):([0-5]\d)$/);return m?`${m[1].padStart(2,'0')}:${m[2]}`:null;};
 export function processInbound(input,{state:original=initialState(),today='2026-11-16',now=new Date().toISOString()}={}){
@@ -64,12 +71,12 @@ export function processInbound(input,{state:original=initialState(),today='2026-
   if(n==='eliminar'){
    const replacement=initialState();replacement.status='stopped';replacement.flow='idle';replacement.deleted=true;replacement.consentAt=null;
    reply('El perfil y los recuerdos se eliminaron. Los envíos quedaron desactivados.');return {state:replacement,messages,erase:true};
-  } state.flow='idle';reply('Operación cancelada.');reply(menu().body,menu().options);return {state,messages};
+  } state.flow='idle';reply('Operación cancelada.');reply(menu(state).body,menu(state).options);return {state,messages};
  }
  // Explicit commands are allowed at any time; no free-form conversations.
  if(is(n,['menu','menú','opciones'])){
   if(state.status==='onboarding'){reply('Para completar el registro, continuemos con esta pregunta:');const current=question(state);reply(current.body,current.options);}
-  else {state.flow='idle';state.feedbackPending=null;const m=menu();reply(m.body,m.options);}
+  else {state.flow='idle';state.feedbackPending=null;state.babyAgePendingIndex=null;const m=menu(state);reply(m.body,m.options);}
   return {state,messages};
  }
  if(state.status==='active' && state.flow==='idle'){
@@ -84,10 +91,22 @@ export function processInbound(input,{state:original=initialState(),today='2026-
    }
    return {state,messages};
   }
+  if(is(n,['edad bebe','meses bebe'])){
+   const indices=state.children.map((c,i)=>Number(c.age)<2?i:-1).filter(i=>i>=0);
+   if(!indices.length){reply('No hay bebés menores de dos años registrados en el perfil.');return {state,messages};}
+   if(indices.length===1){
+    state.babyAgePendingIndex=indices[0];state.flow='change_baby_months';
+    reply(question(state).body);
+   }else{
+    state.flow='baby_age_choose';state.babyAgePendingIndex=null;
+    reply('Elegí el número del bebé: '+indices.map(i=>`${i+1}: ${state.children[i].name}`).join(', '),indices.map(i=>String(i+1)));
+   }
+   return {state,messages};
+  }
   if(n==='objetivo'){state.flow='change_goal';const m=question(state);reply(m.body,m.options);return {state,messages};}
   if(n==='horario'){state.flow='change_time';const m=question(state);reply(m.body,m.options);return {state,messages};}
   if(is(n,['animo','ánimo'])){state.flow='mood';const m=question(state);reply(m.body,m.options);return {state,messages};}
-  if(is(n,['datos','mi perfil'])){reply(`Tu perfil: ${state.adultName}. Hijos: ${state.children.map(c=>`${c.name} (${c.age})`).join(', ')}. Objetivo del mes: ${state.monthlyGoal}. Horario: ${state.deliveryTime}. Para borrar todos tus datos, escribí BORRAR.`);return {state,messages};}
+  if(is(n,['datos','mi perfil'])){reply(`Tu perfil: ${state.adultName}. Hijos: ${state.children.map(c=>`${c.name} (${Number(c.age)<2&&Number.isInteger(c.ageMonths)?c.ageMonths+' meses aprox.':c.age})`).join(', ')}. Objetivo del mes: ${state.monthlyGoal}. Horario: ${state.deliveryTime}. Para borrar todos tus datos, escribí BORRAR.`);return {state,messages};}
   if(n==='borrar'){state.flow='delete_confirm';reply(question(state).body);return {state,messages};}
   if(is(n,['hecha','no pude','omitir'])){
    if(!(state.history||[]).some(h=>h.day===today)){reply('Todavía no generamos las misiones de hoy. Podés volver a intentarlo más tarde.');return {state,messages};}
@@ -99,6 +118,28 @@ export function processInbound(input,{state:original=initialState(),today='2026-
   if(state.lastRedirectDate!==today){state.lastRedirectDate=today;reply(REDIRECT);}return {state,messages};
  }
  switch(state.flow){
+  case 'baby_age_choose':{
+   const idx=Number(n)-1;
+   if(!Number.isInteger(idx)||idx<0||idx>=state.children.length||Number(state.children[idx].age)>=2){
+    reply('Elegí el número de un bebé registrado, o escribí MENÚ para salir.');break;
+   }
+   state.babyAgePendingIndex=idx;state.flow='change_baby_months';reply(question(state).body);break;
+  }
+  case 'change_baby_months':{
+   if(is(n,['cancelar','omitir'])){
+    state.babyAgePendingIndex=null;state.flow='idle';reply('No modificamos la edad aproximada.');break;
+   }
+   const months=/^(?:[0-9]|1[0-9]|2[0-3])$/.test(txt)?Number(txt):NaN;
+   if(!Number.isInteger(months)){reply('Escribí un número entre 0 y 23 meses, o CANCELAR.');break;}
+   const idx=state.babyAgePendingIndex;
+   if(!Number.isInteger(idx)||idx<0||idx>=state.children.length||Number(state.children[idx].age)>=2){
+    state.babyAgePendingIndex=null;state.flow='idle';reply('No pude identificar el perfil; escribí EDAD BEBÉ para comenzar de nuevo.');break;
+   }
+   const child=state.children[idx],name=child.name;
+   child.ageMonths=months;child.age=Math.floor(months/12);child.ageMonthsUpdatedAt=today;
+   state.babyAgePendingIndex=null;state.flow='idle';
+   reply(`Edad aproximada actualizada: ${name}, ${months} meses. No guardamos su fecha de nacimiento.`);break;
+  }
   case 'feedback_child':{
    const index=Number(n)-1;
    if(!Number.isInteger(index)||index<0||index>=state.children.length){reply('Elegí uno de los números mostrados, o escribí MENÚ para salir.');break;}
@@ -120,10 +161,21 @@ export function processInbound(input,{state:original=initialState(),today='2026-
   }
   case 'child_name':
    if(!validName(txt)){reply('Usá un nombre o apodo de hasta 50 caracteres.');break;}
-   state.children.push({name:short(txt,50),age:null,interests:[],goal:''});state.flow='child_age';reply(question(state).body);break;
+   state.children.push({name:short(txt,50),age:null,ageMonths:null,ageMonthsUpdatedAt:null,interests:[],goal:''});state.flow='child_age';reply(question(state).body);break;
   case 'child_age':{
    const age=Number(txt);if(!Number.isInteger(age)||age<0||age>15){reply('Necesito una edad en años de 0 a 15.');break;}
-   state.children[state.currentChild].age=age;state.flow='child_interests';reply(question(state).body);break;
+   state.children[state.currentChild].age=age;state.flow=age<2?'child_age_months':'child_interests';reply(question(state).body);break;
+  }
+  case 'child_age_months':{
+   const child=state.children[state.currentChild];
+   if(n==='omitir'){child.ageMonths=null;child.ageMonthsUpdatedAt=null;state.flow='child_interests';reply(question(state).body);break;}
+   const months=/^(?:[0-9]|1[0-9]|2[0-3])$/.test(txt)?Number(txt):NaN;
+   const min=child.age===0?0:12,max=child.age===0?11:23;
+   if(!Number.isInteger(months)||months<min||months>max){
+    reply(`Para la edad en años que seleccionaste, escribí un número entre ${min} y ${max} meses, u OMITIR.`);break;
+   }
+   child.ageMonths=months;child.ageMonthsUpdatedAt=today;
+   state.flow='child_interests';reply(question(state).body);break;
   }
   case 'child_interests':
    if(txt.length<3||txt.length>180){reply('Contame algunos intereses en una frase corta (3 a 180 caracteres).');break;}

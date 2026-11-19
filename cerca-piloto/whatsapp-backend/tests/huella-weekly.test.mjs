@@ -16,7 +16,7 @@ const profile=()=>{
  s.status='active';s.consentAt='2026-11-19T11:00:00Z';s.adultName='Nombre privado';
  s.deliveryTime='18:00';s.monthlyGoal='disfrutar momentos de conexión en familia';
  s.children=[
- {name:'Bebé',age:0,interests:['voces','sonidos'],goal:'atender mejor sus señales de comunicación'},
+ {name:'Bebé',age:0,ageMonths:5,interests:['voces','sonidos'],goal:'atender mejor sus señales de comunicación'},
  {name:'Mayor',age:9,interests:['dibujar','inventar cuentos'],goal:'escuchar sus ideas con más paciencia'}];
  s.flow='idle';return s;
 };
@@ -257,4 +257,19 @@ test('the invitation must contain words the adult can literally say, not a vague
  assert.equal(validatePremiumWeek(profile(),b),false);
  m.opening='«¿Te gustaría que hoy inventemos una aventura juntos? Vos elegís el primer paso y yo te acompaño.»';
  assert.equal(validatePremiumWeek(profile(),b),true);
+});
+
+test('infant monthly age must be present before a paid weekly generation',async()=>{
+ const s=profile(),mock=async()=>{throw Error('MUST NOT CALL API')};
+ delete s.children[0].ageMonths;
+ await assert.rejects(generatePremiumWeek(s,'2026-11-23',{env:ENV,fetcher:mock}),/huella_infant_months_missing/);
+ s.children[0].ageMonths=18;
+ await assert.rejects(generatePremiumWeek(s,'2026-11-23',{env:ENV,fetcher:mock}),/huella_infant_months_missing/);
+});
+test('infant editorial gate rejects artificial motor-response experiments',()=>{
+ const s=profile(),valid=fixture();
+ assert.equal(validatePremiumWeek(s,valid),true);
+ const artificial=structuredClone(valid);
+ artificial.children[0].missions[1].example='Si mueve una pierna, respondé con una O y volvé a esperar unos segundos para ver qué sucede durante la interacción compartida.';
+ assert.equal(validatePremiumWeek(s,artificial),false);
 });

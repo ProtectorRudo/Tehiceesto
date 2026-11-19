@@ -44,7 +44,7 @@ function profile(){
  const s=initialState();s.status='active';s.flow='idle';s.consentAt='2026-11-17T15:00:00Z';
  s.children=[
  {name:'Hija mayor',age:9,interests:['dibujar'],goal:'escuchar más sus elecciones'},
- {name:'Bebé',age:0,interests:['sonidos'],goal:'acompañar sus señales'}];
+ {name:'Bebé',age:0,ageMonths:5,interests:['sonidos'],goal:'acompañar sus señales'}];
  s.monthlyGoal='estar juntos';s.huellaPilotStartDay=null;
  s.huellaPreview={status:'ready',weekKey:'2026-11-23',attempts:2,batch:weekly(),runId:'old-preview'};
  return s;

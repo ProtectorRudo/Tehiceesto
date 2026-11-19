@@ -167,3 +167,43 @@ test('daily and weekly proactive jobs expire at local midnight, not days later',
  assert.ok(jobs.every(j=>j.expires_at==='2026-11-17T02:59:59.000Z'));
  assert.ok(jobs.every(j=>j.channel==='marketing'));
 });
+test('onboarding of an infant collects approximate months, not a birth date',()=>{
+ const answers=['hola','ACEPTO','Ana','1','Bebé','0','5','sonidos, voces','acompañar las señales','estar juntos con calma','18:00'];
+ const r=feed(answers);
+ assert.equal(r.state.status,'active');
+ assert.equal(r.state.children[0].age,0);
+ assert.equal(r.state.children[0].ageMonths,5);
+ assert.equal(r.state.children[0].ageMonthsUpdatedAt,today);
+ assert.ok(!JSON.stringify(r.state).includes('birthDate'));
+});
+test('registered adult can update one baby age in months without resetting anything',()=>{
+ let s=registered();
+ s.children[1].age=0;s.children[1].ageMonths=null;
+ const previousGoal=s.monthlyGoal;
+ const res=feed(['EDAD BEBÉ','6'],s);
+ assert.equal(res.state.status,'active');
+ assert.equal(res.state.children[1].ageMonths,6);
+ assert.equal(res.state.children[1].age,0);
+ assert.equal(res.state.monthlyGoal,previousGoal);
+ assert.equal(res.state.children[0].name,'Leticia');
+ const data=feed(['DATOS'],res.state);
+ assert.match(data.logs[0].body,/6 meses aprox/);
+});
+test('infant age update validates boundaries and explicit cancel without guessing',()=>{
+ const s=registered();s.children[1].age=0;
+ const fail=feed(['EDAD BEBÉ','24'],s);
+ assert.equal(fail.state.flow,'change_baby_months');
+ assert.equal(fail.state.children[1].ageMonths,null);
+ const cancel=feed(['CANCELAR'],fail.state);
+ assert.equal(cancel.state.flow,'idle');
+ assert.equal(cancel.state.children[1].ageMonths,null);
+ const change=feed(['EDAD BEBÉ','14'],cancel.state);
+ assert.equal(change.state.children[1].age,1);
+ assert.equal(change.state.children[1].ageMonths,14);
+});
+test('infant age question during onboarding may be skipped without fabricating months',()=>{
+ const answers=['hola','ACEPTO','Ana','1','Bebé','0','OMITIR','voces y cantos','compartir canciones juntos','escucharnos un poco más','18:00'];
+ const res=feed(answers);
+ assert.equal(res.state.status,'active');
+ assert.equal(res.state.children[0].ageMonths,null);
+});
