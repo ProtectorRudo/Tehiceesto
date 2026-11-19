@@ -28,7 +28,7 @@ test('menu lists bounded functions, preserves the profile and does not initiate 
  assert.deepEqual(r.state.children,original.children);
  assert.equal(r.state.consentAt,original.consentAt);
  assert.match(r.outputs[0].body,/Menú HUELLA/);
- assert.deepEqual(r.outputs[0].options,['MISIONES','OBJETIVO','HORARIO','ÁNIMO','DATOS','BAJA']);
+ assert.deepEqual(r.outputs[0].options,['MISIONES','OBJETIVO','OBJETIVOS SEMANA','HORARIO','ÁNIMO','DATOS','BAJA']);
 });
 
 test('messages unrelated to a defined flow produce at most one fixed redirection daily',()=>{
