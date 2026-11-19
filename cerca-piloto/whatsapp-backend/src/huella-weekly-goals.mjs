@@ -93,7 +93,9 @@ const stage=c=>{
 export function goalChoices(child,weekKey,index=0){
  const items=CATALOG[stage(child)];
  const weekIndex=Math.floor(asDay(weekKey).getTime()/604800000);
- const offset=((weekIndex+index*3)%items.length+items.length)%items.length;
+ // Coprime stride 5 means the three options differ completely from last week;
+ // the complete triplet only recurs after twelve weeks, not after four.
+ const offset=((weekIndex*5+index*3)%items.length+items.length)%items.length;
  return Array.from({length:3},(_,n)=>items[(offset+n)%items.length]);
 }
 export function weeklyGoalFor(state,index,weekKey){
