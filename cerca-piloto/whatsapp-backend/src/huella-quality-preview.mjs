@@ -68,7 +68,7 @@ export async function handleQualityPreviewInbound(m,{
  updated[storageField]={revision,weekKey,
   status:'processing',attempts:1,runId,startedAt:now.toISOString()};
  const reserved=await db.commit(m.phone,row.revision,eventId,updated,[
-  service(recovery?'🌱 Vista previa de Kaia: Sol preparará solamente sus tres misiones (conectar, comprender y sembrar). Sin misiones de Allegra ni familiares; no se activan los 30 días.':'🌱 Segunda prueba de calidad iniciada. HUELLA preparará nuevas misiones más detalladas con Sol. Es una única generación, no activa el calendario ni tus 30 días.',eventId+':ack',0,m.receivedAt)
+  service(recovery?'🌱 Vista previa de Kaia: Sol preparará sus tres misiones (conectar, comprender y sembrar). Esta prueba no activa los 30 días.':'🌱 Segunda prueba de calidad iniciada. HUELLA preparará nuevas misiones más detalladas con Sol. Es una única generación, no activa el calendario ni tus 30 días.',eventId+':ack',0,m.receivedAt)
  ]);
  if(reserved.status!=='applied')return reserved.status;
  try{await flush(2);}catch{/* Durable outbox can be retried. */}
