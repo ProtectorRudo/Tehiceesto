@@ -1,7 +1,7 @@
 /** Focused editorial quality review for one infant and one whole-family activity.
  * A separate paid test, never an autonomous child-facing assistant.
  */
-import {WEEK_SCHEMA,premiumWeekQuality,validInfantMonths,contentModel,neutralizeInfantWording} from './huella-ai.mjs';
+import {WEEK_SCHEMA,deliveryReadiness,validInfantMonths,contentModel,normalizeDeliveryGrammar} from './huella-ai.mjs';
 import {foundationFor} from './huella-sources.mjs';
 
 const missionSchema=WEEK_SCHEMA.properties.children.items.properties.missions.items;
@@ -76,27 +76,24 @@ export async function generateInfantFocus(state,weekStart,{fetcher=fetch,env=pro
   });
   if(!resp.ok)throw Error('huella_ai_http_'+resp.status);
   const obj=parseReply(await resp.json());
-  // Resolve only predictable grammatical-agreement slips locally. This does
-  // not modify objects, activities, or safety-critical actions; the complete
-  // resulting missions are revalidated before delivery.
-  const missions=Array.isArray(obj.missions)
-   ?obj.missions.map(neutralizeInfantWording):obj.missions;
   const syntheticProfile={...state,children:[child],history:[]};
-  const syntheticWeek={children:[{index:0,missions}],family:obj.family};
-  const review=premiumWeekQuality(syntheticProfile,syntheticWeek);
+  const syntheticWeek=normalizeDeliveryGrammar(syntheticProfile,{
+   children:[{index:0,missions:obj.missions}],family:obj.family
+  });
+  // Editorial concerns remain feedback for future generations. Only unsafe
+  // instructions or unusable/absent content prevent transmission.
+  const review=deliveryReadiness(syntheticProfile,syntheticWeek);
   if(!review.ok){
-   const err=Error('huella_ai_quality_rejected');
-   err.issueCodes=review.codes;
+   const err=Error('huella_ai_safety_or_structure');
+   err.issueCodes=review.hard;
    throw err;
   }
-  // Anti-repetition is editorial, not an assertion that old preview was completed.
-  if(missions.some(m=>originalMissionTitles.some(title=>normalize(title)===normalize(m.title)))){
-   const err=Error('huella_ai_quality_rejected');
-   err.issueCodes=['previous_preview_title_repeated'];
-   throw err;
-  }
+  const missions=syntheticWeek.children[0].missions;
+  const repeated=missions.some(m=>originalMissionTitles.some(title=>normalize(title)===normalize(m.title)));
+  const editorialWarnings=[...review.advisories,...(repeated?['previous_preview_title_repeated']:[])];
   return {day:weekStart,childName:child.name,childIndex:index,
    ageMonths:child.ageMonths,missions:missions.map(m=>({...m,source:'ai_reviewed',foundation:foundationFor(child.age)})),
-   family:{...obj.family,kind:'familiar',source:'ai_reviewed'}};
+   family:{...syntheticWeek.family,kind:'familiar',source:'ai_reviewed'},
+   editorialWarnings:editorialWarnings.slice(0,20)};
  }finally{clearTimeout(timer);}
 }

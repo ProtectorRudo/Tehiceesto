@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {generatePremiumWeek,validatePremiumWeek,premiumWeekQuality,contentModel,neutralizeInfantWording,containsInfantHazardInstruction} from '../src/huella-ai.mjs';
-import {mondayOf,weeklyEnabled,prepareWeeklyDispatch,progressSummary,questionText,WEEKLY_SLOTS} from '../src/huella-weekly.mjs';
+import {generatePremiumWeek,validatePremiumWeek,premiumWeekQuality,deliveryReadiness,contentModel,neutralizeInfantWording,containsInfantHazardInstruction} from '../src/huella-ai.mjs';
+import {mondayOf,weeklyEnabled,prepareWeeklyDispatch,progressSummary,questionText,splitLongMission,WEEKLY_SLOTS} from '../src/huella-weekly.mjs';
 import {VERIFIED_STORIES,verifiedStoryFor,formatVerifiedStory} from '../src/huella-sources.mjs';
 import {initialState,processInbound,formatMissions} from '../src/flow.mjs';
 
@@ -347,4 +347,56 @@ test('neutralizes limited gender-agreement phrasing without changing actions, go
  assert.equal(normalized.kind,mission.kind);assert.equal(normalized.title,mission.title);
  assert.ok(normalized.setup.includes('libro'));
  assert.deepEqual(mission,original,'do not mutate original generation');
+});
+
+test('editorial preferences, arbitrary lengths, and repeated wording NEVER block a safe mission',()=>{
+ const p=profile(),week=fixture();
+ const m=week.children[0].missions[0];
+ m.target='Una variación que el usuario no escribió literalmente';
+ m.title='Corta';
+ m.opening='Podés proponer una canción corta y familiar.';
+ m.intro='Hagan una canción juntos';
+ week.children[1].missions[1].title=week.children[1].missions[0].title;
+ const strict=premiumWeekQuality(p,week);
+ assert.equal(strict.ok,false,'editorial issues should still be diagnosed');
+ const deliver=deliveryReadiness(p,week);
+ assert.equal(deliver.ok,true,JSON.stringify(deliver.hard));
+ assert.ok(deliver.advisories.some(x=>x.includes('target_not_from_profile')));
+ assert.ok(deliver.advisories.some(x=>x.includes('title_repeated')));
+});
+test('only unusable instructions and definite safety risks block delivery',()=>{
+ const p=profile();
+ const malformed=fixture();malformed.children[0].missions[0].steps=[];
+ const a=deliveryReadiness(p,malformed);
+ assert.equal(a.ok,false);assert.ok(a.hard.includes('child0:conectar:missing_essential_content'));
+ const dangerous=fixture();
+ dangerous.children[0].missions[2].steps[0]=
+  'Colocá un globo delante del bebé para que lo toque y jueguen con ese objeto pequeño al alcance de su cuerpo.';
+ const b=deliveryReadiness(p,dangerous);
+ assert.equal(b.ok,false);assert.ok(b.hard.includes('child0:sembrar:infant_hazard'));
+ const protectedInstructions=fixture();
+ protectedInstructions.children[0].missions[2].steps[0]=
+  'Cantá una canción suave sin globos ni cordones cerca del bebé, compartiendo un momento tranquilo y seguro.';
+ const c=deliveryReadiness(p,protectedInstructions);
+ assert.equal(c.ok,true,JSON.stringify(c.hard));
+});
+test('a whole-week Sol generation delivers complete, harmless missions even with editorial warnings',async()=>{
+ const p=profile(),obj=fixture();
+ obj.children[1].missions[1].title=obj.children[1].missions[0].title;
+ const r=await generatePremiumWeek(p,'2026-11-23',{env:ENV,
+  fetcher:async()=>new Response(JSON.stringify({status:'completed',output:[{
+   content:[{type:'output_text',text:JSON.stringify(obj)}]}]}),{status:200})
+ });
+ assert.equal(r.children.length,2);
+ assert.equal(r.children[1].missions.length,3);
+ assert.ok(r.editorialWarnings.some(x=>x.includes('title_repeated')));
+});
+
+test('long safe mission text is split at paragraphs instead of rejected',()=>{
+ const source=['Alfa: '+('x'.repeat(850)),'Beta: '+('y'.repeat(850)),
+  'Gamma: '+('z'.repeat(850)),'Delta: '+('w'.repeat(850))].join('\n\n');
+ const parts=splitLongMission(source,2000);
+ assert.ok(parts.length>1);
+ assert.ok(parts.every(part=>part.length<=2000));
+ assert.equal(parts.join('\n\n'),source);
 });
