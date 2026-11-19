@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {initialState,processInbound} from '../src/flow.mjs';
 import {generateInfantFocus,INFANT_FOCUS_SCHEMA} from '../src/huella-infant-ai.mjs';
-import {handleInfantReview,infantReviewIntent,INFANT_REVIEW_REVISION,INFANT_REVIEW_REVISION_V2} from '../src/huella-infant-preview.mjs';
+import {handleInfantReview,infantReviewIntent,INFANT_REVIEW_REVISION,INFANT_REVIEW_REVISION_V2,INFANT_REVIEW_REVISION_V3} from '../src/huella-infant-preview.mjs';
 
 const PHONE='5492211234567',NOW=new Date('2026-11-19T15:30:00Z');
 const env={HUELLA_PREVIEW_ENABLED:'true',CERCA_PROVIDER:'evolution',CERCA_SEND_MODE:'test',
@@ -303,4 +303,96 @@ test('focused baby generation keeps valid content despite old pseudo-psychologic
  assert.equal(r.missions.length,3);
  assert.ok(r.editorialWarnings.length>0);
  assert.equal(r.ageMonths,6);
+});
+
+test('V3 is an isolated single authorized quality test of the safety-only delivery path',async()=>{
+ const prior=familyState(6);
+ prior.huellaInfantReview={revision:INFANT_REVIEW_REVISION,status:'failed',attempts:1};
+ prior.huellaInfantReviewV2={revision:INFANT_REVIEW_REVISION_V2,status:'failed',attempts:1,
+  error:'huella_ai_quality_rejected',issueCodes:['child0:conectar:infant_gender_assumption']};
+ const db=fakeDb(prior),old=structuredClone(db.row.state);
+ let calls=0,flushes=0;
+ assert.equal(infantReviewIntent('PREVIA BEBÉ 3'),true);
+ assert.equal(infantReviewIntent('PREVIA BEBE 3 VER'),true);
+ const make=async()=>{
+  calls++;
+  return {day:'2026-11-23',childName:'Bebé',childIndex:1,ageMonths:6,
+   missions:batch().missions,family:{...family,kind:'familiar'},
+   editorialWarnings:['child0:conectar:title','child0:comprender:target_not_from_profile']};
+ };
+ const result=await handleInfantReview(message('v3-first','PREVIA BEBÉ 3'),{
+  db,env,now:NOW,generate:make,flush:async()=>{flushes++;}
+ });
+ assert.equal(result,'applied');assert.equal(calls,1);
+ assert.equal(flushes,2);
+ assert.equal(db.row.state.huellaInfantReviewV3.revision,INFANT_REVIEW_REVISION_V3);
+ assert.equal(db.row.state.huellaInfantReviewV3.status,'ready');
+ assert.equal(db.row.state.huellaInfantReviewV3.attempts,1);
+ assert.equal(db.row.state.huellaInfantReviewV3.batch.editorialWarnings.length,2);
+ assert.deepEqual(db.row.state.huellaInfantReviewV2,old.huellaInfantReviewV2);
+ assert.deepEqual(db.row.state.huellaInfantReview,old.huellaInfantReview);
+ assert.deepEqual(db.row.state.huellaPreview,old.huellaPreview);
+ assert.deepEqual(db.row.state.huellaQualityPreview,old.huellaQualityPreview);
+ assert.equal(db.row.state.huellaPilotStartDay,null);
+ assert.equal(db.jobs.length,6,'ack + intro + 3 missions + family');
+ const size=db.jobs.length;
+ await handleInfantReview(message('v3-repeat','PREVIA BEBÉ 3'),{
+  db,env,now:NOW,generate:make
+ });
+ assert.equal(calls,1,'never call OpenAI a second time for this revision');
+ assert.equal(db.jobs.length,size+1);
+ await handleInfantReview(message('v3-view','PREVIA BEBÉ 3 VER'),{
+  db,env,now:NOW,generate:make
+ });
+ assert.equal(calls,1);
+ assert.equal(db.jobs.length,size+6,'saved result can be replayed without cost');
+});
+test('V3 cannot start without a failed V2 and respects opt-out and allowlist',async()=>{
+ const noV2=fakeDb(familyState(6));let calls=0;
+ await handleInfantReview(message('v3-not-yet','PREVIA BEBÉ 3'),{
+  db:noV2,env,now:NOW,generate:async()=>{calls++;}
+ });
+ assert.equal(calls,0);
+ assert.equal(noV2.row.state.huellaInfantReviewV3,undefined);
+ const hasFailed=familyState(6);
+ hasFailed.huellaInfantReviewV2={revision:INFANT_REVIEW_REVISION_V2,status:'failed',attempts:1};
+ const blocked=fakeDb(hasFailed);
+ const notAllowed={...env,CERCA_TEST_WA_IDS:'5492210000000'};
+ assert.equal(await handleInfantReview(message('v3-unallowed','PREVIA BEBÉ 3'),{
+  db:blocked,env:notAllowed,now:NOW,generate:async()=>{calls++;}
+ }),null);
+ assert.equal(calls,0);
+ const optout=fakeDb(hasFailed);
+ const stopped=await handleInfantReview(message('v3-stopped','PREVIA BEBÉ 3'),{
+  db:optout,env,now:NOW,generate:async()=>{
+   calls++;optout.row.state.status='stopped';optout.row.state.consentAt=null;optout.row.revision++;
+   return {day:'2026-11-23',childName:'Bebé',childIndex:1,ageMonths:6,
+    missions:batch().missions,family:{...family,kind:'familiar'}};
+  }
+ });
+ assert.equal(stopped,'cancelled');
+ assert.equal(calls,1);
+ assert.equal(optout.row.state.huellaPilotStartDay,null);
+ assert.ok(!optout.jobs.some(x=>x.payload.body.includes('Cómo hacerlo')));
+});
+test('V3 errors consume the one authorization and retain non-identifying safety reasons',async()=>{
+ const state=familyState(6);
+ state.huellaInfantReviewV2={revision:INFANT_REVIEW_REVISION_V2,status:'failed',attempts:1};
+ const db=fakeDb(state),before=structuredClone(db.row.state.huellaInfantReviewV2);
+ let calls=0;
+ await handleInfantReview(message('v3-failure','PREVIA BEBÉ 3'),{db,env,now:NOW,
+  generate:async()=>{
+   calls++;
+   const e=Error('huella_ai_safety_or_structure');
+   e.issueCodes=['child0:sembrar:infant_hazard'];
+   throw e;
+  }});
+ assert.equal(db.row.state.huellaInfantReviewV3.status,'failed');
+ assert.equal(db.row.state.huellaInfantReviewV3.attempts,1);
+ assert.equal(db.row.state.huellaInfantReviewV3.error,'huella_ai_safety_or_structure');
+ assert.deepEqual(db.row.state.huellaInfantReviewV3.issueCodes,['child0:sembrar:infant_hazard']);
+ assert.deepEqual(db.row.state.huellaInfantReviewV2,before);
+ await handleInfantReview(message('v3-second-message','PREVIA BEBÉ 3'),{db,env,now:NOW,
+  generate:async()=>{calls++;}});
+ assert.equal(calls,1);
 });
