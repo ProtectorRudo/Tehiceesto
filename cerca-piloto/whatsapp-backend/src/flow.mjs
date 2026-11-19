@@ -7,7 +7,7 @@ const is = (v, choices) => choices.includes(norm(v));
 const affirmative = v => is(v,['si','sí','acepto','aceptar','1','consiento']);
 const short = (v,n=90) => clean(v).slice(0,n);
 const validName = v => /^[\p{L}][\p{L} .'-]{0,49}$/u.test(clean(v));
-export function initialState(){return {status:'pending',consentAt:null,adultName:'',children:[],currentChild:0,flow:'consent',deliveryTime:'18:00',timezone:'America/Argentina/Buenos_Aires',mood:null,lastDailyDay:null,lastWeeklyWeek:null,history:[],monthlyGoal:'',lastRedirectDate:null,deleted:false,subscription:'pilot',consentPrompted:false,feedbackLog:[],feedbackPending:null};}
+export function initialState(){return {status:'pending',consentAt:null,adultName:'',children:[],currentChild:0,flow:'consent',deliveryTime:'18:00',timezone:'America/Argentina/Buenos_Aires',mood:null,lastDailyDay:null,lastWeeklyWeek:null,history:[],monthlyGoal:'',lastRedirectDate:null,deleted:false,subscription:'pilot',consentPrompted:false,feedbackLog:[],feedbackPending:null,huellaWeekV2:null,huellaPilotStartDay:null,weeklyReflections:[]};}
 const q=(body,options=[])=>({body,options});
 const askConsent=()=>q('Hola, soy HUELLA 🌱. Enviamos misiones breves para conectar con tus hijos. No somos un chat de consultas. ¿Aceptás recibir mensajes de HUELLA y guardar un perfil familiar mínimo? Podés escribir BAJA cuando quieras.',['ACEPTO','NO']);
 function question(state){
@@ -139,6 +139,12 @@ export function processInbound(input,{state:original=initialState(),today='2026-
    if(state.flow==='delivery_time'){state.flow='idle';state.status='active';reply(`¡Ya está, ${state.adultName}! 🌱 Registramos ${state.children.length} perfil(es) y el horario ${time}. Cuando activemos el nuevo calendario del piloto, recibirás tres misiones por hijo por semana y una misión familiar semanal. Mientras tanto, escribí MENÚ para consultar las funciones disponibles.`);}
    else{state.flow='idle';reply(`Nuevo horario guardado: ${time}.`);}
    break;
+  }
+  case 'weekly_reflection':{
+   if(n==='omitir'){state.flow='idle';reply('Está bien. No necesitás responder todas las semanas. Gracias por estar presente.');break;}
+   if(txt.length<12||txt.length>320){reply('Si querés, contame en una frase de 12 a 320 caracteres qué descubriste. O escribí OMITIR.');break;}
+   state.weeklyReflections=[...(state.weeklyReflections||[]),{weekKey:state.huellaWeekV2?.key||today,text:short(txt,320),answeredAt:now}].slice(-8);
+   state.flow='idle';reply('Gracias por compartirlo. Lo tendré en cuenta para elegir las próximas experiencias, sin sacar conclusiones que no nos contaste.');break;
   }
   case 'mood':{
    const mood={'bien':'bien','cansado/a':'cansado','dificil':'dificil','difícil':'dificil'}[n];

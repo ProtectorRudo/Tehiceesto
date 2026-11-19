@@ -6,6 +6,8 @@ import {makeDb} from './db.mjs';
 import {classifyDbFailure} from './db_pg.mjs';
 import {validateEvolutionWebhook,extractEvolutionMessage,sendEvolution,fetchEvolutionQr,fetchEvolutionPairingCode,classifyEvolutionQrError} from './evolution.mjs';
 import {initialState,processInbound} from './flow.mjs';
+import {prepareWeeklyDispatch,weeklyEnabled} from './huella-weekly.mjs';
+import {contentModel} from './huella-ai.mjs';
 import {localClock,prepareDay,scheduledOutbox,tokenKey,isMessagingReady,isSessionMessagingReady,isAllowedRecipient,isAllowedInboundRecipient,inboundPolicy} from './scheduler.mjs';
 const db=makeDb();const env=process.env;
 const dateOf=(time)=>localClock(time).day;
@@ -49,7 +51,7 @@ async function flush(max=20){
  let estimated=current.reduce((s,x)=>s+((env.CERCA_PROVIDER||'meta')==='twilio'?Number(x.channel==='marketing'?env.CERCA_TWILIO_ESTIMATED_TEMPLATE_USD||.20:env.CERCA_TWILIO_ESTIMATED_REPLY_USD||.10):(x.channel==='marketing'?Number(env.CERCA_PRICING_MARKETING_USD||.0618):.026)),0);
  const cap=Math.max(0,Number(env.CERCA_MONTHLY_CAP_USD||5));
  for(const job of jobs){
-  if(job.channel==='marketing'&&!isMessagingReady(env)){heldMarketing++;continue;}
+  if(job.channel==='marketing'&&!(isMessagingReady(env)&&(weeklyEnabled(env)||env.CERCA_TEST_REST_ADAPTER==='true'))){heldMarketing++;continue;}
   if(job.expires_at&&new Date(job.expires_at)<=now){await db.setCancelled(job.job_key);cancelled++;continue;}
   if(!isAllowedRecipient(job.wa_id,env)){await db.setCancelled(job.job_key);cancelled++;continue;}
   // Recheck live consent immediately before network delivery, including queued old jobs.
@@ -71,7 +73,20 @@ async function dispatch(){
  if(!db.available())return {status:'pending_database'};
  const canSchedule=isMessagingReady(env);
  let scheduled=0,blocked=0;
- if(canSchedule){
+ if(weeklyEnabled(env)){
+  const rows=await db.activeFamilies();
+  // HUELLA's first month is strictly one pre-authorized household.
+  for(const family of rows.filter(f=>isAllowedRecipient(f.wa_id,env)).slice(0,1)){
+   try{
+    const p=await prepareWeeklyDispatch(family.state,family.wa_id,new Date(),{env});
+    if(!p)continue;
+    const result=await db.commit(family.wa_id,family.revision,p.eventId,p.updated,p.jobs);
+    if(p.generationBlocked)blocked++;
+    else if(result.status==='applied')scheduled++;
+   }catch{blocked++;}
+  }
+ } else if(canSchedule&&env.CERCA_TEST_REST_ADAPTER==='true'){
+  // Historical daily scheduler is retained ONLY for self-contained fake REST tests.
   const max=Math.min(100,Math.max(1,Number(env.CERCA_DAILY_MAX_FAMILIES||10)));
   const rows=await db.activeFamilies();
   for(const family of rows.slice(0,max)){
@@ -85,7 +100,7 @@ async function dispatch(){
    try{const r=await db.commit(family.wa_id,family.revision,tokenKey(`daily:${family.wa_id}:${p.batch.day}`),p.updated,jobs);if(r.status==='applied')scheduled++;}catch{blocked++;}
   }
  }
- return {scheduled,blocked,ready:canSchedule,...await flush()};
+ return {scheduled,blocked,ready:weeklyEnabled(env)||(canSchedule&&env.CERCA_TEST_REST_ADAPTER==='true'),...await flush()};
 }
 async function handle(req,res){
  const url=new URL(req.url||'/',`http://${req.headers.host||'localhost'}`);
@@ -94,7 +109,7 @@ async function handle(req,res){
   if(db.available()&&typeof db.ping==='function'){
     try{await db.ping();database='ready';}catch(error){database='unreachable';databaseIssue=classifyDbFailure(error);}
   }
-  return json(res,200,{service:'HUELLA-WhatsApp',version:'0.6.1',database,...(databaseIssue?{databaseIssue}:{}),provider:(env.CERCA_PROVIDER||'meta'),messaging:isSessionMessagingReady(env)?'session_ready':'pending',scheduledTemplates:isMessagingReady(env)?'approved':'disabled',inbound:inboundPolicy(env),clientInterface:'whatsapp-only'});
+  return json(res,200,{service:'HUELLA-WhatsApp',version:'0.6.1',database,...(databaseIssue?{databaseIssue}:{}),provider:(env.CERCA_PROVIDER||'meta'),messaging:isSessionMessagingReady(env)?'session_ready':'pending',scheduledTemplates:isMessagingReady(env)?'approved':'disabled',weeklyPilot:weeklyEnabled(env)?'ready':'disabled',ai:{configured:Boolean(env.OPENAI_API_KEY),model:contentModel(env),reasoning:'high'},inbound:inboundPolicy(env),clientInterface:'whatsapp-only'});
  }
  if(url.pathname==='/webhooks/evolution'&&req.method==='POST'){
   if(env.CERCA_PROVIDER!=='evolution')return fixed(res,404,'Not Found');
