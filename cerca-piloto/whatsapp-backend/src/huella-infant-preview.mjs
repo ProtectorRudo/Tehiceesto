@@ -9,9 +9,10 @@ import {validInfantMonths} from './huella-ai.mjs';
 
 export const INFANT_REVIEW_REVISION='infant-stage-naturalness-20261119-v1';
 export const INFANT_REVIEW_REVISION_V2='infant-stage-naturalness-20261119-v2-single-approved-retry';
+export const INFANT_REVIEW_REVISION_V3='infant-safety-only-delivery-20261119-v3-one-approved-validation';
 const normalized=x=>String(x||'').trim().toLocaleLowerCase('es-AR')
  .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-export const infantReviewIntent=t=>['previa bebe','previa bebe ver','previa bebe 2','previa bebe 2 ver'].includes(normalized(t));
+export const infantReviewIntent=t=>['previa bebe','previa bebe ver','previa bebe 2','previa bebe 2 ver','previa bebe 3','previa bebe 3 ver'].includes(normalized(t));
 const nextMonday=today=>{
  const d=new Date(mondayOf(today)+'T12:00:00Z');
  d.setUTCDate(d.getUTCDate()+7);
@@ -48,11 +49,13 @@ export async function handleInfantReview(m,{db,env=process.env,now=new Date(),
  const row=await db.family(m.phone);
  if(!row?.state||row.state.status!=='active'||!row.state.consentAt||row.state.deleted)return 'not_active';
  const eventId=tokenKey('whatsapp:'+m.id);
- const isRetest=normalized(m.text)==='previa bebe 2'||normalized(m.text)==='previa bebe 2 ver';
- const storageField=isRetest?'huellaInfantReviewV2':'huellaInfantReview';
- const revision=isRetest?INFANT_REVIEW_REVISION_V2:INFANT_REVIEW_REVISION;
- const command=isRetest?'PREVIA BEBÉ 2':'PREVIA BEBÉ';
- const viewCommand=isRetest?'PREVIA BEBÉ 2 VER':'PREVIA BEBÉ VER';
+ const intent=normalized(m.text);
+ const mode=intent.startsWith('previa bebe 3')?3:intent.startsWith('previa bebe 2')?2:1;
+ const isRetest=mode>1;
+ const storageField=mode===3?'huellaInfantReviewV3':mode===2?'huellaInfantReviewV2':'huellaInfantReview';
+ const revision=mode===3?INFANT_REVIEW_REVISION_V3:mode===2?INFANT_REVIEW_REVISION_V2:INFANT_REVIEW_REVISION;
+ const command=mode===3?'PREVIA BEBÉ 3':mode===2?'PREVIA BEBÉ 2':'PREVIA BEBÉ';
+ const viewCommand=command+' VER';
  const infants=row.state.children.map((c,i)=>Number(c.age)<2?i:-1).filter(i=>i>=0);
  const note=body=>db.commit(m.phone,row.revision,eventId,row.state,[service(body,eventId+':note',0,m.receivedAt)]);
  if(infants.length!==1)
@@ -63,7 +66,8 @@ export async function handleInfantReview(m,{db,env=process.env,now=new Date(),
  }
  // One extra paid inference is authorized solely after the original focused
  // preview failed; never reset or mutate its consumed attempt.
- if(isRetest&&row.state.huellaInfantReview?.status!=='failed'){
+ const priorStatus=mode===3?row.state.huellaInfantReviewV2?.status:row.state.huellaInfantReview?.status;
+ if(isRetest&&priorStatus!=='failed'){
   return (await note('La prueba adicional solo está disponible después de la revisión anterior fallida. No se hizo ninguna llamada a OpenAI.')).status;
  }
  const previous=row.state[storageField];
@@ -80,12 +84,12 @@ export async function handleInfantReview(m,{db,env=process.env,now=new Date(),
  }
  if(normalized(m.text)===normalized(viewCommand))
   return (await note('Aún no generamos esta revisión. Escribí '+command+' para hacer la única generación autorizada.')).status;
- const weekKey=nextMonday(localClock(now).day),runId=tokenKey((isRetest?'infant-review-v2:':'infant-review:')+m.id);
+ const weekKey=nextMonday(localClock(now).day),runId=tokenKey('infant-review-v'+mode+':'+m.id);
  const reserve=structuredClone(row.state);
  reserve[storageField]={revision,runId,weekKey,
   status:'processing',attempts:1,childIndex:index,ageMonths:child.ageMonths,startedAt:now.toISOString()};
  const ack=await db.commit(m.phone,row.revision,eventId,reserve,[
-  service((isRetest?'🌱 Único reintento autorizado: ':'🌱 ')+
+  service((isRetest?'🌱 Prueba adicional autorizada (una generación): ':'🌱 ')+
    'Voy a preparar tres misiones para '+child.name+
    ' y una familiar según su edad en meses. No inicia los 30 días ni activa mensajes automáticos.',eventId+':ack',0,m.receivedAt)
  ]);
@@ -106,7 +110,7 @@ export async function handleInfantReview(m,{db,env=process.env,now=new Date(),
       live[storageField]?.runId!==runId||live.children?.[index]?.ageMonths!==child.ageMonths)
     return 'cancelled';
    const updated=structuredClone(live);
-   const replyKey=tokenKey((isRetest?'infant-review-v2-result:':'infant-review-result:')+m.id);
+   const replyKey=tokenKey('infant-review-v'+mode+'-result:'+m.id);
    if(error){
     updated[storageField]={...updated[storageField],
      status:'failed',error,issueCodes,finishedAt:new Date().toISOString()};
