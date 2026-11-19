@@ -496,3 +496,23 @@ test('infant-only generation asks OpenAI for exactly three missions, not a famil
  assert.ok(!response.editorialWarnings.includes('family:missing'));
  assert.equal(response.ageMonths,6);
 });
+
+test('infant-only recovery fills one structurally missing activity, without replacing the other two',async()=>{
+ const output={missions:structuredClone(batch().missions)};
+ output.missions[2].steps=[];
+ let calls=0;
+ const result=await generateInfantFocus(familyState(6),'2026-11-23',{env,includeFamily:false,
+  fetcher:async()=>{calls++;return new Response(JSON.stringify({status:'completed',output:[
+   {content:[{type:'output_text',text:JSON.stringify(output)}]}
+  ]}),{status:200});}
+ });
+ assert.equal(calls,1);
+ assert.equal(result.family,null);
+ assert.equal(result.missions.length,3);
+ assert.deepEqual(result.replaced,['child0:sembrar']);
+ assert.deepEqual(result.missions.map(m=>m.source),
+  ['ai_reviewed','ai_reviewed','curated_safe_alternative']);
+ assert.deepEqual(result.missions.slice(0,2).map(m=>m.title),
+  output.missions.slice(0,2).map(m=>m.title));
+ assert.ok(!result.editorialWarnings.includes('family:missing'));
+});
