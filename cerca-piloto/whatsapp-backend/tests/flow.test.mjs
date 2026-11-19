@@ -193,10 +193,10 @@ test('infant age update validates boundaries and explicit cancel without guessin
  const s=registered();s.children[1].age=0;
  const fail=feed(['EDAD BEBÉ','24'],s);
  assert.equal(fail.state.flow,'change_baby_months');
- assert.equal(fail.state.children[1].ageMonths,undefined);
+ assert.equal(fail.state.children[1].ageMonths,null);
  const cancel=feed(['CANCELAR'],fail.state);
  assert.equal(cancel.state.flow,'idle');
- assert.equal(cancel.state.children[1].ageMonths,undefined);
+ assert.equal(cancel.state.children[1].ageMonths,null);
  const change=feed(['EDAD BEBÉ','14'],cancel.state);
  assert.equal(change.state.children[1].age,1);
  assert.equal(change.state.children[1].ageMonths,14);

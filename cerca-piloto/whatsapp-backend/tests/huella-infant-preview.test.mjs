@@ -18,8 +18,14 @@ const mission=(kind,i)=>({
  opening:'«¿Miramos un poquito el libro y después cantamos nuestra canción? Estoy acá con vos.»',
  example:'Por ejemplo, mientras sostenés el libro señalá el dibujo de un animal y decí su nombre bajito. Si se distrae, cerrá el libro y acompañá ese momento.',
  ifNo:'Si prefiere descansar o necesita atención, dejá la propuesta para otro día y seguí acompañando su ritmo natural.',
- steps:['Sentate en un lugar cómodo y ofrecé mirar una imagen de un libro adecuado a su edad mientras acompañás con la voz.',
- 'Nombrá un detalle del dibujo y seguí con un pedacito de canción suave. Si cambia su atención, adaptá el encuentro con naturalidad.'],
+ steps:kind==='conectar'?
+ ['Buscá un momento en el que estén cómodos para mirar juntos una imagen de un libro para bebés mientras acompañás con tu voz.',
+ 'Cantá una parte breve de una canción familiar con suavidad y cerrá el libro si es momento de descansar.']:
+ kind==='comprender'?
+ ['Elegí dos imágenes grandes del libro y mostrale una sola mientras contás algo sencillo relacionado con lo que ven.',
+ 'Acompañá su atención si se dirige naturalmente a otra imagen; seguí nombrando aquello que comparten sin examinar sus movimientos.']:
+ ['Elegí una página del libro y nombrá un animal con una voz suave, dejando tiempo para disfrutar el encuentro.',
+ 'Volvé a la canción que ya conocen y acompañá cualquier sonido espontáneo sin pedir repeticiones ni buscar una respuesta concreta.'],
  why:'Compartir una imagen y una canción en un momento tranquilo permite que tu voz sea parte de un encuentro cercano, sin evaluaciones ni ejercicios.',
  observe:'Si hay un momento agradable, podés disfrutarlo sin buscar una reacción determinada.',
  target:'voces',skill:kind==='sembrar'?'exploración visual acompañada':'no aplica'
