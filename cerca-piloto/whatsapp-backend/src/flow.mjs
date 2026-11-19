@@ -1,4 +1,5 @@
 /** HUELLA: deterministic, finite-state WhatsApp interaction. No chatbot fallback. */
+import {beginWeeklyGoals,weeklyGoalPrompt,goalChoices,latestWeeklyGoal,rememberWeeklyGoal,advanceWeeklyGoal,formatWeeklyGoalSummary} from './huella-weekly-goals.mjs';
 export const REDIRECT = 'HUELLA funciona con misiones, objetivos y seguimiento de crianza. Escribí MENÚ para ver las opciones disponibles.';
 export const RISK = 'Si hay peligro inmediato para alguien, llamá al servicio de emergencias de tu zona (911 en Argentina) o acudí a un centro de atención. HUELLA no atiende emergencias.';
 const clean = v => String(v ?? '').trim().replace(/\s+/g, ' ');
@@ -7,11 +8,13 @@ const is = (v, choices) => choices.includes(norm(v));
 const affirmative = v => is(v,['si','sí','acepto','aceptar','1','consiento']);
 const short = (v,n=90) => clean(v).slice(0,n);
 const validName = v => /^[\p{L}][\p{L} .'-]{0,49}$/u.test(clean(v));
-export function initialState(){return {status:'pending',consentAt:null,adultName:'',children:[],currentChild:0,flow:'consent',deliveryTime:'18:00',timezone:'America/Argentina/Buenos_Aires',mood:null,lastDailyDay:null,lastWeeklyWeek:null,history:[],monthlyGoal:'',lastRedirectDate:null,deleted:false,subscription:'pilot',consentPrompted:false,feedbackLog:[],feedbackPending:null,huellaWeekV2:null,huellaPilotStartDay:null,weeklyReflections:[],babyAgePendingIndex:null};}
+export function initialState(){return {status:'pending',consentAt:null,adultName:'',children:[],currentChild:0,flow:'consent',deliveryTime:'18:00',timezone:'America/Argentina/Buenos_Aires',mood:null,lastDailyDay:null,lastWeeklyWeek:null,history:[],monthlyGoal:'',lastRedirectDate:null,deleted:false,subscription:'pilot',consentPrompted:false,feedbackLog:[],feedbackPending:null,huellaWeekV2:null,huellaPilotStartDay:null,weeklyReflections:[],babyAgePendingIndex:null,weeklyGoals:[],weeklyGoalSelection:null};}
 const q=(body,options=[])=>({body,options});
 const askConsent=()=>q('Hola, soy HUELLA 🌱. Enviamos misiones breves para conectar con tus hijos. No somos un chat de consultas. ¿Aceptás recibir mensajes de HUELLA y guardar un perfil familiar mínimo? Podés escribir BAJA cuando quieras.',['ACEPTO','NO']);
 function question(state){
  switch(state.flow){
+  case 'weekly_goal_choice':return weeklyGoalPrompt(state)||q('No hay objetivos pendientes. Escribí MENÚ.');
+  case 'weekly_goal_custom':return q('Escribí en una frase el objetivo de la próxima semana para '+(state.children[state.weeklyGoalSelection?.childIndex]?.name||'tu hijo o hija')+'. O escribí OMITIR.');
   case 'feedback_child':return q('Elegí el número del hijo o hija cuya misión querés registrar.');
   case 'feedback_mission':return q('¿Cuál misión querés registrar?',['Conectar','Comprender','Sembrar']);
   case 'adult_name':return q('¿Cómo te gustaría que te llamemos?');
@@ -33,7 +36,7 @@ function question(state){
   default:return q(REDIRECT);
  }
 }
-function menu(state){const options=['MISIONES','OBJETIVO','HORARIO','ÁNIMO','DATOS'];
+function menu(state){const options=['MISIONES','OBJETIVO','OBJETIVOS SEMANA','HORARIO','ÁNIMO','DATOS'];
  if(state?.children?.some(c=>Number(c.age)<2))options.push('EDAD BEBÉ');
  options.push('BAJA');
  return q('Menú HUELLA 🌱. Elegí qué querés hacer:',options);
@@ -43,6 +46,15 @@ const normalizeTime=t=>{const m=clean(t).match(/^([01]?\d|2[0-3]):([0-5]\d)$/);r
 export function processInbound(input,{state:original=initialState(),today='2026-11-16',now=new Date().toISOString()}={}){
  const state=structuredClone(original);const txt=clean(input), n=norm(txt);const messages=[];
  const reply=(body,options)=>messages.push(q(body,options));
+ const startGoalChoice=()=>{
+  if(!beginWeeklyGoals(state,today)){state.flow='idle';reply('El plan de esta semana ya fue preparado. Podrás elegir nuevos objetivos antes de la próxima generación semanal.');return;}
+  const prompt=weeklyGoalPrompt(state);if(prompt)reply(prompt.body,prompt.options);
+ };
+ const finishGoalChoice=()=>{
+  const weekKey=state.weeklyGoalSelection?.weekKey;
+  if(advanceWeeklyGoal(state))reply(formatWeeklyGoalSummary(state,weekKey));
+  else{const prompt=weeklyGoalPrompt(state);reply(prompt.body,prompt.options);}
+ };
  if(emergency(txt)){reply(RISK);return {state,messages};}
  if(is(n,['baja','stop','cancelar suscripcion','cancelar suscripción'])){
   // Already unsubscribed: never send repeated opt-out confirmations.
@@ -76,7 +88,7 @@ export function processInbound(input,{state:original=initialState(),today='2026-
  // Explicit commands are allowed at any time; no free-form conversations.
  if(is(n,['menu','menú','opciones'])){
   if(state.status==='onboarding'){reply('Para completar el registro, continuemos con esta pregunta:');const current=question(state);reply(current.body,current.options);}
-  else {state.flow='idle';state.feedbackPending=null;state.babyAgePendingIndex=null;const m=menu(state);reply(m.body,m.options);}
+  else {state.flow='idle';state.feedbackPending=null;state.babyAgePendingIndex=null;state.weeklyGoalSelection=null;const m=menu(state);reply(m.body,m.options);}
   return {state,messages};
  }
  if(state.status==='active' && state.flow==='idle'){
@@ -104,6 +116,7 @@ export function processInbound(input,{state:original=initialState(),today='2026-
    return {state,messages};
   }
   if(n==='objetivo'){state.flow='change_goal';const m=question(state);reply(m.body,m.options);return {state,messages};}
+  if(is(n,['objetivos semana','objetivos semanales'])){startGoalChoice();return {state,messages};}
   if(n==='horario'){state.flow='change_time';const m=question(state);reply(m.body,m.options);return {state,messages};}
   if(is(n,['animo','ánimo'])){state.flow='mood';const m=question(state);reply(m.body,m.options);return {state,messages};}
   if(is(n,['datos','mi perfil'])){reply(`Tu perfil: ${state.adultName}. Hijos: ${state.children.map(c=>`${c.name} (${Number(c.age)<2&&Number.isInteger(c.ageMonths)?c.ageMonths+' meses aprox.':c.age})`).join(', ')}. Objetivo del mes: ${state.monthlyGoal}. Horario: ${state.deliveryTime}. Para borrar todos tus datos, escribí BORRAR.`);return {state,messages};}
@@ -203,10 +216,45 @@ export function processInbound(input,{state:original=initialState(),today='2026-
    break;
   }
   case 'weekly_reflection':{
-   if(n==='omitir'){state.flow='idle';reply('Está bien. No necesitás responder todas las semanas. Gracias por estar presente.');break;}
-   if(txt.length<12||txt.length>320){reply('Si querés, contame en una frase de 12 a 320 caracteres qué descubriste. O escribí OMITIR.');break;}
-   state.weeklyReflections=[...(state.weeklyReflections||[]),{weekKey:state.huellaWeekV2?.key||today,text:short(txt,320),answeredAt:now}].slice(-8);
-   state.flow='idle';reply('Gracias por compartirlo. Lo tendré en cuenta para elegir las próximas experiencias, sin sacar conclusiones que no nos contaste.');break;
+   if(n!=='omitir'){
+    if(txt.length<12||txt.length>320){reply('Si querés, contame en una frase de 12 a 320 caracteres qué descubriste. O escribí OMITIR.');break;}
+    state.weeklyReflections=[...(state.weeklyReflections||[]),{weekKey:state.huellaWeekV2?.key||today,text:short(txt,320),answeredAt:now}].slice(-8);
+    reply('Gracias por compartirlo. Ahora podés elegir qué te gustaría trabajar la próxima semana.');
+   }
+   startGoalChoice();break;
+  }
+  case 'weekly_goal_choice':
+  case 'weekly_goal_custom':{
+   const selection=state.weeklyGoalSelection;
+   if(!selection||!state.children?.[selection.childIndex]){
+    state.flow='idle';state.weeklyGoalSelection=null;reply('No hay una selección activa. Escribí OBJETIVOS SEMANA para comenzar.');break;
+   }
+   if(state.huellaWeekV2?.key===selection.weekKey){
+    state.flow='idle';state.weeklyGoalSelection=null;
+    reply('La semana ya tiene sus misiones preparadas. Tus objetivos habituales siguen vigentes; podrás elegir otros antes de la próxima semana.');break;
+   }
+   const index=selection.childIndex,child=state.children[index];
+   if(n==='omitir'||n==='0'){finishGoalChoice();break;}
+   if(state.flow==='weekly_goal_custom'){
+    if(txt.length<6||txt.length>180){
+     reply('Escribí un objetivo breve y concreto (6 a 180 caracteres) o OMITIR.');break;
+    }
+    rememberWeeklyGoal(state,index,selection.weekKey,txt,'custom',now);
+    finishGoalChoice();break;
+   }
+   if(n==='4'){
+    state.flow='weekly_goal_custom';reply(question(state).body);break;
+   }
+   const previous=latestWeeklyGoal(state,index,selection.weekKey);
+   const options=goalChoices(child,selection.weekKey,index);
+   let goal=null,source='suggested';
+   if(['1','2','3'].includes(n))goal=options[Number(n)-1];
+   else if(n==='5'&&previous){goal=previous;source='previous';}
+   if(!goal){
+    const prompt=weeklyGoalPrompt(state);reply('Elegí un número de la lista o escribí 0 para omitir.\n\n'+prompt.body,prompt.options);break;
+   }
+   rememberWeeklyGoal(state,index,selection.weekKey,goal,source,now);
+   finishGoalChoice();break;
   }
   case 'mood':{
    const mood={'bien':'bien','cansado/a':'cansado','dificil':'dificil','difícil':'dificil'}[n];
