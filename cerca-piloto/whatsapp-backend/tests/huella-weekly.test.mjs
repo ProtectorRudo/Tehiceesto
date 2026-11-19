@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {generatePremiumWeek,validatePremiumWeek,contentModel} from '../src/huella-ai.mjs';
+import {generatePremiumWeek,validatePremiumWeek,premiumWeekQuality,contentModel} from '../src/huella-ai.mjs';
 import {mondayOf,weeklyEnabled,prepareWeeklyDispatch,progressSummary,questionText,WEEKLY_SLOTS} from '../src/huella-weekly.mjs';
 import {VERIFIED_STORIES,verifiedStoryFor,formatVerifiedStory} from '../src/huella-sources.mjs';
 import {initialState,processInbound,formatMissions} from '../src/flow.mjs';
@@ -272,4 +272,28 @@ test('infant editorial gate rejects artificial motor-response experiments',()=>{
  const artificial=structuredClone(valid);
  artificial.children[0].missions[1].example='Si mueve una pierna, respondé con una O y volvé a esperar unos segundos para ver qué sucede durante la interacción compartida.';
  assert.equal(validatePremiumWeek(s,artificial),false);
+});
+
+test('protective language is not rejected by a blacklist intended for harmful instructions',()=>{
+ const s=profile(),original=fixture(),safe=structuredClone(original);
+ safe.children[0].missions[0].ifNo='Si no tiene ganas de participar, no lo fuerces ni lo obligues: acompañá lo que necesite en ese momento y dejá el juego para otro día.';
+ const checked=premiumWeekQuality(s,safe);
+ assert.deepEqual(checked.codes,[],JSON.stringify(checked.codes));
+ const harmful=structuredClone(original);
+ harmful.children[0].missions[0].ifNo='Si rechaza el juego, obligalo a participar de todos modos y continuá aunque se resista, sin detener la actividad propuesta.';
+ const result=premiumWeekQuality(s,harmful);
+ assert.equal(result.ok,false);
+ assert.ok(result.codes.includes('child0:conectar:ifNo'));
+});
+test('quality rejection reveals only non-identifying field codes, not child names or raw mission content',()=>{
+ const s=profile(),v=fixture();
+ v.children[0].missions[0].target='inventé algo que el perfil nunca mencionó';
+ const report=premiumWeekQuality(s,v);
+ assert.equal(report.ok,false);
+ assert.ok(report.codes.includes('child0:conectar:target_not_from_profile'));
+ assert.ok(!JSON.stringify(report).includes('Bebé'));
+ assert.ok(!JSON.stringify(report).includes('inventé algo'));
+ const invalid=structuredClone(v);
+ invalid.children[0].missions[1].example='Un ejemplo muy corto';
+ assert.ok(premiumWeekQuality(s,invalid).codes.includes('child0:comprender:example'));
 });

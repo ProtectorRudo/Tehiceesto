@@ -11,8 +11,22 @@ export const WEEK_SCHEMA={type:'object',additionalProperties:false,properties:{
  children:{type:'array',items:{type:'object',additionalProperties:false,properties:{index:{type:'integer'},missions:{type:'array',items:missionSchema}},required:['index','missions']}},
  family:familySchema
 },required:['children','family']};
-const unsafe=/\b(?:castig\w*|humill\w*|amenaz\w*|oblig\w*|forz\w*|culpabili\w*|secretos?\s+de\s+(?:la|tu)\s+familia|diagn[oó]stic\w*|tu hijo tiene|garantiza|asegura que|vas a lograr|siempre funcionar[aá]|curar[aá]?)\b/i;
-const validText=(x,min,max)=>typeof x==='string'&&x.trim().length>=min&&x.length<=max&&!unsafe.test(x);
+// A previous blanket regex wrongly rejected protective phrases like "sin obligar"
+// and "no hay que forzar". Reject harmful INSTRUCTIONS, not their negation.
+const harmfulTerms=/\b(?:castig\w*|humill\w*|amenaz\w*|oblig\w*|forz\w*|culpabili\w*|diagn[oó]stic\w*|garantiza\w*|curar[aá]?\w*)\b/gi;
+const unsafeClaim=/\b(?:secretos?\s+de\s+(?:la|tu)\s+familia|tu hijo tiene|asegura que|vas a lograr|siempre funcionar[aá])\b/gi;
+const negated=(prefix)=>/(?:^|[\s,.;:¡!¿?])(?:no|sin|nunca|jam[aá]s|evit[aá](?:r|s|n)?|prohibido|prohibida|en vez de)(?:\s+[\p{L}]+){0,5}\s*$/iu.test(prefix);
+const unsafeInstruction=text=>{
+ for(const match of text.matchAll(unsafeClaim)){
+  if(!negated(text.slice(Math.max(0,match.index-65),match.index)))return true;
+ }
+ for(const match of text.matchAll(harmfulTerms)){
+  const context=text.slice(Math.max(0,match.index-65),match.index);
+  if(!negated(context))return true;
+ }
+ return false;
+};
+const validText=(x,min,max)=>typeof x==='string'&&x.trim().length>=min&&x.length<=max&&!unsafeInstruction(x);
 const normalize=x=>String(x||'').trim().toLocaleLowerCase('es-AR').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 const validSteps=steps=>Array.isArray(steps)&&steps.length>=2&&steps.length<=4&&steps.every(s=>validText(s,30,230));
 // A beautiful premise without playable mechanics is not a mission. Validate
@@ -41,36 +55,71 @@ export const validInfantMonths=c=>{
 // Avoid pseudo-assessments: spontaneous limb motion is not evidence of a
 // conversational turn. This is intentionally narrow; it is not a diagnostic tool.
 const infantPseudoTest=/(?:si (?:mueve|levanta|agita) (?:una|la|su) (?:pierna|pie|mano|brazo)[^.!?]{0,110}(?:respond[eé]|repet[ií]|hac[eé])|acerc[aá] tu mano[^.!?]{0,90}para (?:ver|notar|medir) si|para (?:comprobar|confirmar|medir) (?:si|la respuesta))/i;
-export function validatePremiumWeek(profile,week){
- if(!week||!Array.isArray(week.children)||week.children.length!==profile.children.length)return false;
- const seen=new Set(),stepFingerprints=new Set(),prior=new Set((profile.history||[]).slice(-24).flatMap(h=>(h.children||[]).flatMap(c=>(c.missions||[]).map(m=>normalize(m.title)))));
+/** Non-identifying, field-level feedback. Never persist raw child text or OpenAI output. */
+export function premiumWeekQuality(profile,week){
+ const issues=[];
+ const add=(code)=>{if(issues.length<16)issues.push(code);};
+ if(!week||!Array.isArray(week.children)||week.children.length!==profile.children.length)
+  return {ok:false,codes:['week_shape']};
+ const seen=new Set(),fingerprints=new Set();
+ const prior=new Set((profile.history||[]).slice(-24).flatMap(h=>
+  (h.children||[]).flatMap(c=>(c.missions||[]).map(m=>normalize(m.title)))));
+ const readable=(m,tag)=>{
+  if(!m||typeof m!=='object'){add(tag+':missing');return;}
+  for(const [field,min,max] of [
+   ['title',12,85],['intro',55,230],['setup',55,310],['opening',32,260],
+   ['example',70,320],['ifNo',40,200],['why',75,270],['observe',25,180]
+  ])if(!validText(m[field],min,max))add(tag+':'+field);
+  if(!literalDialogue(m.opening||''))add(tag+':opening_dialogue');
+  if(!validSteps(m.steps))add(tag+':steps');
+  if(imaginaryTransformation.test(m.intro||'')&&!mappingExample.test((m.setup||'')+' '+(m.example||'')))
+   add(tag+':imaginary_mapping');
+ };
  for(let i=0;i<profile.children.length;i++){
-  const c=profile.children[i],item=week.children[i];
-  if(item.index!==i||!Array.isArray(item.missions)||item.missions.length!==3)return false;
-  if(new Set(item.missions.map(m=>m.kind)).size!==3)return false;
+  const c=profile.children[i],item=week.children[i],prefix='child'+i;
+  if(!item||item.index!==i||!Array.isArray(item.missions)||item.missions.length!==3){
+   add(prefix+':mission_shape');continue;
+  }
+  if(new Set(item.missions.map(x=>x?.kind)).size!==3)add(prefix+':kinds_unique');
   for(let j=0;j<3;j++){
-   const m=item.missions[j],expected=['conectar','comprender','sembrar'][j];
-   if(!m||m.kind!==expected||!validText(m.title,12,85)||!validPlayable(m)||!validText(m.observe,25,180)||!validText(m.target,3,220))return false;
-   if(typeof m.skill!=='string')return false;
-   if(expected==='sembrar'){
-    if(!validText(m.skill,7,90)||vagueSkill.test(m.skill.trim()))return false;
-    // Sembrar isn't another affection ritual: its steps must give the child
-    // an opportunity to practice the specified skill at their own pace.
-   }else if(m.skill.trim().toLocaleLowerCase('es-AR')!=='no aplica')return false;
+   const m=item.missions[j],tag=prefix+':'+['conectar','comprender','sembrar'][j];
+   if(!m){add(tag+':missing');continue;}
+   if(m.kind!==['conectar','comprender','sembrar'][j])add(tag+':kind');
+   readable(m,tag);
+   if(!validText(m.target,3,220))add(tag+':target_format');
+   if(typeof m.skill!=='string')add(tag+':skill_missing');
+   else if(j===2){
+    if(!validText(m.skill,7,90)||vagueSkill.test(m.skill.trim()))add(tag+':skill');
+   }else if(m.skill.trim().toLocaleLowerCase('es-AR')!=='no aplica')add(tag+':skill_unexpected');
    if(c.age<2){
-    const text=[m.intro,m.setup,m.opening,m.example,m.ifNo,...m.steps,m.why,m.observe].join(' ');
-    if(assumedBabyGender.test(text)||infantPseudoTest.test(text))return false;
+    const infantText=[m.intro||'',m.setup||'',m.opening||'',m.example||'',m.ifNo||'',
+     ...(m.steps||[]),m.why||'',m.observe||''].join(' ');
+    if(assumedBabyGender.test(infantText))add(tag+':infant_gender_assumption');
+    if(infantPseudoTest.test(infantText))add(tag+':infant_response_test');
+    if(/pieza peque[nñ]a|cuenta|tapita|globo|cord[oó]n|bolsa de pl[aá]stico|manta sobre la cara|dejarlo solo/i.test(
+      [m.setup||'',m.example||'',...(m.steps||[])].join(' ')))add(tag+':infant_hazard');
    }
    const targets=[c.goal,...(c.interests||[]),profile.monthlyGoal].map(normalize).filter(Boolean);
-   if(!targets.includes(normalize(m.target)))return false;
-   const title=normalize(m.title);if(seen.has(title)||prior.has(title))return false;seen.add(title);
-   const fingerprint=normalize(m.steps.join(' '));if(stepFingerprints.has(fingerprint))return false;stepFingerprints.add(fingerprint);
-   if(c.age<2&&/pieza peque[nñ]a|cuenta|tapita|globo|cord[oó]n|bolsa de pl[aá]stico|manta sobre la cara|dejarlo solo/i.test([m.setup,m.example,...m.steps].join(' ')))return false;
+   if(!targets.includes(normalize(m.target)))add(tag+':target_not_from_profile');
+   const title=normalize(m.title);
+   if(seen.has(title))add(tag+':title_repeated');
+   if(prior.has(title))add(tag+':prior_title_repeated');
+   seen.add(title);
+   const fingerprint=normalize(Array.isArray(m.steps)?m.steps.join(' '):'');
+   if(fingerprints.has(fingerprint))add(tag+':steps_repeated');
+   fingerprints.add(fingerprint);
   }
  }
- const f=week.family;
- return Boolean(f&&validText(f.title,12,85)&&validPlayable(f)&&validText(f.observe,25,180)&&!seen.has(normalize(f.title)));
+ const family=week.family;
+ if(!family)add('family:missing');
+ else{
+  readable(family,'family');
+  if(seen.has(normalize(family.title)))add('family:title_repeated');
+ }
+ return {ok:issues.length===0,codes:issues};
 }
+export const validatePremiumWeek=(profile,week)=>premiumWeekQuality(profile,week).ok;
+
 const prompt=[
  'Sos el motor EDITORIAL de HUELLA, no un chatbot ni consejero personal.',
  'Tu objetivo es proponer una semana de experiencias extraordinariamente personalizadas, seguras, cálidas y realizables. No basta con una actividad bonita.',
