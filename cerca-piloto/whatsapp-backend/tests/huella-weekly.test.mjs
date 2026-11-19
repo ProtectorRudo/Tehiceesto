@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {generatePremiumWeek,validatePremiumWeek,contentModel} from '../src/huella-ai.mjs';
 import {mondayOf,weeklyEnabled,prepareWeeklyDispatch,progressSummary,questionText,WEEKLY_SLOTS} from '../src/huella-weekly.mjs';
 import {VERIFIED_STORIES,verifiedStoryFor,formatVerifiedStory} from '../src/huella-sources.mjs';
-import {initialState,processInbound} from '../src/flow.mjs';
+import {initialState,processInbound,formatMissions} from '../src/flow.mjs';
 
 const PHONE='5492211234567';
 const ENV={CERCA_PROVIDER:'evolution',CERCA_SEND_MODE:'test',CERCA_TEST_WA_IDS:PHONE,
@@ -194,4 +194,17 @@ test('mixed-age families receive stories for both stages over consecutive weeks'
  const a=verifiedStoryFor(s,'2026-11-23'),b=verifiedStoryFor(s,'2026-11-30');
  const babyRelevant=x=>x.minAge===0;
  assert.notEqual(babyRelevant(a),babyRelevant(b));
+});
+
+test('MISIONES command explains each real premium mission without undefined or oversized combined text',()=>{
+ const s=profile(),batch=fixture();
+ s.history=[{day:'2026-11-24',children:batch.children.map((c,index)=>({
+  name:s.children[index].name,missions:c.missions.filter(m=>m.kind==='conectar')
+ })),weekly:null}];
+ const response=processInbound('MISIONES',{state:s,today:'2026-11-24',now:'2026-11-24T18:00:00Z'});
+ assert.equal(response.messages.length,2,'one readable reply per child instead of a merged oversized message');
+ assert.ok(response.messages.every(m=>m.body.includes('De qué se trata:')&&m.body.includes('Cómo hacerlo:')));
+ assert.ok(response.messages.every(m=>m.body.includes('Por qué puede valer la pena:')));
+ assert.ok(response.messages.every(m=>!m.body.includes('undefined')&&m.body.length<3600));
+ assert.match(formatMissions({day:'2026-11-24',children:[s.history[0].children[0]],weekly:null}),/De qué se trata/);
 });

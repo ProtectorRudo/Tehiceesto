@@ -55,8 +55,9 @@ export function verifiedStoryFor(state,weekKey){
  const ages=(state.children||[]).map(c=>Number(c.age)).filter(Number.isFinite);
  const weekNo=Math.abs(Math.floor(Date.parse(weekKey+'T12:00:00Z')/604800000));
  const age=ages.length?ages[weekNo%ages.length]:0;
- const candidates=VERIFIED_STORIES.filter(x=>age>=x.minAge&&age<=x.maxAge);
- const bank=candidates.length?candidates:VERIFIED_STORIES.filter(x=>x.id==='karim');
+ const bank=age<=2?VERIFIED_STORIES.filter(x=>x.id==='naomi'||x.id==='karim'):
+  age<=10?VERIFIED_STORIES.filter(x=>x.id==='boongkie'||x.id==='hazem'):
+  VERIFIED_STORIES.filter(x=>x.id==='karim');
  return bank[Math.floor(weekNo/Math.max(1,ages.length))%bank.length];
 }
 export function formatVerifiedStory(story){
@@ -64,7 +65,7 @@ export function formatVerifiedStory(story){
  if(!original||!Array.isArray(original.paragraphs)||original.paragraphs.length!==3)throw Error('unverified_story');
  // Use only immutable editorial originals, never caller-provided invented narrative.
  return [
-  '📖 HUELLA · Una historia real',
+  '📖 HUELLA · Historia real',
   '*'+original.title+'*',
   ...original.paragraphs,
   '*Lo que esta historia puede inspirarte:* '+original.idea,
