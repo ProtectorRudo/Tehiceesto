@@ -282,9 +282,11 @@ test('focused model locally cleans grammar then validates safety before sending'
   fetcher:async()=>new Response(JSON.stringify({status:'completed',output:[
    {content:[{type:'output_text',text:JSON.stringify(unsafe)}]}
   ]}),{status:200})});
- assert.equal(partial.missions.length,2,'only unsafe Sembrar is withheld');
- assert.deepEqual(partial.missions.map(m=>m.kind),['conectar','comprender']);
- assert.ok(partial.withheld.includes('child0:sembrar:infant_hazard'));
+ assert.equal(partial.missions.length,3,'HUELLA must fill every daily mission slot');
+ assert.deepEqual(partial.missions.map(m=>m.kind),['conectar','comprender','sembrar']);
+ assert.equal(partial.missions[2].source,'curated_safe_alternative');
+ assert.ok(partial.replaced.includes('child0:sembrar'));
+ assert.deepEqual(partial.withheld,[]);
  assert.ok(partial.family,'keep safe family mission');
  assert.ok(!JSON.stringify(partial).includes('Colocá un globo'),'unsafe text is never retained');
 });
@@ -428,8 +430,41 @@ test('quarantined content never silently becomes a missing child mission with bo
   env,fetcher:async()=>new Response(JSON.stringify({status:'completed',output:[
    {content:[{type:'output_text',text:JSON.stringify(output)}]}]}),{status:200})
  });
- assert.deepEqual(result.missions.map(x=>x.kind),['conectar','sembrar']);
- assert.ok(result.withheld.includes('child0:comprender:infant_hazard'));
+ assert.deepEqual(result.missions.map(x=>x.kind),['conectar','comprender','sembrar']);
+ assert.ok(result.replaced.includes('child0:comprender'));
+ assert.equal(result.missions[1].source,'curated_safe_alternative');
+ assert.deepEqual(result.withheld,[]);
  assert.equal(result.family.kind,'familiar');
  assert.ok(!JSON.stringify(result).includes('Ofrecé unas cuentas'));
+});
+
+test('one paid generation with an unsafe Sembrar is fully replaced before WhatsApp delivery',async()=>{
+ const state=familyState(6);
+ state.huellaInfantReviewV2={revision:INFANT_REVIEW_REVISION_V2,status:'failed',attempts:1};
+ const db=fakeDb(state);
+ let aiCalls=0;
+ const generate=async()=>{
+  const response=batch();
+  response.missions[2].steps[0]='Ofrecé un globo al bebé para que lo toque y puedan practicar juntos durante la actividad.';
+  return generateInfantFocus(state,'2026-11-23',{env,
+   fetcher:async()=>{aiCalls++;return new Response(JSON.stringify({status:'completed',output:[
+    {content:[{type:'output_text',text:JSON.stringify(response)}]}
+   ]}),{status:200});}});
+ };
+ const result=await handleInfantReview(message('complete-v3','PREVIA BEBÉ 3'),{
+  db,env,now:NOW,generate
+ });
+ assert.equal(result,'applied');assert.equal(aiCalls,1);
+ const batchResult=db.row.state.huellaInfantReviewV3.batch;
+ assert.equal(db.row.state.huellaInfantReviewV3.status,'ready');
+ assert.equal(batchResult.missions.length,3);
+ assert.equal(batchResult.family.kind,'familiar');
+ assert.deepEqual(batchResult.replaced,['child0:sembrar']);
+ assert.equal(batchResult.missions[2].source,'curated_safe_alternative');
+ const joined=db.jobs.map(m=>m.payload.body).join('\n');
+ assert.match(joined,/3 misión\(es\)/);
+ assert.match(joined,/biblioteca editorial/);
+ assert.match(joined,/SEMbrar/i);
+ assert.ok(!joined.includes('Ofrecé un globo'));
+ assert.equal(db.row.state.huellaPilotStartDay,null);
 });

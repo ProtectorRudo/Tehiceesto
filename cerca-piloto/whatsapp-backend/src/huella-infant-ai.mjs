@@ -1,7 +1,7 @@
 /** Focused editorial quality review for one infant and one whole-family activity.
  * A separate paid test, never an autonomous child-facing assistant.
  */
-import {WEEK_SCHEMA,partitionDeliverableWeek,validInfantMonths,contentModel,normalizeDeliveryGrammar} from './huella-ai.mjs';
+import {WEEK_SCHEMA,completeMissionSlots,validInfantMonths,contentModel} from './huella-ai.mjs';
 import {foundationFor} from './huella-sources.mjs';
 
 const missionSchema=WEEK_SCHEMA.properties.children.items.properties.missions.items;
@@ -77,25 +77,17 @@ export async function generateInfantFocus(state,weekStart,{fetcher=fetch,env=pro
   if(!resp.ok)throw Error('huella_ai_http_'+resp.status);
   const obj=parseReply(await resp.json());
   const syntheticProfile={...state,children:[child],history:[]};
-  const syntheticWeek=normalizeDeliveryGrammar(syntheticProfile,{
+  const complete=completeMissionSlots(syntheticProfile,{
    children:[{index:0,missions:obj.missions}],family:obj.family
   });
-  // Editorial concerns remain feedback for future generations. Only unsafe
-  // instructions or unusable/absent content prevent transmission.
-  const review=partitionDeliverableWeek(syntheticProfile,syntheticWeek);
-  if(!review.ok){
-   const err=Error('huella_ai_safety_or_structure');
-   err.issueCodes=[...review.fatal,...review.withheld].slice(0,24);
-   throw err;
-  }
-  // Save and send only safe missions. Keep the titles/slots of quarantined
-  // proposals as anonymous rule codes, never original unsafe instructions.
-  const missions=review.children[0].missions;
+  const missions=complete.children[0].missions;
   const repeated=missions.some(m=>originalMissionTitles.some(title=>normalize(title)===normalize(m.title)));
-  const editorialWarnings=[...review.advisories,...(repeated?['previous_preview_title_repeated']:[])];
+  const editorialWarnings=[...complete.editorialWarnings,...(repeated?['previous_preview_title_repeated']:[])];
   return {day:weekStart,childName:child.name,childIndex:index,
-   ageMonths:child.ageMonths,missions:missions.map(m=>({...m,source:'ai_reviewed',foundation:foundationFor(child.age)})),
-   family:review.family?{...review.family,kind:'familiar',source:'ai_reviewed'}:null,
-   withheld:review.withheld,editorialWarnings:editorialWarnings.slice(0,20)};
+   ageMonths:child.ageMonths,missions:missions.map(m=>({
+    ...m,source:m.source||'ai_reviewed',foundation:foundationFor(child.age)
+   })),
+   family:{...complete.family,kind:'familiar',source:complete.family.source||'ai_reviewed'},
+   replaced:complete.replaced,withheld:[],editorialWarnings:editorialWarnings.slice(0,20)};
  }finally{clearTimeout(timer);}
 }

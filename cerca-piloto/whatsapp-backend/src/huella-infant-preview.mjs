@@ -26,7 +26,10 @@ const format=(batch)=>{
  const missions=Array.isArray(batch.missions)?batch.missions:[];
  const family=batch.family||null;
  const withheld=Array.isArray(batch.withheld)?batch.withheld:[];
- const notice=withheld.length?
+ const replaced=Array.isArray(batch.replaced)?batch.replaced:[];
+ const notice=replaced.length?
+  '\n\nHUELLA completó '+replaced.length+' propuesta(s) con actividades alternativas de su biblioteca editorial, revisadas previamente. No se perdieron misiones ni se hizo otra llamada paga a la IA.':
+  withheld.length?
   '\n\nUna propuesta quedó apartada por precaución de seguridad o porque faltaban instrucciones. Conservo las otras actividades; no se generará ningún reemplazo pago automáticamente.':'';
  const messages=[{
   body:'🌱 *HUELLA · Prueba enfocada de calidad*\n\n'+

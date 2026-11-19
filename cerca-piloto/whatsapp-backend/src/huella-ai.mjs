@@ -1,4 +1,5 @@
 import {foundationFor} from './huella-sources.mjs';
+import {curatedMission,curatedFamily} from './huella-safe-reserve.mjs';
 
 /** Only editorial generation; no general chat, no open-ended conversation. */
 export const HUELLA_DEFAULT_MODEL='gpt-6.2-sol';
@@ -251,6 +252,47 @@ export const normalizeDeliveryGrammar=(profile,week)=>{
 };
 
 
+/**
+ * Full-slot recovery, zero additional OpenAI calls.
+ * 
+ * The AI owns creation of primary missions. Its useful, safe missions survive.
+ * An unsafe, missing or structurally unusable slot is REPLACED by an explicitly
+ * curated, non-AI editorial reserve for the corresponding age and purpose.
+ *
+ * No original rejected text is stored in the repaired output, and the final
+ * complete week is checked AGAIN by the same safety gateway.
+ */
+export function completeMissionSlots(profile,batch){
+ if(!Array.isArray(profile?.children)||!profile.children.length||profile.children.length>6)
+  throw Error('huella_profile_invalid');
+ const normalized=normalizeDeliveryGrammar(profile,batch);
+ const report=partitionDeliverableWeek(profile,normalized);
+ const slots=['conectar','comprender','sembrar'];
+ const replaced=[];
+ const children=profile.children.map((child,index)=>{
+  const existing=report.children?.[index]?.missions||[];
+  const missions=slots.map(kind=>{
+   const original=existing.find(m=>m?.kind===kind);
+   if(original)return original;
+   replaced.push('child'+index+':'+kind);
+   return curatedMission(child,kind,profile.monthlyGoal);
+  });
+  return {index,missions};
+ });
+ let family=report.family;
+ if(!family){family=curatedFamily(profile.children);replaced.push('family');}
+ const complete={children,family};
+ const final=deliveryReadiness(profile,complete);
+ if(!final.ok){
+  const err=Error('huella_recovery_safety_failure');
+  err.issueCodes=final.hard;
+  throw err;
+ }
+ // A source code always distinguishes reviewed editorial substitutes from Sol.
+ return {children,family,replaced,
+  editorialWarnings:[...new Set([...(report.advisories||[]),...final.advisories])].slice(0,20)};
+}
+
 const prompt=[
  'Sos el motor EDITORIAL de HUELLA, no un chatbot ni consejero personal.',
  'Tu objetivo es proponer una semana de experiencias extraordinariamente personalizadas, seguras, cálidas y realizables. No basta con una actividad bonita.',
@@ -319,18 +361,15 @@ export async function generatePremiumWeek(state,weekStart,{fetcher=fetch,env=pro
     input:JSON.stringify(minimalContext(state,weekStart)),max_output_tokens:12000,
     text:{format:{type:'json_schema',name:'huella_week_v1',strict:true,schema:WEEK_SCHEMA}}})});
   if(!r.ok)throw Error('huella_ai_http_'+r.status);
-  const obj=normalizeDeliveryGrammar(state,extract(await r.json()));
-  const review=partitionDeliverableWeek(state,obj);
-  if(!review.ok){
-   const err=Error('huella_ai_safety_or_structure');
-   err.issueCodes=[...review.fatal,...review.withheld].slice(0,24);
-   throw err;
-  }
-  const children=review.children.map((item,index)=>({
-   name:state.children[index].name,missions:item.missions.map(m=>({...m,source:'ai_reviewed',foundation:foundationFor(state.children[index].age)}))
+  const result=completeMissionSlots(state,extract(await r.json()));
+  const children=result.children.map((item,index)=>({
+   name:state.children[index].name,missions:item.missions.map(m=>({
+    ...m,source:m.source||'ai_reviewed',
+    foundation:foundationFor(state.children[index].age)
+   }))
   }));
   return {day:weekStart,children,
-   weekly:review.family?{...review.family,kind:'familiar',source:'ai_reviewed'}:null,
-   withheld:review.withheld,editorialWarnings:review.advisories.slice(0,20)};
+   weekly:{...result.family,kind:'familiar',source:result.family.source||'ai_reviewed'},
+   replaced:result.replaced,withheld:[],editorialWarnings:result.editorialWarnings};
  }finally{clearTimeout(timeout);}
 }
