@@ -212,7 +212,7 @@ test('MISIONES command explains each real premium mission without undefined or o
  const response=processInbound('MISIONES',{state:s,today:'2026-11-24',now:'2026-11-24T18:00:00Z'});
  assert.equal(response.messages.length,2,'one readable reply per child instead of a merged oversized message');
  assert.ok(response.messages.every(m=>m.body.includes('De qué se trata:')&&m.body.includes('Cómo hacerlo:')));
- assert.ok(response.messages.every(m=>m.body.includes('Por qué puede valer la pena:')));
+ assert.ok(response.messages.every(m=>m.body.includes('Qué buscamos con esta experiencia:')));
  assert.ok(response.messages.every(m=>!m.body.includes('undefined')&&m.body.length<3600));
  assert.match(formatMissions({day:'2026-11-24',children:[s.history[0].children[0]],weekly:null}),/De qué se trata/);
 });

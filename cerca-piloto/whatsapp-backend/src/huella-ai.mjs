@@ -20,7 +20,7 @@ const validSteps=steps=>Array.isArray(steps)&&steps.length>=2&&steps.length<=4&&
 // still reviewed with real users before the pilot is enabled.
 const literalDialogue=s=>/(?:«[^»]{12,}»|“[^”]{12,}”|"[^"]{12,}")/u.test(s);
 const imaginaryTransformation=/\b(?:convertir|transformar|transformaremos|convertiremos)\b[\s\S]{0,100}\b(?:plaza|parque|casa|patio|habitaci[oó]n|cocina)\b|\b(?:plaza|parque|casa|patio)\b[\s\S]{0,65}\b(?:mundo|reino|regi[oó]n)\b/i;
-const mappingExample=/\b(?:ser[aá]|representa|funciona como|hace de|pasa a ser|se convierte en|llamaremos)\b|[=:]/i;
+const mappingExample=/(?:ser[aá]|representa|funciona como|hace de|pasa a ser|se convierte en|llamaremos|[=:])/i;
 const validPlayable=m=>validText(m.intro,55,230)&&validText(m.setup,55,310)&&
  validText(m.opening,32,260)&&literalDialogue(m.opening)&&
  validText(m.example,70,320)&&validText(m.ifNo,40,200)&&

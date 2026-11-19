@@ -87,7 +87,7 @@ test('formatter sends complete missions, why/how/observe and sourced story witho
  assert.match(bodies,/CON[fN]?ECTAR|conectar/i);
  assert.match(bodies,/JUEVES/);assert.match(bodies,/SÁBADO/);
  assert.match(bodies,/De qué se trata/);assert.match(bodies,/Cómo hacerlo/);
- assert.match(bodies,/Por qué/);assert.match(bodies,/Qué observar/);
+ assert.match(bodies,/Qué buscamos con esta experiencia/);assert.match(bodies,/Qué observar/);
  assert.match(bodies,/UNICEF/);assert.match(bodies,/Domingo/i);
  assert.ok(messages.every(x=>x.body.length<=3600));
 });
