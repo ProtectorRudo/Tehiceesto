@@ -27,7 +27,7 @@ test('menu lists bounded functions, preserves the profile and does not initiate 
  assert.equal(r.state.flow,'idle');
  assert.deepEqual(r.state.children,original.children);
  assert.equal(r.state.consentAt,original.consentAt);
- assert.match(r.outputs[0].body,/Menú CERCA/);
+ assert.match(r.outputs[0].body,/Menú HUELLA/);
  assert.deepEqual(r.outputs[0].options,['MISIONES','OBJETIVO','HORARIO','ÁNIMO','DATOS','BAJA']);
 });
 

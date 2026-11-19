@@ -1,6 +1,6 @@
-/** CERCA: deterministic, finite-state WhatsApp interaction. No chatbot fallback. */
-export const REDIRECT = 'CERCA funciona con misiones, objetivos y seguimiento de crianza. Escribí MENÚ para ver las opciones disponibles.';
-export const RISK = 'Si hay peligro inmediato para alguien, llamá al servicio de emergencias de tu zona (911 en Argentina) o acudí a un centro de atención. CERCA no atiende emergencias.';
+/** HUELLA: deterministic, finite-state WhatsApp interaction. No chatbot fallback. */
+export const REDIRECT = 'HUELLA funciona con misiones, objetivos y seguimiento de crianza. Escribí MENÚ para ver las opciones disponibles.';
+export const RISK = 'Si hay peligro inmediato para alguien, llamá al servicio de emergencias de tu zona (911 en Argentina) o acudí a un centro de atención. HUELLA no atiende emergencias.';
 const clean = v => String(v ?? '').trim().replace(/\s+/g, ' ');
 const norm = v => clean(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const is = (v, choices) => choices.includes(norm(v));
@@ -9,7 +9,7 @@ const short = (v,n=90) => clean(v).slice(0,n);
 const validName = v => /^[\p{L}][\p{L} .'-]{0,49}$/u.test(clean(v));
 export function initialState(){return {status:'pending',consentAt:null,adultName:'',children:[],currentChild:0,flow:'consent',deliveryTime:'18:00',timezone:'America/Argentina/Buenos_Aires',mood:null,lastDailyDay:null,lastWeeklyWeek:null,history:[],monthlyGoal:'',lastRedirectDate:null,deleted:false,subscription:'pilot',consentPrompted:false,feedbackLog:[],feedbackPending:null};}
 const q=(body,options=[])=>({body,options});
-const askConsent=()=>q('Hola, soy CERCA 🌱. Enviamos misiones breves para conectar con tus hijos. No somos un chat de consultas. ¿Aceptás recibir mensajes de CERCA y guardar un perfil familiar mínimo? Podés escribir BAJA cuando quieras.',['ACEPTO','NO']);
+const askConsent=()=>q('Hola, soy HUELLA 🌱. Enviamos misiones breves para conectar con tus hijos. No somos un chat de consultas. ¿Aceptás recibir mensajes de HUELLA y guardar un perfil familiar mínimo? Podés escribir BAJA cuando quieras.',['ACEPTO','NO']);
 function question(state){
  switch(state.flow){
   case 'feedback_child':return q('Elegí el número del hijo o hija cuya misión querés registrar.');
@@ -17,7 +17,7 @@ function question(state){
   case 'adult_name':return q('¿Cómo te gustaría que te llamemos?');
   case 'children_count':return q(`¡Un gusto, ${state.adultName}! ¿Cuántos hijos querés registrar? (1 a 6)`,['1','2','3']);
   case 'child_name':return q(`¿Cómo se llama o qué apodo querés usar para tu hijo/a ${state.currentChild+1}?`);
-  case 'child_age':return q(`¿Qué edad tiene ${state.children[state.currentChild]?.name}? Podés escribir 0 si es bebé de menos de un año.`);
+  case 'child_age':return q(`¿Qué edad tiene ${state.children[state.currentChild]?.name}? Podés escribir 0 si es bebé de menos de un año. HUELLA acompaña edades de 0 a 15 años.`);
   case 'child_interests':return q(`¿Qué le gusta hacer a ${state.children[state.currentChild]?.name}? Por ejemplo: inventar historias, dibujar, música, fútbol. Podés poner VARIOS.`);
   case 'child_goal':return q(`¿Qué te gustaría fortalecer con ${state.children[state.currentChild]?.name}? Por ejemplo: confianza para hablar, escuchar sin apuros, autonomía.`);
   case 'monthly_goal':return q('¿Cuál es tu objetivo familiar de crianza para este mes? Por ejemplo: disfrutar ratos sin pantallas.');
@@ -30,7 +30,7 @@ function question(state){
   default:return q(REDIRECT);
  }
 }
-function menu(){return q('Menú CERCA 🌱. Elegí qué querés hacer:',['MISIONES','OBJETIVO','HORARIO','ÁNIMO','DATOS','BAJA']);}
+function menu(){return q('Menú HUELLA 🌱. Elegí qué querés hacer:',['MISIONES','OBJETIVO','HORARIO','ÁNIMO','DATOS','BAJA']);}
 const emergency = v => /\b(no respira|se esta muriendo|se está muriendo|quiero matar a mi hijo|voy a matar a mi hijo|me quiero matar ahora|se quiere matar ahora|abuso sexual en este momento|en peligro inmediato)\b/i.test(norm(v));
 const normalizeTime=t=>{const m=clean(t).match(/^([01]?\d|2[0-3]):([0-5]\d)$/);return m?`${m[1].padStart(2,'0')}:${m[2]}`:null;};
 export function processInbound(input,{state:original=initialState(),today='2026-11-16',now=new Date().toISOString()}={}){
@@ -41,7 +41,7 @@ export function processInbound(input,{state:original=initialState(),today='2026-
   // Already unsubscribed: never send repeated opt-out confirmations.
   if(state.status==='stopped'){state.flow='idle';return {state,messages};}
   state.status='stopped';state.flow='idle';state.consentAt=null;
-  reply('Desactivamos los envíos de CERCA. No vas a recibir más misiones. Si querés volver, escribí ALTA.');return {state,messages};
+  reply('Desactivamos los envíos de HUELLA. No vas a recibir más misiones. Si querés volver, escribí ALTA.');return {state,messages};
  }
  if(state.status==='stopped' && state.flow!=='delete_confirm'){
   if(n==='alta'){
@@ -112,7 +112,7 @@ export function processInbound(input,{state:original=initialState(),today='2026-
    if(!validName(txt)){reply('Usá un nombre o apodo de hasta 50 caracteres.');break;}
    state.children.push({name:short(txt,50),age:null,interests:[],goal:''});state.flow='child_age';reply(question(state).body);break;
   case 'child_age':{
-   const age=Number(txt);if(!Number.isInteger(age)||age<0||age>17){reply('Necesito una edad en años de 0 a 17.');break;}
+   const age=Number(txt);if(!Number.isInteger(age)||age<0||age>15){reply('Necesito una edad en años de 0 a 15.');break;}
    state.children[state.currentChild].age=age;state.flow='child_interests';reply(question(state).body);break;
   }
   case 'child_interests':
@@ -136,7 +136,7 @@ export function processInbound(input,{state:original=initialState(),today='2026-
   case 'change_time':{
    const time=normalizeTime(txt);if(!time){reply('Escribí un horario válido, por ejemplo 18:00.');break;}
    state.deliveryTime=time;
-   if(state.flow==='delivery_time'){state.flow='idle';state.status='active';reply(`¡Ya está, ${state.adultName}! 🌱 Registramos ${state.children.length} perfil(es) y el horario ${time}. Vas a recibir tres misiones por hijo al día y una misión familiar semanal. Escribí MISIONES para consultar las disponibles.`);}
+   if(state.flow==='delivery_time'){state.flow='idle';state.status='active';reply(`¡Ya está, ${state.adultName}! 🌱 Registramos ${state.children.length} perfil(es) y el horario ${time}. Cuando activemos el nuevo calendario del piloto, recibirás tres misiones por hijo por semana y una misión familiar semanal. Mientras tanto, escribí MENÚ para consultar las funciones disponibles.`);}
    else{state.flow='idle';reply(`Nuevo horario guardado: ${time}.`);}
    break;
   }
@@ -151,7 +151,7 @@ export function processInbound(input,{state:original=initialState(),today='2026-
  return {state,messages};
 }
 export function formatMissions(batch){
- const lines=[`🌱 CERCA — ${batch.day}`];
+ const lines=[`🌱 HUELLA — ${batch.day}`];
  for(const kid of batch.children){lines.push(`\n*${kid.name}*`);for(const m of kid.missions)lines.push(`• ${m.kind.toUpperCase()}: ${m.title}. ${m.how}`);}
  if(batch.weekly)lines.push(`\n🏡 *Familia*: ${batch.weekly.title}. ${batch.weekly.how}`);
  lines.push('\nRespondé HECHA, NO PUDE o MENÚ para continuar.');return lines.join('\n');

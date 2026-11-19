@@ -63,7 +63,7 @@ test('real HTTP routes + simulated Supabase + simulated Meta complete WhatsApp o
   assert.equal(delivered.status,200);
   assert.equal([...outbox.values()].filter(j=>j.delivery_status==='delivered').length,1);
   const r2=await native(base+'/internal/dispatch',{method:'POST',headers:{authorization:'Bearer '+env.CRON_SECRET}});assert.equal((await r2.json()).scheduled,0);
-  await send('No sabés lo que me pasó con Leticia',99);assert.ok(sent.at(-1).text.body.includes('CERCA funciona'));
+  await send('No sabés lo que me pasó con Leticia',99);assert.ok(sent.at(-1).text.body.includes('HUELLA funciona'));
   await send('BAJA',100);assert.equal(row.state.status,'stopped');
   // Simulate a stale queued marketing job after opt-out; no network request is allowed.
   const prior=sent.length;
