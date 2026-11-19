@@ -148,10 +148,17 @@ test('guard ignores unregistered and unauthorized users before touching OpenAI',
  assert.equal(await handlePreviewInbound(phoneMessage('PREVIA','evolution:abc:402'),{db,env:{...env,HUELLA_PREVIEW_ENABLED:'false'},now,generate}),null);
  assert.equal(db.outbox.length,0);
 });
-test('format rejects incomplete missions rather than letting WhatsApp send a truncated activity',()=>{
- const invalid=week();
- invalid.children[1].missions=[];
- assert.throws(()=>previewMessages(invalid,state(),'2026-11-23'),/preview_incomplete_missions/);
+test('preview keeps the safe parts of a week when a single child has a quarantined mission',()=>{
+ const partial=week();
+ partial.children[1].missions=partial.children[1].missions.filter(m=>m.kind!=='sembrar');
+ partial.withheld=['child1:sembrar:infant_hazard'];
+ const result=previewMessages(partial,state(),'2026-11-23');
+ const joined=result.map(m=>m.body).join('\n');
+ assert.match(joined,/apartadas por precaución/);
+ assert.match(joined,/CONSUM|CONTECTAR|CONECTAR|MARTES/);
+ assert.match(joined,/LUNES/);
+ assert.match(joined,/DOMINGO/);
+ assert.ok(!result.some(m=>m.body.includes('No se activó el piloto')));
 });
 
 test('PREVIA acknowledges immediately before a slow AI job, then completes without blocking WhatsApp',async()=>{
@@ -204,4 +211,15 @@ test('private WhatsApp preview exposes a setup, exact opening, and concrete exam
  assert.match(all,/Ejemplo de cómo jugar:/);
  assert.match(all,/Qué buscamos con esta experiencia:/);
  assert.ok(messages.every(x=>x.body.length<=3600));
+});
+
+test('preview delivers surviving safe individual missions without a family mission',()=>{
+ const partial=week();partial.weekly=null;
+ partial.withheld=['family:infant_hazard'];
+ const received=previewMessages(partial,state(),'2026-11-23');
+ const text=received.map(m=>m.body).join('\n');
+ assert.match(text,/apartadas por precaución/);
+ assert.ok(!text.includes('LUNES · Experiencia familiar'));
+ assert.ok(text.includes('MARTES'));
+ assert.ok(text.includes('DOMINGO'));
 });

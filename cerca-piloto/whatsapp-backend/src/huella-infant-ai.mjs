@@ -1,7 +1,7 @@
 /** Focused editorial quality review for one infant and one whole-family activity.
  * A separate paid test, never an autonomous child-facing assistant.
  */
-import {WEEK_SCHEMA,deliveryReadiness,validInfantMonths,contentModel,normalizeDeliveryGrammar} from './huella-ai.mjs';
+import {WEEK_SCHEMA,partitionDeliverableWeek,validInfantMonths,contentModel,normalizeDeliveryGrammar} from './huella-ai.mjs';
 import {foundationFor} from './huella-sources.mjs';
 
 const missionSchema=WEEK_SCHEMA.properties.children.items.properties.missions.items;
@@ -82,18 +82,20 @@ export async function generateInfantFocus(state,weekStart,{fetcher=fetch,env=pro
   });
   // Editorial concerns remain feedback for future generations. Only unsafe
   // instructions or unusable/absent content prevent transmission.
-  const review=deliveryReadiness(syntheticProfile,syntheticWeek);
+  const review=partitionDeliverableWeek(syntheticProfile,syntheticWeek);
   if(!review.ok){
    const err=Error('huella_ai_safety_or_structure');
-   err.issueCodes=review.hard;
+   err.issueCodes=[...review.fatal,...review.withheld].slice(0,24);
    throw err;
   }
-  const missions=syntheticWeek.children[0].missions;
+  // Save and send only safe missions. Keep the titles/slots of quarantined
+  // proposals as anonymous rule codes, never original unsafe instructions.
+  const missions=review.children[0].missions;
   const repeated=missions.some(m=>originalMissionTitles.some(title=>normalize(title)===normalize(m.title)));
   const editorialWarnings=[...review.advisories,...(repeated?['previous_preview_title_repeated']:[])];
   return {day:weekStart,childName:child.name,childIndex:index,
    ageMonths:child.ageMonths,missions:missions.map(m=>({...m,source:'ai_reviewed',foundation:foundationFor(child.age)})),
-   family:{...syntheticWeek.family,kind:'familiar',source:'ai_reviewed'},
-   editorialWarnings:editorialWarnings.slice(0,20)};
+   family:review.family?{...review.family,kind:'familiar',source:'ai_reviewed'}:null,
+   withheld:review.withheld,editorialWarnings:editorialWarnings.slice(0,20)};
  }finally{clearTimeout(timer);}
 }

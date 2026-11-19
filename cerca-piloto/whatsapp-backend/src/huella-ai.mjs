@@ -204,13 +204,44 @@ export function deliveryReadiness(profile,week){
    if(!m||m.kind!==kind){add(code+':kind');continue;}
    essential(m,code);
    if(Number(child.age)<2&&containsInfantHazardInstruction([
-      m.setup||'',m.example||'',...(m.steps||[])
+      m.intro||'',m.setup||'',m.opening||'',m.example||'',m.ifNo||'',...(m.steps||[])
     ]))add(code+':infant_hazard');
   }
  }
  essential(week.family,'family');
+ if(profile.children.some(child=>Number(child.age)<2)&&week.family&&
+  containsInfantHazardInstruction([week.family.intro||'',week.family.setup||'',week.family.opening||'',
+   week.family.example||'',week.family.ifNo||'',...(week.family.steps||[])]))
+  add('family:infant_hazard');
  return {ok:hard.length===0,hard,advisories:editorial.codes.filter(x=>!hard.includes(x))};
 }
+/**
+ * Quarantine only unsafe/unusable individual entries, never destroy safe
+ * content from the same already-paid generation. This is NOT a fallback and
+ * does not claim a quarantined mission was delivered or completed.
+ * The original rejected text is deliberately not persisted in this projection.
+ */
+export function partitionDeliverableWeek(profile,week){
+ const report=deliveryReadiness(profile,week);
+ if(report.hard.includes('invalid_week_structure')){
+  return {ok:false,fatal:report.hard,children:[],family:null,withheld:[],advisories:report.advisories};
+ }
+ const fatal=report.hard.filter(code=>!/^child\d+:(?:(?:conectar|comprender|sembrar):|mission_structure$)|^family:/.test(code));
+ if(fatal.length)return {ok:false,fatal,children:[],family:null,withheld:[],advisories:report.advisories};
+ const withheld=report.hard.slice();
+ const children=week.children.map((entry,index)=>{
+  const invalidChild=report.hard.includes('child'+index+':mission_structure');
+  return {...entry,missions:invalidChild?[]:entry.missions.filter((m,missionIndex)=>{
+   const expected=['conectar','comprender','sembrar'][missionIndex];
+   return !report.hard.some(code=>code.startsWith('child'+index+':'+expected+':'));
+  })};
+ });
+ const family=report.hard.some(code=>code.startsWith('family:'))?null:week.family;
+ const available=children.reduce((total,c)=>total+c.missions.length,0)+(family?1:0);
+ return {ok:available>0,fatal:available?[]:['no_safe_content'],children,family,
+  withheld,advisories:report.advisories};
+}
+
 export const normalizeDeliveryGrammar=(profile,week)=>{
  if(!week||!Array.isArray(week.children))return week;
  return {...week,children:week.children.map((entry,i)=>
@@ -289,16 +320,17 @@ export async function generatePremiumWeek(state,weekStart,{fetcher=fetch,env=pro
     text:{format:{type:'json_schema',name:'huella_week_v1',strict:true,schema:WEEK_SCHEMA}}})});
   if(!r.ok)throw Error('huella_ai_http_'+r.status);
   const obj=normalizeDeliveryGrammar(state,extract(await r.json()));
-  const review=deliveryReadiness(state,obj);
+  const review=partitionDeliverableWeek(state,obj);
   if(!review.ok){
    const err=Error('huella_ai_safety_or_structure');
-   err.issueCodes=review.hard;
+   err.issueCodes=[...review.fatal,...review.withheld].slice(0,24);
    throw err;
   }
-  const children=obj.children.map((item,index)=>({
+  const children=review.children.map((item,index)=>({
    name:state.children[index].name,missions:item.missions.map(m=>({...m,source:'ai_reviewed',foundation:foundationFor(state.children[index].age)}))
   }));
-  return {day:weekStart,children,weekly:{...obj.family,kind:'familiar',source:'ai_reviewed'},
-   editorialWarnings:review.advisories.slice(0,20)};
+  return {day:weekStart,children,
+   weekly:review.family?{...review.family,kind:'familiar',source:'ai_reviewed'}:null,
+   withheld:review.withheld,editorialWarnings:review.advisories.slice(0,20)};
  }finally{clearTimeout(timeout);}
 }

@@ -278,17 +278,15 @@ test('focused model locally cleans grammar then validates safety before sending'
  assert.doesNotMatch(generated.missions[0].ifNo,/cansada|atendela/);
  const unsafe=batch();
  unsafe.missions[2].steps[0]='Colocá un globo de colores cerca del bebé para que lo toque durante la canción y puedan compartir el momento con alegría.';
- await assert.rejects(
-  generateInfantFocus(familyState(5),'2026-11-23',{env,
-   fetcher:async()=>new Response(JSON.stringify({status:'completed',output:[
-    {content:[{type:'output_text',text:JSON.stringify(unsafe)}]}
-   ]}),{status:200})}),
-  err=>{
-   assert.equal(err.message,'huella_ai_safety_or_structure');
-   assert.ok(err.issueCodes.includes('child0:sembrar:infant_hazard'),JSON.stringify(err.issueCodes));
-   return true;
-  }
- );
+ const partial=await generateInfantFocus(familyState(5),'2026-11-23',{env,
+  fetcher:async()=>new Response(JSON.stringify({status:'completed',output:[
+   {content:[{type:'output_text',text:JSON.stringify(unsafe)}]}
+  ]}),{status:200})});
+ assert.equal(partial.missions.length,2,'only unsafe Sembrar is withheld');
+ assert.deepEqual(partial.missions.map(m=>m.kind),['conectar','comprender']);
+ assert.ok(partial.withheld.includes('child0:sembrar:infant_hazard'));
+ assert.ok(partial.family,'keep safe family mission');
+ assert.ok(!JSON.stringify(partial).includes('Colocá un globo'),'unsafe text is never retained');
 });
 
 test('focused baby generation keeps valid content despite old pseudo-psychological editorial rules',async()=>{
@@ -395,4 +393,43 @@ test('V3 errors consume the one authorization and retain non-identifying safety 
  await handleInfantReview(message('v3-second-message','PREVIA BEBÉ 3'),{db,env,now:NOW,
   generate:async()=>{calls++;}});
  assert.equal(calls,1);
+});
+
+test('one real paid infant generation can send its safe missions even when Sembrar is quarantined',async()=>{
+ const state=familyState(6);state.huellaInfantReviewV2={revision:INFANT_REVIEW_REVISION_V2,status:'failed',attempts:1};
+ const db=fakeDb(state);let inference=0;
+ const result=await handleInfantReview(message('safe-salvage','PREVIA BEBÉ 3'),{
+  db,env,now:NOW,generate:async()=>{
+   inference++;
+   return {day:'2026-11-23',childName:'Bebé',childIndex:1,ageMonths:6,
+    missions:batch().missions.slice(0,2),family:{...family,kind:'familiar'},
+    withheld:['child0:sembrar:infant_hazard']};
+  }
+ });
+ assert.equal(result,'applied');assert.equal(inference,1);
+ assert.equal(db.row.state.huellaInfantReviewV3.status,'ready');
+ assert.equal(db.row.state.huellaInfantReviewV3.batch.missions.length,2);
+ assert.deepEqual(db.row.state.huellaInfantReviewV3.batch.withheld,['child0:sembrar:infant_hazard']);
+ const bodies=db.jobs.map(x=>x.payload.body).join('\n');
+ assert.match(bodies,/2 misión\(es\)/);
+ assert.match(bodies,/apartada/);
+ assert.match(bodies,/Momento familiar/);
+ assert.ok(!db.jobs.some(x=>x.payload.body.includes('exploración visual acompañada')));
+ const before=db.jobs.length;
+ await handleInfantReview(message('safe-salvage-again','PREVIA BEBÉ 3'),{
+  db,env,now:NOW,generate:async()=>{inference++;throw Error('unexpected charge');}
+ });
+ assert.equal(inference,1);assert.equal(db.jobs.length,before+1);
+});
+test('quarantined content never silently becomes a missing child mission with bogus status',async()=>{
+ const output=batch();
+ output.missions[1].steps[0]='Ofrecé unas cuentas pequeñas y un cordón al bebé para que pueda agarrarlos mientras comparten el momento.';
+ const result=await generateInfantFocus(familyState(6),'2026-11-23',{
+  env,fetcher:async()=>new Response(JSON.stringify({status:'completed',output:[
+   {content:[{type:'output_text',text:JSON.stringify(output)}]}]}),{status:200})
+ });
+ assert.deepEqual(result.missions.map(x=>x.kind),['conectar','sembrar']);
+ assert.ok(result.withheld.includes('child0:comprender:infant_hazard'));
+ assert.equal(result.family.kind,'familiar');
+ assert.ok(!JSON.stringify(result).includes('Ofrecé unas cuentas'));
 });
