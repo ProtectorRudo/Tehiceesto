@@ -42,7 +42,53 @@ const validPlayable=m=>validText(m.intro,55,230)&&validText(m.setup,55,310)&&
  (!imaginaryTransformation.test(m.intro)||mappingExample.test(m.setup+' '+m.example));
 // The onboarding does not ask for the child's grammatical gender. These expressions
 // grammatically assign one; request neutral alternatives instead of guessing.
-const assumedBabyGender=/(?:\best[eé]\s+despiert[oa]\b|\best[aá]\s+(?:inquiet[oa]|cansad[oa]|content[oa])\b|\b(?:cambiarlo|cambiarla)\s+de\s+posici[oó]n\b|\batend[eé](?:lo|la)\s+primero\b)/i;
+const assumedBabyGender=/(?:\best[eéaá]\s+despiert[oa]\b|\best[aá]\s+(?:inquiet[oa]|cansad[oa]|content[oa])\b|\b(?:cambiarlo|cambiarla)\s+de\s+posici[oó]n\b|\batend[eé](?:lo|la)\s+primero\b)/i;
+/** Safe, deterministic grammatical cleanup. Only literal agreement phrases change. */
+export function neutralizeInfantWording(m){
+ if(!m||typeof m!=='object')return m;
+ const fix=x=>typeof x==='string'?x
+  .replace(/\best[aá]\s+despiert[oa]\b/gi,'está en un momento de vigilia')
+  .replace(/\best[eé]\s+despiert[oa]\b/gi,'tenga ganas de compartir un rato')
+  .replace(/\best[aá]\s+inquiet[oa]\b/gi,'necesita una pausa')
+  .replace(/\best[aá]\s+cansad[oa]\b/gi,'necesita descansar')
+  .replace(/\best[aá]\s+content[oa]\b/gi,'está de buen ánimo')
+  .replace(/\bcambiar(?:lo|la)\s+de\s+posici[oó]n\b/gi,'cambiar su postura')
+  .replace(/\batend[eé](?:lo|la)\s+primero\b/gi,'atendé primero sus necesidades')
+ :x;
+ const copy={...m};
+ for(const field of ['intro','setup','opening','example','ifNo','why','observe']){
+  if(typeof copy[field]==='string')copy[field]=fix(copy[field]);
+ }
+ if(Array.isArray(copy.steps))copy.steps=copy.steps.map(fix);
+ return copy;
+}
+/** Safety: flag hazards in proposed actions, not clear warnings to avoid them.
+ * Ambiguous references remain blocked. No safety-critical wording is rewritten.
+ */
+const infantHazards=/pieza[s]?\s+peque[nñ]a[s]?|cuenta[s]?|tapita[s]?|globo[s]?|cord[oó]n(?:es)?|cordones|bolsa[s]?\s+de\s+pl[aá]stico|manta\s+sobre\s+la\s+cara|dejar(?:lo|la)\s+sol[oa]|(?:dejar|dej[aá]|dejes)\s+(?:al?\s+)?beb[eé]\s+sol[oa]/gi;
+const preventivePattern=/(?:^|[\s,:])(?:sin|evit[aá](?:r)?|eviten|evitando|no\s+(?:usar|uses|usen|utilices|utilizar|colocar|pongas|coloques|incluyas|ofrezcas|acerques|dejes|dejar|dar|des|deben\s+usar)|nunca\s+(?:usar|uses|dejes|dejar|pongas)|alej[aá](?:r)?|manten[eé](?:r)?\s+lejos|fuera\s+del\s+alcance)(?:\s+[\p{L}]+){0,4}\s*$/iu;
+const clearlyPreventive=prefix=>{
+ // A later contrasting clause or a new positive action cannot inherit
+ // negation from an earlier warning.
+ const clause=prefix.split(/\b(?:pero|aunque|luego|despu[eé]s|sin embargo|en cambio)\b/iu).at(-1)||'';
+ if(/(?:^|[\s,])(?:coloc[aá]|pon[eé]|ofrec[eé]|us[aá]|utiliz[aá]|acerc[aá]|dej[aá])(?:\s|$)/iu.test(clause))return false;
+ return preventivePattern.test(clause.slice(-90));
+};
+export function containsInfantHazardInstruction(fields){
+ const text=Array.isArray(fields)?fields.filter(x=>typeof x==='string').join('\n'):String(fields||'');
+ for(const clause of text.split(/[;.!?\n]+/u)){
+  for(const match of clause.matchAll(infantHazards)){
+   const prefix=clause.slice(0,match.index);
+   // Spanish "tené en cuenta" means "bear in mind", not a bead.
+   if(/^cuentas?$/i.test(match[0])&&/\ben\s*$/i.test(prefix))continue;
+   const local=prefix.slice(-90);
+   const prevention=clearlyPreventive(local)||
+    (/^(?:dejar|dej[aá]|dejes)\b/i.test(match[0])&&/\b(?:no|nunca|jam[aá]s)\s*$/i.test(local));
+   if(!prevention)return true;
+  }
+ }
+ return false;
+}
 const vagueSkill=/^(?:cari[nñ]o|amor|v[ií]nculo|conexi[oó]n|saludo|estar juntos|complicidad|presencia|rutina afectiva)$/i;
 /** Approximate age in months is requested, never inferred from names or DOB. */
 export const validInfantMonths=c=>{
@@ -96,8 +142,8 @@ export function premiumWeekQuality(profile,week){
      ...(m.steps||[]),m.why||'',m.observe||''].join(' ');
     if(assumedBabyGender.test(infantText))add(tag+':infant_gender_assumption');
     if(infantPseudoTest.test(infantText))add(tag+':infant_response_test');
-    if(/pieza peque[nñ]a|cuenta|tapita|globo|cord[oó]n|bolsa de pl[aá]stico|manta sobre la cara|dejarlo solo/i.test(
-      [m.setup||'',m.example||'',...(m.steps||[])].join(' ')))add(tag+':infant_hazard');
+    if(containsInfantHazardInstruction([m.setup||'',m.example||'',...(m.steps||[])]))
+     add(tag+':infant_hazard');
    }
    const targets=[c.goal,...(c.interests||[]),profile.monthlyGoal].map(normalize).filter(Boolean);
    if(!targets.includes(normalize(m.target)))add(tag+':target_not_from_profile');

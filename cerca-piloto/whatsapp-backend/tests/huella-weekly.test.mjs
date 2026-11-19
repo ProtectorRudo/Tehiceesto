@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {generatePremiumWeek,validatePremiumWeek,premiumWeekQuality,contentModel} from '../src/huella-ai.mjs';
+import {generatePremiumWeek,validatePremiumWeek,premiumWeekQuality,contentModel,neutralizeInfantWording,containsInfantHazardInstruction} from '../src/huella-ai.mjs';
 import {mondayOf,weeklyEnabled,prepareWeeklyDispatch,progressSummary,questionText,WEEKLY_SLOTS} from '../src/huella-weekly.mjs';
 import {VERIFIED_STORIES,verifiedStoryFor,formatVerifiedStory} from '../src/huella-sources.mjs';
 import {initialState,processInbound,formatMissions} from '../src/flow.mjs';
@@ -296,4 +296,55 @@ test('quality rejection reveals only non-identifying field codes, not child name
  const invalid=structuredClone(v);
  invalid.children[0].missions[1].example='Un ejemplo muy corto';
  assert.ok(premiumWeekQuality(s,invalid).codes.includes('child0:comprender:example'));
+});
+
+test('infant safety gate distinguishes clear hazard-prevention text from use of dangerous objects',()=>{
+ const positive=[
+  'Colocá un globo cerca del bebé para jugar mientras se encuentra en brazos.',
+  'No uses globos, pero colocá una tapita cerca del bebé para que pueda tocarla.',
+  'Dejá al bebé solo con un cordón sobre la mesa.',
+  'Ofrecé unas cuentas de colores para que pueda tocarlas y explorarlas.',
+  'Poné una tapita pequeña al alcance del bebé y esperá a que la toque.',
+  'Usá un cordón de tela para mostrarle cómo se mueve sobre la mesa.',
+  'Extendé una manta sobre la cara para continuar el juego.'
+ ];
+ for(const instruction of positive)assert.equal(containsInfantHazardInstruction(instruction),true,instruction);
+ const protective=[
+  'No uses globos ni cordones durante el juego.',
+  'Evitá los globos y las cuentas pequeñas; compartí un libro de imágenes de cartón.',
+  'Hacé el juego sin tapitas y sin piezas pequeñas.',
+  'Tené en cuenta el ritmo del bebé y mantené la postura cómoda.',
+  'No dejes al bebé solo durante la actividad.',
+  'No colocar una manta sobre la cara.'
+ ];
+ for(const instruction of protective)assert.equal(containsInfantHazardInstruction(instruction),false,instruction);
+});
+test('protective infant risk wording no longer blocks an otherwise valid mission, but unsafe proposals still fail',()=>{
+ const state=profile(),safe=fixture();
+ safe.children[0].missions[2].steps[0]=
+  'Elegí un momento tranquilo sin globos y sin objetos pequeños; compartí una canción conocida al lado del bebé.';
+ assert.equal(validatePremiumWeek(state,safe),true,JSON.stringify(premiumWeekQuality(state,safe).codes));
+ const dangerous=structuredClone(safe);
+ dangerous.children[0].missions[2].steps[0]=
+  'Colocá un globo de colores cerca del bebé para que lo toque durante la canción y puedan compartir un rato.';
+ const report=premiumWeekQuality(state,dangerous);
+ assert.equal(report.ok,false);
+ assert.ok(report.codes.includes('child0:sembrar:infant_hazard'));
+});
+test('neutralizes limited gender-agreement phrasing without changing actions, goals or safety-relevant objects',()=>{
+ const mission={kind:'conectar',title:'Juego corto',
+  intro:'Si está despierto podemos compartir un rato.',
+  setup:'No hace falta cambiarla de posición para comenzar; dejá el libro donde está.',
+  opening:'«Cuando esté despierta y a gusto podemos mirar un libro.»',
+  example:'Si está inquieta, atendela primero y respetá que pueda descansar.',
+  steps:['Cuando esté despierto, hablá con calma.'],
+  ifNo:'Si está cansada, terminá el juego.',
+  why:'No estamos probando habilidades.',
+  observe:'Si está contenta, acompañá su tranquilidad.'};
+ const original=structuredClone(mission);
+ const normalized=neutralizeInfantWording(mission);
+ assert.ok(!JSON.stringify(normalized).match(/despiert[oa]|inquiet[oa]|cansad[oa]|content[oa]|cambiarla|atendela/i));
+ assert.equal(normalized.kind,mission.kind);assert.equal(normalized.title,mission.title);
+ assert.ok(normalized.setup.includes('libro'));
+ assert.deepEqual(mission,original,'do not mutate original generation');
 });

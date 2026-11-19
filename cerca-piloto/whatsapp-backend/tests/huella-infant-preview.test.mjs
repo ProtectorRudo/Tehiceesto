@@ -266,3 +266,28 @@ test('V2 opt-out while generating prevents the final missions and preserves safe
  assert.ok(!db.jobs.some(x=>x.payload.body.includes('Cómo hacerlo')));
  assert.equal(db.row.state.huellaPilotStartDay,null);
 });
+
+test('focused model locally cleans grammar then validates safety before sending',async()=>{
+ const result=batch();
+ result.missions[0].ifNo='Si está cansada, atendela primero y dejá el juego para otra ocasión tranquila con tiempo para compartir.';
+ const fetcher=async()=>new Response(JSON.stringify({status:'completed',output:[
+  {content:[{type:'output_text',text:JSON.stringify(result)}]}
+ ]}),{status:200});
+ const generated=await generateInfantFocus(familyState(5),'2026-11-23',{env,fetcher});
+ assert.match(generated.missions[0].ifNo,/necesita descansar/);
+ assert.match(generated.missions[0].ifNo,/atendé primero sus necesidades/);
+ assert.doesNotMatch(generated.missions[0].ifNo,/cansada|atendela/);
+ const unsafe=batch();
+ unsafe.missions[2].steps[0]='Colocá un globo de colores cerca del bebé para que lo toque durante la canción y puedan compartir el momento con alegría.';
+ await assert.rejects(
+  generateInfantFocus(familyState(5),'2026-11-23',{env,
+   fetcher:async()=>new Response(JSON.stringify({status:'completed',output:[
+    {content:[{type:'output_text',text:JSON.stringify(unsafe)}]}
+   ]}),{status:200})}),
+  err=>{
+   assert.equal(err.message,'huella_ai_quality_rejected');
+   assert.ok(err.issueCodes.includes('child0:sembrar:infant_hazard'),JSON.stringify(err.issueCodes));
+   return true;
+  }
+ );
+});
