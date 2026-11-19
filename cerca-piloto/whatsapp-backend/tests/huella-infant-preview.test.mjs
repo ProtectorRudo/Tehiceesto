@@ -468,3 +468,28 @@ test('one paid generation with an unsafe Sembrar is fully replaced before WhatsA
  assert.ok(!joined.includes('Ofrecé un globo'));
  assert.equal(db.row.state.huellaPilotStartDay,null);
 });
+
+test('infant-only generation asks OpenAI for exactly three missions, not a family plan',async()=>{
+ let calls=0;
+ const output={missions:batch().missions};
+ const response=await generateInfantFocus(familyState(6),'2026-11-23',{
+  env,includeFamily:false,fetcher:async(url,opts)=>{
+   calls++;
+   const req=JSON.parse(opts.body);
+   assert.equal(req.text.format.name,'huella_infant_only_v1');
+   assert.deepEqual(req.text.format.schema.required,['missions']);
+   assert.equal(req.text.format.schema.properties.family,undefined);
+   assert.match(req.instructions,/SOLO TRES misiones/);
+   assert.equal(req.reasoning.effort,'high');
+   return new Response(JSON.stringify({status:'completed',output:[
+    {content:[{type:'output_text',text:JSON.stringify(output)}]}
+   ]}),{status:200});
+  }
+ });
+ assert.equal(calls,1);
+ assert.equal(response.missions.length,3);
+ assert.deepEqual(response.missions.map(m=>m.kind),['conectar','comprender','sembrar']);
+ assert.equal(response.family,null);
+ assert.ok(!response.replaced.includes('family'));
+ assert.equal(response.ageMonths,6);
+});

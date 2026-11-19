@@ -146,54 +146,79 @@ test('allowlists and consent are checked before even reserving a paid call',asyn
  assert.equal(await handleQualityPreviewInbound(message('quality:10'),{db:stopped,env,now:time}),'not_active');
 });
 
-test('PREVIA COMPLETA is exclusive to a single authorized family and one new paid call',async()=>{
- assert.equal(isRecoveryPreviewIntent('PRÉVIA COMPLETA'),true);
+function kaiaOnly(){
+ const kinds=['conectar','comprender','sembrar'];
+ return {day:'2026-11-23',childName:'Kaia',childIndex:1,ageMonths:6,
+ missions:kinds.map(kind=>({...mission(kind,'Kaia'),target:'sonidos'})),
+ family:null,replaced:[],withheld:[],editorialWarnings:[]};
+}
+test('PREVIA KAIA (and the previously instructed PREVIA COMPLETA) sends only three Kaia missions',async()=>{
+ assert.equal(isRecoveryPreviewIntent('PRÉVIA KAIA'),true);
+ assert.equal(isRecoveryPreviewIntent('PREVIA COMPLETA'),true);
  assert.equal(isRecoveryPreviewIntent('PREVIA'),false);
  const prior=profile();
+ prior.children[1].name='Kaia';
+ prior.children[1].ageMonths=6;
  prior.huellaQualityPreview={revision:QUALITY_PREVIEW_REVISION,status:'ready',attempts:1,batch:weekly()};
  prior.huellaInfantReviewV3={status:'failed',attempts:1};
  const original=structuredClone(prior);
  const db=fakeDb(prior);let calls=0;
- const run=async id=>handleQualityPreviewInbound(message(id,'PREVIA COMPLETA'),{
-  db,env,now:time,generate:async(state,week)=>{
-   calls++;assert.equal(week,'2026-11-23');
-   assert.ok(state.history.some(x=>x.day==='editorial-reference'));
+ const run=async id=>handleQualityPreviewInbound(message(id,'PREVIA KAIA'),{
+  db,env,now:time,
+  generate:async()=>{throw Error('whole family should never generate')},
+  generateInfant:async(state,week,opts)=>{
+   calls++;
+   assert.equal(week,'2026-11-23');
+   assert.equal(opts.includeFamily,false);
    assert.equal(state.huellaPreview.attempts,2);
    assert.equal(state.huellaInfantReviewV3.status,'failed');
-   return weekly();
+   return kaiaOnly();
   }
  });
- assert.equal(await run('recovery:1'),'applied');
+ assert.equal(await run('kaia:1'),'applied');
  assert.equal(calls,1);
  assert.equal(db.record.state.huellaRecoveryPreview.revision,RECOVERY_PREVIEW_REVISION);
  assert.equal(db.record.state.huellaRecoveryPreview.status,'ready');
  assert.equal(db.record.state.huellaRecoveryPreview.attempts,1);
- assert.equal(db.record.state.huellaRecoveryPreview.batch.children.length,2);
- assert.ok(db.record.state.huellaRecoveryPreview.batch.children.every(x=>x.missions.length===3));
- assert.ok(db.record.state.huellaRecoveryPreview.batch.weekly);
+ assert.equal(db.record.state.huellaRecoveryPreview.batch.childName,'Kaia');
+ assert.equal(db.record.state.huellaRecoveryPreview.batch.missions.length,3);
+ assert.equal(db.record.state.huellaRecoveryPreview.batch.family,null);
  assert.deepEqual(db.record.state.huellaPreview,original.huellaPreview);
  assert.deepEqual(db.record.state.huellaQualityPreview,original.huellaQualityPreview);
  assert.deepEqual(db.record.state.huellaInfantReviewV3,original.huellaInfantReviewV3);
  assert.equal(db.record.state.huellaPilotStartDay,null);
- assert.ok(db.jobs.some(x=>x.payload.body.includes('LUNES · Experiencia familiar')));
- assert.equal(await run('recovery:2'),'applied');
- assert.equal(calls,1,'retry cannot invoke OpenAI again');
+ const bodies=db.jobs.map(j=>j.payload.body).join('\n');
+ assert.match(bodies,/Kaia/);
+ assert.ok(!bodies.includes('Allegra'));
+ assert.ok(!bodies.includes('Experiencia familiar'));
+ assert.ok(!bodies.includes('Hija mayor'));
+ assert.equal(await run('kaia:2'),'applied');
+ assert.equal(calls,1,'duplicate must not use another API call');
 });
-test('PREVIA COMPLETA failure stays consumed; opt-out and wrong allowlist never call AI',async()=>{
- const db=fakeDb();let calls=0;
+test('Kaia-only failure stays consumed; wrong profile and allowlist cannot spend',async()=>{
+ const prior=profile();prior.children[1].name='Kaia';prior.children[1].ageMonths=6;
+ const db=fakeDb(prior);let calls=0;
  const run=(id,settings=env)=>handleQualityPreviewInbound(message(id,'PREVIA COMPLETA'),{
-  db,env:settings,now:time,generate:async()=>{calls++;throw Error('huella_ai_http_503');}
+  db,env:settings,now:time,generateInfant:async()=>{
+   calls++;throw Error('huella_ai_http_503');
+  }
  });
- assert.equal(await run('recovery:failure'),'applied');
+ assert.equal(await run('kaia:failure'),'applied');
  assert.equal(db.record.state.huellaRecoveryPreview.status,'failed');
- assert.equal(await run('recovery:repeat'),'applied');
+ assert.equal(await run('kaia:repeat'),'applied');
  assert.equal(calls,1);
  assert.equal(db.record.state.huellaPreview.attempts,2);
  assert.equal(db.record.state.huellaPilotStartDay,null);
- assert.ok(db.jobs.some(x=>x.payload.body.includes('otra generación paga')));
- const denied=fakeDb();
- assert.equal(await handleQualityPreviewInbound(message('recovery:deny','PREVIA COMPLETA'),{
+ assert.ok(db.jobs.some(x=>x.payload.body.includes('otra llamada paga')));
+ const denied=fakeDb(prior);
+ assert.equal(await handleQualityPreviewInbound(message('kaia:deny','PREVIA KAIA'),{
   db:denied,env:{...env,CERCA_TEST_WA_IDS:PHONE+',5492219000000'},now:time
  }),null);
  assert.equal(denied.jobs.length,0);
+ const noKaia=fakeDb(profile());
+ assert.equal(await handleQualityPreviewInbound(message('kaia:missing','PREVIA KAIA'),{
+  db:noKaia,env,now:time,
+  generateInfant:async()=>{throw Error('should not generate')}
+ }),'applied');
+ assert.equal(noKaia.record.state.huellaRecoveryPreview,undefined);
 });

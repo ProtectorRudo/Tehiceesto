@@ -22,7 +22,7 @@ const service=(body,key,index,receivedAt)=>({
  key:tokenKey(key+':'+index),channel:'service',payload:{body},
  expires_at:new Date(new Date(receivedAt).getTime()+23*3600000).toISOString()
 });
-const format=(batch)=>{
+export const formatInfantReview=(batch)=>{
  const missions=Array.isArray(batch.missions)?batch.missions:[];
  const family=batch.family||null;
  const withheld=Array.isArray(batch.withheld)?batch.withheld:[];
@@ -90,7 +90,7 @@ export async function handleInfantReview(m,{db,env=process.env,now=new Date(),
     'La revisión para el bebé se está preparando. No hace falta enviar el comando de nuevo.':
     'La revisión no pudo completarse. Por seguridad se consumió el único intento permitido; no haré otra llamada paga automáticamente.';
   const jobs=previous.status==='ready'&&normalized(m.text)===normalized(viewCommand)
-   ?format(previous.batch).map((x,i)=>service(x.body,eventId+':view',i,m.receivedAt))
+   ?formatInfantReview(previous.batch).map((x,i)=>service(x.body,eventId+':view',i,m.receivedAt))
    :[service(body,eventId+':status',0,m.receivedAt)];
   return (await db.commit(m.phone,row.revision,eventId,row.state,jobs)).status;
  }
@@ -109,7 +109,7 @@ export async function handleInfantReview(m,{db,env=process.env,now=new Date(),
  try{await flush(2);}catch{/* queued safely */}
  return defer(async()=>{
   let result=null,messages=null,error=null,issueCodes=[];
-  try{result=await generate(reserve,weekKey,{env});messages=format(result);}
+  try{result=await generate(reserve,weekKey,{env});messages=formatInfantReview(result);}
   catch(e){
    error=errorCode(e);
    // Persist only anonymous validator rule codes; never persist raw OpenAI
