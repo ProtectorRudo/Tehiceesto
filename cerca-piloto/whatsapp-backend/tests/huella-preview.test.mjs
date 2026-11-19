@@ -23,6 +23,10 @@ const state=()=>{
 const mission=(kind,i,day)=>({
  kind,title:'Un encuentro especial con '+(i===0?'bebé':'la mayor')+' para '+kind,
  intro:'Hoy vas a compartir una actividad corta, guiada por sus intereses, con momentos para observar y darle la posibilidad de decidir cómo participar.',
+ setup:'La misión se hace en casa, con una hoja y un lápiz que ya tengas. Elegí una mesa despejada y dejá que quien participa decida dónde sentarse.',
+ opening:'«¿Te gustaría que hagamos un juego corto juntos? Vos podés elegir cómo comenzamos y yo te acompaño.»',
+ example:'Por ejemplo, si elige dibujar una puerta imaginaria, preguntale adónde lleva. Si inventa un bosque, aceptá ese lugar y agregá una idea solo si lo pide.',
+ ifNo:'Si hoy no quiere participar, dejá la hoja guardada y ofrecé compartir un momento tranquilo en otra ocasión, sin insistir.',
  steps:['Elegí un momento tranquilo para compartir diez minutos siguiendo la atención del niño.',
   'Ofrecé una elección adecuada a su edad, escuchá su reacción y respetá cuando quiera terminar.'],
  why:'Esta propuesta ofrece tiempo de escucha y respeto de sus decisiones sin forzar resultados.',
@@ -35,6 +39,10 @@ const week=()=>{
  children:p.children.map((c,i)=>({name:c.name,missions:['conectar','comprender','sembrar'].map(kind=>mission(kind,i))})),
  weekly:{title:'Nuestros momentos favoritos de noviembre',
   intro:'Toda la familia va a elegir un recuerdo simple para compartirlo con calma, adaptando el encuentro a quienes quieran participar.',
+   setup:'En el living o la mesa, dejá a mano una hoja y un lápiz; no se requiere nada especial. El bebé puede acompañar desde un lugar seguro y cómodo.',
+   opening:'«¿Les parece que compartamos un recuerdo pequeño de la semana? Cada persona puede participar a su manera.»',
+   example:'Por ejemplo, alguien recuerda un paseo; podés preguntarle qué detalle le llamó la atención. El bebé puede estar cerca, sin tener que hacer ninguna actividad.',
+   ifNo:'Si alguien no tiene ganas de contar nada, puede escuchar. Si hoy no se da, guarden la propuesta para otro día sin insistir.',
   steps:['Cada persona puede elegir un pequeño momento para recordar durante la comida familiar.',
    'Escuchen las elecciones sin interrumpir y escriban un recuerdo compartido en una hoja.'],
   why:'Una rutina compartida puede crear una oportunidad de encuentro sin pedir perfección.',
@@ -79,7 +87,7 @@ test('formatter sends complete missions, why/how/observe and sourced story witho
  assert.match(bodies,/CON[fN]?ECTAR|conectar/i);
  assert.match(bodies,/JUEVES/);assert.match(bodies,/SÁBADO/);
  assert.match(bodies,/De qué se trata/);assert.match(bodies,/Cómo hacerlo/);
- assert.match(bodies,/Por qué/);assert.match(bodies,/Qué observar/);
+ assert.match(bodies,/Qué buscamos con esta experiencia/);assert.match(bodies,/Qué observar/);
  assert.match(bodies,/UNICEF/);assert.match(bodies,/Domingo/i);
  assert.ok(messages.every(x=>x.body.length<=3600));
 });
@@ -186,4 +194,14 @@ test('an old cached preview without introductions can still be opened safely wit
  const messages=previewMessages(old,state(),'2026-11-23');
  assert.ok(messages.some(m=>m.body.includes('Esta experiencia se explica en los pasos siguientes.')));
  assert.ok(messages.some(m=>m.body.includes('Una propuesta para compartir en familia.'))===false || messages.length>=5);
+});
+
+test('private WhatsApp preview exposes a setup, exact opening, and concrete example',()=>{
+ const messages=previewMessages(week(),state(),'2026-11-23');
+ const all=messages.map(x=>x.body).join('\n');
+ assert.match(all,/Preparación:/);
+ assert.match(all,/Qué decir para empezar:/);
+ assert.match(all,/Ejemplo de cómo jugar:/);
+ assert.match(all,/Qué buscamos con esta experiencia:/);
+ assert.ok(messages.every(x=>x.body.length<=3600));
 });

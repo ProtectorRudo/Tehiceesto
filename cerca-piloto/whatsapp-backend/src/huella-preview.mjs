@@ -25,9 +25,13 @@ const safe=(body)=>{if(typeof body!=='string'||!body.trim()||body.length>3600)th
 function description(m,day){
  return ['*'+day+' · '+String(m.title||'')+'*',
  '*De qué se trata:* '+(m.intro||'Esta experiencia se explica en los pasos siguientes.'),
+ ...(m.setup?['*Preparación:* '+m.setup]:[]),
+ ...(m.opening?['*Qué decir para empezar:* '+m.opening]:[]),
  '*Cómo hacerlo:*',...(m.steps||[]).map((step,i)=>(i+1)+'. '+step),
- '*Por qué puede valer la pena:* '+m.why,
- '*Qué observar, sin exigir resultados:* '+m.observe,...(m.kind==='sembrar'&&m.skill?['*Habilidad que se practica:* '+m.skill]:[])].join('\n');
+ ...(m.example?['*Ejemplo de cómo jugar:* '+m.example]:[]),
+ '*Qué buscamos con esta experiencia:* '+m.why,
+ '*Qué observar, sin exigir resultados:* '+m.observe,
+ ...(m.ifNo?['*Si hoy no tiene ganas:* '+m.ifNo]:[]),...(m.kind==='sembrar'&&m.skill?['*Habilidad que se practica:* '+m.skill]:[])].join('\n');
 }
 export function previewMessages(batch,state,weekStart){
  if(!batch||batch.children?.length!==state.children?.length||!batch.weekly)throw Error('preview_incomplete');

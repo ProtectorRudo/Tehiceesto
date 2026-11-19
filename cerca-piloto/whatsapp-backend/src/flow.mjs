@@ -170,9 +170,13 @@ export function formatMissions(batch){
  const lines=[`🌱 HUELLA — ${batch.day}`];
  const missionDetails=m=>typeof m.how==='string'?m.how:[
    m.intro?'*De qué se trata:* '+m.intro:null,
+   m.setup?'*Preparación:* '+m.setup:null,
+   m.opening?'*Qué decir para empezar:* '+m.opening:null,
    Array.isArray(m.steps)?'*Cómo hacerlo:*\n'+m.steps.map((step,i)=>(i+1)+'. '+step).join('\n'):null,
-   m.why?'*Por qué puede valer la pena:* '+m.why:null,
+   m.example?'*Ejemplo de cómo jugar:* '+m.example:null,
+   m.why?'*Qué buscamos con esta experiencia:* '+m.why:null,
    m.observe?'*Qué observar:* '+m.observe:null,
+   m.ifNo?'*Si no quiere participar:* '+m.ifNo:null,
    m.kind==='sembrar'&&m.skill?'*Habilidad:* '+m.skill:null
  ].filter(Boolean).join('\n');
  for(const kid of batch.children||[]){
