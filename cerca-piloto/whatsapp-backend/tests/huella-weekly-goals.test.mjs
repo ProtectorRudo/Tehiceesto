@@ -62,6 +62,7 @@ test('options change across Sundays and respect developmental stages',()=>{
  assert.equal(a.length,3);
  assert.equal(new Set(a).size,3);
  assert.notDeepEqual(a,b);
+ assert.equal(a.filter(x=>b.includes(x)).length,0,'all three suggestions should change the following Sunday');
  assert.ok(a.every(x=>typeof x==='string'&&x.length>15));
  assert.ok(!c.some(x=>/bebé|lactancia|siesta/i.test(x)));
  assert.notDeepEqual(a,c);
