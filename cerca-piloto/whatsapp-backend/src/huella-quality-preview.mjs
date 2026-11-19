@@ -22,7 +22,7 @@ const service=(body,key,index,receivedAt)=>({
 const reason=e=>{
  const str=String(e?.message||'');
  return /^huella_ai_http_\d{3}$/.test(str)?str:
- ['huella_ai_quality_rejected','huella_ai_incomplete','huella_ai_bad_json',
+ ['huella_ai_quality_rejected','huella_ai_safety_or_structure','huella_ai_incomplete','huella_ai_bad_json',
  'huella_ai_empty','huella_ai_refusal','huella_profile_invalid',
  'preview_message_length','preview_too_many_messages'].includes(str)?str:
  e?.name==='AbortError'?'huella_ai_timeout':'huella_quality_preview_failed';

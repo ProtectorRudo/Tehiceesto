@@ -2,7 +2,7 @@
  * One authorized paid inference; never turns HUELLA into an open chatbot.
  */
 import {tokenKey,localClock} from './scheduler.mjs';
-import {mondayOf,missionText,familyText} from './huella-weekly.mjs';
+import {mondayOf,missionText,familyText,splitLongMission} from './huella-weekly.mjs';
 import {previewPermitted} from './huella-preview.mjs';
 import {generateInfantFocus} from './huella-infant-ai.mjs';
 import {validInfantMonths} from './huella-ai.mjs';
@@ -26,16 +26,17 @@ const format=(batch)=>{
   body:'🌱 *HUELLA · Prueba enfocada de calidad*\n\nTres misiones nuevas para '+batch.childName+
    ' ('+batch.ageMonths+' meses aprox.) y una propuesta para toda la familia. Son ejemplos para evaluar, no activan el mes de prueba.'
  }];
- for(const mission of batch.missions||[])messages.push({body:missionText(batch.childName,mission)});
- messages.push({body:familyText(batch.family)});
- if(messages.length!==5||messages.some(x=>!x.body||x.body.length>3400))
+ for(const mission of batch.missions||[])
+  for(const body of splitLongMission(missionText(batch.childName,mission)))messages.push({body});
+ for(const body of splitLongMission(familyText(batch.family)))messages.push({body});
+ if(messages.length<2||messages.length>15||messages.some(x=>!x.body||x.body.length>3400))
   throw Error('huella_infant_preview_invalid');
  return messages;
 };
 const errorCode=error=>{
  const str=String(error?.message||'');
  if(/^huella_ai_http_\d{3}$/.test(str))return str;
- if(['huella_ai_quality_rejected','huella_ai_incomplete','huella_ai_empty',
+ if(['huella_ai_quality_rejected','huella_ai_safety_or_structure','huella_ai_incomplete','huella_ai_empty',
   'huella_ai_bad_json','huella_ai_refusal','huella_infant_focus_single_only',
   'huella_infant_months_missing','huella_infant_preview_invalid',
   'huella_content_too_long'].includes(str))return str;

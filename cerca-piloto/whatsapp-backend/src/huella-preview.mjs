@@ -59,7 +59,7 @@ export function previewMessages(batch,state,weekStart){
 const errorCode=error=>{
  const str=String(error?.message||'');
  if(/^huella_ai_http_\d{3}$/.test(str))return str;
- if(['huella_ai_incomplete','huella_ai_bad_json','huella_ai_quality_rejected','huella_ai_refusal','huella_ai_empty','huella_ai_not_configured','huella_ai_profile_invalid'].includes(str))return str;
+ if(['huella_ai_incomplete','huella_ai_bad_json','huella_ai_quality_rejected','huella_ai_safety_or_structure','huella_ai_refusal','huella_ai_empty','huella_ai_not_configured','huella_ai_profile_invalid'].includes(str))return str;
  return error?.name==='AbortError'?'huella_ai_timeout':'huella_preview_failed';
 };
 /** Returns null for any message that is not an authorized preview command. */

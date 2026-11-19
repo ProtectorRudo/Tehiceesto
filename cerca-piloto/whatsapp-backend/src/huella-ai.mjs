@@ -166,6 +166,60 @@ export function premiumWeekQuality(profile,week){
 }
 export const validatePremiumWeek=(profile,week)=>premiumWeekQuality(profile,week).ok;
 
+/**
+ * Separate editorial critique from delivery eligibility.
+ *
+ * Editorial diagnostics remain useful for improving prompts but MUST NOT turn
+ * harmless style, title repetition, exact-target wording, or minor lengths
+ * into missing WhatsApp missions. Only absent usable content and concrete
+ * unsafe instructions can prevent delivery.
+ */
+export function deliveryReadiness(profile,week){
+ const hard=[],editorial=premiumWeekQuality(profile,week);
+ const add=code=>{if(hard.length<24)hard.push(code);};
+ if(!week||!Array.isArray(week.children)||week.children.length!==profile.children?.length||
+    !week.family||typeof week.family!=='object'){
+  return {ok:false,hard:['invalid_week_structure'],advisories:editorial.codes};
+ }
+ const essential=(m,prefix)=>{
+  if(!m||typeof m!=='object'||typeof m.title!=='string'||!m.title.trim()||
+     typeof m.intro!=='string'||!m.intro.trim()||
+     !Array.isArray(m.steps)||m.steps.length<1||
+     m.steps.some(x=>typeof x!=='string'||!x.trim())||
+     typeof m.why!=='string'||!m.why.trim()){
+   add(prefix+':missing_essential_content');return;
+  }
+  // Safety-critical text is checked after safe infant grammatical cleanup.
+  const directions=[m.setup||'',m.opening||'',...(m.steps||[]),m.example||'',m.ifNo||''];
+  if(directions.some(x=>typeof x==='string'&&unsafeInstruction(x)))
+   add(prefix+':harmful_instruction');
+ };
+ for(let i=0;i<profile.children.length;i++){
+  const entry=week.children[i],child=profile.children[i];
+  if(!entry||entry.index!==i||!Array.isArray(entry.missions)||entry.missions.length!==3){
+   add('child'+i+':mission_structure');continue;
+  }
+  for(let j=0;j<3;j++){
+   const kind=['conectar','comprender','sembrar'][j],m=entry.missions[j],code='child'+i+':'+kind;
+   if(!m||m.kind!==kind){add(code+':kind');continue;}
+   essential(m,code);
+   if(Number(child.age)<2&&containsInfantHazardInstruction([
+      m.setup||'',m.example||'',...(m.steps||[])
+    ]))add(code+':infant_hazard');
+  }
+ }
+ essential(week.family,'family');
+ return {ok:hard.length===0,hard,advisories:editorial.codes.filter(x=>!hard.includes(x))};
+}
+export const normalizeDeliveryGrammar=(profile,week)=>{
+ if(!week||!Array.isArray(week.children))return week;
+ return {...week,children:week.children.map((entry,i)=>
+  Number(profile.children?.[i]?.age)<2&&entry&&Array.isArray(entry.missions)
+   ?{...entry,missions:entry.missions.map(neutralizeInfantWording)}
+   :entry)};
+};
+
+
 const prompt=[
  'Sos el motor EDITORIAL de HUELLA, no un chatbot ni consejero personal.',
  'Tu objetivo es proponer una semana de experiencias extraordinariamente personalizadas, seguras, cálidas y realizables. No basta con una actividad bonita.',
@@ -234,11 +288,17 @@ export async function generatePremiumWeek(state,weekStart,{fetcher=fetch,env=pro
     input:JSON.stringify(minimalContext(state,weekStart)),max_output_tokens:12000,
     text:{format:{type:'json_schema',name:'huella_week_v1',strict:true,schema:WEEK_SCHEMA}}})});
   if(!r.ok)throw Error('huella_ai_http_'+r.status);
-  const obj=extract(await r.json());
-  if(!validatePremiumWeek(state,obj))throw Error('huella_ai_quality_rejected');
+  const obj=normalizeDeliveryGrammar(state,extract(await r.json()));
+  const review=deliveryReadiness(state,obj);
+  if(!review.ok){
+   const err=Error('huella_ai_safety_or_structure');
+   err.issueCodes=review.hard;
+   throw err;
+  }
   const children=obj.children.map((item,index)=>({
    name:state.children[index].name,missions:item.missions.map(m=>({...m,source:'ai_reviewed',foundation:foundationFor(state.children[index].age)}))
   }));
-  return {day:weekStart,children,weekly:{...obj.family,kind:'familiar',source:'ai_reviewed'}};
+  return {day:weekStart,children,weekly:{...obj.family,kind:'familiar',source:'ai_reviewed'},
+   editorialWarnings:review.advisories.slice(0,20)};
  }finally{clearTimeout(timeout);}
 }

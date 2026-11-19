@@ -163,16 +163,15 @@ test('inbound guided age months for baby never changes sibling or completed prev
  assert.equal(second.state.huellaPilotStartDay,null);
 });
 
-test('invalid generated target yields a traceable anonymous rule code',async()=>{
+test('a harmless imperfect target becomes editorial feedback, never a dropped baby mission',async()=>{
  const invalid=batch();invalid.missions[0].target='invented preference';
- await assert.rejects(generateInfantFocus(familyState(),'2026-11-23',{
+ const prepared=await generateInfantFocus(familyState(),'2026-11-23',{
   env,fetcher:async()=>new Response(JSON.stringify({status:'completed',
    output:[{content:[{type:'output_text',text:JSON.stringify(invalid)}]}]}),{status:200})
- }),err=>{
-  assert.equal(err.message,'huella_ai_quality_rejected');
-  assert.ok(err.issueCodes.includes('child0:conectar:target_not_from_profile'));
-  assert.ok(!JSON.stringify(err.issueCodes).includes('Bebé'));return true;
  });
+ assert.equal(prepared.missions.length,3);
+ assert.ok(prepared.editorialWarnings.includes('child0:conectar:target_not_from_profile'));
+ assert.ok(!JSON.stringify(prepared.editorialWarnings).includes('Bebé'));
 });
 test('quality failure persists anonymous diagnostic codes without saving generated content',async()=>{
  const db=fakeDb();
@@ -285,9 +284,23 @@ test('focused model locally cleans grammar then validates safety before sending'
     {content:[{type:'output_text',text:JSON.stringify(unsafe)}]}
    ]}),{status:200})}),
   err=>{
-   assert.equal(err.message,'huella_ai_quality_rejected');
+   assert.equal(err.message,'huella_ai_safety_or_structure');
    assert.ok(err.issueCodes.includes('child0:sembrar:infant_hazard'),JSON.stringify(err.issueCodes));
    return true;
   }
  );
+});
+
+test('focused baby generation keeps valid content despite old pseudo-psychological editorial rules',async()=>{
+ const output=batch();
+ output.missions[0].title='Corta';
+ output.missions[1].target='invented-but-harmless label';
+ output.missions[2].skill='amor';
+ const r=await generateInfantFocus(familyState(6),'2026-11-23',{env,
+  fetcher:async()=>new Response(JSON.stringify({status:'completed',output:[{
+   content:[{type:'output_text',text:JSON.stringify(output)}]}]}),{status:200})
+ });
+ assert.equal(r.missions.length,3);
+ assert.ok(r.editorialWarnings.length>0);
+ assert.equal(r.ageMonths,6);
 });

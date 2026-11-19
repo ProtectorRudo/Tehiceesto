@@ -13,12 +13,27 @@ export function mondayOf(day){
 const spanDays=(a,b)=>Math.floor((dateAtUTC(a)-dateAtUTC(b))/86400000);
 const expiry=day=>new Date(day+'T23:59:59-03:00').toISOString();
 const shorten=(s,n)=>String(s||'').trim().slice(0,n);
-function compact(body){
+function compact(body,enforceLimit=true){
  const trimmed=body.trim();
- // Only the isolated Evolution test pilot uses this extended text envelope.
- // Official WhatsApp templates will need their own approved formatting; never truncate.
- if(trimmed.length>3400)throw Error('huella_content_too_long');
+ // Never truncate text. The weekly slots can split long missions at paragraph
+ // boundaries; story and reflection still have their own transport limits.
+ if(enforceLimit&&trimmed.length>3400)throw Error('huella_content_too_long');
  return trimmed;
+}
+/** Split long messages into complete paragraphs; no silent truncation.
+ * Provider/template-specific limits must be checked separately before production.
+ */
+export function splitLongMission(body,max=3400){
+ const pieces=[],paragraphs=String(body||'').trim().split(/\n\n+/);
+ let group='';
+ for(const paragraph of paragraphs){
+  if(paragraph.length>max)throw Error('huella_paragraph_too_long');
+  const candidate=group?group+'\n\n'+paragraph:paragraph;
+  if(candidate.length>max){pieces.push(group);group=paragraph;}
+  else group=candidate;
+ }
+ if(group)pieces.push(group);
+ return pieces;
 }
 const steps=m=>m.steps.map((s,i)=>String(i+1)+'. '+s).join('\n');
 export function missionText(name,m){
@@ -33,7 +48,7 @@ export function missionText(name,m){
   '*Qué observar, sin exigir resultados:* '+m.observe,
   ...(m.ifNo?['*Si hoy no tiene ganas:* '+m.ifNo]:[]),
   ...(m.kind==='sembrar'&&m.skill?['*Habilidad que se practica:* '+m.skill]:[]),
-  'Duración sugerida: 5–15 minutos. Si no quiere participar, respetá su decisión.'].join('\n\n'));
+  'Duración sugerida: 5–15 minutos. Si no quiere participar, respetá su decisión.'].join('\n\n'),false);
 }
 export function familyText(m){
  return compact(['🏡 HUELLA · Momento familiar','*'+m.title+'*',
@@ -45,7 +60,7 @@ export function familyText(m){
   '*Qué buscamos con esta experiencia:* '+m.why,
   '*Qué observar, sin exigir resultados:* '+m.observe,
   ...(m.ifNo?['*Si no se da hoy:* '+m.ifNo]:[]),...(m.kind==='sembrar'&&m.skill?['*Habilidad:* '+m.skill]:[]),
-  'Pueden adaptarla a las edades de todos. Nadie tiene obligación de participar.'].join('\n\n'));
+  'Pueden adaptarla a las edades de todos. Nadie tiene obligación de participar.'].join('\n\n'),false);
 }
 export function questionText(state,weekKey){
  const count=(state.children||[]).length;
@@ -116,8 +131,8 @@ export async function prepareWeeklyDispatch(state,phone,now,{env=process.env,gen
  const jobs=[];
  const daily=env.EVOLUTION_TEMPLATE_DAILY,weekly=env.EVOLUTION_TEMPLATE_WEEKLY;
  if(slot==='family'){
-  const body=familyText(batch.weekly);
-  jobs.push(tagged('Familia',body,weekly,phone,clock.day,slot,0));
+  const messages=splitLongMission(familyText(batch.weekly));
+  messages.forEach((body,part)=>jobs.push(tagged('Familia',body,weekly,phone,clock.day,slot,part)));
  }
  if(['conectar','comprender','sembrar'].includes(slot)){
   for(let index=0;index<batch.children.length;index++){
@@ -125,7 +140,9 @@ export async function prepareWeeklyDispatch(state,phone,now,{env=process.env,gen
    if(child.name!==stateCopy.children[index]?.name)throw Error('huella_family_mismatch');
    const mission=child.missions.find(m=>m.kind===slot);
    if(!mission)throw Error('huella_mission_missing');
-   jobs.push(tagged(child.name,missionText(child.name,mission),daily,phone,clock.day,slot,index));
+   const messages=splitLongMission(missionText(child.name,mission));
+   messages.forEach((body,part)=>jobs.push(tagged(child.name,body,daily,phone,clock.day,slot,
+     messages.length===1?index:index+'-'+part)));
   }
   const historyEntry={day:clock.day,children:batch.children.map(c=>({name:c.name,missions:c.missions.filter(m=>m.kind===slot)})),weekly:null};
   stateCopy.history=[...(stateCopy.history||[]),historyEntry].slice(-30);
