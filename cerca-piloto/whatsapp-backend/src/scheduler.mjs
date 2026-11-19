@@ -31,6 +31,19 @@ export async function prepareDay(state,now,{generate=generateBatch,templateDaily
  updated.history=[...(updated.history||[]),{...batch,weekly:weekly?batch.weekly:null}].slice(-30);
  return {updated,batch,weekly};
 }
+// Receiving a consented test message is independent of permission to send replies.
+export function inboundPolicy(env=process.env){
+ const mode=env.CERCA_SEND_MODE||'disabled';
+ if(mode==='production')return env.CERCA_PRODUCTION_AUTHORIZED==='true'?'production':'blocked';
+ if(mode!=='test' && mode!=='disabled')return 'blocked';
+ return String(env.CERCA_TEST_WA_IDS||'').split(',').some(x=>/^[1-9]\d{7,14}$/.test(x.trim()))?'test_allowlist':'blocked';
+}
+export function isAllowedInboundRecipient(phone,env=process.env){
+ const policy=inboundPolicy(env);
+ if(policy==='production')return true;
+ if(policy!=='test_allowlist')return false;
+ return String(env.CERCA_TEST_WA_IDS||'').split(',').map(x=>x.trim()).includes(String(phone));
+}
 export function isAllowedRecipient(phone,env=process.env){
  const mode=env.CERCA_SEND_MODE||'disabled';
  if(mode==='production')return env.CERCA_PRODUCTION_AUTHORIZED==='true';
