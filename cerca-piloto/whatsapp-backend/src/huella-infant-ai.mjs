@@ -3,6 +3,7 @@
  */
 import {WEEK_SCHEMA,completeMissionSlots,validInfantMonths,contentModel} from './huella-ai.mjs';
 import {foundationFor} from './huella-sources.mjs';
+import {curatedFamily} from './huella-safe-reserve.mjs';
 
 const missionSchema=WEEK_SCHEMA.properties.children.items.properties.missions.items;
 const familySchema=WEEK_SCHEMA.properties.family;
@@ -91,8 +92,14 @@ export async function generateInfantFocus(state,weekStart,{fetcher=fetch,env=pro
   if(!resp.ok)throw Error('huella_ai_http_'+resp.status);
   const obj=parseReply(await resp.json());
   const syntheticProfile={...state,children:[child],history:[]};
+  // Recovery's safety gate evaluates a complete week shape. In an infant-only
+  // request Sol deliberately returns NO family mission. Supply a locally-vetted
+  // family activity solely for this internal validation; never send or store it.
+  // Without it, the gate flags invalid_week_structure and discards all three
+  // otherwise valid Sol missions before any per-slot safety evaluation.
+  const validationFamily=includeFamily?obj.family:curatedFamily(syntheticProfile.children);
   const complete=completeMissionSlots(syntheticProfile,{
-   children:[{index:0,missions:obj.missions}],family:obj.family
+   children:[{index:0,missions:obj.missions}],family:validationFamily
   });
   const missions=complete.children[0].missions;
   const repeated=missions.some(m=>originalMissionTitles.some(title=>normalize(title)===normalize(m.title)));
