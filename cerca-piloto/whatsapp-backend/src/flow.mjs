@@ -50,14 +50,14 @@ function question(state){
   case 'children_count':return q('¿Cuántos hijos querés registrar en HUELLA? (1 a 6)',['1','2','3','4','5','6']);
   case 'child_name':return q('¿Cómo se llama o qué apodo querés usar para tu hijo o hija '+(state.currentChild+1)+'?');
   case 'child_age':return q(`¿Qué edad tiene ${state.children[state.currentChild]?.name}? Podés escribir 0 si es bebé de menos de un año. HUELLA acompaña edades de 0 a 15 años.`);
-  case 'child_age_months':return q(`Para personalizar las experiencias de ${state.children[state.currentChild]?.name}, ¿cuántos meses tiene aproximadamente? Un número entre ${state.children[state.currentChild]?.age===0?0:12} y ${state.children[state.currentChild]?.age===0?11:23}. No necesitamos la fecha de nacimiento. Podés escribir OMITIR.`);
+  case 'child_age_months':return q(`Para crear experiencias seguras para ${state.children[state.currentChild]?.name}, ¿qué edad tiene aproximadamente en meses? Un número entre ${state.children[state.currentChild]?.age===0?0:12} y ${state.children[state.currentChild]?.age===0?11:23}. No necesitamos su fecha de nacimiento, una aproximación alcanza.`);
   case 'baby_age_choose':return q('¿De qué bebé querés actualizar la edad? Elegí el número indicado.');
   case 'change_baby_months':return q(`¿Cuántos meses tiene aproximadamente ${state.children[state.babyAgePendingIndex]?.name}? Escribí un número de 0 a 23. No necesitamos la fecha de nacimiento, o podés escribir CANCELAR.`);
   case 'child_interests':return q('¿Qué cosas disfruta especialmente '+state.children[state.currentChild]?.name+'? '+interestExamples(state.children[state.currentChild])+'\\n\\nPodés escribir varias, separadas por comas.');
   case 'child_goal':return initialGoalQuestion(state,state.onboardingDay||'2026-11-16');
   case 'child_goal_custom':return q('Escribí con tus palabras qué te gustaría fortalecer con '+state.children[state.currentChild]?.name+' (una frase breve).');
   case 'monthly_goal':return q('¿Cuál es tu objetivo familiar de crianza para este mes? Por ejemplo: disfrutar ratos sin pantallas.');
-  case 'delivery_time':return q('¡Ya conocemos un poco más a tu familia! 🌱 ¿A qué hora preferís recibir las misiones? (hora argentina).',['08:00','13:00','18:00']);
+  case 'delivery_time':return q('¡Ya conocemos un poco más a tu familia! 🌱 ¿A qué hora preferís recibir las misiones? (hora argentina).\n\n1. 08:00\n2. 13:00\n3. 18:00\n\nO escribí otro horario en formato HH:MM.',['1','2','3']);
   case 'mood':return q('¿Cómo te sentís hoy? La respuesta es opcional.',['Bien','Cansado/a','Difícil']);
   case 'change_time':return q('Decime el nuevo horario de envío en formato HH:MM.',['08:00','13:00','18:00']);
   case 'change_goal':return q('Escribí un objetivo familiar concreto para este mes.');
@@ -121,6 +121,10 @@ export function processInbound(input,{state:original=initialState(),today='2026-
   } state.flow='idle';reply('Operación cancelada.');reply(menu(state).body,menu(state).options);return {state,messages};
  }
  // Explicit commands are allowed at any time; no free-form conversations.
+ if(n==='empezar'&&state.status==='onboarding'){
+  const current=question(state);reply('Continuamos con tu registro. '+current.body,current.options);
+  return {state,messages};
+ }
  if(is(n,['menu','menú','opciones'])){
   if(state.status==='onboarding'){reply('Para completar el registro, continuemos con esta pregunta:');const current=question(state);reply(current.body,current.options);}
   else {state.flow='idle';state.feedbackPending=null;state.babyAgePendingIndex=null;state.weeklyGoalSelection=null;const m=menu(state);reply(m.body,m.options);}
@@ -150,11 +154,12 @@ export function processInbound(input,{state:original=initialState(),today='2026-
    }
    return {state,messages};
   }
+  if(n==='empezar'){const m=menu(state);reply('Tu registro ya está completo. '+m.body,m.options);return {state,messages};}
   if(n==='objetivo'){state.flow='change_goal';const m=question(state);reply(m.body,m.options);return {state,messages};}
   if(is(n,['objetivos semana','objetivos semanales'])){startGoalChoice();return {state,messages};}
   if(n==='horario'){state.flow='change_time';const m=question(state);reply(m.body,m.options);return {state,messages};}
   if(is(n,['animo','ánimo'])){state.flow='mood';const m=question(state);reply(m.body,m.options);return {state,messages};}
-  if(is(n,['datos','mi perfil'])){reply(`Tu perfil: ${state.adultName}. Hijos: ${state.children.map(c=>`${c.name} (${Number(c.age)<2&&Number.isInteger(c.ageMonths)?c.ageMonths+' meses aprox.':c.age})`).join(', ')}. Objetivo del mes: ${state.monthlyGoal}. Horario: ${state.deliveryTime}. Para borrar todos tus datos, escribí BORRAR.`);return {state,messages};}
+  if(is(n,['datos','mi perfil'])){reply(`Tu perfil: ${state.adultName}. Vínculo: ${state.adultRole||'sin especificar'}. Hijos: ${state.children.map(c=>`${c.name} (${Number(c.age)<2&&Number.isInteger(c.ageMonths)?c.ageMonths+' meses aprox.':c.age})`).join(', ')}. Objetivo del mes: ${state.monthlyGoal}. Horario: ${state.deliveryTime}. Para borrar todos tus datos, escribí BORRAR.`);return {state,messages};}
   if(n==='borrar'){state.flow='delete_confirm';reply(question(state).body);return {state,messages};}
   if(is(n,['hecha','no pude','omitir'])){
    if(!(state.history||[]).some(h=>h.day===today)){reply('Todavía no generamos las misiones de hoy. Podés volver a intentarlo más tarde.');return {state,messages};}
@@ -221,7 +226,7 @@ export function processInbound(input,{state:original=initialState(),today='2026-
   }
   case 'child_age_months':{
    const child=state.children[state.currentChild];
-   if(n==='omitir'){child.ageMonths=null;child.ageMonthsUpdatedAt=null;state.flow='child_interests';reply(question(state).body);break;}
+   if(n==='omitir'){reply('Para elegir misiones adecuadas al desarrollo necesitamos una edad aproximada en meses. No hace falta saber el día exacto.');break;}
    const months=/^(?:[0-9]|1[0-9]|2[0-3])$/.test(txt)?Number(txt):NaN;
    const min=child.age===0?0:12,max=child.age===0?11:23;
    if(!Number.isInteger(months)||months<min||months>max){
@@ -259,7 +264,8 @@ export function processInbound(input,{state:original=initialState(),today='2026-
    break;
   case 'delivery_time':
   case 'change_time':{
-   const time=normalizeTime(txt);if(!time){reply('Escribí un horario válido, por ejemplo 18:00.');break;}
+   const chosen=state.flow==='delivery_time'?({'1':'08:00','2':'13:00','3':'18:00'}[n]||txt):txt;
+   const time=normalizeTime(chosen);if(!time){reply('Elegí 1, 2 o 3, o escribí un horario HH:MM, por ejemplo 18:00.');break;}
    state.deliveryTime=time;
    if(state.flow==='delivery_time'){state.flow='idle';state.status='active';reply(`¡Ya está, ${state.adultName}! 🌱 Registramos ${state.children.length} perfil(es) y el horario ${time}. Cuando activemos el nuevo calendario del piloto, recibirás tres misiones por hijo por semana y una misión familiar semanal. Mientras tanto, escribí MENÚ para consultar las funciones disponibles.`);}
    else{state.flow='idle';reply(`Nuevo horario guardado: ${time}.`);}
