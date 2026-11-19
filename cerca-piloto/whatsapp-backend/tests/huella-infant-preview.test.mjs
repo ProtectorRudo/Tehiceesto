@@ -490,6 +490,9 @@ test('infant-only generation asks OpenAI for exactly three missions, not a famil
  assert.equal(response.missions.length,3);
  assert.deepEqual(response.missions.map(m=>m.kind),['conectar','comprender','sembrar']);
  assert.equal(response.family,null);
- assert.ok(!response.replaced.includes('family'));
+ assert.deepEqual(response.replaced,[],'safe Sol activities must not be rejected solely because family is not requested');
+ assert.deepEqual(response.missions.map(m=>m.source),['ai_reviewed','ai_reviewed','ai_reviewed']);
+ assert.deepEqual(response.missions.map(m=>m.title),output.missions.map(m=>m.title));
+ assert.ok(!response.editorialWarnings.includes('family:missing'));
  assert.equal(response.ageMonths,6);
 });
