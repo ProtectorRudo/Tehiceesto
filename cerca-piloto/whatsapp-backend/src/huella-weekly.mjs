@@ -17,19 +17,34 @@ function compact(body){
  const trimmed=body.trim();
  // Only the isolated Evolution test pilot uses this extended text envelope.
  // Official WhatsApp templates will need their own approved formatting; never truncate.
- if(trimmed.length>2100)throw Error('huella_content_too_long');
+ if(trimmed.length>3400)throw Error('huella_content_too_long');
  return trimmed;
 }
 const steps=m=>m.steps.map((s,i)=>String(i+1)+'. '+s).join('\n');
 export function missionText(name,m){
  return compact(['🌱 HUELLA · '+name+' · '+KIND_NAMES[m.kind],
-  '*'+m.title+'*','*De qué se trata:* '+(m.intro||'La misión se explica en los siguientes pasos.'),
-  '*Cómo hacerlo:*\n'+steps(m),'*Por qué puede valer la pena:* '+m.why,'*Qué observar, sin exigir resultados:* '+m.observe,
+  '*'+m.title+'*',
+  '*De qué se trata:* '+(m.intro||'La misión se explica en los siguientes pasos.'),
+  ...(m.setup?['*Preparación:* '+m.setup]:[]),
+  ...(m.opening?['*Qué decir para empezar:* '+m.opening]:[]),
+  '*Cómo hacerlo:*\n'+steps(m),
+  ...(m.example?['*Ejemplo de cómo jugar:* '+m.example]:[]),
+  '*Qué buscamos con esta experiencia:* '+m.why,
+  '*Qué observar, sin exigir resultados:* '+m.observe,
+  ...(m.ifNo?['*Si hoy no tiene ganas:* '+m.ifNo]:[]),
+  ...(m.kind==='sembrar'&&m.skill?['*Habilidad que se practica:* '+m.skill]:[]),
   'Duración sugerida: 5–15 minutos. Si no quiere participar, respetá su decisión.'].join('\n\n'));
 }
 export function familyText(m){
- return compact(['🏡 HUELLA · Momento familiar','*'+m.title+'*','*De qué se trata:* '+(m.intro||'Una propuesta para compartir en familia.'),
-  '*Cómo hacerlo:*\n'+steps(m),'*Por qué puede valer la pena:* '+m.why,'*Qué observar, sin exigir resultados:* '+m.observe,...(m.kind==='sembrar'&&m.skill?['*Habilidad:* '+m.skill]:[]),
+ return compact(['🏡 HUELLA · Momento familiar','*'+m.title+'*',
+  '*De qué se trata:* '+(m.intro||'Una propuesta para compartir en familia.'),
+  ...(m.setup?['*Preparación:* '+m.setup]:[]),
+  ...(m.opening?['*Qué decir para empezar:* '+m.opening]:[]),
+  '*Cómo hacerlo:*\n'+steps(m),
+  ...(m.example?['*Ejemplo de cómo hacerlo:* '+m.example]:[]),
+  '*Qué buscamos con esta experiencia:* '+m.why,
+  '*Qué observar, sin exigir resultados:* '+m.observe,
+  ...(m.ifNo?['*Si no se da hoy:* '+m.ifNo]:[]),...(m.kind==='sembrar'&&m.skill?['*Habilidad:* '+m.skill]:[]),
   'Pueden adaptarla a las edades de todos. Nadie tiene obligación de participar.'].join('\n\n'));
 }
 export function questionText(state,weekKey){

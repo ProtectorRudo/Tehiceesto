@@ -23,6 +23,10 @@ const profile=()=>{
 const mission=(kind,target,subj,i)=>({
  kind,title:'El encuentro especial de '+subj+' '+kind+' '+i,
  intro:'Hoy van a compartir una actividad sencilla que aprovecha sus intereses para estar presentes, escuchar y seguir su iniciativa sin apurarse.',
+ setup:'La misión se hace en casa, con una hoja y un lápiz que ya tengas. Elegí una mesa despejada y dejá que quien participa decida dónde sentarse.',
+ opening:'«¿Te gustaría que hagamos un juego corto juntos? Vos podés elegir cómo comenzamos y yo te acompaño.»',
+ example:'Por ejemplo, si elige dibujar una puerta imaginaria, preguntale adónde lleva. Si inventa un bosque, aceptá ese lugar y agregá una idea solo si lo pide.',
+ ifNo:'Si hoy no quiere participar, dejá la hoja guardada y ofrecé compartir un momento tranquilo en otra ocasión, sin insistir.',
  steps:[
   'Durante diez minutos, elegí con '+subj+' una experiencia para '+kind+' que respete su atención y su edad.',
   'En la misión '+kind+' para '+subj+', esperá su iniciativa, acompañá su decisión y anotá un detalle concreto.'
@@ -37,6 +41,10 @@ const fixture=()=>{
   ['conectar','comprender','sembrar'].map((kind,j)=>mission(kind,j===0?x.interests[0]:x.goal,x.name,i))})),
   family:{title:'La historia de nuestra semana juntos',
    intro:'Van a elegir entre todos un recuerdo pequeño para compartir, sin competir por cuál fue más importante ni exigir que nadie participe.',
+   setup:'En el living o la mesa, dejá a mano una hoja y un lápiz; no se requiere nada especial. El bebé puede acompañar desde un lugar seguro y cómodo.',
+   opening:'«¿Les parece que compartamos un recuerdo pequeño de la semana? Cada persona puede participar a su manera.»',
+   example:'Por ejemplo, alguien recuerda un paseo; podés preguntarle qué detalle le llamó la atención. El bebé puede estar cerca, sin tener que hacer ninguna actividad.',
+   ifNo:'Si alguien no tiene ganas de contar nada, puede escuchar. Si hoy no se da, guarden la propuesta para otro día sin insistir.',
    steps:['Invitá a cada integrante a elegir un recuerdo pequeño y contarlo o mostrarlo a su manera.',
     'Escuchá sin interrumpir, respetá a quien no quiera hablar y decidí cómo guardar el recuerdo.'],
    why:'Conocer lo que fue significativo para cada integrante abre oportunidades para compartir sin exigencias.',
@@ -103,7 +111,7 @@ test('premium week sends only the named slot on Mon Tue Wed Thu Sat Sun, with no
   const r=await prepareWeeklyDispatch(s,PHONE,NOW(day),{env:ENV,generate});
   assert.ok(r,'expected '+day);assert.equal(r.slot,slot);assert.equal(r.jobs.length,count);
   assert.ok(r.jobs.every(job=>job.channel==='marketing'&&job.expires_at===new Date(day+'T23:59:59-03:00').toISOString()));
-  assert.ok(r.jobs.every(job=>job.payload.params[1].length<=2100));
+  assert.ok(r.jobs.every(job=>job.payload.params[1].length<=3400));
   assert.equal(await prepareWeeklyDispatch(r.updated,PHONE,NOW(day),{env:ENV,generate}),null);
   sent.push(...r.jobs.map(job=>job.key));s=r.updated;
  }
@@ -207,4 +215,46 @@ test('MISIONES command explains each real premium mission without undefined or o
  assert.ok(response.messages.every(m=>m.body.includes('Por qué puede valer la pena:')));
  assert.ok(response.messages.every(m=>!m.body.includes('undefined')&&m.body.length<3600));
  assert.match(formatMissions({day:'2026-11-24',children:[s.history[0].children[0]],weekly:null}),/De qué se trata/);
+});
+
+test('a playable mission requires specific preparation, invitation, demonstration, and fallback',()=>{
+ const s=profile(),good=fixture();
+ assert.equal(validatePremiumWeek(s,good),true);
+ for(const field of ['setup','opening','example','ifNo']){
+  const b=structuredClone(good);delete b.children[1].missions[1][field];
+  assert.equal(validatePremiumWeek(s,b),false,'missing '+field+' must reject an incomplete mission');
+  const family=structuredClone(good);delete family.family[field];
+  assert.equal(validatePremiumWeek(s,family),false,'family mission missing '+field);
+ }
+});
+test('WhatsApp daily and family missions explain how to start and play, not just promise a connection',async()=>{
+ const {missionText,familyText}=await import('../src/huella-weekly.mjs');
+ const batch=fixture();
+ const daily=missionText('Mayor',batch.children[1].missions[1]);
+ const family=familyText(batch.family);
+ for(const text of [daily,family]){
+  assert.match(text,/Preparación:/);
+  assert.match(text,/Qué decir para empezar:/);
+  assert.match(text,/Cómo hacerlo:/);
+  assert.match(text,/Ejemplo de cómo (?:jugar|hacerlo):/);
+  assert.match(text,/Qué buscamos con esta experiencia:/);
+  assert.ok(text.length<=3400,'no truncated WhatsApp payload');
+ }
+});
+
+test('a fictional world must be mapped to actual playable places, not just described metaphorically',()=>{
+ const profileState=profile(),b=fixture(),m=b.children[1].missions[1];
+ m.intro='Van a convertir la plaza en un mundo Pokémon imaginario para que uno decida qué aventuras inventar y el otro siga las reglas del juego.';
+ m.setup='Reunite en la plaza, observá los lugares disponibles y buscá un espacio tranquilo donde puedan comenzar la aventura sin materiales.';
+ m.example='Por ejemplo, cuando lleguen a la plaza preguntale qué Pokémon le gustaría imaginar allí y seguí la idea que proponga mientras caminan.';
+ assert.equal(validatePremiumWeek(profileState,b),false,'a catchy metaphor is not a playable set of instructions');
+ m.setup='Un árbol será el Bosque Pokémon y el banco hará de Centro Pokémon; usen esos dos lugares reales como escenarios imaginarios sin materiales.';
+ assert.equal(validatePremiumWeek(profileState,b),true,'physical-to-imaginary mappings make the scene actionable');
+});
+test('the invitation must contain words the adult can literally say, not a vague suggestion',()=>{
+ const b=fixture(),m=b.children[1].missions[0];
+ m.opening='Invitá a participar de un juego interesante y empezá a compartir un rato juntos, de forma natural.';
+ assert.equal(validatePremiumWeek(profile(),b),false);
+ m.opening='«¿Te gustaría que hoy inventemos una aventura juntos? Vos elegís el primer paso y yo te acompaño.»';
+ assert.equal(validatePremiumWeek(profile(),b),true);
 });
