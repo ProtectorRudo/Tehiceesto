@@ -1,7 +1,7 @@
 /** Focused editorial quality review for one infant and one whole-family activity.
  * A separate paid test, never an autonomous child-facing assistant.
  */
-import {WEEK_SCHEMA,premiumWeekQuality,validInfantMonths,contentModel} from './huella-ai.mjs';
+import {WEEK_SCHEMA,premiumWeekQuality,validInfantMonths,contentModel,neutralizeInfantWording} from './huella-ai.mjs';
 import {foundationFor} from './huella-sources.mjs';
 
 const missionSchema=WEEK_SCHEMA.properties.children.items.properties.missions.items;
@@ -23,6 +23,8 @@ const GUIDE=[
  'Para 8–23 meses, igual: no infieras habilidades basándote solo en meses. Ofrecé alternativas sencillas según lo que la familia ya conoce. La edad en meses orienta, no diagnostica.',
  'La misión familiar debe involucrar genuinamente al hermano mayor y al adulto; el bebé puede simplemente estar en brazos o cerca con supervisión adecuada. No inventes un juego absurdo para que todos participen de una misma trama.',
  'Redacción HUMANA y natural, no protocolo de investigación: evitá repetir observá si, no hace falta, sin exigir resultados y los mismos cierres. Ofrecé una actividad agradable que el adulto realmente quiera hacer.',
+ 'EVITÁ expresiones que asignan género gramatical al bebé: «está despierto», «si está cansada», «cambiarla de posición», «atendelo primero». Preferí «cuando tenga ganas de compartir», «si necesita descansar», «sin cambiar su postura», «atendé primero sus necesidades». La edad en meses no indica género.',
+ 'No propongas usar globos, cuerdas, piezas pequeñas ni objetos que puedan presentar riesgo de asfixia. En vez de enumerar muchos objetos peligrosos, explicá directamente los materiales seguros que SÍ se utilizarán. Los cuidados de seguridad se conservan y no son opcionales.',
  'intro 55–230 caracteres, setup 55–310, opening 32–260 con palabras exactas entre comillas, steps 2–4 de 30–230 cada uno, example 70–320, ifNo 40–200, why 75–270, observe 25–180 y title 12–85. No rellenes por llenar.',
  'why debe explicar la contribución relacional concreta; el adulto tiene que comprender qué hace y por qué, sin jerga ni promesas. Cada paso es ejecutable sin improvisar. El juego conserva interés incluso si el bebé no responde como imaginamos.',
  'target copia EXACTAMENTE una de las metas o preferencias declaradas del bebé o el objetivo familiar. No inventes datos familiares. Los nombres y teléfonos no se transmiten.',
@@ -74,8 +76,13 @@ export async function generateInfantFocus(state,weekStart,{fetcher=fetch,env=pro
   });
   if(!resp.ok)throw Error('huella_ai_http_'+resp.status);
   const obj=parseReply(await resp.json());
+  // Resolve only predictable grammatical-agreement slips locally. This does
+  // not modify objects, activities, or safety-critical actions; the complete
+  // resulting missions are revalidated before delivery.
+  const missions=Array.isArray(obj.missions)
+   ?obj.missions.map(neutralizeInfantWording):obj.missions;
   const syntheticProfile={...state,children:[child],history:[]};
-  const syntheticWeek={children:[{index:0,missions:obj.missions}],family:obj.family};
+  const syntheticWeek={children:[{index:0,missions}],family:obj.family};
   const review=premiumWeekQuality(syntheticProfile,syntheticWeek);
   if(!review.ok){
    const err=Error('huella_ai_quality_rejected');
@@ -83,13 +90,13 @@ export async function generateInfantFocus(state,weekStart,{fetcher=fetch,env=pro
    throw err;
   }
   // Anti-repetition is editorial, not an assertion that old preview was completed.
-  if(obj.missions.some(m=>originalMissionTitles.some(title=>normalize(title)===normalize(m.title)))){
+  if(missions.some(m=>originalMissionTitles.some(title=>normalize(title)===normalize(m.title)))){
    const err=Error('huella_ai_quality_rejected');
    err.issueCodes=['previous_preview_title_repeated'];
    throw err;
   }
   return {day:weekStart,childName:child.name,childIndex:index,
-   ageMonths:child.ageMonths,missions:obj.missions.map(m=>({...m,source:'ai_reviewed',foundation:foundationFor(child.age)})),
+   ageMonths:child.ageMonths,missions:missions.map(m=>({...m,source:'ai_reviewed',foundation:foundationFor(child.age)})),
    family:{...obj.family,kind:'familiar',source:'ai_reviewed'}};
  }finally{clearTimeout(timer);}
 }
