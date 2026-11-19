@@ -8,10 +8,10 @@ const today='2026-11-16',now='2026-11-16T20:00:00Z';
 function feed(seq,s=initialState()){
  let logs=[];for(const input of seq){const r=processInbound(input,{state:s,today,now});s=r.state;logs.push(...r.messages);}return {state:s,logs};
 }
-const ana=['hola','ACEPTO','Ana María','2','Leticia','9','dibujar, crear mundos','que pueda expresarse con confianza','Tomás','4','autos, bloques','jugar juntos sin apurarlo','mejorar los momentos de conversación','18:00'];
+const ana=['hola','ACEPTO','Ana María','Mamá','2','Leticia','9','dibujar, crear mundos','que pueda expresarse con confianza','Tomás','4','autos, bloques','jugar juntos sin apurarlo','18:00'];
 const registered=()=>feed(ana).state;
 test('consent required, complete multi-child onboarding via finite stages',()=>{
- let r=feed(ana);assert.equal(r.state.status,'active');assert.ok(r.state.consentAt);assert.equal(r.state.children.length,2);assert.deepEqual(r.state.children.map(c=>c.age),[9,4]);assert.equal(r.state.deliveryTime,'18:00');assert.equal(r.state.monthlyGoal,'mejorar los momentos de conversación');
+ let r=feed(ana);assert.equal(r.state.status,'active');assert.ok(r.state.consentAt);assert.equal(r.state.children.length,2);assert.deepEqual(r.state.children.map(c=>c.age),[9,4]);assert.equal(r.state.deliveryTime,'18:00');assert.equal(r.state.monthlyGoal,'');assert.equal(r.state.adultRole,'Mamá');
 });
 test('non-requested chat is never interpreted or answered conversationally',()=>{
  let s=registered();let a=feed(['No sabés lo que me pasó hoy con Leticia'],s);assert.equal(a.logs[0].body,REDIRECT);let b=feed(['Te cuento todo, fue increíble'],a.state);assert.equal(b.logs.length,0);
@@ -65,7 +65,7 @@ test('first unsolicited ACEPTO cannot bypass showing informed opt-in question',(
 });
 
 test('MENÚ during registration resumes required question instead of stranding onboarding',()=>{
- const r=feed(['hola','ACEPTO','Ana','MENÚ','2']);
+ const r=feed(['hola','ACEPTO','Ana','Mamá','MENÚ','2']);
  assert.equal(r.state.flow,'child_name');assert.equal(r.state.expectedChildren,2);
  assert.equal(r.state.status,'onboarding');
 });
@@ -168,7 +168,7 @@ test('daily and weekly proactive jobs expire at local midnight, not days later',
  assert.ok(jobs.every(j=>j.channel==='marketing'));
 });
 test('onboarding of an infant collects approximate months, not a birth date',()=>{
- const answers=['hola','ACEPTO','Ana','1','Bebé','0','5','sonidos, voces','acompañar las señales','estar juntos con calma','18:00'];
+ const answers=['hola','ACEPTO','Ana','Mamá','1','Bebé','0','5','sonidos, voces','acompañar las señales','18:00'];
  const r=feed(answers);
  assert.equal(r.state.status,'active');
  assert.equal(r.state.children[0].age,0);
@@ -201,9 +201,14 @@ test('infant age update validates boundaries and explicit cancel without guessin
  assert.equal(change.state.children[1].age,1);
  assert.equal(change.state.children[1].ageMonths,14);
 });
-test('infant age question during onboarding may be skipped without fabricating months',()=>{
- const answers=['hola','ACEPTO','Ana','1','Bebé','0','OMITIR','voces y cantos','compartir canciones juntos','escucharnos un poco más','18:00'];
- const res=feed(answers);
- assert.equal(res.state.status,'active');
+test('infant age cannot be skipped or fabricated before generating age-sensitive missions',()=>{
+ const answers=['hola','ACEPTO','Ana','Mamá','1','Bebé','0','OMITIR'];
+ let res=feed(answers);
+ assert.equal(res.state.status,'onboarding');
+ assert.equal(res.state.flow,'child_age_months');
  assert.equal(res.state.children[0].ageMonths,null);
+ assert.match(res.logs.at(-1).body,/edad aproximada en meses/);
+ res=feed(['5','voces y cantos','compartir canciones juntos','18:00'],res.state);
+ assert.equal(res.state.status,'active');
+ assert.equal(res.state.children[0].ageMonths,5);
 });
