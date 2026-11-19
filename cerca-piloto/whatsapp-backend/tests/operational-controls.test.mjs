@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {initialState,processInbound,REDIRECT,RISK} from '../src/flow.mjs';
 
 const today='2026-11-19',now='2026-11-19T13:20:00.000Z';
-const first=['hola','ACEPTO','Ana','2','Luz','9','dibujar, inventar','fortalecer la escucha','Tomi','4','bloques, música','jugar sin apuros','compartir momentos en familia','18:00'];
+const first=['hola','ACEPTO','Ana','Mamá','2','Luz','9','dibujar, inventar','fortalecer la escucha','Tomi','4','bloques, música','jugar sin apuros','18:00'];
 
 function feed(messages, state=initialState(), day=today){
  let s=state,outputs=[];
@@ -85,7 +85,7 @@ test('asking for missions before scheduling never fabricates completed missions'
 });
 
 test('menu during onboarding repeats the same pending question without overwriting input',()=>{
- const r=feed(['Hola','ACEPTO','Ana','MENÚ','2']);
+ const r=feed(['Hola','ACEPTO','Ana','Papá','MENÚ','2']);
  assert.equal(r.state.status,'onboarding');
  assert.equal(r.state.flow,'child_name');
  assert.equal(r.state.adultName,'Ana');
