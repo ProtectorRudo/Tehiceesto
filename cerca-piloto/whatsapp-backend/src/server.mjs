@@ -9,6 +9,7 @@ import {initialState,processInbound} from './flow.mjs';
 import {prepareWeeklyDispatch,weeklyEnabled} from './huella-weekly.mjs';
 import {contentModel} from './huella-ai.mjs';
 import {previewIntent,previewPermitted,handlePreviewInbound} from './huella-preview.mjs';
+import {isQualityPreviewIntent,handleQualityPreviewInbound} from './huella-quality-preview.mjs';
 import {localClock,prepareDay,scheduledOutbox,tokenKey,isMessagingReady,isSessionMessagingReady,isAllowedRecipient,isAllowedInboundRecipient,inboundPolicy} from './scheduler.mjs';
 const db=makeDb();const env=process.env;
 const dateOf=(time)=>localClock(time).day;
@@ -29,6 +30,12 @@ async function inbound(m){
  // Never interpret stale retries as new consent or a fresh service window.
  const receivedAt=new Date(m.receivedAt);
  if(!Number.isFinite(receivedAt.getTime()) || receivedAt.getTime()<now.getTime()-23*3600000 || receivedAt.getTime()>now.getTime()+5*60000)return 'stale';
+ if(isQualityPreviewIntent(m.text)&&previewPermitted(m.phone,env)){
+  return handleQualityPreviewInbound(m,{db,env,now,flush,defer:work=>{
+   setImmediate(()=>{void Promise.resolve().then(work).catch(()=>{ /* single-attempt reservation remains safe */ });});
+   return 'applied';
+  }});
+ }
  if(previewIntent(m.text)&&previewPermitted(m.phone,env)){
   return handlePreviewInbound(m,{db,env,now,flush,defer:work=>{
    // Persist and acknowledge the event first. The HTTP webhook must not wait
