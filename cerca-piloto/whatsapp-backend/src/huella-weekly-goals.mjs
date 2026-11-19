@@ -79,7 +79,8 @@ const asDay=d=>new Date(String(d)+'T12:00:00Z');
 export function nextWeekMonday(day){
  const d=asDay(day);
  if(!Number.isFinite(d.getTime()))throw Error('invalid_week_date');
- d.setUTCDate(d.getUTCDate()+(8-d.getUTCDay())%7 || 7);
+ const offset=(8-d.getUTCDay())%7 || 7;
+ d.setUTCDate(d.getUTCDate()+offset);
  return d.toISOString().slice(0,10);
 }
 const stage=c=>{
