@@ -1,7 +1,7 @@
 /** Focused editorial quality review for one infant and one whole-family activity.
  * A separate paid test, never an autonomous child-facing assistant.
  */
-import {WEEK_SCHEMA,validatePremiumWeek,validInfantMonths,contentModel} from './huella-ai.mjs';
+import {WEEK_SCHEMA,premiumWeekQuality,validInfantMonths,contentModel} from './huella-ai.mjs';
 import {foundationFor} from './huella-sources.mjs';
 
 const missionSchema=WEEK_SCHEMA.properties.children.items.properties.missions.items;
@@ -56,6 +56,12 @@ export async function generateInfantFocus(state,weekStart,{fetcher=fetch,env=pro
    otherChildren:children.filter((x,i)=>i!==index).map(x=>({ageYears:x.age,interests:(x.interests||[]).slice(0,3)}))},
   avoidRepeatingTitles:originalMissionTitles.slice(-12)
  };
+ // Enforce exact legitimate targets in the JSON Schema itself, rather than
+ // hoping the model copies untrusted free-form text character-for-character.
+ const allowedTargets=[child.goal,...(child.interests||[]),state.monthlyGoal]
+  .map(x=>String(x||'').trim()).filter(Boolean);
+ const schema=structuredClone(INFANT_FOCUS_SCHEMA);
+ schema.properties.missions.items.properties.target.enum=[...new Set(allowedTargets)];
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),150000);
  timer.unref?.();
  try{
@@ -64,16 +70,24 @@ export async function generateInfantFocus(state,weekStart,{fetcher=fetch,env=pro
    headers:{authorization:'Bearer '+env.OPENAI_API_KEY,'content-type':'application/json'},
    body:JSON.stringify({model:contentModel(env),store:false,reasoning:{effort:'high'},
     instructions:GUIDE,input:JSON.stringify(context),max_output_tokens:7500,
-    text:{format:{type:'json_schema',name:'huella_infant_focus_v1',strict:true,schema:INFANT_FOCUS_SCHEMA}}})
+    text:{format:{type:'json_schema',name:'huella_infant_focus_v1',strict:true,schema}}})
   });
   if(!resp.ok)throw Error('huella_ai_http_'+resp.status);
   const obj=parseReply(await resp.json());
   const syntheticProfile={...state,children:[child],history:[]};
   const syntheticWeek={children:[{index:0,missions:obj.missions}],family:obj.family};
-  if(!validatePremiumWeek(syntheticProfile,syntheticWeek))throw Error('huella_ai_quality_rejected');
+  const review=premiumWeekQuality(syntheticProfile,syntheticWeek);
+  if(!review.ok){
+   const err=Error('huella_ai_quality_rejected');
+   err.issueCodes=review.codes;
+   throw err;
+  }
   // Anti-repetition is editorial, not an assertion that old preview was completed.
-  if(obj.missions.some(m=>originalMissionTitles.some(title=>normalize(title)===normalize(m.title))))
-   throw Error('huella_ai_quality_rejected');
+  if(obj.missions.some(m=>originalMissionTitles.some(title=>normalize(title)===normalize(m.title)))){
+   const err=Error('huella_ai_quality_rejected');
+   err.issueCodes=['previous_preview_title_repeated'];
+   throw err;
+  }
   return {day:weekStart,childName:child.name,childIndex:index,
    ageMonths:child.ageMonths,missions:obj.missions.map(m=>({...m,source:'ai_reviewed',foundation:foundationFor(child.age)})),
    family:{...obj.family,kind:'familiar',source:'ai_reviewed'}};

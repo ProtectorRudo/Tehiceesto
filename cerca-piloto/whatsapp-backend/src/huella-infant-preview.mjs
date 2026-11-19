@@ -79,9 +79,14 @@ export async function handleInfantReview(m,{db,env=process.env,now=new Date(),
  if(ack.status!=='applied')return ack.status;
  try{await flush(2);}catch{/* queued safely */}
  return defer(async()=>{
-  let result=null,messages=null,error=null;
+  let result=null,messages=null,error=null,issueCodes=[];
   try{result=await generate(reserve,weekKey,{env});messages=format(result);}
-  catch(e){error=errorCode(e);}
+  catch(e){
+   error=errorCode(e);
+   // Persist only anonymous validator rule codes; never persist raw OpenAI
+   // responses or use family details in operational logs.
+   issueCodes=Array.isArray(e.issueCodes)?e.issueCodes.filter(x=>/^[a-z0-9:_-]{3,90}$/i.test(x)).slice(0,16):[];
+  }
   for(let attempt=0;attempt<3;attempt++){
    const latest=await db.family(m.phone),live=latest?.state;
    if(!live||live.deleted||live.status!=='active'||!live.consentAt||
@@ -91,7 +96,7 @@ export async function handleInfantReview(m,{db,env=process.env,now=new Date(),
    const replyKey=tokenKey('infant-review-result:'+m.id);
    if(error){
     updated.huellaInfantReview={...updated.huellaInfantReview,
-     status:'failed',error,finishedAt:new Date().toISOString()};
+     status:'failed',error,issueCodes,finishedAt:new Date().toISOString()};
     messages=[{body:'La nueva propuesta no pasó los controles de calidad o no pudo generarse. No envié misiones de relleno. No se activó el piloto ni habrá otro intento pago automático.'}];
    }else{
     updated.huellaInfantReview={...updated.huellaInfantReview,

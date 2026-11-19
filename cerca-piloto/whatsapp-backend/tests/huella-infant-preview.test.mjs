@@ -78,6 +78,7 @@ test('focused generator sends only a minimal child profile plus siblings age and
    assert.equal(req.text.format.strict,true);assert.equal(req.text.format.type,'json_schema');
    assert.equal(req.text.format.schema.required.length,2);
    assert.equal(req.text.format.schema.properties.missions.items.required.includes('example'),true);
+   assert.deepEqual(req.text.format.schema.properties.missions.items.properties.target.enum,['acompañar sus señales','voces','compartir más momentos']);
    assert.match(req.input,/"ageMonths":5/);
    assert.ok(!req.input.includes('Bebé'));assert.ok(!req.input.includes('Mayor'));
    assert.ok(!req.input.includes(PHONE));assert.ok(!req.input.includes('Adulto'));
@@ -160,4 +161,28 @@ test('inbound guided age months for baby never changes sibling or completed prev
  assert.equal(second.state.children[0].age,9);
  assert.deepEqual(second.state.huellaPreview,old);
  assert.equal(second.state.huellaPilotStartDay,null);
+});
+
+test('invalid generated target yields a traceable anonymous rule code',async()=>{
+ const invalid=batch();invalid.missions[0].target='invented preference';
+ await assert.rejects(generateInfantFocus(familyState(),'2026-11-23',{
+  env,fetcher:async()=>new Response(JSON.stringify({status:'completed',
+   output:[{content:[{type:'output_text',text:JSON.stringify(invalid)}]}]}),{status:200})
+ }),err=>{
+  assert.equal(err.message,'huella_ai_quality_rejected');
+  assert.ok(err.issueCodes.includes('child0:conectar:target_not_from_profile'));
+  assert.ok(!JSON.stringify(err.issueCodes).includes('Bebé'));return true;
+ });
+});
+test('quality failure persists anonymous diagnostic codes without saving generated content',async()=>{
+ const db=fakeDb();
+ await handleInfantReview(message('focus-diagnostic'),{db,env,now:NOW,
+  generate:async()=>{const e=Error('huella_ai_quality_rejected');
+   e.issueCodes=['child0:comprender:steps','family:why','A private raw message','child0:sembrar:skill'];throw e;}
+ });
+ assert.equal(db.row.state.huellaInfantReview.status,'failed');
+ assert.deepEqual(db.row.state.huellaInfantReview.issueCodes,
+ ['child0:comprender:steps','family:why','child0:sembrar:skill']);
+ assert.equal(db.row.state.huellaInfantReview.batch,undefined);
+ assert.equal(db.row.state.huellaPilotStartDay,null);
 });
