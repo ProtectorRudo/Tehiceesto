@@ -142,3 +142,36 @@ test('format rejects incomplete missions rather than letting WhatsApp send a tru
  invalid.children[1].missions=[];
  assert.throws(()=>previewMessages(invalid,state(),'2026-11-23'),/preview_incomplete_missions/);
 });
+
+test('PREVIA acknowledges immediately before a slow AI job, then completes without blocking WhatsApp',async()=>{
+ const db=fakeDb();let pendingWork=null,generations=0;
+ const deferred=work=>{pendingWork=work;return 'applied';};
+ const result=await handlePreviewInbound(phoneMessage('PREVIA','evolution:abc:600'),
+   {db,env,now,generate:async()=>{generations++;return week();},defer:deferred});
+ assert.equal(result,'applied');
+ assert.equal(db.record.state.huellaPreview.status,'processing');
+ assert.equal(generations,0,'AI has not started while webhook is being acknowledged');
+ const duplicate=await handlePreviewInbound(phoneMessage('PREVIA','evolution:abc:601'),
+   {db,env,now,generate:async()=>{throw Error('unexpected duplicate generation');}});
+ assert.equal(duplicate,'applied');
+ assert.equal(generations,0,'additional inbound messages do not trigger a second call');
+ assert.equal(await pendingWork(),'applied');
+ assert.equal(generations,1);
+ assert.equal(db.record.state.huellaPreview.status,'ready');
+ assert.equal(db.record.state.huellaPilotStartDay,null);
+});
+test('abandoned preview can be retried only after stale wait and within weekly budget',async()=>{
+ const s=state();
+ s.huellaPreview={weekKey:'2026-11-23',status:'processing',attempts:1,startedAt:'2026-11-19T14:00:00Z',runId:'old'};
+ const db=fakeDb(s);let generations=0;
+ const at=new Date('2026-11-19T14:30:00Z');
+ const denied=await handlePreviewInbound(phoneMessage('PREVIA','evolution:abc:610'),
+  {db,env,now:at,generate:async()=>{generations++;return week();}});
+ assert.equal(denied,'applied');assert.equal(generations,0);
+ assert.equal(db.record.state.huellaPreview.status,'processing');
+ const retry=await handlePreviewInbound(phoneMessage('PREVIA REINTENTAR','evolution:abc:611'),
+  {db,env,now:at,generate:async()=>{generations++;return week();}});
+ assert.equal(retry,'applied');assert.equal(generations,1);
+ assert.equal(db.record.state.huellaPreview.attempts,2);
+ assert.equal(db.record.state.huellaPreview.status,'ready');
+});

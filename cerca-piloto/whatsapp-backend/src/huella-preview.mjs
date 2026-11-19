@@ -58,7 +58,7 @@ const errorCode=error=>{
  return error?.name==='AbortError'?'huella_ai_timeout':'huella_preview_failed';
 };
 /** Returns null for any message that is not an authorized preview command. */
-export async function handlePreviewInbound(m,{db,env=process.env,now=new Date(),generate=generatePremiumWeek,flush=async()=>{}}={}){
+export async function handlePreviewInbound(m,{db,env=process.env,now=new Date(),generate=generatePremiumWeek,flush=async()=>{},defer=work=>work()}={}){
  if(!previewIntent(m.text)||!previewPermitted(m.phone,env))return null;
  const requested=normalized(m.text);
  const today=localClock(now).day,weekKey=nextMonday(today);
@@ -77,7 +77,14 @@ export async function handlePreviewInbound(m,{db,env=process.env,now=new Date(),
   return (await note('Ya preparé una previa de esta semana. Escribí PREVIA VER para verla de nuevo, sin usar más IA.','ready')).status;
  }
  if(sameWeek&&previous.status==='processing'){
-  return (await note('Estoy preparando la vista previa que pediste. No hace falta enviarla otra vez.','processing')).status;
+  const began=Date.parse(previous.startedAt||'');
+  const stale=Number.isFinite(began)&&now.getTime()-began>240000;
+  if(!stale){
+   return (await note('Estoy preparando la vista previa que pediste. No hace falta enviarla otra vez.','processing')).status;
+  }
+  if(requested!=='previa reintentar'){
+   return (await note('La generación anterior quedó interrumpida. Podés escribir PREVIA REINTENTAR para intentar nuevamente, con el límite semanal de seguridad.','stale')).status;
+  }
  }
  if(sameWeek&&previous.status==='failed'&&requested!=='previa reintentar'){
   return (await note('La generación anterior no superó la comprobación. Si querés hacer un último intento, escribí PREVIA REINTENTAR.','failed')).status;
@@ -93,6 +100,9 @@ export async function handlePreviewInbound(m,{db,env=process.env,now=new Date(),
  ]);
  if(committed.status!=='applied')return committed.status;
  try{await flush(2);}catch{/* Persistent outbox will be retried. */}
+ // The webhook returns after a durable reservation; the caller may defer the
+ // expensive editorial work without holding the provider HTTP request open.
+ return defer(async()=>{
  let batch=null,failed=null;
  try{batch=await generate(reservation,weekKey,{env});if(!batch)throw Error('huella_ai_empty');}
  catch(err){failed=errorCode(err);}
@@ -121,4 +131,5 @@ export async function handlePreviewInbound(m,{db,env=process.env,now=new Date(),
   }catch(err){if(!['database_409','database_400'].includes(err.message)||retry===2)throw err;}
  }
  return 'conflict';
+ });
 }

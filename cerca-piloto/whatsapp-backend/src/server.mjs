@@ -29,7 +29,14 @@ async function inbound(m){
  // Never interpret stale retries as new consent or a fresh service window.
  const receivedAt=new Date(m.receivedAt);
  if(!Number.isFinite(receivedAt.getTime()) || receivedAt.getTime()<now.getTime()-23*3600000 || receivedAt.getTime()>now.getTime()+5*60000)return 'stale';
- if(previewIntent(m.text)&&previewPermitted(m.phone,env))return handlePreviewInbound(m,{db,env,now,flush});
+ if(previewIntent(m.text)&&previewPermitted(m.phone,env)){
+  return handlePreviewInbound(m,{db,env,now,flush,defer:work=>{
+   // Persist and acknowledge the event first. The HTTP webhook must not wait
+   // for a long reasoning-model call; failure state is kept in the family row.
+   setImmediate(()=>{void Promise.resolve().then(work).catch(()=>{ /* recover via stale reservation retry */ });});
+   return 'applied';
+  }});
+ }
  for(let attempt=0;attempt<3;attempt++){
   const row=await db.family(m.phone),state=row?.state||initialState();const day=dateOf(now);
   const output=processInbound(m.text,{state,today:day,now:now.toISOString()});
