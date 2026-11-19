@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {initialState,processInbound} from '../src/flow.mjs';
 import {generateInfantFocus,INFANT_FOCUS_SCHEMA} from '../src/huella-infant-ai.mjs';
-import {handleInfantReview,infantReviewIntent,INFANT_REVIEW_REVISION} from '../src/huella-infant-preview.mjs';
+import {handleInfantReview,infantReviewIntent,INFANT_REVIEW_REVISION,INFANT_REVIEW_REVISION_V2} from '../src/huella-infant-preview.mjs';
 
 const PHONE='5492211234567',NOW=new Date('2026-11-19T15:30:00Z');
 const env={HUELLA_PREVIEW_ENABLED:'true',CERCA_PROVIDER:'evolution',CERCA_SEND_MODE:'test',
@@ -184,5 +184,85 @@ test('quality failure persists anonymous diagnostic codes without saving generat
  assert.deepEqual(db.row.state.huellaInfantReview.issueCodes,
  ['child0:comprender:steps','family:why','child0:sembrar:skill']);
  assert.equal(db.row.state.huellaInfantReview.batch,undefined);
+ assert.equal(db.row.state.huellaPilotStartDay,null);
+});
+
+test('single approved V2 retest is isolated from failed V1 and starts only on explicit command',async()=>{
+ const original=familyState(6);
+ original.huellaInfantReview={revision:INFANT_REVIEW_REVISION,status:'failed',attempts:1,
+  error:'huella_ai_quality_rejected',finishedAt:NOW.toISOString()};
+ const db=fakeDb(original);
+ const baseline=structuredClone(db.row.state.huellaInfantReview);
+ const oldPreview=structuredClone(db.row.state.huellaPreview);
+ const priorQuality=structuredClone(db.row.state.huellaQualityPreview);
+ let calls=0;
+ assert.equal(infantReviewIntent('PREVIA BEBÉ 2'),true);
+ assert.equal(infantReviewIntent('PREVIA BEBE 2 VER'),true);
+ const result=await handleInfantReview(message('v2-1','PREVIA BEBÉ 2'),{db,env,now:NOW,generate:async()=>{
+  calls++;
+  return {day:'2026-11-23',childName:'Bebé',childIndex:1,ageMonths:6,
+   missions:batch().missions,family:{...family,kind:'familiar'}};
+ }});
+ assert.equal(result,'applied');assert.equal(calls,1);
+ assert.equal(db.row.state.huellaInfantReviewV2.revision,INFANT_REVIEW_REVISION_V2);
+ assert.equal(db.row.state.huellaInfantReviewV2.status,'ready');
+ assert.equal(db.row.state.huellaInfantReviewV2.attempts,1);
+ assert.deepEqual(db.row.state.huellaInfantReview,baseline);
+ assert.deepEqual(db.row.state.huellaPreview,oldPreview);
+ assert.deepEqual(db.row.state.huellaQualityPreview,priorQuality);
+ assert.equal(db.row.state.huellaPilotStartDay,null);
+ const count=db.jobs.length;
+ await handleInfantReview(message('v2-2','PREVIA BEBÉ 2'),{db,env,now:NOW,generate:async()=>{calls++;throw Error('double API charge')}});
+ assert.equal(calls,1);
+ assert.equal(db.jobs.length,count+1);
+ await handleInfantReview(message('v2-3','PREVIA BEBÉ 2 VER'),{db,env,now:NOW,generate:async()=>{calls++;throw Error('double API charge')}});
+ assert.equal(calls,1);
+ assert.equal(db.jobs.length,count+6);
+});
+test('V2 requires actual failed V1, not an ordinary new request from any family',async()=>{
+ const db=fakeDb(familyState(6));let calls=0;
+ const result=await handleInfantReview(message('v2-block','PREVIA BEBÉ 2'),{
+  db,env,now:NOW,generate:async()=>{calls++;return batch();}
+ });
+ assert.equal(result,'applied');assert.equal(calls,0);
+ assert.equal(db.row.state.huellaInfantReviewV2,undefined);
+ assert.match(db.jobs[0].payload.body,/anterior fallida/);
+});
+test('failed V2 records anonymous diagnostics and never retries automatically',async()=>{
+ const base=familyState(6);
+ base.huellaInfantReview={revision:INFANT_REVIEW_REVISION,status:'failed',attempts:1,
+  error:'huella_ai_quality_rejected'};
+ const db=fakeDb(base);
+ let calls=0;
+ await handleInfantReview(message('v2-fail','PREVIA BEBÉ 2'),{
+  db,env,now:NOW,generate:async()=>{
+   calls++;const e=Error('huella_ai_quality_rejected');
+   e.issueCodes=['child0:conectar:why','family:example'];throw e;
+  }
+ });
+ assert.equal(calls,1);
+ assert.equal(db.row.state.huellaInfantReviewV2.status,'failed');
+ assert.deepEqual(db.row.state.huellaInfantReviewV2.issueCodes,['child0:conectar:why','family:example']);
+ const old=structuredClone(db.row.state.huellaInfantReview);
+ await handleInfantReview(message('v2-fail-again','PREVIA BEBÉ 2'),{
+  db,env,now:NOW,generate:async()=>{calls++;return batch();}
+ });
+ assert.equal(calls,1);
+ assert.deepEqual(db.row.state.huellaInfantReview,old);
+ assert.equal(db.row.state.huellaPilotStartDay,null);
+});
+test('V2 opt-out while generating prevents the final missions and preserves safety',async()=>{
+ const base=familyState(6);
+ base.huellaInfantReview={revision:INFANT_REVIEW_REVISION,status:'failed',attempts:1};
+ const db=fakeDb(base);
+ const result=await handleInfantReview(message('v2-optout','PREVIA BEBÉ 2'),{
+  db,env,now:NOW,generate:async()=>{
+   db.row.state.status='stopped';db.row.state.consentAt=null;db.row.revision++;
+   return {day:'2026-11-23',childName:'Bebé',childIndex:1,ageMonths:6,
+    missions:batch().missions,family:{...family,kind:'familiar'}};
+  }
+ });
+ assert.equal(result,'cancelled');
+ assert.ok(!db.jobs.some(x=>x.payload.body.includes('Cómo hacerlo')));
  assert.equal(db.row.state.huellaPilotStartDay,null);
 });
