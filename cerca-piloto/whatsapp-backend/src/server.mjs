@@ -26,6 +26,19 @@ const outboundFor=(message,eventId,index,receivedAt)=>({
  expires_at:new Date(new Date(receivedAt).getTime()+23*3600000).toISOString()
 });
 let flushing=false;
+/** Log only a small fixed category. Never log phone numbers, payloads or credentials. */
+export function classifyOutboundFailure(error){
+ const msg=String(error?.message||'');
+ if(/^evolution_http_\d{3}$/.test(msg))return msg;
+ if(/^evolution_(not_configured|missing_message_id|invalid_message|empty_text|scheduled_disabled)$/.test(msg))return msg;
+ if(/^meta_http_\d{3}$/.test(msg))return msg;
+ if(/^twilio_http_\d{3}$/.test(msg))return msg;
+ if(error?.name==='AbortError')return 'provider_timeout';
+ const code=String(error?.cause?.code||error?.code||'').toUpperCase();
+ if(['ENOTFOUND','EAI_AGAIN','ECONNREFUSED','ECONNRESET','ETIMEDOUT','UND_ERR_CONNECT_TIMEOUT','CERT_HAS_EXPIRED'].includes(code))
+  return 'network_'+code.toLowerCase();
+ return 'transport_unclassified';
+}
 async function inbound(m){
  const now=new Date();
  // Never interpret stale retries as new consent or a fresh service window.
@@ -88,7 +101,7 @@ async function flush(max=20){
   const forecast=(env.CERCA_PROVIDER||'meta')==='twilio'?Number(job.channel==='marketing'?env.CERCA_TWILIO_ESTIMATED_TEMPLATE_USD||.20:env.CERCA_TWILIO_ESTIMATED_REPLY_USD||.10):(job.channel==='marketing'?Number(env.CERCA_PRICING_MARKETING_USD||.0618):.026);
   if(estimated+forecast>cap)break;
   try{const providerId=(env.CERCA_PROVIDER||'meta')==='twilio'?await sendTwilio(job.payload,job.wa_id):(env.CERCA_PROVIDER==='evolution'?await sendEvolution(job.payload,job.wa_id):await sendMeta(job.payload,job.wa_id));await db.setSent(job.job_key,providerId);sent++;estimated+=forecast;}
-  catch{await db.retry(job.job_key,job.attempts);failed++;}
+  catch(error){console.warn('huella_outbound_failed',JSON.stringify({provider:env.CERCA_PROVIDER||'meta',reason:classifyOutboundFailure(error),attempt:job.attempts+1}));await db.retry(job.job_key,job.attempts);failed++;}
  }
  return {sent,failed,cancelled,heldMarketing,estimatedUSD:Number(estimated.toFixed(3)),budgetUSD:cap};
  } finally {flushing=false;}
@@ -226,4 +239,18 @@ async function handle(req,res){
  return json(res,404,{error:'not_found'});
 }
 export const start=()=>http.createServer((req,res)=>handle(req,res).catch(err=>{const c=err.message==='payload_too_large'?413:500;json(res,c,{error:'request_failed'});})).listen(Number(env.PORT||3000),'0.0.0.0');
-if(process.argv[1]&&import.meta.url===new URL(`file://${process.argv[1]}`).href)start();
+if(process.argv[1]&&import.meta.url===new URL(`file://${process.argv[1]}`).href){
+ start();
+ // Render free instances can sleep. A WhatsApp webhook may persist the reply
+ // but its synchronous transport attempt can fail. Recover existing consented,
+ // nonexpired, allowlisted outbox messages after cold start/redeploy. The database
+ // bounds attempts and this calls no AI nor activates scheduled missions.
+ const kickoff=setTimeout(()=>{
+  void flush(5).then(result=>{
+   console.info('huella_outbox_startup_recovery',JSON.stringify({
+    sent:result.sent||0,failed:result.failed||0,skipped:result.skipped||'none'
+   }));
+  }).catch(()=>console.warn('huella_outbox_startup_recovery_failed'));
+ },2000);
+ kickoff.unref?.();
+}
