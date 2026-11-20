@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {familyCycleForDay,nextFamilyWeekStart,addCalendarDays,FAMILY_CYCLE_SLOTS} from '../src/huella-calendar.mjs';
+import {familyCycleForDay,nextFamilyWeekStart,addCalendarDays,calendarWeekStart,FAMILY_CYCLE_SLOTS} from '../src/huella-calendar.mjs';
 import {initialState,processInbound} from '../src/flow.mjs';
 import {prepareWeeklyDispatch} from '../src/huella-weekly.mjs';
 
@@ -36,31 +36,52 @@ const generate=async()=>({
   steps:['Preguntá si quieren compartir un rato.','Acompañá a quienes elijan participar.'],
   why:'Compartir tiempo elegido libremente.',observe:'Respetar el deseo de cada integrante.'}
 });
-test('date-based cycle starts TOMORROW even if registered Friday, Monday or Sunday',()=>{
- for(const registration of ['2026-11-20','2026-11-23','2026-11-29']){
-  const first=addCalendarDays(registration,1);
-  assert.equal(familyCycleForDay(registration,registration),null);
-  assert.equal(familyCycleForDay(registration,first).slot,'family');
-  assert.equal(familyCycleForDay(registration,addCalendarDays(first,1)).slot,'conectar');
-  assert.equal(familyCycleForDay(registration,addCalendarDays(first,4)).slot,null);
-  assert.equal(familyCycleForDay(registration,addCalendarDays(first,6)).slot,'reflection');
-  const second=addCalendarDays(first,7);
-  assert.deepEqual(
-   {key:familyCycleForDay(registration,second).key,slot:familyCycleForDay(registration,second).slot},
-   {key:second,slot:'family'}
-  );
-  assert.equal(nextFamilyWeekStart(registration,first),second);
+test('weekdays NEVER shift: Monday family, Tue connect, Wed story, Thu understand, Friday rest, Sat grow, Sunday reflection',()=>{
+ const weekdays=['family','conectar','story','comprender',null,'sembrar','reflection'];
+ assert.deepEqual(FAMILY_CYCLE_SLOTS,weekdays);
+ for(let i=0;i<7;i++){
+  const day=addCalendarDays('2026-11-23',i);
+  const r=familyCycleForDay('2026-11-19',day);
+  assert.equal(r.slot,weekdays[i],day);
+  assert.equal(r.key,'2026-11-23');
+  assert.equal(r.slotIndex,i);
  }
- assert.equal(FAMILY_CYCLE_SLOTS.length,7);
 });
-test('calendar arithmetic crosses months, years and leap dates without skipping the next day',()=>{
+test('registration Friday => Saturday grow, Sunday reflect, Monday family; no artificial delay until Monday',()=>{
+ assert.equal(familyCycleForDay('2026-11-20','2026-11-20'),null);
+ assert.deepEqual(
+  ['2026-11-21','2026-11-22','2026-11-23','2026-11-24','2026-11-25','2026-11-26','2026-11-27']
+   .map(d=>familyCycleForDay('2026-11-20',d)?.slot),
+  ['sembrar','reflection','family','conectar','story','comprender',null]);
+ assert.equal(familyCycleForDay('2026-11-20','2026-11-21').key,'2026-11-16');
+ assert.equal(familyCycleForDay('2026-11-20','2026-11-23').key,'2026-11-23');
+ assert.equal(nextFamilyWeekStart('2026-11-20','2026-11-22'),'2026-11-23');
+});
+test('registration on other days activates tomorrow without shifting the fixed weekday',()=>{
+ const samples=[
+  ['2026-11-23','2026-11-24','conectar'],
+  ['2026-11-24','2026-11-25','story'],
+  ['2026-11-25','2026-11-26','comprender'],
+  ['2026-11-26','2026-11-27',null], // Friday is still a rest day
+  ['2026-11-28','2026-11-29','reflection'],
+  ['2026-11-29','2026-11-30','family']
+ ];
+ for(const [registration,next,slot] of samples){
+  assert.equal(familyCycleForDay(registration,registration),null);
+  assert.equal(familyCycleForDay(registration,next).slot,slot,next);
+  assert.equal(familyCycleForDay(registration,next).key,calendarWeekStart(next));
+ }
+});
+test('fixed calendar crosses years and leap dates without losing weekday alignment',()=>{
  assert.equal(addCalendarDays('2026-12-31',1),'2027-01-01');
  assert.equal(addCalendarDays('2028-02-28',1),'2028-02-29');
  assert.equal(addCalendarDays('2028-02-29',1),'2028-03-01');
- assert.equal(familyCycleForDay('2026-12-31','2027-01-01').slot,'family');
+ assert.equal(familyCycleForDay('2026-12-31','2027-01-01').slot,null);
+ assert.equal(familyCycleForDay('2028-02-28','2028-02-29').slot,'conectar');
  assert.equal(familyCycleForDay('2026-02-30','2026-03-01'),null);
+ assert.equal(nextFamilyWeekStart('2026-11-20','2026-11-23'),'2026-11-30');
 });
-test('onboarding completion stores local registration date, not a Monday',()=>{
+test('onboarding completion stores the precise local registration date; start tomorrow',()=>{
  const s=profile();s.status='onboarding';s.flow='delivery_time';s.huellaRegisteredDay=null;
  const r=processInbound('1',{state:s,today:'2026-11-20',now:'2026-11-20T18:30:00Z'});
  assert.equal(r.state.status,'active');
@@ -68,30 +89,33 @@ test('onboarding completion stores local registration date, not a Monday',()=>{
  assert.match(r.messages[0].body,/2026-11-21/);
  assert.equal(r.state.deliveryTime,'08:00');
 });
-test('one generation, start day family then complete all seven days in order',async()=>{
- let s=profile(),calls=0;
- const maker=async()=>{calls++;return generate();};
- const results=[];
- for(let i=0;i<7;i++){
-  const day=addCalendarDays('2026-11-21',i);
+test('one generation per CALENDAR week, begin Saturday and do not repeat weekday sends',async()=>{
+ let s=profile(),calls=0;const maker=async()=>{calls++;return generate();};
+ const dates=[
+  ['2026-11-21','sembrar',2,'2026-11-16'],
+  ['2026-11-22','reflection',1,'2026-11-16'],
+  ['2026-11-23','family',1,'2026-11-23'],
+  ['2026-11-24','conectar',2,'2026-11-23'],
+  ['2026-11-25','story',1,'2026-11-23'],
+  ['2026-11-26','comprender',2,'2026-11-23']
+ ];
+ for(const [day,slot,count,key] of dates){
   const now=new Date(day+'T11:00:00Z');
   const r=await prepareWeeklyDispatch(s,PHONE,now,{env,generate:maker});
-  if(i===4){assert.equal(r,null);continue;} // Rest day for THIS family, independent of weekday
   assert.ok(r,day);
-  assert.equal(r.slot,FAMILY_CYCLE_SLOTS[i]);
-  assert.equal(r.jobs.length,[1,2,1,2,0,2,1][i]);
+  assert.equal(r.slot,slot);assert.equal(r.weekKey,key);
+  assert.equal(r.jobs.length,count);
   assert.ok(r.jobs.every(j=>j.expires_at===new Date(day+'T23:59:59-03:00').toISOString()));
   assert.equal(await prepareWeeklyDispatch(r.updated,PHONE,now,{env,generate:maker}),null);
-  s=r.updated;results.push(r);
+  s=r.updated;
  }
- assert.equal(calls,1);
+ assert.equal(await prepareWeeklyDispatch(s,PHONE,new Date('2026-11-27T11:00:00Z'),{env,generate:maker}),null);
+ assert.equal(calls,2);
  assert.equal(s.huellaPilotStartDay,'2026-11-21');
- assert.equal(s.huellaWeekV2.key,'2026-11-21');
- assert.deepEqual(results.map(x=>x.slot),['family','conectar','story','comprender','sembrar','reflection']);
+ assert.equal(s.huellaWeekV2.key,'2026-11-23');
  assert.equal(s.history.length,3);
- assert.equal(s.flow,'weekly_reflection');
 });
-test('registration day, before chosen hour, after bounded trial and other phone send nothing',async()=>{
+test('registration day, before chosen hour, after trial, strangers and unregistered profiles never dispatch',async()=>{
  const s=profile(), maker=async()=>{throw Error('unexpected generated API call');};
  for(const now of ['2026-11-20T11:00:00Z','2026-11-21T10:59:00Z','2026-11-28T11:00:00Z']){
   assert.equal(await prepareWeeklyDispatch(s,PHONE,new Date(now),{env,generate:maker}),null);
