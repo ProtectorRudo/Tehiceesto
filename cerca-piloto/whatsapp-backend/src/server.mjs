@@ -9,6 +9,7 @@ import {validateWhapiWebhook,extractWhapiMessages,extractWhapiStatuses,sendWhapi
 import {configureWhapiWebhook} from './whapi-webhook-setup.mjs';
 import {initialState,processInbound} from './flow.mjs';
 import {prepareWeeklyDispatch,weeklyEnabled} from './huella-weekly.mjs';
+import {permittedFamilyPhone,schedulingCapacity} from './huella-enrollment.mjs';
 import {contentModel} from './huella-ai.mjs';
 import {previewIntent,previewPermitted,handlePreviewInbound} from './huella-preview.mjs';
 import {isQualityPreviewIntent,isRecoveryPreviewIntent,isKaiaRetestPreviewIntent,handleQualityPreviewInbound} from './huella-quality-preview.mjs';
@@ -103,7 +104,9 @@ async function flush(max=20){
  for(const job of jobs){
   if(job.channel==='marketing'&&!(isMessagingReady(env)&&(weeklyEnabled(env)||env.CERCA_TEST_REST_ADAPTER==='true'))){heldMarketing++;continue;}
   if(job.expires_at&&new Date(job.expires_at)<=now){await db.setCancelled(job.job_key);cancelled++;continue;}
-  if(!isAllowedRecipient(job.wa_id,env)){await db.setCancelled(job.job_key);cancelled++;continue;}
+  // Enrollments are rechecked at SEND time, including for previously queued
+  // messages, so suspending an invitation stops future deliveries immediately.
+  if(!(await permittedFamilyPhone(job.wa_id,{env,db}))){await db.setCancelled(job.job_key);cancelled++;continue;}
   // Recheck live consent immediately before network delivery, including queued old jobs.
   const owner=await db.family(job.wa_id);
   const state=owner?.state;
@@ -125,10 +128,19 @@ async function dispatch(){
  let scheduled=0,blocked=0;
  if(weeklyEnabled(env)){
   const rows=await db.activeFamilies();
-  // HUELLA's first month is strictly one pre-authorized household.
-  for(const family of rows.filter(f=>isAllowedRecipient(f.wa_id,env)).slice(0,1)){
+  // Only explicit invites (or the original private pilot number). Every
+  // family is processed from its OWN state and committed under its own wa_id.
+  const maxFamilies=schedulingCapacity(env);
+  let processed=0;
+  for(const family of rows){
+   if(processed>=maxFamilies)break;
    try{
-    const p=await prepareWeeklyDispatch(family.state,family.wa_id,new Date(),{env});
+    const approved=await permittedFamilyPhone(family.wa_id,{env,db});
+    if(!approved)continue;
+    processed++;
+    const p=await prepareWeeklyDispatch(family.state,family.wa_id,new Date(),{
+     env,approvedInvited:!isAllowedRecipient(family.wa_id,env)
+    });
     if(!p)continue;
     const result=await db.commit(family.wa_id,family.revision,p.eventId,p.updated,p.jobs);
     if(p.generationBlocked)blocked++;
@@ -215,7 +227,16 @@ async function handle(req,res){
    try{await db.setDelivery(st.messageId,st.status);}catch{/* idempotent callback can be replayed */ }
   }
   const parsed=extractWhapiMessages(payload,{channelId:env.WHAPI_CHANNEL_ID});
-  const messages=parsed.filter(m=>isAllowedInboundRecipient(m.phone,env));
+  const messages=[];
+  try{
+   for(const m of parsed){
+    if(await permittedFamilyPhone(m.phone,{env,db}))messages.push(m);
+   }
+  }catch{
+   // Never treat an unavailable private invite registry as an open door.
+   // Whapi may retry after a temporary DB failure.
+   return json(res,503,{error:'enrollment_check_unavailable'});
+  }
   console.info('huella_whapi_webhook',JSON.stringify({
    result:payload?.channel_id!==env.WHAPI_CHANNEL_ID?'channel_mismatch':messages.length?'accepted':parsed.length?'not_allowlisted':'no_eligible_messages',
    count:messages.length
