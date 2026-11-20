@@ -1,4 +1,5 @@
-import {localClock,tokenKey} from './scheduler.mjs';
+import {localClock,tokenKey,isAllowedRecipient} from './scheduler.mjs';
+import {multiFamilyCapacity} from './huella-enrollment.mjs';
 import {familyCycleForDay,FAMILY_CYCLE_SLOTS,daysBetween} from './huella-calendar.mjs';
 import {generatePremiumWeek} from './huella-ai.mjs';
 import {verifiedStoryFor,formatVerifiedStory} from './huella-sources.mjs';
@@ -109,7 +110,7 @@ export function weeklyEnabled(env=process.env){
   env.CERCA_SEND_MODE==='test'&&recipients.length===1&&/^[1-9]\d{7,14}$/.test(recipients[0])&&
   (evolution||whapi)&&!!env.OPENAI_API_KEY;
 }
-export async function prepareWeeklyDispatch(state,phone,now,{env=process.env,generate=generatePremiumWeek,storyFor=verifiedStoryFor}={}){
+export async function prepareWeeklyDispatch(state,phone,now,{env=process.env,generate=generatePremiumWeek,storyFor=verifiedStoryFor,approvedInvited=false}={}){
  if(!weeklyEnabled(env))return null;
  const clock=localClock(now,state.timezone||'America/Argentina/Buenos_Aires');
  // Do not schedule before the trial starts or after it expires, even if cron runs.
@@ -118,7 +119,9 @@ export async function prepareWeeklyDispatch(state,phone,now,{env=process.env,gen
  const cycle=familyCycleForDay(state.huellaRegisteredDay,clock.day);
  if(!cycle||!cycle.slot||state.status!=='active'||!state.consentAt||state.deleted)return null;
  const slot=cycle.slot;
- if(String(phone)!==String(env.CERCA_TEST_WA_IDS).trim())return null;
+ // Only the originally allowlisted operator or a previously DB-approved
+ // invitation validated by the server. The AI never authenticates adults.
+ if(!isAllowedRecipient(phone,env)&&!(approvedInvited===true&&multiFamilyCapacity(env)>0))return null;
  const desired=String(state.deliveryTime||'18:00');
  if(clock.time.slice(0,2)!==desired.slice(0,2)||Number(clock.time.slice(3))<Number(desired.slice(3)))return null;
  if(state.huellaPilotStartDay&&spanDays(clock.day,state.huellaPilotStartDay)>=30)return null;
