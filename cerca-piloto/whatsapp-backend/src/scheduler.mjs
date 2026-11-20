@@ -58,11 +58,14 @@ export function isSessionMessagingReady(env=process.env){
  if(mode==='production'&&env.CERCA_PRODUCTION_AUTHORIZED!=='true')return false;
  if(mode==='test'&&!String(env.CERCA_TEST_WA_IDS||'').trim())return false;
  if(env.CERCA_PROVIDER==='evolution')return !!(env.EVOLUTION_API_URL&&env.EVOLUTION_API_KEY&&env.EVOLUTION_INSTANCE&&String(env.CERCA_BRIDGE_WEBHOOK_SECRET||'').length>=32);
+ if(env.CERCA_PROVIDER==='whapi')return !!(String(env.WHAPI_TOKEN||'').length>=20&&String(env.WHAPI_WEBHOOK_SECRET||'').length>=32&&/^[A-Za-z0-9_-]{3,80}$/.test(env.WHAPI_CHANNEL_ID||''));
  if((env.CERCA_PROVIDER||'meta')==='twilio')return /^AC[0-9a-f]{32}$/i.test(env.TWILIO_ACCOUNT_SID||'') && !!env.TWILIO_AUTH_TOKEN && /^whatsapp:\+[1-9]\d{7,14}$/.test(env.TWILIO_WHATSAPP_FROM||'') && /^https:\/\//.test(env.TWILIO_WEBHOOK_URL||'');
  return !!(env.META_ACCESS_TOKEN&&env.META_PHONE_NUMBER_ID&&env.META_APP_SECRET&&env.META_VERIFY_TOKEN);
 }
 export function isMessagingReady(env=process.env){
  if(!isSessionMessagingReady(env))return false;
+ // Whapi Sandbox is strictly inbound/onboarding: NEVER schedule proactive sends.
+ if(env.CERCA_PROVIDER==='whapi')return false;
  // Explicit go-live gate: Meta must approve both templates before any real outbound.
  if(env.CERCA_PROVIDER!=='evolution'&&env.CERCA_TEMPLATES_APPROVED!=='true')return false;
  if(env.CERCA_PROVIDER==='evolution')return env.CERCA_EVOLUTION_SCHEDULED_ALLOWED==='true'&&!!env.EVOLUTION_TEMPLATE_DAILY&&!!env.EVOLUTION_TEMPLATE_WEEKLY;
