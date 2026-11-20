@@ -15,6 +15,8 @@ async function withServer(cb){
 test('TurnoVivo: acceso sin sesión rechazado y HUELLA inalterada',async()=>withServer(async base=>{
   const auth=await fetch(base+'/api/turnovivo-ai?action=status');
   assert.equal(auth.status,401);assert.match(await auth.text(),/Iniciá sesión/);
+  const authPost=await fetch(base+'/api/turnovivo-ai?action=extract',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:'Reservame a Mauro mañana a las 15'})});
+  assert.equal(authPost.status,401);
   const huella=await fetch(base+'/healthz');assert.equal(huella.status,200);assert.equal(await huella.text(),'huella_untouched');
 }));
 test('TurnoVivo: preflight CORS solo desde dominio oficial',async()=>withServer(async base=>{
