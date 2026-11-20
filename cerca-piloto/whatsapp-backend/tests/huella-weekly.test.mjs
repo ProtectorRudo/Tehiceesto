@@ -18,7 +18,7 @@ const profile=()=>{
  s.children=[
  {name:'Bebé',age:0,ageMonths:5,interests:['voces','sonidos'],goal:'atender mejor sus señales de comunicación'},
  {name:'Mayor',age:9,interests:['dibujar','inventar cuentos'],goal:'escuchar sus ideas con más paciencia'}];
- s.flow='idle';return s;
+ s.huellaRegisteredDay='2026-11-22';s.flow='idle';return s;
 };
 const mission=(kind,target,subj,i)=>({
  kind,title:'El encuentro especial de '+subj+' '+kind+' '+i,
@@ -98,8 +98,8 @@ test('weekly gate requires approved single-number consented pilot; nothing is sc
   {...ENV,CERCA_EVOLUTION_SCHEDULED_ALLOWED:'false'},
   {...ENV,OPENAI_API_KEY:''}
  ])assert.equal(weeklyEnabled(value),false);
- assert.equal(Object.keys(WEEKLY_SLOTS).length,6);
- assert.equal(WEEKLY_SLOTS.Fri,undefined);
+ assert.equal(WEEKLY_SLOTS.filter(Boolean).length,6);
+ assert.equal(WEEKLY_SLOTS[4],null);
 });
 test('premium week sends only the named slot on Mon Tue Wed Thu Sat Sun, with no Friday, no duplicates',async()=>{
  let s=profile(),generated=0,sent=[];

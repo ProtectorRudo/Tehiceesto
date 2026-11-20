@@ -1,7 +1,8 @@
-/** HUELLA Sunday goal choices. Closed, consented WhatsApp flow: no AI call.
+/** HUELLA reflection-day goal choices. Closed, consented WhatsApp flow: no AI call.
  * Suggestions rotate deterministically by week, child and developmental stage.
- * Weekly goals are only sent to Sol as context for the corresponding Monday.
+ * Weekly goals are sent to Sol as context for the next family cycle.
  */
+import {nextFamilyWeekStart} from './huella-calendar.mjs';
 const CATALOG={
  baby0:[
   'Disfrutar más encuentros de voz y canciones',
@@ -115,7 +116,7 @@ export function latestWeeklyGoal(state,index,beforeWeekKey){
 }
 export function beginWeeklyGoals(state,day){
  if(!Array.isArray(state.children)||!state.children.length)return false;
- const weekKey=nextWeekMonday(day);
+ const weekKey=state.huellaRegisteredDay?nextFamilyWeekStart(state.huellaRegisteredDay,day):nextWeekMonday(day);
  if(state.huellaWeekV2?.key===weekKey)return false;
  state.weeklyGoalSelection={weekKey,childIndex:0};
  state.flow='weekly_goal_choice';

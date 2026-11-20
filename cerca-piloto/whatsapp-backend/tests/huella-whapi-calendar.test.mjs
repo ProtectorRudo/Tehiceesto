@@ -16,7 +16,7 @@ const ENV={
 const state=()=>{
  const s={status:'active',consentAt:'2026-11-19T13:00:00Z',flow:'idle',deleted:false,
  deliveryTime:'08:00',timezone:'America/Argentina/Buenos_Aires',
- huellaWeekV2:null,huellaPilotStartDay:null,history:[],feedbackLog:[],
+ huellaWeekV2:null,huellaPilotStartDay:null,huellaRegisteredDay:'2026-11-22',history:[],feedbackLog:[],
  children:[{name:'Mayor',age:9,interests:['dibujar']},{name:'Bebé',age:0,ageMonths:6,interests:['canciones']}]};
  return s;
 };
@@ -60,7 +60,7 @@ test('Monday family event is generated once and uses Whapi-only pilot payload',a
  assert.equal(first.updated.huellaPilotStartDay,'2026-11-23');
  assert.equal(await prepareWeeklyDispatch(first.updated,PHONE,now,{env:ENV,generate:generator}),null);
  assert.equal(count,1);
- assert.equal(WEEKLY_SLOTS.Fri,undefined);
+ assert.equal(WEEKLY_SLOTS[4],null);
 });
 test('Calendar forbids Friday, Saturday past trial, Sunday past trial, too early, and outsiders',async()=>{
  let gen=0;const generator=async()=>{gen++;return batch();};

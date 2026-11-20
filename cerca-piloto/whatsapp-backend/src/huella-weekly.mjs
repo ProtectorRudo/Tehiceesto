@@ -1,8 +1,8 @@
 import {localClock,tokenKey} from './scheduler.mjs';
+import {familyCycleForDay,FAMILY_CYCLE_SLOTS,daysBetween} from './huella-calendar.mjs';
 import {generatePremiumWeek} from './huella-ai.mjs';
 import {verifiedStoryFor,formatVerifiedStory} from './huella-sources.mjs';
 
-const SLOTS={Mon:'family',Tue:'conectar',Wed:'story',Thu:'comprender',Sat:'sembrar',Sun:'reflection'};
 const KIND_NAMES={conectar:'CONECTAR',comprender:'COMPRENDER',sembrar:'SEMBRAR'};
 const dateAtUTC=day=>new Date(day+'T12:00:00Z');
 export function mondayOf(day){
@@ -115,13 +115,14 @@ export async function prepareWeeklyDispatch(state,phone,now,{env=process.env,gen
  // Do not schedule before the trial starts or after it expires, even if cron runs.
  if(env.CERCA_PROVIDER==='whapi'&&
    (clock.day<env.HUELLA_WHAPI_PILOT_START_DAY||clock.day>env.HUELLA_WHAPI_PILOT_END_DAY))return null;
- const slot=SLOTS[clock.weekday];
- if(!slot||state.status!=='active'||!state.consentAt||state.deleted)return null;
+ const cycle=familyCycleForDay(state.huellaRegisteredDay,clock.day);
+ if(!cycle||!cycle.slot||state.status!=='active'||!state.consentAt||state.deleted)return null;
+ const slot=cycle.slot;
  if(String(phone)!==String(env.CERCA_TEST_WA_IDS).trim())return null;
  const desired=String(state.deliveryTime||'18:00');
  if(clock.time.slice(0,2)!==desired.slice(0,2)||Number(clock.time.slice(3))<Number(desired.slice(3)))return null;
  if(state.huellaPilotStartDay&&spanDays(clock.day,state.huellaPilotStartDay)>=30)return null;
- const key=mondayOf(clock.day);
+ const key=cycle.key;
  const stateCopy=structuredClone(state);
  if(!stateCopy.huellaWeekV2||stateCopy.huellaWeekV2.key!==key){
   // Fail CLOSED. A failed model call must never lead to arbitrary fallback content.
@@ -191,4 +192,4 @@ export async function prepareWeeklyDispatch(state,phone,now,{env=process.env,gen
  return {updated:stateCopy,jobs,slot,day:clock.day,weekKey:key,
   eventId:tokenKey('huella:weekly:'+phone+':'+clock.day+':'+slot)};
 }
-export const WEEKLY_SLOTS=Object.freeze({...SLOTS});
+export const WEEKLY_SLOTS=FAMILY_CYCLE_SLOTS;
