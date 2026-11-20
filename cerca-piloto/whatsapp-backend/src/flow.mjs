@@ -1,6 +1,6 @@
 /** HUELLA: deterministic, finite-state WhatsApp interaction. No chatbot fallback. */
-import {beginWeeklyGoals,weeklyGoalPrompt,goalChoices,latestWeeklyGoal,rememberWeeklyGoal,advanceWeeklyGoal,formatWeeklyGoalSummary} from './huella-weekly-goals.mjs';
-import {addCalendarDays,calendarWeekStart} from './huella-calendar.mjs';
+import {beginWeeklyGoals,weeklyGoalPrompt,goalChoices,latestWeeklyGoal,rememberWeeklyGoal,advanceWeeklyGoal,formatWeeklyGoalSummary,nextWeekMonday} from './huella-weekly-goals.mjs';
+import {addCalendarDays} from './huella-calendar.mjs';
 export const REDIRECT = 'HUELLA funciona con misiones, objetivos y seguimiento de crianza. Escribí MENÚ para ver las opciones disponibles.';
 export const RISK = 'Si hay peligro inmediato para alguien, llamá al servicio de emergencias de tu zona (911 en Argentina) o acudí a un centro de atención. HUELLA no atiende emergencias.';
 const clean = v => String(v ?? '').trim().replace(/\s+/g, ' ');
@@ -29,7 +29,7 @@ const interestExamples=child=>Number(child?.age)<2
 const initialGoals=(state,today)=>{
  const child=state.children[state.currentChild];
  if(!child)return [];
- return goalChoices(child,calendarWeekStart(addCalendarDays(today,1)),state.currentChild);
+ return goalChoices(child,nextWeekMonday(today),state.currentChild);
 };
 const initialGoalQuestion=(state,today)=>{
  const child=state.children[state.currentChild],goals=initialGoals(state,today);
