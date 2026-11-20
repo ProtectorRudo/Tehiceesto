@@ -246,6 +246,32 @@ async function handle(req,res){
    count:messages.length
   }));
   for(const m of messages)await inbound(m);
+  // Separación estricta: HUELLA conserva sus propios contactos; solo los operadores
+  // ACTIVOS de TurnoVivo reciben tratamiento por la ruta de turnos. No interceptar familias.
+  if(env.TURNOVIVO_WHATSAPP_BRIDGE_ENABLED==='true'){
+    try{
+      const {extractTurnoVivoWhapi,isTurnoVivoOperator,receiveTurnoVivoMessage,completeTurnoVivoMessage}=await import('./turnovivo-whapi.mjs');
+      const candidates=extractTurnoVivoWhapi(payload,{channelId:env.WHAPI_CHANNEL_ID});
+      const forwarded=[];
+      for(const candidate of candidates){
+        if(await permittedFamilyPhone(candidate.numeric_phone,{env,db}))continue;
+        if(!(await isTurnoVivoOperator(candidate.from_phone,{env})))continue;
+        const saved=await receiveTurnoVivoMessage(candidate,{env});
+        if(saved.accepted&&saved.new_message)forwarded.push(candidate);
+      }
+      if(forwarded.length)setImmediate(()=>{
+        void (async()=>{
+          for(const candidate of forwarded){
+            try{await completeTurnoVivoMessage(candidate,{env});}
+            catch(error){console.warn('turnovivo_operator_processing',String(error?.message||'failed').slice(0,60));}
+          }
+        })();
+      });
+    }catch(error){
+      // Un error del piloto de TurnoVivo nunca debe desactivar las conversaciones HUELLA.
+      console.warn('turnovivo_operator_bridge',String(error?.message||'unavailable').slice(0,60));
+    }
+  }
   // Whapi retries on non-200/slow callbacks. Acknowledge after durable DB commit,
   // then drain the outbox without holding the provider HTTP request open.
   if(messages.length)setImmediate(()=>{
