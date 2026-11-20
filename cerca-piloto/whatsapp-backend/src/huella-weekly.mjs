@@ -95,14 +95,26 @@ const tagged=(label,body,template,phone,day,slot,index)=>{
 };
 export function weeklyEnabled(env=process.env){
  const recipients=String(env.CERCA_TEST_WA_IDS||'').split(',').map(x=>x.trim()).filter(Boolean);
+ const evolution=env.CERCA_PROVIDER==='evolution'&&env.CERCA_EVOLUTION_SCHEDULED_ALLOWED==='true'&&
+  !!env.EVOLUTION_TEMPLATE_DAILY&&!!env.EVOLUTION_TEMPLATE_WEEKLY;
+ const start=String(env.HUELLA_WHAPI_PILOT_START_DAY||'');
+ const end=String(env.HUELLA_WHAPI_PILOT_END_DAY||'');
+ const datePattern=/^\d{4}-\d{2}-\d{2}$/;
+ const whapi=env.CERCA_PROVIDER==='whapi'&&env.HUELLA_WHAPI_SCHEDULED_ALLOWED==='true'&&
+  String(env.WHAPI_TOKEN||'').length>=20&&String(env.WHAPI_WEBHOOK_SECRET||'').length>=32&&
+  /^[A-Za-z0-9_-]{3,80}$/.test(String(env.WHAPI_CHANNEL_ID||''))&&
+  datePattern.test(start)&&datePattern.test(end)&&start<=end&&
+  (dateAtUTC(end)-dateAtUTC(start))<=7*86400000;
  return env.HUELLA_WEEKLY_V2_ENABLED==='true'&&env.HUELLA_SOLO_PILOT_ENABLED==='true'&&
   env.CERCA_SEND_MODE==='test'&&recipients.length===1&&/^[1-9]\d{7,14}$/.test(recipients[0])&&
-  env.CERCA_PROVIDER==='evolution'&&env.CERCA_EVOLUTION_SCHEDULED_ALLOWED==='true'&&
-  !!env.EVOLUTION_TEMPLATE_DAILY&&!!env.EVOLUTION_TEMPLATE_WEEKLY&&!!env.OPENAI_API_KEY;
+  (evolution||whapi)&&!!env.OPENAI_API_KEY;
 }
 export async function prepareWeeklyDispatch(state,phone,now,{env=process.env,generate=generatePremiumWeek,storyFor=verifiedStoryFor}={}){
  if(!weeklyEnabled(env))return null;
  const clock=localClock(now,state.timezone||'America/Argentina/Buenos_Aires');
+ // Do not schedule before the trial starts or after it expires, even if cron runs.
+ if(env.CERCA_PROVIDER==='whapi'&&
+   (clock.day<env.HUELLA_WHAPI_PILOT_START_DAY||clock.day>env.HUELLA_WHAPI_PILOT_END_DAY))return null;
  const slot=SLOTS[clock.weekday];
  if(!slot||state.status!=='active'||!state.consentAt||state.deleted)return null;
  if(String(phone)!==String(env.CERCA_TEST_WA_IDS).trim())return null;
@@ -129,7 +141,9 @@ export async function prepareWeeklyDispatch(state,phone,now,{env=process.env,gen
  if(stateCopy.huellaWeekV2.sentSlots.includes(slot))return null;
  const batch=stateCopy.huellaWeekV2.batch;
  const jobs=[];
- const daily=env.EVOLUTION_TEMPLATE_DAILY,weekly=env.EVOLUTION_TEMPLATE_WEEKLY;
+ const pilotWhapi=env.CERCA_PROVIDER==='whapi';
+ const daily=pilotWhapi?'HUELLA_WHAPI_PILOT':env.EVOLUTION_TEMPLATE_DAILY;
+ const weekly=pilotWhapi?'HUELLA_WHAPI_PILOT':env.EVOLUTION_TEMPLATE_WEEKLY;
  if(slot==='family'&&batch.weekly){
   const messages=splitLongMission(familyText(batch.weekly));
   messages.forEach((body,part)=>jobs.push(tagged('Familia',body,weekly,phone,clock.day,slot,part)));
