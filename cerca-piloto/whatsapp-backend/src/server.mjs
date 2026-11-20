@@ -157,6 +157,14 @@ async function handle(req,res){
   let event;try{event=JSON.parse(raw.toString('utf8'));}catch{return json(res,400,{error:'invalid_json'});}
   const message=extractEvolutionMessage(event,{instance:env.EVOLUTION_INSTANCE});
   const accepted=Boolean(message&&isAllowedInboundRecipient(message.phone,env));
+  // Minimal inbound diagnostics: fixed categories only. NEVER log sender, body,
+  // raw webhook payload, message ID or credentials.
+  const inboundReason=accepted?'accepted':message?'not_allowlisted':
+    event?.instance!==env.EVOLUTION_INSTANCE?'instance_mismatch':
+    String(event?.event||'').toLowerCase().replaceAll('_','.')!=='messages.upsert'?'event_type_unexpected':
+    !event?.data?.key||event.data.key.fromMe!==false?'message_key_unaccepted':
+    'message_unsupported_or_identity';
+  console.info('huella_evolution_webhook',JSON.stringify({result:inboundReason}));
   if(accepted){await inbound(message);try{await flush(5);}catch{}}
   return json(res,200,{received:accepted?1:0});
  }
