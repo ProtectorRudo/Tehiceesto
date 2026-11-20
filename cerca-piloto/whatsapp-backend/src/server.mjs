@@ -6,6 +6,7 @@ import {makeDb} from './db.mjs';
 import {classifyDbFailure} from './db_pg.mjs';
 import {validateEvolutionWebhook,extractEvolutionMessage,sendEvolution,fetchEvolutionQr,fetchEvolutionPairingCode,classifyEvolutionQrError,probeEvolutionTransport} from './evolution.mjs';
 import {validateWhapiWebhook,extractWhapiMessages,extractWhapiStatuses,sendWhapi} from './whapi.mjs';
+import {configureWhapiWebhook} from './whapi-webhook-setup.mjs';
 import {initialState,processInbound} from './flow.mjs';
 import {prepareWeeklyDispatch,weeklyEnabled} from './huella-weekly.mjs';
 import {contentModel} from './huella-ai.mjs';
@@ -283,6 +284,16 @@ async function handle(req,res){
 export const start=()=>http.createServer((req,res)=>handle(req,res).catch(err=>{const c=err.message==='payload_too_large'?413:500;json(res,c,{error:'request_failed'});})).listen(Number(env.PORT||3000),'0.0.0.0');
 if(process.argv[1]&&import.meta.url===new URL(`file://${process.argv[1]}`).href){
  start();
+ // Explicitly gated, idempotent setup only. Uses Render's environment,
+ // modifies Whapi channel webhooks but never switches providers or sends chats.
+ if(env.HUELLA_WHAPI_SETUP==='true'){
+  const setup=setTimeout(()=>{
+   void configureWhapiWebhook({env}).then(status=>
+    console.info('huella_whapi_webhook_setup',JSON.stringify({status}))
+   ).catch(()=>console.warn('huella_whapi_webhook_setup',JSON.stringify({status:'unexpected_error'})));
+  },1500);
+  setup.unref?.();
+ }
  // Independent connectivity probe: a healthy database/webhook cannot prove
  // that outbound HTTPS to the local Evolution API works.
  const diagnosis=setTimeout(()=>{
