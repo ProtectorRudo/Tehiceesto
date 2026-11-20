@@ -292,6 +292,23 @@ async function handle(req,res){
 export const start=()=>http.createServer((req,res)=>handle(req,res).catch(err=>{const c=err.message==='payload_too_large'?413:500;json(res,c,{error:'request_failed'});})).listen(Number(env.PORT||3000),'0.0.0.0');
 if(process.argv[1]&&import.meta.url===new URL(`file://${process.argv[1]}`).href){
  start();
+ if(env.CERCA_PROVIDER==='whapi'){
+  const recipients=String(env.CERCA_TEST_WA_IDS||'').split(',').map(v=>v.trim()).filter(Boolean);
+  // Startup diagnostics contain only boolean guards, never phone numbers or keys.
+  console.info('huella_calendar_gate',JSON.stringify({
+   weekly_enabled:weeklyEnabled(env),
+   allowlist_one:recipients.length===1,
+   send_mode_test:env.CERCA_SEND_MODE==='test',
+   weekly_flag:env.HUELLA_WEEKLY_V2_ENABLED==='true',
+   solo_flag:env.HUELLA_SOLO_PILOT_ENABLED==='true',
+   whapi_scheduled:env.HUELLA_WHAPI_SCHEDULED_ALLOWED==='true',
+   has_dates:Boolean(env.HUELLA_WHAPI_PILOT_START_DAY&&env.HUELLA_WHAPI_PILOT_END_DAY),
+   whapi_token_present:String(env.WHAPI_TOKEN||'').length>=20,
+   whapi_webhook_present:String(env.WHAPI_WEBHOOK_SECRET||'').length>=32,
+   whapi_channel_valid:/^[A-Za-z0-9_-]{3,80}$/.test(String(env.WHAPI_CHANNEL_ID||'')),
+   openai_present:Boolean(env.OPENAI_API_KEY)
+  }));
+ }
  // Explicitly gated, idempotent setup only. Uses Render's environment,
  // modifies Whapi channel webhooks but never switches providers or sends chats.
  if(env.HUELLA_WHAPI_SETUP==='true'){
