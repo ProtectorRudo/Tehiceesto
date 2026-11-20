@@ -1,5 +1,6 @@
 /** HUELLA: deterministic, finite-state WhatsApp interaction. No chatbot fallback. */
 import {beginWeeklyGoals,weeklyGoalPrompt,goalChoices,latestWeeklyGoal,rememberWeeklyGoal,advanceWeeklyGoal,formatWeeklyGoalSummary,nextWeekMonday} from './huella-weekly-goals.mjs';
+import {addCalendarDays} from './huella-calendar.mjs';
 export const REDIRECT = 'HUELLA funciona con misiones, objetivos y seguimiento de crianza. Escribí MENÚ para ver las opciones disponibles.';
 export const RISK = 'Si hay peligro inmediato para alguien, llamá al servicio de emergencias de tu zona (911 en Argentina) o acudí a un centro de atención. HUELLA no atiende emergencias.';
 const clean = v => String(v ?? '').trim().replace(/\s+/g, ' ');
@@ -36,7 +37,7 @@ const initialGoalQuestion=(state,today)=>{
   goals.map((g,i)=>(i+1)+'. '+g).join('\\n')+
   '\\n4. Escribir mi propio objetivo', ['1','2','3','4']);
 };
-export function initialState(){return {status:'pending',consentAt:null,adultName:'',adultRole:null,children:[],currentChild:0,flow:'consent',deliveryTime:'18:00',timezone:'America/Argentina/Buenos_Aires',mood:null,lastDailyDay:null,lastWeeklyWeek:null,history:[],monthlyGoal:'',lastRedirectDate:null,deleted:false,subscription:'pilot',consentPrompted:false,feedbackLog:[],feedbackPending:null,huellaWeekV2:null,huellaPilotStartDay:null,weeklyReflections:[],babyAgePendingIndex:null,weeklyGoals:[],weeklyGoalSelection:null};}
+export function initialState(){return {status:'pending',consentAt:null,adultName:'',adultRole:null,children:[],currentChild:0,flow:'consent',deliveryTime:'18:00',timezone:'America/Argentina/Buenos_Aires',mood:null,lastDailyDay:null,lastWeeklyWeek:null,history:[],monthlyGoal:'',lastRedirectDate:null,deleted:false,subscription:'pilot',consentPrompted:false,feedbackLog:[],feedbackPending:null,huellaWeekV2:null,huellaPilotStartDay:null,huellaRegisteredDay:null,weeklyReflections:[],babyAgePendingIndex:null,weeklyGoals:[],weeklyGoalSelection:null};}
 const q=(body,options=[])=>({body,options});
 const askConsent=()=>q('Hola, soy HUELLA 🌱. Enviamos misiones breves para conectar con tus hijos. No somos un chat de consultas. ¿Aceptás recibir mensajes de HUELLA y guardar un perfil familiar mínimo? Podés escribir BAJA cuando quieras.',['ACEPTO','NO']);
 function question(state){
@@ -267,7 +268,14 @@ export function processInbound(input,{state:original=initialState(),today='2026-
    const chosen=state.flow==='delivery_time'?({'1':'08:00','2':'13:00','3':'18:00'}[n]||txt):txt;
    const time=normalizeTime(chosen);if(!time){reply('Elegí 1, 2 o 3, o escribí un horario HH:MM, por ejemplo 18:00.');break;}
    state.deliveryTime=time;
-   if(state.flow==='delivery_time'){state.flow='idle';state.status='active';reply(`¡Ya está, ${state.adultName}! 🌱 Registramos ${state.children.length} perfil(es) y el horario ${time}. Cuando activemos el nuevo calendario del piloto, recibirás tres misiones por hijo por semana y una misión familiar semanal. Mientras tanto, escribí MENÚ para consultar las funciones disponibles.`);}
+   if(state.flow==='delivery_time'){
+    state.flow='idle';state.status='active';
+    // The precise local completion day is permanent, even if no messages can
+    // be sent yet. Never restart a family's calendar on redeploy.
+    state.huellaRegisteredDay=today;
+    const firstDay=addCalendarDays(today,1);
+    reply(`¡Ya está, ${state.adultName}! 🌱 Registramos ${state.children.length} perfil(es) y el horario ${time}. Tu calendario comienza el ${firstDay} a las ${time}: tres misiones por hijo y una familiar por semana. Si los envíos aún no están habilitados, no se enviarán automáticamente. Escribí MENÚ para consultar las funciones disponibles.`);
+   }
    else{state.flow='idle';reply(`Nuevo horario guardado: ${time}.`);}
    break;
   }
