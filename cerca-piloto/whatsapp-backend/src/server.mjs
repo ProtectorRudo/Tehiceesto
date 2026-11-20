@@ -275,6 +275,14 @@ async function handle(req,res){
   try{await flush(Math.min(20,messages.length*3));}catch{}
   return json(res,200,{received:messages.length});
  }
+ // A dedicated credential prevents this schedule from changing other services.
+ if(url.pathname==='/internal/huella-dispatch'&&req.method==='POST'){
+  const provided=String(req.headers.authorization||'').replace(/^Bearer /,'');
+  if(String(env.HUELLA_CRON_SECRET||'').length<32||
+    !sameSecret(provided,env.HUELLA_CRON_SECRET)||
+    !weeklyEnabled(env))return fixed(res,403,'Forbidden');
+  return json(res,200,await dispatch());
+ }
  if(url.pathname==='/internal/dispatch'&&req.method==='POST'){
   if(!env.CRON_SECRET||!authCron(req))return fixed(res,403,'Forbidden');
   return json(res,200,await dispatch());
