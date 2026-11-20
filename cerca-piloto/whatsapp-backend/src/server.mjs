@@ -5,6 +5,7 @@ import {parseTwilioForm,validateTwilioSignature,extractTwilioMessage,extractTwil
 import {makeDb} from './db.mjs';
 import {classifyDbFailure} from './db_pg.mjs';
 import {validateEvolutionWebhook,extractEvolutionMessage,sendEvolution,fetchEvolutionQr,fetchEvolutionPairingCode,classifyEvolutionQrError,probeEvolutionTransport} from './evolution.mjs';
+import {validateWhapiWebhook,extractWhapiMessages,extractWhapiStatuses,sendWhapi} from './whapi.mjs';
 import {initialState,processInbound} from './flow.mjs';
 import {prepareWeeklyDispatch,weeklyEnabled} from './huella-weekly.mjs';
 import {contentModel} from './huella-ai.mjs';
@@ -30,6 +31,8 @@ let flushing=false;
 export function classifyOutboundFailure(error){
  const msg=String(error?.message||'');
  if(/^evolution_http_\d{3}$/.test(msg))return msg;
+ if(/^whapi_http_\d{3}$/.test(msg))return msg;
+ if(/^whapi_(not_configured|missing_message_id|invalid_message|scheduled_disabled)$/.test(msg))return msg;
  if(/^evolution_(not_configured|missing_message_id|invalid_message|empty_text|scheduled_disabled)$/.test(msg))return msg;
  if(/^meta_http_\d{3}$/.test(msg))return msg;
  if(/^twilio_http_\d{3}$/.test(msg))return msg;
@@ -109,7 +112,7 @@ async function flush(max=20){
   }
   const forecast=(env.CERCA_PROVIDER||'meta')==='twilio'?Number(job.channel==='marketing'?env.CERCA_TWILIO_ESTIMATED_TEMPLATE_USD||.20:env.CERCA_TWILIO_ESTIMATED_REPLY_USD||.10):(job.channel==='marketing'?Number(env.CERCA_PRICING_MARKETING_USD||.0618):.026);
   if(estimated+forecast>cap)break;
-  try{const providerId=(env.CERCA_PROVIDER||'meta')==='twilio'?await sendTwilio(job.payload,job.wa_id):(env.CERCA_PROVIDER==='evolution'?await sendEvolution(job.payload,job.wa_id):await sendMeta(job.payload,job.wa_id));await db.setSent(job.job_key,providerId);sent++;estimated+=forecast;}
+  try{const providerId=(env.CERCA_PROVIDER||'meta')==='twilio'?await sendTwilio(job.payload,job.wa_id):(env.CERCA_PROVIDER==='evolution'?await sendEvolution(job.payload,job.wa_id):env.CERCA_PROVIDER==='whapi'?await sendWhapi(job.payload,job.wa_id):await sendMeta(job.payload,job.wa_id));await db.setSent(job.job_key,providerId);sent++;estimated+=forecast;}
   catch(error){console.warn('huella_outbound_failed',JSON.stringify({provider:env.CERCA_PROVIDER||'meta',reason:classifyOutboundFailure(error),attempt:job.attempts+1}));await db.retry(job.job_key,job.attempts);failed++;}
  }
  return {sent,failed,cancelled,heldMarketing,estimatedUSD:Number(estimated.toFixed(3)),budgetUSD:cap};
@@ -197,6 +200,32 @@ async function handle(req,res){
   if(typeof data?.number!=='string'||!/^\d{8,15}$/.test(data.number))return json(res,400,{error:'invalid_phone'});
   let code=null;try{code=await fetchEvolutionPairingCode(data.number);}catch{return json(res,503,{error:'bridge_unavailable'});}
   return json(res,code?200:503,code?{code}:{error:'pairing_unavailable'});
+ }
+ // Only an authenticated Whapi sandbox channel can reach HUELLA's inbound flow.
+ // The operator configures X-Whapi-Secret on the Whapi channel (separate
+ // from the Bearer API token); no access based on public URLs or IP addresses.
+ if(url.pathname==='/webhooks/whapi'&&req.method==='POST'){
+  if(env.CERCA_PROVIDER!=='whapi')return fixed(res,404,'Not Found');
+  if(!validateWhapiWebhook(req.headers['x-whapi-secret'],env.WHAPI_WEBHOOK_SECRET))return fixed(res,403,'Forbidden');
+  if(!String(req.headers['content-type']||'').toLowerCase().startsWith('application/json'))return fixed(res,415,'Unsupported Media Type');
+  if(!db.available())return json(res,503,{error:'database_unavailable'});
+  let payload;try{payload=JSON.parse((await read(req)).toString('utf8'));}catch{return json(res,400,{error:'invalid_json'});}
+  for(const st of extractWhapiStatuses(payload,{channelId:env.WHAPI_CHANNEL_ID})){
+   try{await db.setDelivery(st.messageId,st.status);}catch{/* idempotent callback can be replayed */ }
+  }
+  const parsed=extractWhapiMessages(payload,{channelId:env.WHAPI_CHANNEL_ID});
+  const messages=parsed.filter(m=>isAllowedInboundRecipient(m.phone,env));
+  console.info('huella_whapi_webhook',JSON.stringify({
+   result:payload?.channel_id!==env.WHAPI_CHANNEL_ID?'channel_mismatch':messages.length?'accepted':parsed.length?'not_allowlisted':'no_eligible_messages',
+   count:messages.length
+  }));
+  for(const m of messages)await inbound(m);
+  // Whapi retries on non-200/slow callbacks. Acknowledge after durable DB commit,
+  // then drain the outbox without holding the provider HTTP request open.
+  if(messages.length)setImmediate(()=>{
+   void flush(Math.min(20,messages.length*3)).catch(()=>console.warn('huella_whapi_flush_failed'));
+  });
+  return json(res,200,{received:messages.length});
  }
  // Twilio Sandbox uses signed form-urlencoded POSTs and an empty TwiML acknowledgement.
  // A fixed public HTTPS URL is used for signature verification, never the Host header.
