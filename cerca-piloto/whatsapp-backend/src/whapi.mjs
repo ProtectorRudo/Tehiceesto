@@ -56,17 +56,37 @@ export function extractWhapiStatuses(payload,{channelId}={}){
  return payload.statuses.filter(x=>x&&messagePattern.test(String(x.id||''))&&valid.has(x.status))
   .slice(0,20).map(x=>({messageId:x.id,status:x.status}));
 }
-export function formatWhapiText(msg){
- if(!msg||typeof msg.body!=='string'||msg.kind==='template')throw new Error('whapi_scheduled_disabled');
+function localDay(now){
+ const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Argentina/Buenos_Aires',
+  year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);
+ const d=Object.fromEntries(parts.map(x=>[x.type,x.value]));
+ return d.year+'-'+d.month+'-'+d.day;
+}
+export function formatWhapiText(msg,{env=process.env,now=new Date()}={}){
+ if(!msg)throw new Error('whapi_invalid_message');
+ if(msg.kind==='template'){
+  const day=localDay(now);
+  if(env.CERCA_PROVIDER!=='whapi'||env.CERCA_SEND_MODE!=='test'||
+     env.HUELLA_SOLO_PILOT_ENABLED!=='true'||env.HUELLA_WEEKLY_V2_ENABLED!=='true'||
+     env.HUELLA_WHAPI_SCHEDULED_ALLOWED!=='true'||
+     day<String(env.HUELLA_WHAPI_PILOT_START_DAY||'')||
+     day>String(env.HUELLA_WHAPI_PILOT_END_DAY||'')||
+     msg.name!=='HUELLA_WHAPI_PILOT')throw new Error('whapi_scheduled_disabled');
+  const body=msg.params?.[1];
+  if(!Array.isArray(msg.params)||msg.params.length!==2||typeof body!=='string'||
+    !body.trim()||body.length>4000)throw new Error('whapi_invalid_message');
+  return body.trim();
+ }
+ if(typeof msg.body!=='string')throw new Error('whapi_invalid_message');
  const opts=Array.isArray(msg.options)?msg.options.slice(0,10):[];
- const body=(msg.body+(opts.length?'\n\nRespondé: '+opts.map(String).join(' | '):'')).trim().slice(0,4000);
- if(!body)throw new Error('whapi_invalid_message');
+ const body=(msg.body+(opts.length?'\n\nRespondé: '+opts.map(String).join(' | '):'')).trim();
+ if(!body||body.length>4000)throw new Error('whapi_invalid_message');
  return body;
 }
 /** Whapi /messages/text: HTTP success is gateway acceptance, not handset delivery. */
-export async function sendWhapi(msg,phone,{env=process.env,fetcher=fetch}={}){
+export async function sendWhapi(msg,phone,{env=process.env,fetcher=fetch,now=new Date()}={}){
  if(!whapiReady(env)||!phonePattern.test(String(phone)))throw new Error('whapi_not_configured');
- const body=formatWhapiText(msg);
+ const body=formatWhapiText(msg,{env,now});
  const controller=new AbortController();
  const timer=setTimeout(()=>controller.abort(),10000);timer.unref?.();
  try{
