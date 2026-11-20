@@ -274,7 +274,7 @@ export function processInbound(input,{state:original=initialState(),today='2026-
     // be sent yet. Never restart a family's calendar on redeploy.
     state.huellaRegisteredDay=today;
     const firstDay=addCalendarDays(today,1);
-    reply(`¡Ya está, ${state.adultName}! 🌱 Registramos ${state.children.length} perfil(es) y el horario ${time}. Tu calendario comienza el ${firstDay} a las ${time}: tres misiones por hijo y una familiar por semana. Si los envíos aún no están habilitados, no se enviarán automáticamente. Escribí MENÚ para consultar las funciones disponibles.`);
+    reply(`¡Ya está, ${state.adultName}! 🌱 HUELLA registró ${state.children.length} perfil(es) y el horario ${time}. Tu calendario comienza el ${firstDay} a las ${time}: tres misiones por hijo y una familiar por semana. Si los envíos aún no están habilitados, no se enviarán automáticamente. Escribí MENÚ para consultar las funciones disponibles.`);
    }
    else{state.flow='idle';reply(`Nuevo horario guardado: ${time}.`);}
    break;
