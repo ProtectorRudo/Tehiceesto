@@ -22,7 +22,9 @@ test('HUELLA is the product name in all visible onboarding messages and consent'
  const ready=registered();
  assert.match(ready.messages.at(-1).body,/tres misiones por hijo por semana/);
  assert.doesNotMatch(ready.messages.at(-1).body,/tres misiones por hijo al día/);
- assert.match(ready.messages.at(-1).body,/Cuando activemos/);
+ assert.match(ready.messages.at(-1).body,/HUELLA registró/);
+ assert.match(ready.messages.at(-1).body,/Tu calendario comienza el 2026-11-20/);
+ assert.equal(ready.state.huellaRegisteredDay,'2026-11-19');
  assert.equal(ready.state.children.length,1);
 });
 
