@@ -68,7 +68,7 @@ export function isMessagingReady(env=process.env){
  // the default no-scheduled-messages rule. Never enable on a public account.
  if(env.CERCA_PROVIDER==='whapi'){
   const start=String(env.HUELLA_WHAPI_PILOT_START_DAY||''),end=String(env.HUELLA_WHAPI_PILOT_END_DAY||'');
-  const valid=/^\\d{4}-\\d{2}-\\d{2}$/;
+  const valid=/^\d{4}-\d{2}-\d{2}$/;
   return env.HUELLA_WHAPI_SCHEDULED_ALLOWED==='true' &&
     env.HUELLA_WEEKLY_V2_ENABLED==='true'&&env.HUELLA_SOLO_PILOT_ENABLED==='true'&&
     valid.test(start)&&valid.test(end)&&start<=end&&
