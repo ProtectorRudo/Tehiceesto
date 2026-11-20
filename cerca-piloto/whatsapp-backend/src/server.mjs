@@ -166,6 +166,10 @@ async function dispatch(){
 }
 async function handle(req,res){
  const url=new URL(req.url||'/',`http://${req.headers.host||'localhost'}`);
+ if(url.pathname==='/api/turnovivo-ai'){
+  const {handleTurnoVivoBridge}=await import('./turnovivo-bridge-http.mjs');
+  return handleTurnoVivoBridge(req,res,url);
+ }
  if(req.method==='GET'&&url.pathname==='/healthz'){
   let database=db.available()?'configured_unverified':'pending', databaseIssue=null;
   if(db.available()&&typeof db.ping==='function'){
