@@ -34,6 +34,15 @@ export function makePgDb(env=process.env, {poolFactory}={}) {
    available:()=>Boolean(url),
    async ping(){await sql('select 1 as ok');return true;},
    async family(phone){return (await sql('select id,revision,state from cerca.families where wa_id=$1 limit 1',[phone]))[0]||null;},
+   async isInvited(phone,limit){
+     const cap=Number(limit);
+     if(!/^[1-9]\\d{7,14}$/.test(String(phone))||
+       !Number.isInteger(cap)||cap<1||cap>4)return false;
+     // A bounded ordered list cannot be expanded by unsolicited senders.
+     // The worker may SELECT invitations but cannot grant or revoke access.
+     const rows=await sql("select wa_id from cerca.invites where status='invited' order by approved_at asc,wa_id asc limit $1",[cap]);
+     return rows.some(row=>row.wa_id===String(phone));
+   },
    async activeFamilies(){return await sql("select id,wa_id,revision,state from cerca.families where state->>'status'='active' limit 500");},
    async commit(phone,revision,eventId,state,outbox){
      try{return (await sql('select cerca.apply_event($1::text,$2::integer,$3::text,$4::jsonb,$5::jsonb) as value',
