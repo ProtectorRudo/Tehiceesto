@@ -117,6 +117,32 @@ export async function sendEvolution(message,phone,{env=process.env,fetcher=fetch
  } finally {clearTimeout(timeout);}
 }
 
+/**
+ * Probe the bridge from Render, not the laptop, to distinguish a broken tunnel
+ * from a WhatsApp/Baileys session that is not connected.
+ * Returns ONLY a small fixed status; never returns URLs, instance names or keys.
+ */
+export async function probeEvolutionTransport({env=process.env,fetcher=fetch}={}) {
+ if(!evolutionReady(env))return 'not_configured';
+ const origin=new URL(env.EVOLUTION_API_URL).origin;
+ const target=origin+'/instance/connectionState/'+encodeURIComponent(env.EVOLUTION_INSTANCE);
+ const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),6000);
+ timeout.unref?.();
+ try{
+  const response=await fetcher(target,{method:'GET',headers:{apikey:env.EVOLUTION_API_KEY},signal:controller.signal});
+  if(!response.ok)return 'http_'+response.status;
+  const payload=await response.json();
+  const status=String(payload?.instance?.state||payload?.state||'');
+  return ['open','connecting','close','closed'].includes(status)?status:'unexpected_state';
+ } catch(error){
+  if(error?.name==='AbortError'||controller.signal.aborted)return 'timeout';
+  const code=String(error?.cause?.code||error?.code||'').toUpperCase();
+  if(['ENOTFOUND','EAI_AGAIN'].includes(code))return 'dns';
+  if(['ECONNREFUSED','ECONNRESET','ETIMEDOUT','UND_ERR_CONNECT_TIMEOUT'].includes(code))return 'network';
+  return 'unreachable';
+ } finally {clearTimeout(timeout);}
+}
+
 /** Owner-only QR from Evolution; keep images within the server. No public QR endpoint. */
 export async function fetchEvolutionQr({env=process.env,fetcher=fetch}={}) {
  if(!evolutionReady(env))throw new Error('evolution_not_configured');

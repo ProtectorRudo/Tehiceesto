@@ -4,7 +4,7 @@ import {validSignature,extractMessages,extractStatuses,sendMeta} from './meta.mj
 import {parseTwilioForm,validateTwilioSignature,extractTwilioMessage,extractTwilioStatus,sendTwilio} from './twilio.mjs';
 import {makeDb} from './db.mjs';
 import {classifyDbFailure} from './db_pg.mjs';
-import {validateEvolutionWebhook,extractEvolutionMessage,sendEvolution,fetchEvolutionQr,fetchEvolutionPairingCode,classifyEvolutionQrError} from './evolution.mjs';
+import {validateEvolutionWebhook,extractEvolutionMessage,sendEvolution,fetchEvolutionQr,fetchEvolutionPairingCode,classifyEvolutionQrError,probeEvolutionTransport} from './evolution.mjs';
 import {initialState,processInbound} from './flow.mjs';
 import {prepareWeeklyDispatch,weeklyEnabled} from './huella-weekly.mjs';
 import {contentModel} from './huella-ai.mjs';
@@ -241,6 +241,14 @@ async function handle(req,res){
 export const start=()=>http.createServer((req,res)=>handle(req,res).catch(err=>{const c=err.message==='payload_too_large'?413:500;json(res,c,{error:'request_failed'});})).listen(Number(env.PORT||3000),'0.0.0.0');
 if(process.argv[1]&&import.meta.url===new URL(`file://${process.argv[1]}`).href){
  start();
+ // Independent connectivity probe: a healthy database/webhook cannot prove
+ // that outbound HTTPS to the local Evolution API works.
+ const diagnosis=setTimeout(()=>{
+  if(env.CERCA_PROVIDER==='evolution')void probeEvolutionTransport({env})
+   .then(status=>console.info('huella_bridge_connectivity',JSON.stringify({state:status})))
+   .catch(()=>console.info('huella_bridge_connectivity',JSON.stringify({state:'unknown'})));
+ },1000);
+ diagnosis.unref?.();
  // Render free instances can sleep. A WhatsApp webhook may persist the reply
  // but its synchronous transport attempt can fail. Recover existing consented,
  // nonexpired, allowlisted outbox messages after cold start/redeploy. The database
