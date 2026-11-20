@@ -97,7 +97,8 @@ export async function completeTurnoVivoMessage(message,{env=process.env,fetcher=
  const processed=await bridge('process',{message_id:message.message_id},{env,fetcher,timeout:100000});
  // Only reply to the already authorized merchant, never to a customer, and never to HUELLA family recipients.
  if(processed.processed===true&&processed.reply&&env.TURNOVIVO_OPERATOR_REPLIES_ENABLED==='true'){
-   await send({body:String(processed.reply).slice(0,1250)},message.numeric_phone,{env,fetcher});
+   const providerId=await send({body:String(processed.reply).slice(0,1250)},message.numeric_phone,{env,fetcher});
+   if(providerId)await bridge('ack',{message_id:message.message_id,provider_message_id:String(providerId)},{env,fetcher});
  }
  return {processed:processed.processed===true,responded:processed.processed===true&&env.TURNOVIVO_OPERATOR_REPLIES_ENABLED==='true'};
 }

@@ -166,6 +166,14 @@ async function dispatch(){
 }
 async function handle(req,res){
  const url=new URL(req.url||'/',`http://${req.headers.host||'localhost'}`);
+ // Read-only private diagnostic for the shared WhatsApp pilot. Never reports secrets.
+ if(url.pathname==='/internal/turnovivo/status'&&req.method==='GET'){
+   if(String(env.TURNOVIVO_BRIDGE_SECRET||'').length<40||
+      !sameSecret(String(req.headers['x-turnovivo-bridge-secret']||''),String(env.TURNOVIVO_BRIDGE_SECRET)))return fixed(res,401,'Unauthorized');
+   return json(res,200,{bridge_enabled:env.TURNOVIVO_WHATSAPP_BRIDGE_ENABLED==='true',
+     operator_replies_enabled:env.TURNOVIVO_OPERATOR_REPLIES_ENABLED==='true',
+     provider:env.CERCA_PROVIDER,openai_present:Boolean(env.OPENAI_API_KEY)});
+ }
  if(url.pathname==='/api/turnovivo-ai'){
   const {handleTurnoVivoBridge}=await import('./turnovivo-bridge-http.mjs');
   return handleTurnoVivoBridge(req,res,url);
