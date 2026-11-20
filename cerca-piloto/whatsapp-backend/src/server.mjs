@@ -220,7 +220,11 @@ async function handle(req,res){
    count:messages.length
   }));
   for(const m of messages)await inbound(m);
-  try{if(messages.length)await flush(Math.min(20,messages.length*3));}catch{}
+  // Whapi retries on non-200/slow callbacks. Acknowledge after durable DB commit,
+  // then drain the outbox without holding the provider HTTP request open.
+  if(messages.length)setImmediate(()=>{
+   void flush(Math.min(20,messages.length*3)).catch(()=>console.warn('huella_whapi_flush_failed'));
+  });
   return json(res,200,{received:messages.length});
  }
  // Twilio Sandbox uses signed form-urlencoded POSTs and an empty TwiML acknowledgement.
