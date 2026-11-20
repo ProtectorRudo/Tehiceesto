@@ -39,6 +39,15 @@ export function classifyOutboundFailure(error){
   return 'network_'+code.toLowerCase();
  return 'transport_unclassified';
 }
+/** Fixed, non-identifying labels for Evolution webhook acceptance. */
+export function classifyEvolutionInbound(event,message,accepted,instance) {
+ if(accepted)return 'accepted';
+ if(message)return 'not_allowlisted';
+ if(event?.instance!==instance)return 'instance_mismatch';
+ if(String(event?.event||'').toLowerCase().replaceAll('_','.')!=='messages.upsert')return 'event_type_unexpected';
+ if(!event?.data?.key||event.data.key.fromMe!==false)return 'message_key_unaccepted';
+ return 'message_unsupported_or_identity';
+}
 async function inbound(m){
  const now=new Date();
  // Never interpret stale retries as new consent or a fresh service window.
@@ -157,6 +166,10 @@ async function handle(req,res){
   let event;try{event=JSON.parse(raw.toString('utf8'));}catch{return json(res,400,{error:'invalid_json'});}
   const message=extractEvolutionMessage(event,{instance:env.EVOLUTION_INSTANCE});
   const accepted=Boolean(message&&isAllowedInboundRecipient(message.phone,env));
+  // Minimal inbound diagnostics: fixed categories only. NEVER log sender, body,
+  // raw webhook payload, message ID or credentials.
+  const inboundReason=classifyEvolutionInbound(event,message,accepted,env.EVOLUTION_INSTANCE);
+  console.info('huella_evolution_webhook',JSON.stringify({result:inboundReason}));
   if(accepted){await inbound(message);try{await flush(5);}catch{}}
   return json(res,200,{received:accepted?1:0});
  }
