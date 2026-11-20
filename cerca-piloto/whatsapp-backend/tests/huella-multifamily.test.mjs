@@ -84,6 +84,7 @@ test('two adult records and mission outputs never inherit the other family name 
  assert.deepEqual(states.get(A).children[0].interests,['dibujar']);
  assert.deepEqual(states.get(B).children[0].interests,['fútbol']);
  const now=new Date('2026-11-21T11:00:00Z');
+ const uniqueKeys=new Map();
  for(const [phone,state] of states){
   const result=await prepareWeeklyDispatch(state,phone,now,{
    env,generate,approvedInvited:phone===B
@@ -94,10 +95,10 @@ test('two adult records and mission outputs never inherit the other family name 
   const body=result.jobs[0].payload.params[1];
   assert.match(body,new RegExp(phone===A?'Luz':'Nico'));
   assert.doesNotMatch(body,new RegExp(phone===A?'Nico':'Luz'));
-  assert.notEqual(result.jobs[0].key,(await prepareWeeklyDispatch(states.get(phone===A?B:A),phone===A?B:A,now,
-   {env,generate,approvedInvited:true})).jobs[0].key);
+  uniqueKeys.set(phone,result.jobs[0].key);
   states.set(phone,result.updated);
  }
+ assert.notEqual(uniqueKeys.get(A),uniqueKeys.get(B));
  assert.equal(states.get(A).adultName,'Ana');
  assert.equal(states.get(B).adultName,'Beatriz');
  assert.equal(states.get(A).history[0].children[0].name,'Luz');
@@ -119,8 +120,10 @@ test('AI input receives only the selected family minimal profile, never another 
    }]}]}),{status:200});
   }});
  }
- assert.match(captured[0],/Luz/);
- assert.doesNotMatch(captured[0],/Nico|Beatriz|5492218765432/);
- assert.match(captured[1],/Nico/);
- assert.doesNotMatch(captured[1],/Luz|Ana|5492211234567/);
+ // The editorial context intentionally omits ALL names and phone numbers.
+ // The personalisation context must include only this family's interests.
+ assert.match(captured[0],/dibujar/);
+ assert.doesNotMatch(captured[0],/fútbol|Nico|Luz|Beatriz|Ana|5492218765432/);
+ assert.match(captured[1],/fútbol/);
+ assert.doesNotMatch(captured[1],/dibujar|Luz|Nico|Ana|Beatriz|5492211234567/);
 });
