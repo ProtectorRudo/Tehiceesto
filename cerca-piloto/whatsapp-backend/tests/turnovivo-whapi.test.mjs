@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {extractTurnoVivoWhapi,isTurnoVivoOperator,receiveTurnoVivoMessage,completeTurnoVivoMessage} from '../src/turnovivo-whapi.mjs';
+import {extractTurnoVivoWhapi,isTurnoVivoOperator,verifyTurnoVivoPhoneCode,receiveTurnoVivoMessage,completeTurnoVivoMessage} from '../src/turnovivo-whapi.mjs';
 const now=new Date();const stamp=Math.round(Date.now()/1000);const channel='CHNL12345';
 const payload={channel_id:channel,event:{type:'messages',event:'post'},messages:[
  {from_me:false,type:'text',from:'5492211234567',chat_id:'5492211234567@s.whatsapp.net',timestamp:stamp,id:'abcdef0123456',text:{body:'Reservame a Mauro mañana a las 15'}},
@@ -15,6 +15,7 @@ const env={TURNOVIVO_WHATSAPP_BRIDGE_ENABLED:'true',TURNOVIVO_BRIDGE_SECRET:'abc
 const fetcher=async(url,opts={})=>{
  called.push({action:new URL(url).searchParams.get('action'),url,body:JSON.parse(opts.body)});
  if(url.includes('action=lookup'))return Response.json({registered:true});
+ if(url.includes('action=verify'))return Response.json({verified:true});
  if(url.includes('action=ingest'))return Response.json({accepted:true,new_message:true});
  if(url.includes('action=process'))return Response.json({processed:true,reply:'Listo, turno registrado'});
  if(url.includes('action=ack'))return Response.json({accepted:true});
@@ -28,3 +29,12 @@ const done=await completeTurnoVivoMessage(items[0],{env:{...env,TURNOVIVO_OPERAT
 assert.equal(done.responded,true);assert.equal(sent,1);assert.ok(called.some(x=>x.action==='ack'&&x.body.provider_message_id==='PROVIDERMSG1234567'));
 assert.equal((await isTurnoVivoOperator(items[0].from_phone,{env:{...env,TURNOVIVO_WHATSAPP_BRIDGE_ENABLED:'false'},fetcher})),false);
 console.log('OK: 9 pruebas (texto, audio, grupos, canal, origen, registro, ingesta, procesamiento, envío seguro)');
+const codeMessage={...items[0],text:'TV-A1B2C3D4'};
+const verified=await verifyTurnoVivoPhoneCode(codeMessage,{env,fetcher});
+assert.equal(verified,true);
+assert.ok(called.some(x=>x.action==='verify'&&x.body.from_phone==='+5492211234567'&&x.body.code==='TV-A1B2C3D4'));
+const invalid=await verifyTurnoVivoPhoneCode({...codeMessage,text:'hello'},{env,fetcher});
+assert.equal(invalid,false);
+const familyOnly=await verifyTurnoVivoPhoneCode(codeMessage,{env:{...env,TURNOVIVO_WHATSAPP_BRIDGE_ENABLED:'false'},fetcher});
+assert.equal(familyOnly,false);
+console.log('OK: WhatsApp prueba de posesión sin enviar mensajes');

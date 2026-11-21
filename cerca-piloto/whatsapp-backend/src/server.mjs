@@ -258,11 +258,16 @@ async function handle(req,res){
   // ACTIVOS de TurnoVivo reciben tratamiento por la ruta de turnos. No interceptar familias.
   if(env.TURNOVIVO_WHATSAPP_BRIDGE_ENABLED==='true'){
     try{
-      const {extractTurnoVivoWhapi,isTurnoVivoOperator,receiveTurnoVivoMessage,completeTurnoVivoMessage}=await import('./turnovivo-whapi.mjs');
+      const {extractTurnoVivoWhapi,isTurnoVivoOperator,verifyTurnoVivoPhoneCode,receiveTurnoVivoMessage,completeTurnoVivoMessage}=await import('./turnovivo-whapi.mjs');
       const candidates=extractTurnoVivoWhapi(payload,{channelId:env.WHAPI_CHANNEL_ID});
       const forwarded=[];
       for(const candidate of candidates){
         if(await permittedFamilyPhone(candidate.numeric_phone,{env,db}))continue;
+        // Activar un operador solo tras recibir su código desde el propio WhatsApp.
+        if(candidate.message_type==='text'&&/^TV-[0-9A-F]{8}$/i.test(candidate.text.trim())){
+          await verifyTurnoVivoPhoneCode(candidate,{env});
+          continue;
+        }
         if(!(await isTurnoVivoOperator(candidate.from_phone,{env})))continue;
         const saved=await receiveTurnoVivoMessage(candidate,{env});
         if(saved.accepted&&saved.new_message)forwarded.push(candidate);

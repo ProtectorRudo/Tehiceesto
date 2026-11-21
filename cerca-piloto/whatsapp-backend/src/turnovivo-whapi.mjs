@@ -51,6 +51,19 @@ async function bridge(action,body,{env=process.env,fetcher=fetch,timeout=12000}=
   return await res.json();
  }finally{clearTimeout(timer);}
 }
+/** El comercio confirma el número enviando su código desde el teléfono que controla. */
+export async function verifyTurnoVivoPhoneCode(message,{env=process.env,fetcher=fetch,send=sendWhapi}={}){
+ if(env.TURNOVIVO_WHATSAPP_BRIDGE_ENABLED!=='true'||message.message_type!=='text')return false;
+ const code=String(message.text||'').trim().toUpperCase();
+ if(!/^TV-[0-9A-F]{8}$/.test(code))return false;
+ const status=await bridge('verify',{from_phone:message.from_phone,code},{env,fetcher});
+ if(status.verified===true&&env.TURNOVIVO_OPERATOR_REPLIES_ENABLED==='true'){
+   try{await send({body:'¡Listo! ✅ Este número ya puede administrar turnos en TurnoVivo.'},message.numeric_phone,{env,fetcher});}
+   catch{ /* La activación ya es duradera: el mensaje de confirmación es secundario. */ }
+ }
+ return status.verified===true;
+}
+
 export async function isTurnoVivoOperator(phone,{env=process.env,fetcher=fetch}={}){
  if(env.TURNOVIVO_WHATSAPP_BRIDGE_ENABLED!=='true')return false;
  if(!/^\+[1-9][0-9]{7,14}$/.test(phone))return false;
