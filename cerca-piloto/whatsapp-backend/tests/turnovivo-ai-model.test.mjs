@@ -52,7 +52,7 @@ test('TurnoVivo IA expone operaciones completas sin inventar atributos',async()=
  const actions=["book","cancel","reschedule","availability","client_add","client_remove","client_edit","client_list","service_add","service_edit","service_remove","service_restore","service_list","report"];
  let index=0;
  globalThis.fetch=async(url,options={})=>{
-  if(String(url).includes('turnovivo-core?action=dashboard'))return Response.json({business:{id:'b1',name:'Local de prueba',timezone:'America/Argentina/Buenos_Aires'},services:[{id:'10000000-0000-4000-8000-000000000001',name:'Corte',active:true}]});
+  if(String(url).includes('turnovivo-core?action=dashboard'))return Response.json({business:{id:'tv-test-'+index,name:'Local de prueba',timezone:'America/Argentina/Buenos_Aires'},services:[{id:'10000000-0000-4000-8000-000000000001',name:'Corte',active:true}]});
   if(String(url)==='https://api.openai.com/v1/responses'){
    const body=JSON.parse(options.body),schema=body.text.format.schema;
    assert.deepEqual(schema.required,["action","client_name","client_phone","client_email","service_id","service_name","service_new_name","duration_minutes","price_ars","date","time","from_date","from_time","report_from","report_to","report_metric"]);assert.equal(schema.additionalProperties,false);
