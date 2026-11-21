@@ -22,8 +22,8 @@ test('TurnoVivo IA usa HUELLA Responses JSON estricto sin enviar ni registrar da
    assert.equal(body.store,false);
    assert.equal(body.text.format.type,'json_schema');
    assert.equal(body.text.format.strict,true);
-   assert.deepEqual(body.text.format.schema.required,['action','client_name','client_phone','service_id','date','time']);
-   return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({action:'book',client_name:'Mauro',client_phone:null,service_id:serviceId,date:'2026-11-21',time:'15:00'})}]}]});
+   assert.deepEqual(body.text.format.schema.required,['action','client_name','client_phone','service_id','date','time','from_date','from_time']);
+   return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({action:'book',client_name:'Mauro',client_phone:null,service_id:serviceId,date:'2026-11-21',time:'15:00',from_date:null,from_time:null})}]}]});
   }
   throw Error('Unexpected URL');
  };
