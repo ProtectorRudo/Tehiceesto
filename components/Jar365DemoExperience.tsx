@@ -199,9 +199,9 @@ export default function Jar365DemoExperience({experience,giftCode,previewNotes,f
 
   return <main className="jar365-shell">
     <header className="jar365-topbar">
-      <a href="/" className="jar365-brand">TE HICE ESTO<span>♥</span><small>UN REGALO QUE DURA UN AÑO</small></a>
+      <a href={resettableDemo?"https://tehiceesto.com/":"/"} className="jar365-brand">TE HICE ESTO<span>♥</span><small>UN REGALO QUE DURA UN AÑO</small></a>
       <span className="jar365-top-count"><i/> {String(current).padStart(3,"0")} <b>/ {limitedDemo?"005":"365"}</b></span>
-      {demo&&<a className="jar365-top-link" href="/comprar/frasco365">Quiero regalarlo <span>↗</span></a>}
+      {demo&&<a className="jar365-top-link" href={resettableDemo?"https://tehiceesto.com/comprar/frasco365":"/comprar/frasco365"}>Quiero regalarlo <span>↗</span></a>}
     </header>
     <div className="jar365-ambient"><i/><i/><i/><i/></div>
     <div className="jar365-body">
