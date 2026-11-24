@@ -11,7 +11,7 @@ type JarState = {
   total:number; openedCount:number; remaining?:number; available:number; startedAt:string|null;
   nextAt:string|null; serverNow:string;
 };
-type Props={experience:Experience;giftCode?:string;previewNotes?:Jar365Note[];};
+type Props={experience:Experience;giftCode?:string;previewNotes?:Jar365Note[];freeDemo?:boolean;};
 
 function formatCountdown(millis:number) {
   const seconds=Math.max(0,Math.ceil(millis/1000));
@@ -88,9 +88,10 @@ function JarIllustration({progress,drawing}:{progress:number;drawing:boolean}){
   </svg>;
 }
 
-export default function Jar365DemoExperience({experience,giftCode,previewNotes}:Props){
+export default function Jar365DemoExperience({experience,giftCode,previewNotes,freeDemo=false}:Props){
   const demo=!giftCode;
-  const limitedDemo=demo&&!(previewNotes?.length===365);
+  const resettableDemo=demo&&freeDemo;
+  const limitedDemo=demo&&!resettableDemo&&!(previewNotes?.length===365);
   const demoStorage="jar365-public-demo-opened-v1";
   const [state,setState]=useState<JarState|null>(demo?{
     giver:experience.demoGiver,recipient:experience.demoRecipient,total:365,
@@ -138,7 +139,7 @@ export default function Jar365DemoExperience({experience,giftCode,previewNotes}:
     document.addEventListener("visibilitychange",onFocus);
     return()=>{clearInterval(timer);document.removeEventListener("visibilitychange",onFocus);};
   },[load]);
-  useEffect(()=>{try{const value=JSON.parse(localStorage.getItem(giftStorage)||"[]");if(Array.isArray(value))setFavorites(value.filter(Number.isInteger));}catch{}},[giftStorage]);
+  useEffect(()=>{if(resettableDemo)return;try{const value=JSON.parse(localStorage.getItem(giftStorage)||"[]");if(Array.isArray(value))setFavorites(value.filter(Number.isInteger));}catch{}},[giftStorage,resettableDemo]);
   // A paper becomes available even if the recipient keeps the page open overnight.
   useEffect(()=>{
     if(demo||!state?.nextAt||state.available>0)return;
@@ -156,7 +157,7 @@ export default function Jar365DemoExperience({experience,giftCode,previewNotes}:
   const toggleFavorite=(position:number)=>{
     setFavorites(prev=>{
       const next=prev.includes(position)?prev.filter(x=>x!==position):[...prev,position];
-      try{localStorage.setItem(giftStorage,JSON.stringify(next));}catch{}
+      if(!resettableDemo)try{localStorage.setItem(giftStorage,JSON.stringify(next));}catch{}
       return next;
     });
   };
@@ -211,7 +212,7 @@ export default function Jar365DemoExperience({experience,giftCode,previewNotes}:
       </div>
       <section className="jar365-stage" aria-label="Frasco de papelitos">
         <span className="jar365-stage-spark s1">✦</span><span className="jar365-stage-spark s2">✧</span>
-        <span className="jar365-orbit-caption">UNO POR DÍA · SIN APURO</span>
+        <span className="jar365-orbit-caption">{resettableDemo?"365 MIMOS · SIN ESPERA":"UNO POR DÍA · SIN APURO"}</span>
         <button type="button" className="jar365-jar-button" onClick={()=>void draw()}
           disabled={!available||busy||!ready} aria-label={limitedDemo&&current>=5?"Volver a leer uno de mis cinco mimos":available?"Tocar el frasco para sacar un papelito":"Frasco cerrado hasta el próximo cupo"}>
           <JarIllustration progress={current} drawing={drawing}/>
@@ -225,11 +226,12 @@ export default function Jar365DemoExperience({experience,giftCode,previewNotes}:
           <span className="jar365-inventory-divider" aria-hidden="true"/>
           <div className="jar365-inventory-number"><strong>{current}</strong><span>que ya abriste</span></div>
         </div>}
+        {resettableDemo&&<span className="jar365-demo-notice">VISTA ESPECIAL · APERTURA LIBRE</span>}
         {limitedDemo&&<span className="jar365-demo-notice">DEMO INTERACTIVA · CINCO MIMOS · SE RECUERDAN EN ESTE DISPOSITIVO</span>}
         {!ready?<p className="jar365-loading">Buscando tu papelito de hoy…</p>:<>
           {limitedDemo&&current>=5?<div className="jar365-ritual-copy"><strong>Ya descubriste los cinco mimos de la demo. ♡</strong><span>Podés volver a verlos siempre; nunca aparecen otros nuevos.</span></div>:
           current>=365?<div className="jar365-ritual-copy"><strong>Ya abriste los 365.</strong><span>Ahora tenés un año entero de mensajes para volver a leer.</span></div>:
-          available>0?<div className="jar365-ritual-copy"><strong>{demo&&current===0?"Tu primer papelito está listo.":"Hay un papelito esperándote."}</strong><span>Tocá el frasco y descubrí lo que te tocó hoy.</span></div>:
+          available>0?<div className="jar365-ritual-copy"><strong>{demo&&current===0?"Tu primer papelito está listo.":"Hay un papelito esperándote."}</strong><span>{resettableDemo?"Tocá el frasco y descubrí otro mensaje.":"Tocá el frasco y descubrí lo que te tocó hoy."}</span></div>:
           <div className="jar365-ritual-copy"><strong>Por hoy, ya está. ♡</strong><span>El siguiente se libera en <b className="jar365-countdown">{formatCountdown(nextMs)}</b></span></div>}
           <button className="jar365-main-cta" type="button" onClick={()=>void draw()}
             disabled={!available||busy||drawing||(!limitedDemo&&current>=365)}>
@@ -243,7 +245,7 @@ export default function Jar365DemoExperience({experience,giftCode,previewNotes}:
         <div className="jar365-progress-track" role="progressbar" aria-valuenow={current} aria-valuemin={0} aria-valuemax={limitedDemo?5:365}>
           <i style={{width:progress+"%"}}/>
         </div>
-        <p className="jar365-progress-caption">{demo?"El demo tiene cinco mimos que se pueden repetir. El regalo real contiene 365, uno nuevo cada 24 horas.":"Uno cada 24 horas. Los que todavía no abriste siguen guardados para vos."}</p>
+        <p className="jar365-progress-caption">{resettableDemo?"Podés abrir los 365 sin esperar. Cada vez que vuelvas a entrar, el frasco comienza de nuevo.":demo?"El demo tiene cinco mimos que se pueden repetir. El regalo real contiene 365, uno nuevo cada 24 horas.":"Uno cada 24 horas. Los que todavía no abriste siguen guardados para vos."}</p>
       </section>
       <footer className="jar365-bottom">
         <span>365 DÍAS · 365 PEQUEÑAS RAZONES</span><span>HECHO CON CARIÑO, PARA UNA SOLA PERSONA ♡</span>
