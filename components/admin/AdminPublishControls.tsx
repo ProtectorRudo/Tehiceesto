@@ -17,16 +17,19 @@ export default function AdminPublishControls({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState("");
   const published = status === "published";
 
   const toggle = () => {
     startTransition(async () => {
-      if (published) {
-        await unpublishGiftAction(code);
-      } else {
-        await publishGiftAction(code);
+      setError("");
+      try {
+        if (published) await unpublishGiftAction(code);
+        else await publishGiftAction(code);
+        router.refresh();
+      } catch {
+        setError("No se pudo confirmar el cambio. Recargá el panel para comprobar el estado antes de reintentar. El contenido no se borra.");
       }
-      router.refresh();
     });
   };
 
@@ -66,6 +69,7 @@ export default function AdminPublishControls({
             ? "✓ Publicado · despublicar"
             : "Publicar regalo"}
       </button>
+      {error && <p role="alert">{error}</p>}
     </div>
   );
 }
