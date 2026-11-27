@@ -1,0 +1,122 @@
+name: Atelier Nacar - Blender Cycles laboratory
+on:
+  push:
+    branches: [lab/blender-cycles-nacar-20261126]
+    paths: ['.github/workflows/atelier-blender-lab.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Install Blender and verify Cycles
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends blender
+          blender --version
+      - name: Render original satin material study
+        run: |
+          mkdir -p output
+          cat > /tmp/nacar.py <<'PY'
+          import bpy, math, os
+          from mathutils import Vector
+          from math import sin, cos, pi, exp, sqrt, atan2
+          bpy.ops.object.select_all(action='SELECT')
+          bpy.ops.object.delete(use_global=False)
+          scene=bpy.context.scene
+          scene.render.engine='CYCLES'
+          scene.cycles.device='CPU'
+          scene.cycles.samples=32
+          scene.cycles.use_denoising=True
+          scene.render.resolution_x=420
+          scene.render.resolution_y=840
+          scene.render.resolution_percentage=100
+          scene.view_settings.view_transform='AgX'
+          scene.world.use_nodes=True
+          scene.world.node_tree.nodes['Background'].inputs[0].default_value=(0.16,0.12,0.17,1)
+          scene.world.node_tree.nodes['Background'].inputs[1].default_value=0.28
+          def material(name,col,metal,rough,sheen=0):
+              m=bpy.data.materials.new(name);m.use_nodes=True
+              n=m.node_tree.nodes; l=m.node_tree.links; bs=n.get('Principled BSDF')
+              bs.inputs['Base Color'].default_value=(*col,1)
+              bs.inputs['Metallic'].default_value=metal
+              bs.inputs['Roughness'].default_value=rough
+              if 'Sheen Weight' in bs.inputs: bs.inputs['Sheen Weight'].default_value=sheen
+              if 'Anisotropic IOR Level' in bs.inputs: bs.inputs['Anisotropic IOR Level'].default_value=.65
+              noise=n.new('ShaderNodeTexNoise');noise.inputs['Scale'].default_value=240;noise.inputs['Detail'].default_value=2
+              bump=n.new('ShaderNodeBump');bump.inputs['Strength'].default_value=.13;bump.inputs['Distance'].default_value=.003
+              l.new(noise.outputs['Fac'],bump.inputs['Height']);l.new(bump.outputs['Normal'],bs.inputs['Normal'])
+              return m
+          satin=material('Dusty mauve woven silk',(.27,.17,.25),.2,.31,.33)
+          ribbon=material('Pearlescent woven ribbon',(.43,.29,.39),.31,.27,.27)
+          pearl=material('Natural pearl',(.78,.64,.72),.22,.19,.05)
+          paper=material('Mauve stationery',(.34,.24,.31),.05,.72)
+          def grid(name,nu,nv,fn,mat):
+              verts=[fn(i/nu,j/nv) for j in range(nv+1) for i in range(nu+1)]
+              faces=[]
+              for j in range(nv):
+                  for i in range(nu):
+                      a=j*(nu+1)+i;faces.append((a,a+1,a+nu+2,a+nu+1))
+              me=bpy.data.meshes.new(name);me.from_pydata(verts,[],faces);me.update()
+              ob=bpy.data.objects.new(name,me);scene.collection.objects.link(ob);ob.data.materials.append(mat)
+              for p in me.polygons:p.use_smooth=True
+              so=ob.modifiers.new('Fabric thickness','SOLIDIFY');so.thickness=.008
+              return ob
+          bpy.ops.mesh.primitive_plane_add(size=2,location=(0,0,-.13));ob=bpy.context.object;ob.scale=(1.2,2.25,1);ob.data.materials.append(paper)
+          for sign in [-1,1]:
+              def cloth(u,v,sign=sign):
+                  y=(v-.5)*3.66; a=atan2(y*.65,u+.13);d=sqrt(u*u+y*y*.32)
+                  x=sign*(u*(.82+.17*cos(y*.65))-.018)
+                  z=.065+(.058*sin(a*9+d*7+sin(y*3)*.5)+.017*sin(a*19+d*4))*exp(-d*.55)+.022*sin(u*18+y*3)+.018*sign
+                  return (x,y,z)
+              grid('Gathered silk',120,220,cloth,satin)
+          def strip(name,points,width):
+              from mathutils.geometry import interpolate_bezier
+              # Catmull-Rom centerline with a curved cross section.
+              pp=[Vector(p) for p in points]
+              def point(u):
+                  t=u*(len(pp)-1);k=min(int(t),len(pp)-2);t-=k
+                  a,b,c,d=pp[max(0,k-1)],pp[k],pp[k+1],pp[min(len(pp)-1,k+2)]
+                  return .5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t)
+              def f(u,v):
+                  p=point(u);t=point(min(1,u+.002))-point(max(0,u-.002));n=Vector((-t.y,t.x,0)).normalized()
+                  q=(v-.5)*width*(.82+.18*sin(pi*u));p+=n*q;p.z+=.016*cos((v-.5)*pi)+.009*sin(u*22+v*6)
+                  return tuple(p)
+              return grid(name,140,20,f,ribbon)
+          for s in [-1,1]:
+              strip('Silk bow loop',[(0,0,.25),(s*.22,.065,.34),(s*.48,.21,.31),(s*.56,.12,.22),(s*.40,-.06,.20),(0,0,.24)],.12)
+              strip('Silk bow tail',[(0,-.02,.23),(s*.27,-.13,.24),(s*.45,-.21,.19),(s*.72,-.42,.15)],.095)
+              strip('Silk band',[(0,0,.17),(s*.39,.03,.15),(s*.76,.06,.15),(s*1.12,.09,.13)],.075)
+          bpy.ops.mesh.primitive_uv_sphere_add(segments=48,ring_count=32,radius=.065,location=(0,0,.30))
+          ob=bpy.context.object;ob.scale=(1.12,.88,.53);ob.data.materials.append(ribbon)
+          for i in range(7):
+              a=2*pi*i/7
+              bpy.ops.mesh.primitive_uv_sphere_add(segments=24,ring_count=16,radius=.020,location=(.049*cos(a),.038*sin(a),.337))
+              ob=bpy.context.object;ob.data.materials.append(pearl)
+              for p in ob.data.polygons:p.use_smooth=True
+          def area(name,loc,energy,size,size_y,col):
+              d=bpy.data.lights.new(name,'AREA');d.energy=energy;d.shape='RECTANGLE';d.size=size;d.size_y=size_y;d.color=col
+              o=bpy.data.objects.new(name,d);scene.collection.objects.link(o);o.location=loc;o.rotation_euler=(-o.location).to_track_quat('-Z','Y').to_euler()
+          area('Large softbox',(-2.6,2.4,4),310,2.3,4.5,(1,.88,.83))
+          area('Strip reflection',(2.7,.4,2.1),155,.55,4,(.86,.84,1))
+          area('Soft fill',(.1,-3.2,3),65,3,2,(1,.9,.95))
+          bpy.ops.object.camera_add(location=(0,0,7))
+          cam=bpy.context.object;cam.rotation_euler=(0,0,0);cam.data.type='ORTHO';cam.data.ortho_scale=4.35;scene.camera=cam
+          scene.render.image_settings.file_format='PNG'
+          scene.render.filepath=os.path.abspath('output/nacar-cycles.png')
+          bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath('output/nacar-lab.blend'))
+          bpy.ops.render.render(write_still=True)
+          assert os.path.getsize(scene.render.filepath)>10000
+          print('CYCLES_RENDER_OK',scene.render.filepath,os.path.getsize(scene.render.filepath),flush=True)
+          PY
+          cp /tmp/nacar.py output/nacar.py
+          blender -b -t 2 --python-exit-code 1 --python /tmp/nacar.py
+          ls -lh output
+      - name: Upload render and editable project
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: atelier-nacar-cycles-lab
+          path: output/
+          retention-days: 7
