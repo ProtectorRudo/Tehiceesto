@@ -28,12 +28,12 @@ jobs:
           scene=bpy.context.scene
           scene.render.engine='CYCLES'
           scene.cycles.device='CPU'
-          scene.cycles.samples=96
+          scene.cycles.samples=128
           scene.cycles.use_adaptive_sampling=True
           scene.cycles.adaptive_threshold=0.025
           scene.cycles.use_denoising=False
-          scene.render.resolution_x=420
-          scene.render.resolution_y=840
+          scene.render.resolution_x=720
+          scene.render.resolution_y=1440
           scene.render.resolution_percentage=100
           scene.view_settings.view_transform='AgX'
           scene.world.use_nodes=True
@@ -51,8 +51,8 @@ jobs:
               bump=n.new('ShaderNodeBump');bump.inputs['Strength'].default_value=.13;bump.inputs['Distance'].default_value=.003
               l.new(noise.outputs['Fac'],bump.inputs['Height']);l.new(bump.outputs['Normal'],bs.inputs['Normal'])
               return m
-          satin=material('Dusty mauve woven silk',(.27,.17,.25),.2,.31,.33)
-          ribbon=material('Pearlescent woven ribbon',(.43,.29,.39),.31,.27,.27)
+          satin=material('Dusty mauve woven silk',(.24,.16,.22),.10,.44,.29)
+          ribbon=material('Pearlescent woven ribbon',(.39,.27,.35),.18,.37,.22)
           pearl=material('Natural pearl',(.78,.64,.72),.22,.19,.05)
           paper=material('Mauve stationery',(.34,.24,.31),.05,.72)
           def grid(name,nu,nv,fn,mat):
@@ -69,9 +69,9 @@ jobs:
           bpy.ops.mesh.primitive_plane_add(size=2,location=(0,0,-.13));ob=bpy.context.object;ob.scale=(1.2,2.25,1);ob.data.materials.append(paper)
           for sign in [-1,1]:
               def cloth(u,v,sign=sign):
-                  y=(v-.5)*3.66; a=atan2(y*.65,u+.13);d=sqrt(u*u+y*y*.32)
-                  x=sign*(u*(.82+.17*cos(y*.65))-.018)
-                  z=.065+(.058*sin(a*9+d*7+sin(y*3)*.5)+.017*sin(a*19+d*4))*exp(-d*.55)+.022*sin(u*18+y*3)+.018*sign
+                  y=(v-.5)*4.70; a=atan2(y*.65,u+.19);d=sqrt(u*u+y*y*.32)
+                  x=sign*(u*(1.12+.12*cos(y*.65))-.035)
+                  z=.065+(.066*sin(a*7.2+d*5.3+sin(y*2)*.4)+.011*sin(a*15+d*3))*exp(-d*.65)+.014*sin(u*14+y*2.3)+.012*sign
                   return (x,y,z)
               grid('Gathered silk',120,220,cloth,satin)
           def strip(name,points,width):
@@ -84,7 +84,7 @@ jobs:
                   return .5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t)
               def f(u,v):
                   p=point(u);t=point(min(1,u+.002))-point(max(0,u-.002));n=Vector((-t.y,t.x,0)).normalized()
-                  q=(v-.5)*width*(.82+.18*sin(pi*u));p+=n*q;p.z+=.016*cos((v-.5)*pi)+.009*sin(u*22+v*6)
+                  q=(v-.5)*width*(.82+.18*sin(pi*u));p+=n*q;p.z+=.011*cos((v-.5)*pi)+.003*sin(u*17+v*5)
                   return tuple(p)
               return grid(name,140,20,f,ribbon)
           for s in [-1,1]:
@@ -112,6 +112,74 @@ jobs:
           bpy.ops.render.render(write_still=True)
           assert os.path.getsize(scene.render.filepath)>10000
           print('CYCLES_RENDER_OK',scene.render.filepath,os.path.getsize(scene.render.filepath),flush=True)
+          # Separate physically rendered embossed envelope study.
+          for ob in list(scene.objects):
+              if ob.type=='MESH': bpy.data.objects.remove(ob,do_unlink=True)
+          import random
+          random.seed(32)
+          foil=material('Brushed mauve silver foil',(.35,.26,.32),.60,.36,.06)
+          edge=material('Folded paper edge',(.25,.18,.23),.22,.55)
+          rim=material('Oval silver seal',(.43,.30,.36),.82,.28)
+          inlay=material('Engraved seal field',(.28,.19,.25),.52,.39)
+          ivory=material('Raised initials',(.66,.49,.59),.66,.28)
+          leaves=[]
+          for row in range(5):
+              for col in range(3):
+                  x=-1.02+col*1.02+random.uniform(-.19,.19)
+                  y=-2.25+row*1.03+random.uniform(-.15,.15)
+                  leaves.append((x,y,random.uniform(.57,.87),random.uniform(-.8,.8),random.uniform(0,6)))
+          leaves.append((0,-.2,.87,.04,2.1))
+          def smooth(t):
+              t=max(0,min(1,t));return t*t*(3-2*t)
+          def height(x,y):
+              best=0.
+              for cx,cy,r,a,seed in leaves:
+                  dx=x-cx;dy=y-cy
+                  if abs(dx)>r*1.1 or abs(dy)>r*1.1: continue
+                  u=(dx*cos(a)+dy*sin(a))/r;v=(-dx*sin(a)+dy*cos(a))/r
+                  rho=sqrt(u*u+v*v);theta=atan2(u,v)
+                  if rho>.99 or abs(theta)>1.26:continue
+                  outer=1-.17*(theta/1.26)**2+.024*sin(theta*12+seed)+.009*sin(theta*31+seed)
+                  outer-=.07*exp(-(theta/.11)**2)
+                  d=min(outer-rho,(1.26-abs(theta))*rho)
+                  if d<=0:continue
+                  fall=smooth(d/.045)
+                  veins=.0039*sin(theta*62+sin(rho*7+theta*3)*.7)+.007*sin(theta*29+rho*4+seed)
+                  crown=.020+.035*sin(pi*min(1,rho/outer))+.012*(rho/outer)**2
+                  best=max(best,(crown+veins*sqrt(rho))*fall)
+              return best
+          # Triangle meshes of folded paper; the relief is on the material itself.
+          cy=2.18
+          def flap(name,A,B,C,z):
+              def f(u,v):
+                  x=(A[0]*(1-u)+B[0]*u)*(1-v)+C[0]*v
+                  y=(A[1]*(1-u)+B[1]*u)*(1-v)+C[1]*v
+                  return x,y,z+height(x,y)+.005*sin(x*8+y*3)
+              ob=grid(name,200,230,f,foil)
+              return ob
+          flap('Left fold',(-1.1,-cy),(-1.1,cy),(.04,0),.015)
+          flap('Right fold',(1.1,cy),(1.1,-cy),(-.04,0),.035)
+          flap('Bottom fold',(-1.1,-cy),(1.1,-cy),(0,.12),.079)
+          flap('Upper fold',(-1.1,cy),(1.1,cy),(0,-.13),.115)
+          def oval_disc(radius,depth,z,mat):
+              bpy.ops.mesh.primitive_cylinder_add(vertices=128,radius=radius,depth=depth,location=(0,-.08,z))
+              ob=bpy.context.object;ob.scale=(1,1.25,1);ob.data.materials.append(mat)
+              bevel=ob.modifiers.new('Soft polished edge','BEVEL');bevel.width=.012;bevel.segments=4
+              for p in ob.data.polygons:p.use_smooth=True
+              return ob
+          oval_disc(.235,.044,.215,rim)
+          oval_disc(.193,.025,.248,inlay)
+          for radius,minor,z in [(.219,.009,.264),(.176,.004,.270),(.163,.003,.270)]:
+              bpy.ops.mesh.primitive_torus_add(major_segments=128,minor_segments=12,location=(0,-.08,z),major_radius=radius,minor_radius=minor)
+              ob=bpy.context.object;ob.scale.y=1.25;ob.data.materials.append(rim)
+              for p in ob.data.polygons:p.use_smooth=True
+          bpy.ops.object.text_add(location=(0,-.085,.271))
+          ob=bpy.context.object;ob.data.body='C & J';ob.data.align_x='CENTER';ob.data.align_y='CENTER';ob.data.size=.105;ob.data.extrude=.0015;ob.data.bevel_depth=.0008;ob.data.materials.append(ivory)
+          scene.render.filepath=os.path.abspath('output/nacar-envelope.png')
+          bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath('output/nacar-envelope.blend'))
+          bpy.ops.render.render(write_still=True)
+          assert os.path.getsize(scene.render.filepath)>10000
+          print('ENVELOPE_RENDER_OK',os.path.getsize(scene.render.filepath),flush=True)
           PY
           cp /tmp/nacar.py output/nacar.py
           blender -b -t 4 --python-exit-code 1 --python /tmp/nacar.py
