@@ -11,17 +11,19 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Retrieve completed test render
+      - name: Publish both Cycles renders
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh run download 45918750863 -R "$GITHUB_REPOSITORY" -n atelier-nacar-cycles-lab -D /tmp/nacar
-          test -s /tmp/nacar/nacar-cycles.png
+          gh run download 45919157468 -R "$GITHUB_REPOSITORY" -n atelier-nacar-cycles-lab -D /tmp/nacar
           python - <<'PY'
           import json,base64
-          with open('/tmp/nacar/nacar-cycles.png','rb') as f:
-              data=base64.b64encode(f.read()).decode()
-          with open('/tmp/payload.json','w') as f:
-              json.dump({'message':'lab: publish first Cycles material preview','content':data,'branch':'lab/blender-cycles-nacar-20261126'},f)
+          for name in ['nacar-cycles','nacar-envelope']:
+              with open('/tmp/nacar/'+name+'.png','rb') as f:
+                  data=base64.b64encode(f.read()).decode()
+              with open('/tmp/'+name+'.json','w') as f:
+                  json.dump({'message':'lab: publish Cycles v2 render','content':data,'branch':'lab/blender-cycles-nacar-20261126'},f)
           PY
-          gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/lab-preview/nacar-cycles-v1.png" --input /tmp/payload.json --jq '.content.download_url'
+          for name in nacar-cycles nacar-envelope; do
+            gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/lab-preview/$name-v2.png" --input "/tmp/$name.json" --jq '.content.download_url'
+          done
