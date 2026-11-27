@@ -28,8 +28,10 @@ jobs:
           scene=bpy.context.scene
           scene.render.engine='CYCLES'
           scene.cycles.device='CPU'
-          scene.cycles.samples=32
-          scene.cycles.use_denoising=True
+          scene.cycles.samples=96
+          scene.cycles.use_adaptive_sampling=True
+          scene.cycles.adaptive_threshold=0.025
+          scene.cycles.use_denoising=False
           scene.render.resolution_x=420
           scene.render.resolution_y=840
           scene.render.resolution_percentage=100
@@ -112,7 +114,7 @@ jobs:
           print('CYCLES_RENDER_OK',scene.render.filepath,os.path.getsize(scene.render.filepath),flush=True)
           PY
           cp /tmp/nacar.py output/nacar.py
-          blender -b -t 2 --python-exit-code 1 --python /tmp/nacar.py
+          blender -b -t 4 --python-exit-code 1 --python /tmp/nacar.py
           ls -lh output
       - name: Upload render and editable project
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
